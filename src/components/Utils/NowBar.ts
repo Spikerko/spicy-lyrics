@@ -892,9 +892,10 @@ function UpdateNowBar(force = false) {
         MediaImage.classList.add("Skeletoned");
         const finalUrl = `https://i.scdn.co/image/${coverArt.replace("spotify:image:", "")}`;
         BlobURLMaker(finalUrl)
+        .catch(() => null)
         .then(coverArtUrl => {
             MediaImage.classList.remove("Skeletoned")
-            MediaImage.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`;
+            MediaImage.style.backgroundImage = `url("${coverArtUrl ?? coverArt}")`;
             MediaImage.setAttribute("last-image", coverArt ?? "");
         })
     }
