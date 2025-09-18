@@ -149,3 +149,7 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   width: 100%;
   height: 100%;
 }
+
+#SpicyLyricsPage .spicy-dynamic-bg.ColorBackground {
+  z-index: -1 !important;
+}
