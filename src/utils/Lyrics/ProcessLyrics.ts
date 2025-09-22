@@ -17,7 +17,7 @@ const ChineseTextText = /([\u4E00-\u9FFF])/;
 const JapaneseTextText = /([ぁ-んァ-ン])/;
 
 // Cyrillic (basic + supplements + extended)
-const CyrillicTextTest = /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]/;
+const CyrillicTextTest = /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]{2,}/;
 
 // Greek (Basic + Extended)
 const GreekTextTest = /[\u0370-\u03FF\u1F00-\u1FFF]/;
