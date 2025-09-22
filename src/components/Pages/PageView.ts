@@ -355,6 +355,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     `;
 
   let targetElem: HTMLElement | null = elem;
+  let mediaContentElem: HTMLElement | null = null;
   if (Fullscreen.IsOpen) {
     const mediaContent = document.querySelector<HTMLElement>(
       "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent"
@@ -367,6 +368,7 @@ function AppendViewControls(ReAppend: boolean = false) {
       if (viewControls) {
         targetElem = viewControls;
       }
+      mediaContentElem = mediaContent;
     }
   } else {
     const contentBox = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox");
@@ -383,6 +385,9 @@ function AppendViewControls(ReAppend: boolean = false) {
   if (targetElem) {
     SetupTippy(targetElem);
   }
+
+  // Volume control is now provided by NowBar VolumeTimeline in fullscreen – ensure any legacy control is removed
+  removeFullscreenVolumeControl();
 
   function SetupTippy(elem: HTMLElement) {
     // Let's set up our TippyProps
@@ -638,6 +643,12 @@ function AppendViewControls(ReAppend: boolean = false) {
       }
     }
   }
+}
+
+// Legacy fullscreen volume slider removed – keep a small helper to cleanup any remnants
+function removeFullscreenVolumeControl() {
+  const existing = document.querySelector<HTMLElement>("#SpicyLyricsPage #SpicyVolumeControl");
+  existing?.remove();
 }
 
 interface SpicyLyricsNotificationReturnObject {

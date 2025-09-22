@@ -645,6 +645,113 @@ function OpenNowBar(skipSaving: boolean = false) {
         ActiveSetupSongProgressBarInstance.Apply();
       }
 
+      // Volume bar at top of album cover
+      const SetupVolumeBar = () => {
+        const VolumeElem = document.createElement("div");
+        VolumeElem.classList.add("VolumeTimeline");
+        VolumeElem.innerHTML = `
+          <span class="VolumeIcon">${Icons.Volume}</span>
+          <div class="SliderBar" style="--SliderProgress: 0">
+            <div class="Handle"></div>
+          </div>
+        `;
+
+        const SliderBar = VolumeElem.querySelector<HTMLElement>(".SliderBar");
+        const getVol01 = () => {
+          const sp = (globalThis as any).Spicetify;
+          const v = (sp?.Player?.getVolume?.() as number) ?? 0;
+          return Math.max(0, Math.min(1, v));
+        };
+        const setVol01 = (v: number) => {
+          const sp = (globalThis as any).Spicetify;
+          sp?.Player?.setVolume?.(Math.max(0, Math.min(1, v)));
+        };
+
+        const updateFromPlayer = () => {
+          const v = getVol01();
+          if (SliderBar) SliderBar.style.setProperty("--SliderProgress", v.toString());
+        };
+
+        // Initialize UI
+        updateFromPlayer();
+
+        // Click to set volume
+        const clickHandler = (event: MouseEvent) => {
+          if (!SliderBar) return;
+          const rect = SliderBar.getBoundingClientRect();
+          const percentage = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+          SliderBar.style.setProperty("--SliderProgress", percentage.toString());
+          setVol01(percentage);
+        };
+
+        // Drag support
+        let isDragging = false;
+        const handleDragStart = (event: MouseEvent | TouchEvent) => {
+          if (!SliderBar) return;
+          isDragging = true;
+          document.body.style.userSelect = "none";
+          document.addEventListener("mousemove", handleDragMove);
+          document.addEventListener("touchmove", handleDragMove);
+          document.addEventListener("mouseup", handleDragEnd);
+          document.addEventListener("touchend", handleDragEnd);
+          handleDragMove(event);
+        };
+        const handleDragMove = (event: MouseEvent | TouchEvent) => {
+          if (!isDragging || !SliderBar) return;
+          let clientX: number;
+          if ("touches" in event) clientX = event.touches[0].clientX;
+          else clientX = (event as MouseEvent).clientX;
+          const rect = SliderBar.getBoundingClientRect();
+          const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+          SliderBar.style.setProperty("--SliderProgress", percentage.toString());
+          setVol01(percentage);
+        };
+        const handleDragEnd = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          document.body.style.userSelect = "";
+          document.removeEventListener("mousemove", handleDragMove);
+          document.removeEventListener("touchmove", handleDragMove);
+          document.removeEventListener("mouseup", handleDragEnd);
+          document.removeEventListener("touchend", handleDragEnd);
+        };
+
+        // Bind events
+        SliderBar?.addEventListener("click", clickHandler);
+        SliderBar?.addEventListener("mousedown", handleDragStart);
+        SliderBar?.addEventListener("touchstart", handleDragStart);
+
+        // Poll to keep in sync if changed elsewhere
+        const interval = window.setInterval(updateFromPlayer, 1000);
+
+        const cleanup = () => {
+          window.clearInterval(interval);
+          if (SliderBar) {
+            SliderBar.removeEventListener("click", clickHandler);
+            SliderBar.removeEventListener("mousedown", handleDragStart);
+            SliderBar.removeEventListener("touchstart", handleDragStart);
+          }
+          document.removeEventListener("mousemove", handleDragMove);
+          document.removeEventListener("touchmove", handleDragMove);
+          document.removeEventListener("mouseup", handleDragEnd);
+          document.removeEventListener("touchend", handleDragEnd);
+          if (VolumeElem.parentNode) {
+            VolumeElem.parentNode.removeChild(VolumeElem);
+          }
+        };
+
+        return {
+          Apply: () => {
+            AppendQueue.push(VolumeElem);
+          },
+          GetElement: () => VolumeElem,
+          CleanUp: cleanup,
+        };
+      };
+
+      const ActiveSetupVolumeBarInstance = SetupVolumeBar();
+      ActiveSetupVolumeBarInstance?.Apply();
+
       // Use a more reliable approach to add elements
       Whentil.When(
         () =>

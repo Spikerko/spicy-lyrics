@@ -118,4 +118,9 @@ export const Icons = {
   `,
   EnableCompactModeIcon: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-top-icon lucide-layout-panel-top"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>`,
   DisableCompactModeIcon: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-panel-left-icon lucide-layout-panel-left"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>`,
+  Volume: `
+        <svg role="img" height="16" width="16" aria-hidden="true" viewBox="0 0 16 16" data-encore-id="icon" class="Svg-sc-ytk21e-0 Svg-img-16-icon">
+            <path d="M3.5 5.5H1.75A1.75 1.75 0 000 7.25v1.5C0 10.216.784 11 1.75 11H3.5l3.25 2.5c.5.385 1.25.02 1.25-.6V3.1c0-.62-.75-.985-1.25-.6L3.5 5.5zM11.03 4.47a.75.75 0 011.06 0 5 5 0 010 7.07.75.75 0 11-1.06-1.06 3.5 3.5 0 000-4.95.75.75 0 010-1.06zm2.12-2.12a.75.75 0 011.06 0 8 8 0 010 11.31.75.75 0 11-1.06-1.06 6.5 6.5 0 000-9.19.75.75 0 010-1.06z"></path>
+        </svg>
+    `,
 };

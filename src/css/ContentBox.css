@@ -399,8 +399,135 @@
     opacity: .85;
 } */
 
+/* Fullscreen Volume Control */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeControl {
+  --pad: 1.2cqh;
+  position: absolute;
+  bottom: 2.25cqh;
+  width: calc(100cqw - var(--pad) * 2);
+  left: var(--pad);
+  right: var(--pad);
+  display: grid;
+  grid-template-columns: 6cqw 1fr 6cqw;
+  align-items: center;
+  gap: 1cqw;
+  background: color-mix(in srgb, black 35%, transparent);
+  padding: 1.1cqh 1.2cqw;
+  border-radius: 1.25cqh;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  color: white;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeControl .VolumeLabel {
+  font-size: calc(var(--default-font-size) * 1.1);
+  opacity: 0.8;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeControl .VolumePercent {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeControl input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.6cqh;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 100rem;
+  outline: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeControl input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.4cqh;
+  height: 1.4cqh;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  cursor: pointer;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeControl input[type="range"]::-moz-range-thumb {
+  width: 1.4cqh;
+  height: 1.4cqh;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  cursor: pointer;
+}
+
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent {
   display: none;
+}
+
+/* Volume timeline at top of album cover */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeTimeline {
+  --pad-x: 3.6cqw;
+  --pad-y: 3cqh;
+  position: absolute;
+  top: var(--pad-y);
+  left: var(--pad-x);
+  right: var(--pad-x);
+  display: flex;
+  align-items: center;
+  gap: 1.4cqw;
+  color: white;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeTimeline .VolumeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2cqw;
+  min-width: 3.2cqw;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeTimeline .SliderBar {
+  --TraveledColor: hsla(0, 0%, 100%, 0.9);
+  --RemainingColor: hsla(0, 0%, 100%, 0.38);
+  --SliderProgress: 0.6;
+  background: linear-gradient(
+    90deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor)
+  );
+  border-radius: 100cqw;
+  container-type: size;
+  position: relative;
+  height: 1.1cqh;
+  flex: 1 1 auto;
+  cursor: pointer;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeTimeline .SliderBar .Handle {
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 100cqw;
+  display: block;
+  height: 170cqh;
+  left: calc(100cqw * var(--SliderProgress));
+  position: absolute;
+  top: 50cqh;
+  transform: translate(-50%, -50%);
+}
+
+/* Move view controls down slightly to make space for the top volume bar */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .ViewControls {
+  position: absolute;
+  top: 14cqh;
+  left: 0;
+  right: 0;
+}
+
+/* Ensure volume icon matches other controls */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .MediaBox .MediaContent .VolumeTimeline .VolumeIcon svg {
+  fill: #fff;
+  opacity: 0.9;
 }
 
 /* #SpicyLyricsPage .ContentBox .DropZone {
