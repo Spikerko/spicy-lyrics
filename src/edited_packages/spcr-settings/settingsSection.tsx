@@ -176,7 +176,7 @@ class SettingsSection {
 
     return (
       <div className="x-settings-section YtAW7cQal8op8H9JkJ8T" key={rerender}>
-        <h2 className="TypeElement-cello-textBase-type e-91000-text encore-text-body-medium-bold encore-internal-color-text-base">
+        <h2 className="TypeElement-cello-textBase-type e-91000-text encore-text-body-medium-bold encore-internal-color-text-base e-91000-text encore-text-body-medium-bold encore-internal-color-text-base">
           {this.name}
         </h2>
         {Object.entries(this.settingsFields).map(([nameId, field]) => {
@@ -212,7 +212,7 @@ class SettingsSection {
     return (
       <div className="x-settings-row eguwzH_QWTBXry7hiNj3">
         <div className="x-settings-firstColumn lfXDZUXLhhKhFPjDO8by">
-          <label className="TypeElement-viola-textSubdued-type" htmlFor={id}>
+          <label className="TypeElement-viola-textSubdued-type e-91000-text encore-text-body-small encore-internal-color-text-subdued" htmlFor={id}>
             {props.field.description || ""}
           </label>
         </div>
@@ -248,10 +248,10 @@ class SettingsSection {
               </button>
             </span>
           ) : props.field.type === "toggle" ? (
-            <label className="x-settings-secondColumn x-toggle-wrapper">
+            <label className="x-settings-secondColumn x-toggle-wrapper ztL0S6Lyoye5upzDS_yU">
               <input
                 id={id}
-                className="x-toggle-input"
+                className="x-toggle-input Smo4wLHtFoFOOsJP0evo"
                 type="checkbox"
                 checked={value as boolean}
                 {...props.field.events}
@@ -261,8 +261,8 @@ class SettingsSection {
                   if (onClick) onClick(e);
                 }}
               />
-              <span className="x-toggle-indicatorWrapper">
-                <span className="x-toggle-indicator"></span>
+              <span className="x-toggle-indicatorWrapper Qb0gCQFXpstteRqnAF9q">
+                <span className="x-toggle-indicator sxTbfT6ioOgvOvHzaBE7"></span>
               </span>
             </label>
           ) : props.field.type === "dropdown" ? (

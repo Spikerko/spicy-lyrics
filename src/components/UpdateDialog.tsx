@@ -27,7 +27,8 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyric
         className="card btn btn-discord"
         onClick={() => window.open("https://discord.com/invite/uqgXU5wh8j", "_blank")}
       >
-        Join our Discord Server! →
+        <p>Join our Discord Server! →</p>
+        <p style={{ opacity: "0.45", marginTop: "0.25cqh" }}>Help our community grow by boosting our Discord server 🚀!</p>
       </button>
     </div>
   );
