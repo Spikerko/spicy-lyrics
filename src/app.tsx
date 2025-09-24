@@ -156,7 +156,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.12.5";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.13.1";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -326,11 +326,11 @@ async function main() {
   App.SetReady();
 
   let ButtonList: any;
-  if (Spicetify?.Playbar?.Button) {
+  if (SpotifyPlayer.Playbar?.Button) {
     ButtonList = [
       {
         Registered: false,
-        Button: new Spicetify.Playbar.Button(
+        Button: new SpotifyPlayer.Playbar.Button(
           "Spicy Lyrics",
           Icons.LyricsPage,
           (self) => {
@@ -367,7 +367,7 @@ async function main() {
       },
       {
         Registered: false,
-        Button: new Spicetify.Playbar.Button(
+        Button: new SpotifyPlayer.Playbar.Button(
           "Enter Fullscreen",
           Icons.Fullscreen,
           async (self) => {
