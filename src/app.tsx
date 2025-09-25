@@ -24,7 +24,7 @@ import Global from "./components/Global/Global.ts";
 import Platform from "./components/Global/Platform.ts";
 import Session from "./components/Global/Session.ts";
 import { SpotifyPlayer } from "./components/Global/SpotifyPlayer.ts";
-import PageView, { GetPageRoot } from "./components/Pages/PageView.ts";
+import PageView, { GetPageRoot, PageContainer } from "./components/Pages/PageView.ts";
 import LoadFonts, { ApplyFontPixel } from "./components/Styling/Fonts.ts";
 import { Icons } from "./components/Styling/Icons.ts";
 import Fullscreen from "./components/Utils/Fullscreen.ts";
@@ -53,6 +53,8 @@ import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
 import UpdateDialog from "./components/UpdateDialog.tsx";
+import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
+
 
 async function main() {
   await Platform.OnSpotifyReady;
@@ -83,6 +85,14 @@ async function main() {
 
   if (storage.get("lockedMediaBox")) {
     Defaults.CompactMode_LockedMediaBox = storage.get("lockedMediaBox") === "true";
+  }
+
+  if (!storage.get("disablePopupLyrics")) {
+    storage.set("disablePopupLyrics", "false");
+  }
+
+  if (storage.get("disablePopupLyrics")) {
+    Defaults.PopupLyricsAllowed = storage.get("disablePopupLyrics") !== "true";
   }
 
   if (!storage.get("lyricsRenderer")) {
@@ -156,7 +166,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.13.1";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.13.2";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -396,6 +406,26 @@ async function main() {
           false
         ),
       },
+      {
+        Registered: false,
+        Button: (
+          (('documentPictureInPicture' in window) && (Defaults.PopupLyricsAllowed))
+            ? new SpotifyPlayer.Playbar.Button(
+                "Spicy Popup Lyrics",
+                Icons.PiPMode,
+                () => {
+                  if (IsPIP) {
+                    ClosePopupLyrics();
+                  } else {
+                    OpenPopupLyrics();
+                  }
+                },
+                false,
+                false
+              )
+            : undefined
+        )
+      }
     ];
   }
 
@@ -456,7 +486,7 @@ async function main() {
     if (!ButtonList) return;
     for (const button of ButtonList) {
       if (!button.Registered) {
-        button.Button.register();
+        if (button.Button) button.Button.register();
         button.Registered = true;
       }
     }
@@ -465,8 +495,14 @@ async function main() {
   {
     if (!ButtonList) return;
     const fullscreenButton = ButtonList[1].Button;
-    fullscreenButton.element.style.order = "100000";
+    fullscreenButton.element.style.order = "100001";
     fullscreenButton.element.id = "SpicyLyrics_FullscreenButton";
+
+    const popupLyricsButton = ButtonList[2].Button;
+    if (popupLyricsButton) {
+      popupLyricsButton.element.style.order = "100000";
+      popupLyricsButton.element.id = "SpicyLyrics_PopupLyricsButton";
+    }
 
     const SearchDOMForFullscreenButtons = () => {
       const controlsContainer = document.querySelector<HTMLButtonElement>(
@@ -478,11 +514,17 @@ async function main() {
         // @ts-expect-error 123
         for (const element of controlsContainer.children) {
           if (
-            (element.attributes.getNamedItem("data-testid")?.value === "fullscreen-mode-button" ||
-              (element.classList.contains("control-button") &&
+            (
+              element.attributes.getNamedItem("data-testid")?.value === "fullscreen-mode-button" ||
+              (Defaults.PopupLyricsAllowed && element.attributes.getNamedItem("data-testid")?.value === "pip-toggle-button") ||
+              (
+                element.classList.contains("control-button") &&
                 !element.classList.contains("volume-bar__icon-button") &&
-                !element.classList.contains("main-devicePicker-controlButton"))) &&
-            element.id !== "SpicyLyrics_FullscreenButton"
+                !element.classList.contains("main-devicePicker-controlButton")
+              )
+            ) &&
+            element.id !== "SpicyLyrics_FullscreenButton" &&
+            element.id !== "SpicyLyrics_PopupLyricsButton"
           ) {
             (element as HTMLElement).style.display = "none";
           }
@@ -642,7 +684,7 @@ async function main() {
       }
 
       if (!IsSomethingElseThanTrack && !SpotifyPlayer.IsDJ()) {
-        if (document.querySelector("#SpicyLyricsPage .ContentBox .NowBar")) {
+        if (PageContainer?.querySelector(".ContentBox .NowBar")) {
           Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
         }
       }
@@ -667,7 +709,7 @@ async function main() {
 
       await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
 
-      const contentBox = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox");
+      const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
       if (!contentBox) return;
       ApplyDynamicBackground(contentBox);
     }

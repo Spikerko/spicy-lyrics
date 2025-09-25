@@ -1,4 +1,5 @@
 import Global from "../../../components/Global/Global.ts";
+import { PageContainer } from "../../../components/Pages/PageView.ts";
 
 const EventPrefix = "lyrics:";
 
@@ -7,9 +8,9 @@ const EmitNotApplyed = () => {
 };
 
 const EmitApply = (Type: string, Content: any) => {
-  document
-    .querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent")
-    ?.classList.remove("HiddenTransitioned");
+  PageContainer?.querySelector(
+    ".LyricsContainer .LyricsContent"
+  )?.classList.remove("HiddenTransitioned");
   Global.Event.evoke(`${EventPrefix}apply`, { Type, Content });
 };
 

@@ -1,7 +1,9 @@
 import Defaults from "../../components/Global/Defaults.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
+import { PageContainer } from "../../components/Pages/PageView.ts";
 import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
+import { IsPIP } from "../../components/Utils/PopupLyrics.ts";
 import {
   type LyricsLine,
   LyricsObject,
@@ -51,7 +53,7 @@ const lyricsContentObserver = new ResizeObserver(() => {
 
 // Function to setup the observer
 function setupLyricsContentObserver() {
-  const lyricsContent = document.querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent");
+  const lyricsContent = PageContainer?.querySelector(".LyricsContainer .LyricsContent");
   if (lyricsContent) {
     // Ensure we don't observe multiple times if called again
     lyricsContentObserver.disconnect();
@@ -65,8 +67,8 @@ function handleUserScroll(ScrollSimplebar: any | null) {
   if (!isUserScrolling) {
     isUserScrolling = true;
     // Add HideLineBlur class when user starts scrolling
-    const lyricsContent = document.querySelector(
-      "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+    const lyricsContent = PageContainer?.querySelector(
+      ".LyricsContainer .LyricsContent"
     );
     if (lyricsContent) {
       lyricsContent.classList.add("HideLineBlur");
@@ -147,7 +149,7 @@ const ScrollTo = (
   if (type === "Center") {
     ScrollIntoCenterViewCSS(container, element, -30, instantScroll);
   } else if (type === "Top") {
-    ScrollIntoTopViewCSS(container, element, 85, instantScroll);
+    ScrollIntoTopViewCSS(container, element, (IsPIP ? 50 : 85), instantScroll);
   }
 };
 
@@ -262,7 +264,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
                 // Only auto-scroll if user hasn't scrolled recently
                 if (timeSinceLastScroll > USER_SCROLL_COOLDOWN && !isUserScrolling) {
                     isUserScrolling = false;
-                    const lyricsContent = document.querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent");
+                    const lyricsContent = PageContainer?.querySelector(".LyricsContainer .LyricsContent");
                     if (lyricsContent) {
                         lyricsContent.classList.remove("HideLineBlur");
                     }
@@ -288,7 +290,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
                 if (timeSinceLastScroll > USER_SCROLL_COOLDOWN && !isUserScrolling) {
                     isUserScrolling = false;
                     // Remove HideLineBlur class when auto-scroll resumes
-                    const lyricsContent = document.querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent");
+                    const lyricsContent = PageContainer?.querySelector(".LyricsContainer .LyricsContent");
                     if (lyricsContent) {
                         lyricsContent.classList.remove("HideLineBlur");
                     }
@@ -336,11 +338,17 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
 
       const timeSinceLastScroll = performance.now() - lastUserScrollTime;
 
-      // Check if the line is in viewport
+      // Check if the line is at least 5px visible in the viewport
       const lineRect = LineElem.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
-      const isLineInViewport =
-        lineRect.top >= containerRect.top && lineRect.bottom <= containerRect.bottom;
+
+      // Calculate the visible part of the line within the container
+      const visibleTop = Math.max(lineRect.top, containerRect.top);
+      const visibleBottom = Math.min(lineRect.bottom, containerRect.bottom);
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+      // Consider the line "in viewport" if at least 5px is visible
+      const isLineInViewport = visibleHeight >= 5;
 
       const isSameLine = lastLine === LineElem;
 
@@ -380,8 +388,8 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         isUserScrolling = false;
         // Remove HideLineBlur class ONLY if we were user scrolling
         //if (wasUserScrolling) {
-        const lyricsContent = document.querySelector(
-          "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+        const lyricsContent = PageContainer?.querySelector(
+          ".LyricsContainer .LyricsContent"
         );
         if (lyricsContent) {
           lyricsContent.classList.remove("HideLineBlur");

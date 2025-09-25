@@ -5,32 +5,11 @@ import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/Cr
 import { ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
 import Global from "../Global/Global.ts";
-import PageView, { Compactify, GetPageRoot, Tooltips } from "../Pages/PageView.ts";
+import PageView, { Compactify, GetPageRoot, PageContainer, Tooltips } from "../Pages/PageView.ts";
 import { EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
 import { CleanUpNowBarComponents, CloseNowBar, DeregisterNowBarBtn, OpenNowBar } from "./NowBar.ts";
 import TransferElement from "./TransferElement.ts";
-
-// const ArtworkBrightness = {
-//   Start: 0.78,
-//   End: 0.55,
-//   Duration: 0.35,
-//   ParentHover: {
-//     Start: 1,
-//     End: 0.78,
-//     Duration: 0.4,
-//   },
-// };
-
-// const ControlsOpacity = {
-//   Start: 0.5,
-//   End: 1,
-//   Duration: 0.35,
-//   ParentHover: {
-//     Start: 0,
-//     End: 0.5,
-//     Duration: 0.4,
-//   },
-// };
+import { IsPIP } from "./PopupLyrics.ts";
 
 const Fullscreen = {
   Open,
@@ -47,7 +26,6 @@ const artworkBrightnessSpring = new Spring(0, 2, 2, 0.78);
 
 let animationLastTimestamp: number | undefined;
 
-// let controlsVisible = false;
 let visualsApplied = false;
 let pageHover = false;
 let mediaBoxHover = false;
@@ -55,18 +33,8 @@ let mediaBoxHover = false;
 let lastPageMouseMove: number | undefined;
 
 const Page_MouseMove = () => {
-  /*     if (storage.get("ForceCompactMode") === "true") {
-        const target = e.target as HTMLElement;
-        const nowBar = target.closest('.NowBar') || (target.classList.contains('NowBar') ? target : null);
-        if (!nowBar) return;
-    } */
-
-  // controlsVisible = true;
   pageHover = true;
-
   lastPageMouseMove = performance.now();
-
-  // console.log("Page_MouseMove")
   ToggleControls();
   if (!mediaBoxHover) {
     MouseMoveChecker();
@@ -75,9 +43,7 @@ const Page_MouseMove = () => {
 
 const MouseMoveChecker = () => {
   const now = performance.now();
-  // console.log("MouseMoveChecker", lastPageMouseMove, (now - lastPageMouseMove), !mediaBoxHover)
   if (lastPageMouseMove !== undefined && now - lastPageMouseMove >= 750 && !mediaBoxHover) {
-    // console.log("Controls Should Hide now - after 750ms")
     animationLastTimestamp = now;
     ToggleControls(true);
     ControlsMaid.Clean("MouseMoveChecker");
@@ -90,25 +56,22 @@ const RunMediaBoxAnimation = () => {
   const timestampNow = performance.now();
 
   if (animationLastTimestamp !== undefined) {
-    // console.log("Running MediaBox Animation")
     const deltaTime = (timestampNow - animationLastTimestamp) / 1000;
     const controlsOpacity = controlsOpacitySpring.Step(deltaTime);
     const artworkBrightness = artworkBrightnessSpring.Step(deltaTime);
 
-    const MediaBox = document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox"
+    const MediaBox = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .MediaBox"
     );
 
     if (MediaBox) {
       MediaBox.style.setProperty("--ArtworkBrightness", artworkBrightness.toString());
       MediaBox.style.setProperty("--ControlsOpacity", controlsOpacity.toString());
-      // console.log("MediaBoxAnimation: Set style properties")
     }
 
     if (controlsOpacitySpring.CanSleep() && artworkBrightnessSpring.CanSleep()) {
       animationLastTimestamp = undefined;
       visualsApplied = false;
-      // console.log("MediaBoxAnimation: Sleep")
       return;
     }
   }
@@ -119,7 +82,6 @@ const RunMediaBoxAnimation = () => {
 };
 
 const ToggleControls = (force: boolean = false) => {
-  // console.log("Ran ToggleControls")
   const now = performance.now();
 
   const getControlsOpacityGoal = () => {
@@ -149,231 +111,45 @@ const ToggleControls = (force: boolean = false) => {
   controlsOpacitySpring.SetGoal(getControlsOpacityGoal());
   artworkBrightnessSpring.SetGoal(getArtworkBrightnessGoal());
 
-  /* controlsOpacitySpring.SetFrequency(2)
-	controlsOpacitySpring.SetDampingRatio(2)
-
-    artworkBrightnessSpring.SetFrequency(2)
-	artworkBrightnessSpring.SetDampingRatio(2); */
-
   if (force || visualsApplied === false) {
     visualsApplied = true;
-    // console.log("VisualsAppied was false")
-
     RunMediaBoxAnimation();
-    // console.log("MediaBoxAnimation in ToggleControls Ran!")
   }
 };
 
 let EventAbortController: AbortController | undefined;
 
 const MediaBox_MouseIn = () => {
-  // controlsVisible = true;
   mediaBoxHover = true;
   pageHover = true;
-  // console.log("MediaBox_MouseIn")
   ToggleControls();
   ControlsMaid.Clean("MouseMoveChecker");
 };
 
 const MediaBox_MouseOut = () => {
-  // controlsVisible = true;
   mediaBoxHover = false;
   pageHover = true;
-  // console.log("MediaBox_MouseOut")
   ToggleControls();
 };
 
 const MediaBox_MouseMove = () => {
-  // controlsVisible = true;
   mediaBoxHover = true;
   pageHover = true;
-  // console.log("MediaBox_MouseMove")
   ControlsMaid.Clean("MouseMoveChecker");
   ToggleControls();
 };
 const Page_MouseIn = () => {
-  /*     if (storage.get("ForceCompactMode") === "true") {
-        const target = e.target as HTMLElement;
-        const nowBar = target.closest('.NowBar') || (target.classList.contains('NowBar') ? target : null);
-        if (!nowBar) return;
-    } */
-
-  // controlsVisible = true;
   mediaBoxHover = false;
   pageHover = true;
-  // console.log("Page_MouseIn")
   ToggleControls();
 };
 
 const Page_MouseOut = () => {
-  // controlsVisible = false;
   mediaBoxHover = false;
   pageHover = false;
-  // console.log("Page_MouseOut")
   ToggleControls();
   ControlsMaid.Clean("MouseMoveChecker");
 };
-
-/* const MediaBox_Data = {
-    Eventified: false,
-    hoverTimeoutId: null as number | null,
-    abortController: null as AbortController | null,
-    Functions: {
-        MouseIn: () => {
-            // Clear any existing timeout when entering MediaBox
-            if (MediaBox_Data.hoverTimeoutId) {
-                clearTimeout(MediaBox_Data.hoverTimeoutId);
-                MediaBox_Data.hoverTimeoutId = null;
-            }
-
-            if (Defaults.PrefersReducedMotion && MediaBox_Data.Functions.Target) {
-                MediaBox_Data.Functions.Target.style.setProperty("--ArtworkBrightness", `${ArtworkBrightness.End}`);
-                MediaBox_Data.Functions.Target.style.setProperty("--ControlsOpacity", `${ControlsOpacity.End}`);
-                return;
-            }
-
-            if (MediaBox_Data.Animators.brightness.reversed) MediaBox_Data.Animators.brightness.Reverse();
-            if (MediaBox_Data.Animators.opacity.reversed) MediaBox_Data.Animators.opacity.Reverse();
-            MediaBox_Data.Animators.brightness.Start();
-            MediaBox_Data.Animators.opacity.Start();
-        },
-        PageMouseIn: () => {
-            // Clear any existing timeout when entering NowBar
-            if (MediaBox_Data.hoverTimeoutId) {
-                clearTimeout(MediaBox_Data.hoverTimeoutId);
-                MediaBox_Data.hoverTimeoutId = null;
-            }
-
-            if (Defaults.PrefersReducedMotion && MediaBox_Data.Functions.Target) {
-                MediaBox_Data.Functions.Target.style.setProperty("--ArtworkBrightness", `${ArtworkBrightness.ParentHover.End}`);
-                MediaBox_Data.Functions.Target.style.setProperty("--ControlsOpacity", `${ControlsOpacity.ParentHover.End}`);
-                return;
-            }
-
-            // Use half-strength animators
-            if (MediaBox_Data.Animators.brightnessHalf.reversed) MediaBox_Data.Animators.brightnessHalf.Reverse();
-            if (MediaBox_Data.Animators.opacityHalf.reversed) MediaBox_Data.Animators.opacityHalf.Reverse();
-            MediaBox_Data.Animators.brightnessHalf.Start();
-            MediaBox_Data.Animators.opacityHalf.Start();
-        },
-        MouseOut: () => {
-            // Clear any existing timeout (though this timeout is primarily for half-strength, good to clear)
-            if (MediaBox_Data.hoverTimeoutId) {
-                clearTimeout(MediaBox_Data.hoverTimeoutId);
-                MediaBox_Data.hoverTimeoutId = null;
-            }
-
-            if (Defaults.PrefersReducedMotion && MediaBox_Data.Functions.Target) {
-                MediaBox_Data.Functions.Target.style.setProperty("--ArtworkBrightness", `${ArtworkBrightness.Start}`);
-                MediaBox_Data.Functions.Target.style.setProperty("--ControlsOpacity", `${ControlsOpacity.Start}`);
-                return;
-            }
-
-            // Reverse MediaBox's full-strength animations as the mouse is leaving MediaBox
-            if (!MediaBox_Data.Animators.brightness.reversed) MediaBox_Data.Animators.brightness.Reverse();
-            if (!MediaBox_Data.Animators.opacity.reversed) MediaBox_Data.Animators.opacity.Reverse();
-            MediaBox_Data.Animators.brightness.Start();
-            MediaBox_Data.Animators.opacity.Start();
-
-            // The logic for handling mouse leaving SpicyLyricsPage and managing half-strength
-            // animations is now handled by PageMouseOut, PageMouseIn, and PageMouseMoveHandler.
-        },
-        PageMouseMoveHandler: (event: MouseEvent) => {
-            const MediaBox = MediaBox_Data.Functions.Target;
-            // We're not using NowBar variable, so we can remove it to avoid the unused variable warning
-            // const NowBar = event.currentTarget as HTMLElement;
-
-            // Don't handle moves if mouse is over MediaBox
-            if (MediaBox && event.target && MediaBox instanceof HTMLElement && MediaBox.contains(event.target as Node)) {
-                return;
-            }
-
-            // If animations are reversed, bring them back
-            if (MediaBox_Data.Animators.brightnessHalf.reversed) {
-                MediaBox_Data.Animators.brightnessHalf.Reverse();
-                MediaBox_Data.Animators.opacityHalf.Reverse();
-
-                MediaBox_Data.Animators.brightnessHalf.Start();
-                MediaBox_Data.Animators.opacityHalf.Start();
-            }
-
-            // Clear existing timeout
-            if (MediaBox_Data.hoverTimeoutId) {
-                clearTimeout(MediaBox_Data.hoverTimeoutId);
-            }
-
-            // Set new timeout
-            MediaBox_Data.hoverTimeoutId = setTimeout(() => {
-                // Only reverse if we're still in NowBar state
-                if (!MediaBox_Data.Animators.brightnessHalf.reversed) {
-                    MediaBox_Data.Animators.brightnessHalf.Reverse();
-                    MediaBox_Data.Animators.opacityHalf.Reverse();
-
-                    MediaBox_Data.Animators.brightnessHalf.Start();
-                    MediaBox_Data.Animators.opacityHalf.Start();
-                }
-            }, 750);
-        },
-        PageMouseOut: () => {
-            // This function is called when the mouse leaves SpicyLyricsPage.
-            // Clear any timeout set by PageMouseMoveHandler
-            if (MediaBox_Data.hoverTimeoutId) {
-                clearTimeout(MediaBox_Data.hoverTimeoutId);
-                MediaBox_Data.hoverTimeoutId = null;
-            }
-
-            const target = MediaBox_Data.Functions.Target;
-            if (Defaults.PrefersReducedMotion && target) {
-                // Revert to the "non-page-hovered" state for reduced motion
-                target.style.setProperty("--ArtworkBrightness", `${ArtworkBrightness.ParentHover.Start}`);
-                target.style.setProperty("--ControlsOpacity", `${ControlsOpacity.ParentHover.Start}`);
-                return;
-            }
-
-            // If half-strength animators are active (not reversed), reverse them and play them.
-            if (!MediaBox_Data.Animators.brightnessHalf.reversed) {
-                MediaBox_Data.Animators.brightnessHalf.Reverse();
-                if (!MediaBox_Data.Animators.opacityHalf.reversed) { // Keep opacity in sync
-                    MediaBox_Data.Animators.opacityHalf.Reverse();
-                }
-                MediaBox_Data.Animators.brightnessHalf.Start();
-                MediaBox_Data.Animators.opacityHalf.Start();
-            }
-        },
-        Reset: (MediaBox: HTMLElement) => {
-            MediaBox.style.removeProperty("--ArtworkBrightness");
-            MediaBox.style.removeProperty("--ControlsOpacity");
-        },
-        Eventify: (MediaBox: HTMLElement) => {
-            MediaBox_Data.Functions.Target = MediaBox;
-
-            // Full strength animation events
-            MediaBox_Data.Animators.brightness.on("progress", (progress) => {
-                MediaBox.style.setProperty("--ArtworkBrightness", `${progress}`);
-            });
-            MediaBox_Data.Animators.opacity.on("progress", (progress) => {
-                MediaBox.style.setProperty("--ControlsOpacity", `${progress}`);
-            });
-
-            // Half strength animation events
-            MediaBox_Data.Animators.brightnessHalf.on("progress", (progress) => {
-                MediaBox.style.setProperty("--ArtworkBrightness", `${progress}`);
-            });
-            MediaBox_Data.Animators.opacityHalf.on("progress", (progress) => {
-                MediaBox.style.setProperty("--ControlsOpacity", `${progress}`);
-            });
-
-            MediaBox_Data.Eventified = true;
-        },
-        Target: null as HTMLElement | null,
-    },
-    Animators: {
-        brightness: new Animator(ArtworkBrightness.Start, ArtworkBrightness.End, ArtworkBrightness.Duration),
-        opacity: new Animator(ControlsOpacity.Start, ControlsOpacity.End, ControlsOpacity.Duration),
-        brightnessHalf: new Animator(ArtworkBrightness.ParentHover.Start, ArtworkBrightness.ParentHover.End, ArtworkBrightness.ParentHover.Duration),
-        opacityHalf: new Animator(ControlsOpacity.ParentHover.Start, ControlsOpacity.ParentHover.End, ControlsOpacity.ParentHover.Duration)
-    }
-}; */
 
 export const ExitFullscreenElement = async () => {
   if (document.fullscreenElement) {
@@ -390,7 +166,6 @@ export const EnterSpicyLyricsFullscreen = async () => {
 
   try {
     if (!document.fullscreenElement) {
-      // Use the html element for fullscreen instead of SpicyLyricsPage
       await document.documentElement.requestFullscreen();
     }
   } catch (err: unknown) {
@@ -401,7 +176,6 @@ export const EnterSpicyLyricsFullscreen = async () => {
 };
 
 function CleanupMediaBox() {
-  // Abort the controller to remove listeners
   EventAbortController?.abort();
   EventAbortController = undefined;
 
@@ -410,28 +184,13 @@ function CleanupMediaBox() {
   animationLastTimestamp = undefined;
   lastPageMouseMove = undefined;
 
-  // controlsVisible = false;
   visualsApplied = false;
   mediaBoxHover = false;
   pageHover = false;
-
-  // Cleanup media box interactions (Styles and Timeout)
-  //const MediaBox = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox");
-  //if (MediaBox) {
-  /* // Clear any existing timeout
-        if (MediaBox_Data.hoverTimeoutId) {
-            clearTimeout(MediaBox_Data.hoverTimeoutId);
-            MediaBox_Data.hoverTimeoutId = null;
-        }
-
-        // Reset styles
-        MediaBox_Data.Functions.Reset(MediaBox); */
-
-  //}
 }
 
-function Open(skipDocumentFullscreen: boolean = false) {
-  const SpicyPage = document.querySelector<HTMLElement>(".Root__main-view #SpicyLyricsPage");
+function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = true) {
+  const SpicyPage = PageContainer;
   const Root = document.body as HTMLElement;
   const mainElement = document.querySelector<HTMLElement>("#main");
 
@@ -441,11 +200,11 @@ function Open(skipDocumentFullscreen: boolean = false) {
     Fullscreen.CinemaViewOpen = skipDocumentFullscreen;
 
     // Handle DOM changes
-    TransferElement(SpicyPage, Root);
+    if (moveElement) TransferElement(SpicyPage, Root);
     SpicyPage.classList.add("Fullscreen");
 
     // Hide the main element
-    if (mainElement) {
+    if (mainElement && moveElement) {
       mainElement.style.display = "none";
     }
 
@@ -455,8 +214,8 @@ function Open(skipDocumentFullscreen: boolean = false) {
       nowBarToggle.destroy();
     }
 
-    const NowBarToggle = document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .ViewControls #NowBarToggle"
+    const NowBarToggle = SpicyPage.querySelector<HTMLElement>(
+      ".ViewControls #NowBarToggle"
     );
     if (NowBarToggle) {
       NowBarToggle.remove();
@@ -483,11 +242,11 @@ function Open(skipDocumentFullscreen: boolean = false) {
     ResetLastLine();
 
     // Setup media box interactions
-    const MediaBox = document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox"
+    const MediaBox = SpicyPage.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .MediaBox"
     );
-    const MediaImage = document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImage"
+    const MediaImage = SpicyPage.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .MediaBox .MediaImage"
     );
 
     if (MediaBox && MediaImage) {
@@ -499,8 +258,6 @@ function Open(skipDocumentFullscreen: boolean = false) {
       MediaBox.addEventListener("mouseleave", MediaBox_MouseOut, { signal });
       MediaBox.addEventListener("mousemove", MediaBox_MouseMove, { signal });
 
-      // Add NowBar hover animation and movement tracking
-      //const NowBar = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox .NowBar");
       if (SpicyPage) {
         SpicyPage.addEventListener("mouseenter", Page_MouseIn, { signal });
         SpicyPage.addEventListener("mousemove", Page_MouseMove, { signal });
@@ -511,6 +268,8 @@ function Open(skipDocumentFullscreen: boolean = false) {
     Global.Event.evoke("fullscreen:open", null);
   }
   setTimeout(() => {
+    if (IsPIP) return;
+
     Compactify();
 
     if (storage.get("ForceCompactMode") === "true" && !IsCompactMode()) {
@@ -523,11 +282,11 @@ function Open(skipDocumentFullscreen: boolean = false) {
 
       const NoLyrics = storage.get("currentLyricsData")?.toString()?.includes("NO_LYRICS");
       if (NoLyrics && !IsCompactMode()) {
-        document
-          .querySelector("#SpicyLyricsPage .ContentBox .LyricsContainer")
+        SpicyPage
+          ?.querySelector(".ContentBox .LyricsContainer")
           ?.classList.add("Hidden");
-        document
-          .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox")
+        SpicyPage
+          ?.querySelector<HTMLElement>(".ContentBox")
           ?.classList.add("LyricsHidden");
       }
     }, 75);
@@ -535,22 +294,21 @@ function Open(skipDocumentFullscreen: boolean = false) {
   GetCurrentLyricsContainerInstance()?.Resize();
 }
 
-function Close() {
-  const SpicyPage = document.querySelector<HTMLElement>("#SpicyLyricsPage");
+function Close(isPip: boolean = false) {
+  const SpicyPage = PageContainer;
   const mainElement = document.querySelector<HTMLElement>("#main");
 
   if (SpicyPage) {
     // Set state first
-    //const wasOpen = Fullscreen.IsOpen;
     Fullscreen.IsOpen = false;
     Fullscreen.CinemaViewOpen = false;
 
     // Handle DOM changes
-    TransferElement(SpicyPage, GetPageRoot() as HTMLElement);
+    if (!isPip) TransferElement(SpicyPage, GetPageRoot() as HTMLElement);
     SpicyPage.classList.remove("Fullscreen");
 
     // Show the main element again
-    if (mainElement) {
+    if (mainElement && !isPip) {
       mainElement.style.removeProperty("display");
     }
 
@@ -558,19 +316,18 @@ function Close() {
     const handleFullscreenExit = async () => {
       await ExitFullscreenElement();
 
-      // Only update controls after fullscreen state is settled
       setTimeout(() => PageView.AppendViewControls(true), 50);
     };
 
-    handleFullscreenExit();
+    if (!isPip) handleFullscreenExit();
 
     const NoLyrics = storage.get("currentLyricsData")?.toString()?.includes("NO_LYRICS");
-    if (NoLyrics) {
-      document
-        .querySelector("#SpicyLyricsPage .ContentBox .LyricsContainer")
+    if (NoLyrics && !isPip) {
+      SpicyPage
+        ?.querySelector(".ContentBox .LyricsContainer")
         ?.classList.remove("Hidden");
-      document
-        .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox")
+      SpicyPage
+        ?.querySelector<HTMLElement>(".ContentBox")
         ?.classList.remove("LyricsHidden");
       DeregisterNowBarBtn();
     }
@@ -586,12 +343,12 @@ function Close() {
 
     Global.Event.evoke("fullscreen:exit", null);
   }
-  setTimeout(Compactify, 1000);
+  if (!isPip) setTimeout(Compactify, 1000);
   GetCurrentLyricsContainerInstance()?.Resize();
 }
 
 function Toggle(skipDocumentFullscreen: boolean = false) {
-  const SpicyPage = document.querySelector<HTMLElement>("#SpicyLyricsPage");
+  const SpicyPage = PageContainer;
 
   if (SpicyPage) {
     if (Fullscreen.IsOpen) {

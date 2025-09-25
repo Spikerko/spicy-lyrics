@@ -1,4 +1,5 @@
 import Defaults from "../../../../components/Global/Defaults.ts";
+import { PageContainer } from "../../../../components/Pages/PageView.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
 import {
@@ -70,8 +71,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
   EmitNotApplyed();
 
   DestroyAllLyricsContainers();
-  const LyricsContainerParent = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  const LyricsContainerParent = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
   const LyricsContainerInstance = CreateLyricsContainer();
   const LyricsContainer = LyricsContainerInstance.Container;
@@ -487,8 +488,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
   if (ScrollSimplebar) RecalculateScrollSimplebar();
   else MountScrollSimplebar();
 
-  const LyricsStylingContainer = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent .simplebar-content"
+  const LyricsStylingContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent .simplebar-content"
   );
 
   // Check if LyricsStylingContainer exists

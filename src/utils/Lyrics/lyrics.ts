@@ -5,6 +5,7 @@ import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import storage from "../storage.ts";
 import { Lyrics } from "./Animator/Main.ts";
+import { PageContainer } from "../../components/Pages/PageView.ts";
 
 export const ScrollingIntervalTime = Infinity;
 
@@ -256,8 +257,8 @@ export function addLinesEvListener() {
 
   LinesEvListenerMaid = new Maid();
 
-  const el = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  const el = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
   if (!el) return;
 
@@ -274,8 +275,8 @@ export function removeLinesEvListener() {
   if (!LinesEvListenerExists) return;
   LinesEvListenerExists = false;
 
-  const el = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  const el = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
   if (!el) return;
 

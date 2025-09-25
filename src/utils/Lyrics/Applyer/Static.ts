@@ -1,4 +1,5 @@
 import Defaults from "../../../components/Global/Defaults.ts";
+import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { type StyleProperties, applyStyles, removeAllStyles } from "../../CSS/Styles.ts";
 import {
   ClearScrollSimplebar,
@@ -46,8 +47,8 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
 
   DestroyAllLyricsContainers();
 
-  const LyricsContainerParent = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  const LyricsContainerParent = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
   const LyricsContainerInstance = CreateLyricsContainer();
   const LyricsContainer = LyricsContainerInstance.Container;
@@ -99,8 +100,8 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   }
 
   // Apply styling to the content container
-  const LyricsStylingContainer = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent .simplebar-content"
+  const LyricsStylingContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent .simplebar-content"
   );
 
   if (LyricsStylingContainer) {

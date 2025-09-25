@@ -447,8 +447,8 @@ export function Animate(position: number): void {
 
   const now = performance.now();
 
-  const LIMIT_FRAMES = isSpicySidebarMode;
-  const FRAME_INTERVAL = Defaults.SimpleLyricsMode ? 1000 / 40 : 1000 / 50;
+  const LIMIT_FRAMES = (isSpicySidebarMode ? (Defaults.SimpleLyricsMode ? false : true) : false);
+  const FRAME_INTERVAL = 1000 / 50;
 
   //const isLetterElementActive = (findActiveElement(position)?.[1] === "letter" || findActiveElement(position)?.[1] === "letterGroup");
   //const shouldLimitFrame = ((LIMIT_FRAMES && !isLetterElementActive) && now - lastAnimateFrameTime < FRAME_INTERVAL);
@@ -465,10 +465,10 @@ export function Animate(position: number): void {
 
   if (!CurrentLyricsType || CurrentLyricsType === "None") return;
 
-  const Credits =
+  /* const Credits =
     document.querySelector<HTMLElement>(
       "#SpicyLyricsPage .LyricsContainer .LyricsContent .Credits"
-    ) ?? undefined;
+    ) ?? undefined; */
 
   // Define proper types for the arrays and indices
   const applyBlur = (
@@ -1235,9 +1235,9 @@ export function Animate(position: number): void {
               } */
 
         if (arr.length === index + 1) {
-          if (Credits && !Credits.classList.contains("Active")) {
+          /* if (Credits && !Credits.classList.contains("Active")) {
             Credits.classList.add("Active");
-          }
+          } */
         }
 
         const checkNextLine = () => {
@@ -1599,9 +1599,9 @@ export function Animate(position: number): void {
             line.HTMLElement.style.setProperty("--text-shadow-opacity", `${currentGlow * 50}%`);
           }
         }
-        if (Credits?.classList.contains("Active")) {
+        /* if (Credits?.classList.contains("Active")) {
           Credits.classList.remove("Active");
-        }
+        } */
       } else if (lineState === "NotSung") {
         if (!line.HTMLElement.classList.contains("NotSung")) {
           line.HTMLElement.classList.add("NotSung");
@@ -1617,9 +1617,9 @@ export function Animate(position: number): void {
         line.HTMLElement.classList.remove("Active", "NotSung");
 
         if (arr.length === index + 1) {
-          if (Credits && !Credits.classList.contains("Active")) {
+          /* if (Credits && !Credits.classList.contains("Active")) {
             Credits.classList.add("Active");
-          }
+          } */
         }
       }
     }

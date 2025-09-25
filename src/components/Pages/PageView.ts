@@ -4,7 +4,9 @@ import "../../css/Loaders/DotLoader.css";
 import { Spicetify } from "@spicetify/bundler";
 import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
-import ApplyLyrics, { resetLyricsPlayer } from "../../utils/Lyrics/Global/Applyer.ts";
+import ApplyLyrics, {
+  resetLyricsPlayer,
+} from "../../utils/Lyrics/Global/Applyer.ts";
 import {
   addLinesEvListener,
   isRomanized,
@@ -17,13 +19,19 @@ import {
   ResetLastLine,
 } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "../../utils/Scrolling/Simplebar/ScrollSimplebar.ts";
-import ApplyDynamicBackground, { CleanupDynamicBGLets } from "../DynamicBG/dynamicBackground.ts";
+import ApplyDynamicBackground, {
+  CleanupDynamicBGLets,
+} from "../DynamicBG/dynamicBackground.ts";
 import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { Icons } from "../Styling/Icons.ts";
-import { DisableCompactMode, EnableCompactMode, IsCompactMode } from "../Utils/CompactMode.ts";
+import {
+  DisableCompactMode,
+  EnableCompactMode,
+  IsCompactMode,
+} from "../Utils/CompactMode.ts";
 import Fullscreen, {
   EnterSpicyLyricsFullscreen,
   ExitFullscreenElement,
@@ -34,6 +42,7 @@ import {
   Session_NowBar_SetSide,
   Session_OpenNowBar,
   ToggleNowBar,
+  OpenNowBar,
 } from "../Utils/NowBar.ts";
 import {
   CloseSidebarLyrics,
@@ -41,6 +50,7 @@ import {
   isSpicySidebarMode,
 } from "../Utils/SidebarLyrics.ts";
 import TransferElement from "../Utils/TransferElement.ts";
+import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 
 // import { UpdateSongMoreInfo } from "../Utils/Annotations";
 
@@ -81,14 +91,24 @@ export const GetPageRoot = () =>
   document.querySelector<HTMLElement>(
     ".Root__main-view .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
   ) ??
-  document.querySelector<HTMLElement>(".Root__main-view .main-view-container .os-host");
+  document.querySelector<HTMLElement>(
+    ".Root__main-view .main-view-container .os-host"
+  );
 
 let PageResizeListener: ResizeObserver | null = null;
+export let PageContainer: HTMLElement | null = null;
 
 async function OpenPage(
   AppendTo: HTMLElement | undefined = undefined,
   isSidebarMode: boolean = false
 ) {
+
+  if (_IsPIP_after) {
+    ClosePopupLyrics();
+    // After closing, open again with the same arguments
+    return OpenPage(AppendTo, isSidebarMode);
+  }
+
   if (PageView.IsOpened) return;
   /* if (!HoverMode) {
         PageView.IsTippyCapable = false;
@@ -154,7 +174,9 @@ async function OpenPage(
     `policy:waiting-for-height`,
     (value: boolean) => {
       if (value === false) {
-        elem.querySelector<HTMLElement>(".ContentBox")?.classList.remove("WaitingForHeight");
+        elem
+          .querySelector<HTMLElement>(".ContentBox")
+          ?.classList.remove("WaitingForHeight");
         Global.Event.unListen(waitingForHeightEvent);
       }
     }
@@ -183,6 +205,7 @@ async function OpenPage(
             </div>
         </div>
     */
+  PageContainer = elem;
 
   const SkipSpicyFont = storage.get("skip-spicy-font");
   if (SkipSpicyFont !== "true") {
@@ -203,7 +226,9 @@ async function OpenPage(
     GetPageRoot()?.appendChild(elem);
   }
 
-  const contentBox = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox");
+  const contentBox = elem.querySelector<HTMLElement>(
+    ".ContentBox"
+  );
   if (contentBox) {
     ApplyDynamicBackground(contentBox);
   }
@@ -238,7 +263,7 @@ async function OpenPage(
 
   PageResizeListener.observe(elem);
 
-  {
+  if (AppendTo === undefined) {
     const legacyPage = document.querySelector<HTMLElement>(
       ".Root__main-view .main-view-container .os-host"
     );
@@ -251,6 +276,14 @@ async function OpenPage(
 
   Defaults.LyricsContainerExists = true;
   PageView.IsOpened = true;
+
+  if (IsPIP) {
+    elem?.classList.add("ForcedCompactMode");
+    OpenNowBar(true);
+    EnableCompactMode();
+  }
+
+  PageContainer = elem;
 }
 
 /* Global.Event.listen("playback:songchange", () => {
@@ -258,11 +291,12 @@ async function OpenPage(
     UpdateSongMoreInfo();
 }) */
 
-export const isSizeReadyToBeCompacted = () => window.matchMedia("(max-width: 70.812rem)").matches;
+export const isSizeReadyToBeCompacted = () =>
+  window.matchMedia("(max-width: 70.812rem)").matches;
 
 export function Compactify(Element: HTMLElement | undefined = undefined) {
   if (!Fullscreen.IsOpen) return;
-  const elem = Element ?? document.querySelector<HTMLElement>("#SpicyLyricsPage");
+  const elem = Element ?? PageContainer;
   if (!elem) return;
   if (isSizeReadyToBeCompacted()) {
     elem.classList.add("CompactifyEnabledCompactMode");
@@ -278,7 +312,7 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 function DestroyPage() {
   if (!PageView.IsOpened) return;
   if (Fullscreen.IsOpen) Fullscreen.Close();
-  if (!document.querySelector("#SpicyLyricsPage")) return;
+  if (!PageContainer) return;
 
   resetLyricsPlayer();
 
@@ -297,7 +331,7 @@ function DestroyPage() {
     legacyPage.style.containerType = "";
   }
 
-  document.querySelector("#SpicyLyricsPage")?.remove();
+  PageContainer?.remove();
   removeLinesEvListener();
   Object.values(Tooltips).forEach((a) => {
     a?.destroy();
@@ -305,6 +339,7 @@ function DestroyPage() {
   ScrollSimplebar?.unMount();
   Global.Event.evoke("page:destroy", null);
   PageView.IsTippyCapable = true;
+  PageContainer = null;
 }
 
 export let LyricsApplied = false;
@@ -326,7 +361,10 @@ Global.Event.listen("lyrics:apply", ({ Type }: { Type: string }) => {
 });
 
 function AppendViewControls(ReAppend: boolean = false) {
-  const elem = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox .ViewControls");
+  if (!PageContainer) return;
+  const elem = PageContainer.querySelector<HTMLElement>(
+    ".ContentBox .ViewControls"
+  );
   if (!elem) return;
 
   // Safely destroy existing tooltips first
@@ -340,39 +378,91 @@ function AppendViewControls(ReAppend: boolean = false) {
 
   if (ReAppend) elem.innerHTML = "";
   const isNoLyrics =
-    storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
+    storage.get("currentLyricsData")?.toString() ===
+    `NO_LYRICS:${SpotifyPlayer.GetId()}`;
   const isDevMode = storage.get("devMode") === "true";
   elem.innerHTML = `
-        ${Fullscreen.IsOpen || Fullscreen.CinemaViewOpen ? "" : `<button id="CinemaView" class="ViewControl">${Icons.CinemaView}</button>`}
-        ${Fullscreen.IsOpen || Fullscreen.CinemaViewOpen ? `<button id="CompactModeToggle" class="ViewControl">${IsCompactMode() ? Icons.DisableCompactModeIcon : Icons.EnableCompactModeIcon}</button>` : ""}
-        ${Defaults.LyricsRenderer === "Spicy" ? `<button id="RomanizationToggle" class="ViewControl">${isRomanized ? Icons.DisableRomanization : Icons.EnableRomanization}</button>` : ""}
-        ${!Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen && !isSpicySidebarMode ? `<button id="NowBarToggle" class="ViewControl">${Icons.NowBar}</button>` : ""}
-        ${NowBarObj.Open && !(isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen)) && !isSpicySidebarMode ? `<button id="NowBarSideToggle" class="ViewControl">${Icons.Fullscreen}</button>` : ""}
-        ${Fullscreen.IsOpen ? `<button id="FullscreenToggle" class="ViewControl">${Fullscreen.CinemaViewOpen ? Icons.Fullscreen : Icons.CloseFullscreen}</button>` : ""}
-        ${!Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen ? `<button id="SidebarModeToggle" class="ViewControl">${isSpicySidebarMode ? Icons["panel-right-open"] : Icons["panel-right-close"]}</button>` : ""}
-        ${isDevMode ? `<button id="DevTools" class="ViewControl">${Icons.DevTools}</button>` : ""}
+        ${
+          Fullscreen.IsOpen || Fullscreen.CinemaViewOpen
+            ? ""
+            : IsPIP ? "" : `<button id="CinemaView" class="ViewControl">${Icons.CinemaView}</button>`
+        }
+        ${
+          Fullscreen.IsOpen || Fullscreen.CinemaViewOpen
+            ? IsPIP ? "" : `<button id="CompactModeToggle" class="ViewControl">${
+                IsCompactMode()
+                  ? Icons.DisableCompactModeIcon
+                  : Icons.EnableCompactModeIcon
+              }</button>`
+            : ""
+        }
+        ${
+          Defaults.LyricsRenderer === "Spicy"
+            ? `<button id="RomanizationToggle" class="ViewControl">${
+                isRomanized
+                  ? Icons.DisableRomanization
+                  : Icons.EnableRomanization
+              }</button>`
+            : ""
+        }
+        ${
+          !Fullscreen.IsOpen &&
+          !Fullscreen.CinemaViewOpen &&
+          !isSpicySidebarMode
+            ? IsPIP ? "" : `<button id="NowBarToggle" class="ViewControl">${Icons.NowBar}</button>`
+            : ""
+        }
+        ${
+          NowBarObj.Open &&
+          !(isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen)) &&
+          !isSpicySidebarMode
+            ? IsPIP ? "" : `<button id="NowBarSideToggle" class="ViewControl">${Icons.Fullscreen}</button>`
+            : ""
+        }
+        ${
+          Fullscreen.IsOpen
+            ? (IsPIP ? "" : `<button id="FullscreenToggle" class="ViewControl">${
+                Fullscreen.CinemaViewOpen
+                  ? Icons.CloseFullscreen
+                  : Icons.Fullscreen
+              }</button>`)
+            : ""
+        }
+        ${
+          !Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen
+            ? IsPIP ? "" : `<button id="SidebarModeToggle" class="ViewControl">${
+                isSpicySidebarMode
+                  ? Icons["panel-right-open"]
+                  : Icons["panel-right-close"]
+              }</button>`
+            : ""
+        }
+        ${
+          isDevMode
+            ? `<button id="DevTools" class="ViewControl">${Icons.DevTools}</button>`
+            : ""
+        }
         <button id="Close" class="ViewControl">${Icons.Close}</button>
     `;
 
   let targetElem: HTMLElement | null = elem;
   if (Fullscreen.IsOpen) {
-    const mediaContent = document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent"
+    const mediaContent = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .MediaBox .MediaContent"
     );
     if (mediaContent) {
       TransferElement(elem, mediaContent);
-      const viewControls = document.querySelector<HTMLElement>(
-        "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent .ViewControls"
-      );
+      const viewControls =
+        mediaContent.querySelector<HTMLElement>(".ViewControls");
       if (viewControls) {
         targetElem = viewControls;
       }
     }
   } else {
-    const contentBox = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox");
+    const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
     if (
-      document.querySelector<HTMLElement>(
-        "#SpicyLyricsPage .ContentBox .NowBar .Header .ViewControls"
+      PageContainer?.querySelector<HTMLElement>(
+        ".ContentBox .NowBar .Header .ViewControls"
       ) &&
       contentBox
     ) {
@@ -385,15 +475,24 @@ function AppendViewControls(ReAppend: boolean = false) {
   }
 
   function SetupTippy(elem: HTMLElement) {
-    // Let's set up our TippyProps
+    // If in PIP mode, do not create any Tippy tooltips, but still wire up click handlers
+    const isPip = IsPIP;
+
     const closeButton = elem.querySelector("#Close");
     if (closeButton) {
       try {
-        Tooltips.Close = Spicetify.Tippy(closeButton, {
-          ...Spicetify.TippyProps,
-          content: `Close Page`,
-        });
+        if (!isPip) {
+          Tooltips.Close = Spicetify.Tippy(closeButton, {
+            ...Spicetify.TippyProps,
+            content: `Close Page`,
+          });
+        }
         closeButton.addEventListener("click", () => {
+          if (IsPIP) {
+            ClosePopupLyrics()
+            return;
+          }
+
           if (Fullscreen.IsOpen) {
             // If in any fullscreen mode, close it first
             Fullscreen.Close();
@@ -414,12 +513,17 @@ function AppendViewControls(ReAppend: boolean = false) {
     const compactModeToggle = elem.querySelector("#CompactModeToggle");
     if (compactModeToggle) {
       try {
-        Tooltips.Close = Spicetify.Tippy(compactModeToggle, {
-          ...Spicetify.TippyProps,
-          content: `${IsCompactMode() ? "Disable Compact Mode" : "Enable Compact Mode"}`,
-        });
+        if (!isPip) {
+          Tooltips.Close = Spicetify.Tippy(compactModeToggle, {
+            ...Spicetify.TippyProps,
+            content: `${
+              IsCompactMode() ? "Disable Compact Mode" : "Enable Compact Mode"
+            }`,
+          });
+        }
         compactModeToggle.addEventListener("click", () => {
-          const SpicyLyricsPage = document.querySelector<HTMLElement>("#SpicyLyricsPage");
+          // Use PageContainer instead of document.querySelector
+          const SpicyLyricsPage = PageContainer;
           if (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) {
             if (IsCompactMode()) {
               SpicyLyricsPage?.classList.remove("ForcedCompactMode");
@@ -444,19 +548,19 @@ function AppendViewControls(ReAppend: boolean = false) {
     const romanizationToggle = elem.querySelector("#RomanizationToggle");
     if (romanizationToggle) {
       try {
-        Tooltips.Close = Spicetify.Tippy(romanizationToggle, {
-          ...Spicetify.TippyProps,
-          content: isRomanized ? `Disable Romanization` : `Enable Romanization`,
-        });
+        if (!isPip) {
+          Tooltips.Close = Spicetify.Tippy(romanizationToggle, {
+            ...Spicetify.TippyProps,
+            content: isRomanized ? `Disable Romanization` : `Enable Romanization`,
+          });
+        }
         romanizationToggle.addEventListener("click", async () => {
           const songUri = SpotifyPlayer.GetUri();
           if (!songUri) return;
-          document
-            .querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent")
-            ?.classList.add("HiddenTransitioned");
+          PageContainer?.querySelector(
+            ".LyricsContainer .LyricsContent"
+          )?.classList.add("HiddenTransitioned");
           const lyrics = await fetchLyrics(songUri);
-          //if (lyrics === undefined) return;
-          //if (lyrics?.Type === "Static" && lyrics?.Lines?.[0]?.Text === "No Lyrics Found") return;
 
           setRomanizedStatus(!isRomanized);
 
@@ -464,9 +568,9 @@ function AppendViewControls(ReAppend: boolean = false) {
 
           setTimeout(() => {
             AppendViewControls();
-            document
-              .querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent")
-              ?.classList.remove("HiddenTransitioned");
+            PageContainer?.querySelector(
+              ".LyricsContainer .LyricsContent"
+            )?.classList.remove("HiddenTransitioned");
           }, 45);
         });
       } catch (err) {
@@ -478,10 +582,12 @@ function AppendViewControls(ReAppend: boolean = false) {
       const nowBarButton = elem.querySelector("#NowBarToggle");
       if (nowBarButton) {
         try {
-          Tooltips.NowBarToggle = Spicetify.Tippy(nowBarButton, {
-            ...Spicetify.TippyProps,
-            content: `NowBar`,
-          });
+          if (!isPip) {
+            Tooltips.NowBarToggle = Spicetify.Tippy(nowBarButton, {
+              ...Spicetify.TippyProps,
+              content: `NowBar`,
+            });
+          }
           nowBarButton.addEventListener("click", () => ToggleNowBar());
         } catch (err) {
           console.warn("Failed to setup NowBar tooltip:", err);
@@ -491,14 +597,18 @@ function AppendViewControls(ReAppend: boolean = false) {
       const sidebarModeToggle = elem.querySelector("#SidebarModeToggle");
       if (sidebarModeToggle) {
         try {
-          Tooltips.NowBarToggle = Spicetify.Tippy(sidebarModeToggle, {
-            ...Spicetify.TippyProps,
-            content: isSpicySidebarMode ? `Switch to normal mode` : `Switch to Sidebar Mode`,
-          });
+          if (!isPip) {
+            Tooltips.NowBarToggle = Spicetify.Tippy(sidebarModeToggle, {
+              ...Spicetify.TippyProps,
+              content: isSpicySidebarMode
+                ? `Switch to normal mode`
+                : `Switch to Sidebar Mode`,
+            });
+          }
           sidebarModeToggle.addEventListener("click", () => {
             (sidebarModeToggle as HTMLElement).style.pointerEvents = "none";
             (sidebarModeToggle as HTMLElement).style.cursor = "not-allowed";
-            const page = document.querySelector<HTMLElement>("#SpicyLyricsPage");
+            const page = PageContainer;
             if (isSpicySidebarMode) {
               page?.classList.add("SidebarTransition__Closing");
               setTimeout(() => {
@@ -532,10 +642,14 @@ function AppendViewControls(ReAppend: boolean = false) {
     const fullscreenBtn = elem.querySelector("#FullscreenToggle");
     if (fullscreenBtn) {
       try {
-        Tooltips.FullscreenToggle = Spicetify.Tippy(fullscreenBtn, {
-          ...Spicetify.TippyProps,
-          content: `${Fullscreen.CinemaViewOpen ? "Fullscreen" : "Cinema View"}`,
-        });
+        if (!isPip) {
+          Tooltips.FullscreenToggle = Spicetify.Tippy(fullscreenBtn, {
+            ...Spicetify.TippyProps,
+            content: `${
+              Fullscreen.CinemaViewOpen ? "Fullscreen" : "Cinema View"
+            }`,
+          });
+        }
         fullscreenBtn.addEventListener("click", async () => {
           // If we're in cinema view, go to full fullscreen
           if (Fullscreen.CinemaViewOpen) {
@@ -557,10 +671,12 @@ function AppendViewControls(ReAppend: boolean = false) {
     const cinemaViewBtn = elem.querySelector("#CinemaView");
     if (cinemaViewBtn && !Fullscreen.IsOpen) {
       try {
-        Tooltips.CinemaView = Spicetify.Tippy(cinemaViewBtn, {
-          ...Spicetify.TippyProps,
-          content: `Cinema View`,
-        });
+        if (!isPip) {
+          Tooltips.CinemaView = Spicetify.Tippy(cinemaViewBtn, {
+            ...Spicetify.TippyProps,
+            content: `Cinema View`,
+          });
+        }
         cinemaViewBtn.addEventListener("click", async () => {
           if (isSpicySidebarMode) {
             CloseSidebarLyrics();
@@ -569,7 +685,7 @@ function AppendViewControls(ReAppend: boolean = false) {
               () => {
                 Session.Navigate({ pathname: "/SpicyLyrics" });
                 Whentil.When(
-                  () => document.querySelector("#SpicyLyricsPage"),
+                  () => !!PageContainer,
                   () => {
                     setTimeout(() => {
                       Fullscreen.Open(true);
@@ -594,10 +710,12 @@ function AppendViewControls(ReAppend: boolean = false) {
       !(isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen))
     ) {
       try {
-        Tooltips.NowBarSideToggle = Spicetify.Tippy(nowBarSideToggleBtn, {
-          ...Spicetify.TippyProps,
-          content: `Swap NowBar Side`,
-        });
+        if (!isPip) {
+          Tooltips.NowBarSideToggle = Spicetify.Tippy(nowBarSideToggleBtn, {
+            ...Spicetify.TippyProps,
+            content: `Swap NowBar Side`,
+          });
+        }
         nowBarSideToggleBtn.addEventListener("click", () => NowBar_SwapSides());
       } catch (err) {
         console.warn("Failed to setup NowBarSideToggle tooltip:", err);
@@ -607,10 +725,12 @@ function AppendViewControls(ReAppend: boolean = false) {
     const devToolsButton = elem.querySelector("#DevTools");
     if (devToolsButton && isDevMode) {
       try {
-        Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
-          ...Spicetify.TippyProps,
-          content: `DevTools`,
-        });
+        if (!isPip) {
+          Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
+            ...Spicetify.TippyProps,
+            content: `DevTools`,
+          });
+        }
         devToolsButton.addEventListener("click", () => {
           Spicetify.PopupModal.display({
             title: "Spicy Lyrics DevTools",
@@ -646,7 +766,8 @@ interface SpicyLyricsNotificationReturnObject {
   open: () => void;
 }
 
-const showTopbarNotifications = storage.get("show_topbar_notifications") === "true";
+const showTopbarNotifications =
+  storage.get("show_topbar_notifications") === "true";
 
 export function SpicyLyrics_Notification({
   icon,
@@ -669,14 +790,20 @@ export function SpicyLyrics_Notification({
   };
   if (!showTopbarNotifications) return nonFunctionalReturnObject;
   if (!PageView.IsOpened) return nonFunctionalReturnObject;
-  const NotificationContainer = document.querySelector("#SpicyLyricsPage .NotificationContainer");
+  const NotificationContainer = PageContainer?.querySelector(
+    ".NotificationContainer"
+  );
   if (!NotificationContainer) return nonFunctionalReturnObject;
-  const Title = NotificationContainer.querySelector(".NotificationText .NotificationTitle");
+  const Title = NotificationContainer.querySelector(
+    ".NotificationText .NotificationTitle"
+  );
   const Description = NotificationContainer.querySelector(
     ".NotificationText .NotificationDescription"
   );
   const Icon = NotificationContainer.querySelector(".NotificationIcon");
-  const CloseButton = NotificationContainer.querySelector(".NotificationCloseButton");
+  const CloseButton = NotificationContainer.querySelector(
+    ".NotificationCloseButton"
+  );
 
   if (Title && title) {
     Title.textContent = title;
