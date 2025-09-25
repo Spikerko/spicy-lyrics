@@ -6,6 +6,7 @@ import { RetrievePackage } from "../ImportPackage.ts";
 import Aromanize from "./Aromanize.ts";
 import greekRomanization from "./GreekRomanization.js";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
+import { PageContainer } from "../../components/Pages/PageView.ts";
 
 // Constants
 const RomajiConverter = new Kuroshiro();
@@ -219,8 +220,8 @@ export const ProcessLyrics = async (lyrics: any) => {
 
   await Promise.all(romanizationPromises);
   if (lyrics.IncludesRomanization === true) {
-    document.querySelector("#SpicyLyricsPage")?.classList.add("Lyrics_RomanizationAvailable");
+    PageContainer?.classList.add("Lyrics_RomanizationAvailable");
   } else {
-    document.querySelector("#SpicyLyricsPage")?.classList.remove("Lyrics_RomanizationAvailable");
+    PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
   }
 };

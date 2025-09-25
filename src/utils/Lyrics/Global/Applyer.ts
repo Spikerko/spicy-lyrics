@@ -13,6 +13,7 @@ import { ApplyLineLyrics } from "../Applyer/Synced/Line.ts";
 import { ApplySyllableLyrics } from "../Applyer/Synced/Syllable.ts";
 import { ClearLyricsPageContainer } from "../fetchLyrics.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
+import { PageContainer } from "../../../components/Pages/PageView.ts";
 
 /**
  * Union type for all lyrics data types
@@ -34,7 +35,7 @@ export const resetLyricsPlayer = () => {
  * @param lyrics - The lyrics data to apply
  */
 export default async function ApplyLyrics(lyrics: LyricsData | null | undefined): Promise<void> {
-  if (!document.querySelector("#SpicyLyricsPage")) return;
+  if (!PageContainer) return;
   setBlurringLastLine(null);
   if (!lyrics) return;
 
@@ -47,15 +48,29 @@ export default async function ApplyLyrics(lyrics: LyricsData | null | undefined)
     ClearScrollSimplebar();
     ClearLyricsPageContainer();
 
-    const ttml = lyrics.SourceTTML;
-    const lyricsContainer = document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .LyricsContainer .LyricsContent"
-    );
-    if (!lyricsContainer) return;
-    if (!currentLyricsPlayer) currentLyricsPlayer = new LyricPlayer();
-    const parsedTTML = await parseTTML(ttml);
-    lyricsContainer.appendChild(currentLyricsPlayer.getElement());
-    currentLyricsPlayer.setLyricLines(parsedTTML.lines);
+    if (lyrics.AMLLContent) {
+      const lrcs = lyrics.AMLLContent;
+      const lyricsContainer = PageContainer.querySelector<HTMLElement>(
+        ".LyricsContainer .LyricsContent"
+      );
+      if (!lyricsContainer) return;
+      if (!currentLyricsPlayer) currentLyricsPlayer = new LyricPlayer();
+      lyricsContainer.appendChild(currentLyricsPlayer.getElement());
+      currentLyricsPlayer.setLyricLines(lrcs.lines);
+
+      EmitApply(lyrics.Type, lyrics.Content);
+      SetWaitingForHeight(false);
+    } else {
+      const ttml = lyrics.SourceTTML;
+      const lyricsContainer = PageContainer.querySelector<HTMLElement>(
+        ".LyricsContainer .LyricsContent"
+      );
+      if (!lyricsContainer) return;
+      if (!currentLyricsPlayer) currentLyricsPlayer = new LyricPlayer();
+      const parsedTTML = await parseTTML(ttml);
+      lyricsContainer.appendChild(currentLyricsPlayer.getElement());
+      currentLyricsPlayer.setLyricLines(parsedTTML.lines);
+    }
 
     EmitApply(lyrics.Type, lyrics.Content);
     SetWaitingForHeight(false);

@@ -239,6 +239,15 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addToggle(
+    "disable-popup-lyrics",
+    "Disable Popup Lyrics",
+    !Defaults.PopupLyricsAllowed,
+    () => {
+      storage.set("disablePopupLyrics", settings.getFieldValue("disable-popup-lyrics") as string);
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",

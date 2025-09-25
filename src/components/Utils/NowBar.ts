@@ -9,10 +9,11 @@ import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToA
 import storage from "../../utils/storage.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
-import PageView from "../Pages/PageView.ts";
+import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
 import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
 import { isSpicySidebarMode } from "./SidebarLyrics.ts";
+import { IsPIP } from "./PopupLyrics.ts";
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
@@ -99,9 +100,9 @@ function ApplyMarquee(baseWidth, elementWidth, name) {
 let NowBarFullscreenMaid: Maid | null = null;
 
 function OpenNowBar(skipSaving: boolean = false) {
-  const NowBar = document.querySelector("#SpicyLyricsPage .ContentBox .NowBar");
+  const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
-  const spicyLyricsPage = document.querySelector("#SpicyLyricsPage");
+  const spicyLyricsPage = PageContainer;
   if (isSpicySidebarMode) {
     spicyLyricsPage?.classList.add("NowBarStatus__Closed");
     spicyLyricsPage?.classList.remove("NowBarStatus__Open");
@@ -125,8 +126,8 @@ function OpenNowBar(skipSaving: boolean = false) {
   }, 10);
 
   if (Fullscreen.IsOpen) {
-    const MediaBox = document.querySelector(
-      "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent"
+    const MediaBox = PageContainer.querySelector(
+      ".ContentBox .NowBar .Header .MediaBox .MediaContent"
     );
 
     if (!MediaBox) return;
@@ -648,12 +649,12 @@ function OpenNowBar(skipSaving: boolean = false) {
       // Use a more reliable approach to add elements
       Whentil.When(
         () =>
-          document.querySelector(
-            "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent .ViewControls"
+          PageContainer.querySelector(
+            ".ContentBox .NowBar .Header .MediaBox .MediaContent .ViewControls"
           ),
         () => {
-          const MediaBox = document.querySelector(
-            "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent"
+          const MediaBox = PageContainer.querySelector(
+            ".ContentBox .NowBar .Header .MediaBox .MediaContent"
           );
           if (!MediaBox) return;
 
@@ -816,8 +817,8 @@ function CleanUpActiveComponents() {
   }
 
   // Also remove any leftover elements
-  const MediaBox = document.querySelector(
-    "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent"
+  const MediaBox = PageContainer.querySelector(
+    ".ContentBox .NowBar .Header .MediaBox .MediaContent"
   );
 
   if (MediaBox) {
@@ -838,13 +839,13 @@ function CleanUpActiveComponents() {
 
 function CloseNowBar() {
   NowBarObj.Open = false;
-  const NowBar = document.querySelector("#SpicyLyricsPage .ContentBox .NowBar");
+  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
   NowBar.classList.remove("Active");
   storage.set("IsNowBarOpen", "false");
   CleanUpActiveComponents();
 
-  const spicyLyricsPage = document.querySelector("#SpicyLyricsPage");
+  const spicyLyricsPage = PageContainer;
   if (spicyLyricsPage) {
     spicyLyricsPage.classList.remove("NowBarStatus__Open");
     spicyLyricsPage.classList.add("NowBarStatus__Closed");
@@ -994,7 +995,7 @@ async function getAVCStreamUrl(manifestUrl: string) {
 } */
 
 function UpdateNowBar(force = false) {
-  const NowBar = document.querySelector("#SpicyLyricsPage .ContentBox .NowBar");
+  const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
   //const ArtistsDiv = NowBar.querySelector(".Header .Metadata .Artists");
@@ -1035,13 +1036,13 @@ function UpdateNowBar(force = false) {
 
 Global.Event.listen("playback:songchange", () => {
   setTimeout(() => {
-    UpdateNowBar();
+    UpdateNowBar(IsPIP);
     setTimeout(() => {
-      UpdateNowBar();
+      UpdateNowBar(IsPIP);
       setTimeout(() => {
-        UpdateNowBar();
+        UpdateNowBar(IsPIP);
         setTimeout(() => {
-          UpdateNowBar();
+          UpdateNowBar(IsPIP);
         }, 1000);
       }, 1000);
     }, 1000);
@@ -1049,10 +1050,10 @@ Global.Event.listen("playback:songchange", () => {
 });
 
 function NowBar_SwapSides() {
-  const NowBar = document.querySelector("#SpicyLyricsPage .ContentBox .NowBar");
+  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
-  const spicyLyricsPage = document.querySelector("#SpicyLyricsPage");
+  const spicyLyricsPage = PageContainer;
   if (!spicyLyricsPage) return;
 
   const CurrentSide = storage.get("NowBarSide");
@@ -1085,10 +1086,10 @@ function NowBar_SwapSides() {
 }
 
 function Session_NowBar_SetSide() {
-  const NowBar = document.querySelector("#SpicyLyricsPage .ContentBox .NowBar");
+  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
-  const spicyLyricsPage = document.querySelector("#SpicyLyricsPage");
+  const spicyLyricsPage = PageContainer;
   if (!spicyLyricsPage) return;
 
   const CurrentSide = storage.get("NowBarSide");

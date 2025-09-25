@@ -3,7 +3,7 @@ import { GetExpireStore } from "@spikerko/tools/Cache";
 import Defaults from "../../components/Global/Defaults.ts";
 import Platform from "../../components/Global/Platform.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
-import PageView from "../../components/Pages/PageView.ts";
+import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../components/Utils/Fullscreen.ts";
 import { SendJob } from "../API/SendJob.ts";
@@ -19,9 +19,9 @@ export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 10, {
 export default async function fetchLyrics(uri: string) {
   const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
 
-  //if (!document.querySelector("#SpicyLyricsPage")) return;
+  //if (!PageContainer) return;
   const LyricsContent =
-    document.querySelector("#SpicyLyricsPage .LyricsContainer .LyricsContent") ?? undefined;
+    PageContainer?.querySelector(".LyricsContainer .LyricsContent") ?? undefined;
   if (LyricsContent?.classList.contains("offline")) {
     LyricsContent.classList.remove("offline");
   }
@@ -69,24 +69,16 @@ export default async function fetchLyrics(uri: string) {
         // Return the stored lyrics if the ID matches the track ID
         if (lyricsData?.id === trackId) {
           if (lyricsData?.IncludesRomanization) {
-            document
-              .querySelector("#SpicyLyricsPage")
-              ?.classList.add("Lyrics_RomanizationAvailable");
+            PageContainer?.classList.add("Lyrics_RomanizationAvailable");
           } else {
-            document
-              .querySelector("#SpicyLyricsPage")
-              ?.classList.remove("Lyrics_RomanizationAvailable");
+            PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
           }
 
           storage.set("currentlyFetching", "false");
           HideLoaderContainer();
           Defaults.CurrentLyricsType = lyricsData.Type;
-          document
-            .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox")
-            ?.classList.remove("LyricsHidden");
-          document
-            .querySelector("#SpicyLyricsPage .ContentBox .LyricsContainer")
-            ?.classList.remove("Hidden");
+          PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+          PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
           PageView.AppendViewControls(true);
           return lyricsData;
         }
@@ -108,23 +100,17 @@ export default async function fetchLyrics(uri: string) {
         const lyricsFromCache = lyricsFromCacheRes ?? {};
 
         if (lyricsFromCache?.IncludesRomanization) {
-          document.querySelector("#SpicyLyricsPage")?.classList.add("Lyrics_RomanizationAvailable");
+          PageContainer?.classList.add("Lyrics_RomanizationAvailable");
         } else {
-          document
-            .querySelector("#SpicyLyricsPage")
-            ?.classList.remove("Lyrics_RomanizationAvailable");
+          PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
         }
 
         storage.set("currentLyricsData", JSON.stringify(lyricsFromCache));
         storage.set("currentlyFetching", "false");
         HideLoaderContainer();
         Defaults.CurrentLyricsType = lyricsFromCache.Type;
-        document
-          .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox")
-          ?.classList.remove("LyricsHidden");
-        document
-          .querySelector("#SpicyLyricsPage .ContentBox .LyricsContainer")
-          ?.classList.remove("Hidden");
+        PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+        PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
         PageView.AppendViewControls(true);
         return { ...lyricsFromCache, fromCache: true };
       }
@@ -216,12 +202,8 @@ export default async function fetchLyrics(uri: string) {
     }
 
     Defaults.CurrentLyricsType = lyrics.Type;
-    document
-      .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox")
-      ?.classList.remove("LyricsHidden");
-    document
-      .querySelector("#SpicyLyricsPage .ContentBox .LyricsContainer")
-      ?.classList.remove("Hidden");
+    PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+    PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
     PageView.AppendViewControls(true);
     return { ...lyrics, fromCache: false };
   } catch (error) {
@@ -329,12 +311,8 @@ async function noLyricsMessage(Cache = true, LocalStorage = true) {
   Defaults.CurrentLyricsType = "Static";
 
   if (!IsCompactMode() && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen)) {
-    document
-      .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox .LyricsContainer")
-      ?.classList.add("Hidden");
-    document
-      .querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox")
-      ?.classList.add("LyricsHidden");
+    PageContainer?.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.add("Hidden");
+    PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.add("LyricsHidden");
   }
 
   ClearLyricsPageContainer();
@@ -377,7 +355,7 @@ function urOfflineMessage() {
   Defaults.CurrentLyricsType = Message.Type;
 
   /* if (storage.get("IsNowBarOpen")) {
-        document.querySelector("#SpicyLyricsPage .ContentBox .LyricsContainer").classList.add("Hidden");
+        PageContainer?.querySelector(".ContentBox .LyricsContainer").classList.add("Hidden");
     } */
   PageView.AppendViewControls(true);
   return Message;
@@ -439,8 +417,8 @@ let ContainerShowLoaderTimeout: ReturnType<typeof setTimeout> | null = null;
  * Show the loader container after a delay
  */
 function ShowLoaderContainer(): void {
-  const loaderContainer = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .loaderContainer"
+  const loaderContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .loaderContainer"
   );
   if (loaderContainer) {
     ContainerShowLoaderTimeout = setTimeout(() => {
@@ -453,8 +431,8 @@ function ShowLoaderContainer(): void {
  * Hide the loader container and clear any pending timeout
  */
 function HideLoaderContainer(): void {
-  const loaderContainer = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .loaderContainer"
+  const loaderContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .loaderContainer"
   );
   if (loaderContainer) {
     if (ContainerShowLoaderTimeout) {
@@ -469,8 +447,8 @@ function HideLoaderContainer(): void {
  * Clear the lyrics container content
  */
 export function ClearLyricsPageContainer(): void {
-  const lyricsContent = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  const lyricsContent = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
   if (lyricsContent) {
     lyricsContent.innerHTML = "";

@@ -27,6 +27,7 @@ const Defaults = {
   LyricsRenderer: "Spicy",
   LyricsRenderer_Default: 0,
   CanvasBackground: false,
+  PopupLyricsAllowed: true,
 };
 
 export default Defaults;

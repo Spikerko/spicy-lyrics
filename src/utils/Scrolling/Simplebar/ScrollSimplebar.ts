@@ -6,14 +6,19 @@ import {
   LyricsPageMouseLeave,
   SetIsMouseInLyricsPage,
 } from "../Page/IsHovering.ts";
+import { PageContainer } from "../../../components/Pages/PageView.ts";
 
 export let ScrollSimplebar: any | null = null;
 
-const ElementEventQuery = "#SpicyLyricsPage .ContentBox .LyricsContainer";
+const ElementEventQuery = ".ContentBox .LyricsContainer";
 
 export function MountScrollSimplebar() {
-  const LyricsContainer = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  if (!PageContainer) {
+    console.warn("Cannot mount ScrollSimplebar: PageContainer not found");
+    return;
+  }
+  const LyricsContainer = PageContainer.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
 
   if (!LyricsContainer) {
@@ -24,10 +29,10 @@ export function MountScrollSimplebar() {
   // @ts-expect-error abc
   ScrollSimplebar = new SimpleBar(LyricsContainer, { autoHide: false });
 
-  document
+  PageContainer
     .querySelector<HTMLElement>(ElementEventQuery)
     ?.addEventListener("mouseenter", LyricsPageMouseEnter);
-  document
+  PageContainer
     .querySelector<HTMLElement>(ElementEventQuery)
     ?.addEventListener("mouseleave", LyricsPageMouseLeave);
 }
@@ -36,12 +41,14 @@ export function ClearScrollSimplebar() {
   ScrollSimplebar?.unMount();
   ScrollSimplebar = null;
   SetIsMouseInLyricsPage(false);
-  document
-    .querySelector<HTMLElement>(ElementEventQuery)
-    ?.removeEventListener("mouseenter", LyricsPageMouseEnter);
-  document
-    .querySelector<HTMLElement>(ElementEventQuery)
-    ?.removeEventListener("mouseleave", LyricsPageMouseLeave);
+  if (PageContainer) {
+    PageContainer
+      .querySelector<HTMLElement>(ElementEventQuery)
+      ?.removeEventListener("mouseenter", LyricsPageMouseEnter);
+    PageContainer
+      .querySelector<HTMLElement>(ElementEventQuery)
+      ?.removeEventListener("mouseleave", LyricsPageMouseLeave);
+  }
 }
 
 export function RecalculateScrollSimplebar() {
@@ -49,8 +56,9 @@ export function RecalculateScrollSimplebar() {
 }
 
 new IntervalManager(Infinity, () => {
-  const LyricsContainer = document.querySelector<HTMLElement>(
-    "#SpicyLyricsPage .LyricsContainer .LyricsContent"
+  if (!PageContainer) return;
+  const LyricsContainer = PageContainer.querySelector<HTMLElement>(
+    ".LyricsContainer .LyricsContent"
   );
   if (!LyricsContainer || !ScrollSimplebar) return;
   if (IsMouseInLyricsPage) {
