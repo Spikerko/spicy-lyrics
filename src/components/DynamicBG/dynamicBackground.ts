@@ -242,53 +242,50 @@ export default async function ApplyDynamicBackground(element: HTMLElement) {
         }
     } else  */ if (Defaults.StaticBackground) {
     if (Defaults.StaticBackgroundType === "Color") {
-      const colorFetch = await Spicetify.CosmosAsync.get(
-        `https://spclient.wg.spotify.com/color-lyrics/v2/track/${SpotifyPlayer.GetId()}/image/${SpotifyPlayer.GetCover("standard") ?? ""}?format=json&vocalRemoval=false&market=from_token`
-      );
-
-      const color = colorFetch?.colors?.background
-        ? intToHexColor(colorFetch?.colors?.background)
-        : undefined;
-
-      const extractedColor = ((await Spicetify.colorExtractor(
-        SpotifyPlayer.GetUri() ?? "spotify:track:31CsSZ9KlQmEu0JvWSkM3j"
-      )) as any) ?? { VIBRANT: "#999999" };
-      //const color2 = (extractedColor?.["undefined"] !== "#undefined" ? extractedColor?.["undefined"] : (extractedColor?.DESATURATED ?? extractedColor?.DARK_VIBRANT ?? extractedColor?.VIBRANT)) ?? "#999999";
-      const prevBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.ColorBackground");
-
-      if (prevBg) {
-        prevBg.style.setProperty("--VibrantColor", extractedColor?.VIBRANT ?? "#000000");
-        prevBg.style.setProperty("--DarkVibrantColor", extractedColor?.DARK_VIBRANT ?? "#000000");
-        prevBg.style.setProperty("--DesaturatedColor", extractedColor?.DESATURATED ?? "#000000");
-        prevBg.style.setProperty("--BaseColor", extractedColor?.undefined ?? "#000000");
-        prevBg.style.setProperty(
-          "--LyricsBaseColor",
-          color ??
-            extractedColor?.undefined ??
-            extractedColor?.DESATURATED ??
-            extractedColor?.DARK_VIBRANT ??
-            extractedColor?.VIBRANT ??
-            "#000000"
-        );
-        return;
+      // First, create/init the background with black as a fallback
+      let dynamicBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.ColorBackground");
+      if (!dynamicBg) {
+        dynamicBg = document.createElement("div");
+        dynamicBg.classList.add("spicy-dynamic-bg", "ColorBackground");
+        // Set initial fallback colors to black
+        dynamicBg.style.setProperty("--MinContrastColor", "18, 18, 18, 1");
+        dynamicBg.style.setProperty("--HighContrastColor", "18, 18, 18, 1");
+        dynamicBg.style.setProperty("--OverlayColor", "18, 18, 18, 1");
+        element.appendChild(dynamicBg);
       }
 
-      const dynamicBg = document.createElement("div");
-      dynamicBg.classList.add("spicy-dynamic-bg", "ColorBackground");
-      dynamicBg.style.setProperty("--VibrantColor", extractedColor?.VIBRANT ?? "#000000");
-      dynamicBg.style.setProperty("--DarkVibrantColor", extractedColor?.DARK_VIBRANT ?? "#000000");
-      dynamicBg.style.setProperty("--DesaturatedColor", extractedColor?.DESATURATED ?? "#000000");
-      dynamicBg.style.setProperty("--BaseColor", extractedColor?.undefined ?? "#000000");
-      dynamicBg.style.setProperty(
-        "--LyricsBaseColor",
-        color ??
-          extractedColor?.undefined ??
-          extractedColor?.DESATURATED ??
-          extractedColor?.DARK_VIBRANT ??
-          extractedColor?.VIBRANT ??
-          "#000000"
-      );
-      element.appendChild(dynamicBg);
+      // Now fetch the real colors and apply them
+      try {
+        const colorQuery = await Spicetify.GraphQL.Request(
+          Spicetify.GraphQL.Definitions.getDynamicColorsByUris,
+          {
+            imageUris: [SpotifyPlayer.GetCover("large") ?? ""]
+          }
+        );
+
+        const colorResponse = colorQuery.data.dynamicColors[0];
+        const colorBestFit = colorResponse.bestFit === "DARK" ? "dark" : colorResponse.bestFit === "LIGHT" ? "light" : "dark";
+
+        const colors = colorResponse[colorBestFit];
+        const fromColorObj = colors.minContrast;
+        const toColorObj = colors.highContrast;
+        const overlayColorObj = colors.higherContrast;
+
+        const fromColorBgObj = fromColorObj.backgroundBase;
+        const toColorBgObj = toColorObj.backgroundBase;
+        const overlayColorBgObj = overlayColorObj.backgroundBase;
+
+        const fromColor = `${fromColorBgObj.red}, ${fromColorBgObj.green}, ${fromColorBgObj.blue}, ${fromColorBgObj.alpha}`;
+        const toColor = `${toColorBgObj.red}, ${toColorBgObj.green}, ${toColorBgObj.blue}, ${toColorBgObj.alpha}`;
+        const overlayColor = `${overlayColorBgObj.red}, ${overlayColorBgObj.green}, ${overlayColorBgObj.blue}, ${overlayColorBgObj.alpha}`;
+
+        dynamicBg.style.setProperty("--MinContrastColor", fromColor);
+        dynamicBg.style.setProperty("--HighContrastColor", toColor);
+        dynamicBg.style.setProperty("--OverlayColor", overlayColor);
+      } catch (err) {
+        // If the color fetch fails, just keep the black fallback
+        console.error("Failed to fetch dynamic colors, using fallback black background.", err);
+      }
       return;
     }
     const currentImgCover = await GetStaticBackground(TrackArtist, TrackId);

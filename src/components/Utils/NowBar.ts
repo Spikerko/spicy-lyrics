@@ -1010,13 +1010,11 @@ function UpdateNowBar(force = false) {
 
   const coverArt = SpotifyPlayer.GetCover("xlarge");
   if (MediaImage && coverArt && MediaImage.getAttribute("last-image") !== coverArt) {
-    MediaImage.style.backgroundImage = "";
-    MediaImage.classList.add("Skeletoned");
     const finalUrl = `https://i.scdn.co/image/${coverArt.replace("spotify:image:", "")}`;
     BlobURLMaker(finalUrl)
       .catch(() => null)
       .then((coverArtUrl) => {
-        MediaImage.classList.remove("Skeletoned");
+        // Only after the new image is fetched, swap it in
         MediaImage.style.backgroundImage = `url("${coverArtUrl ?? coverArt}")`;
         MediaImage.setAttribute("last-image", coverArt ?? "");
       });

@@ -230,6 +230,13 @@ body:not(.SpicyLyrics_StaticBackground)
   transform: translateY(2px);
 }
 
+#SpicyLyrics_PopupLyricsButton svg {
+  fill: var(--encore-icon-fill, currentColor);
+  height: var(--encore-icon-height, var(--encore-graphic-size-decorative-base));
+  width: var(--encore-icon-width, var(--encore-graphic-size-decorative-base));
+  transform: translateY(2px);
+}
+
 body.SpicySidebarLyrics__Active button:has(#SpicyLyricsPageSvg) {
   display: none !important;
 }

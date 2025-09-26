@@ -3,6 +3,7 @@ import Session from "../Global/Session.ts";
 import PageView from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
 import { isSpicySidebarMode, CloseSidebarLyrics } from "./SidebarLyrics.ts"
+import { Component } from "@spicetify/bundler"
 
 export let IsPIP = false;
 export let _IsPIP_after = false;
@@ -49,29 +50,52 @@ export const OpenPopupLyrics = async () => {
 
   // Copy style sheets over from the initial document
   // so that the player looks the same.
-  Array.from(document.styleSheets).forEach((styleSheet: any) => {
-    try {
-      // Some styleSheets may not be accessible due to CORS
-      if (styleSheet.cssRules) {
-        const cssRules = Array.from(styleSheet.cssRules).map((rule: any) => rule.cssText).join('');
-        const style = document.createElement('style');
-        style.textContent = cssRules;
-        currentPipWindow.document.head.appendChild(style);
-      } else {
-        throw new Error("No cssRules");
+  // Only copy <link> elements with href starting with "https://fonts.spikerko.org" to the PiP window
+  Array.from(document.querySelectorAll('link[rel="stylesheet"]')).forEach((link: HTMLLinkElement) => {
+    const href = link.getAttribute("href") || "";
+    const classList = Array.from(link.classList || []);
+    const isFont = href.startsWith("https://fonts.spikerko.org");
+    const isLocalCss = /^\/[a-zA-Z]{2}.*\.css$/.test(href);
+    const isUserCss = (
+      (href.endsWith("colors.css") || href.endsWith("user.css")) &&
+      classList.length === 1 &&
+      classList[0] === "userCSS"
+    );
+    if (
+      link.href &&
+      (isFont || isLocalCss || isUserCss)
+    ) {
+      const pipLink = document.createElement('link');
+      pipLink.rel = 'stylesheet';
+      pipLink.type = link.type || 'text/css';
+      pipLink.media = link.media || '';
+      pipLink.href = link.href;
+      // Copy classes if it's a userCSS link
+      if (isUserCss) {
+        pipLink.className = link.className;
       }
-    } catch (_) {
-      // Fallback: try to copy the <link> if possible
-      if (styleSheet.href) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.type = styleSheet.type || 'text/css';
-        link.media = styleSheet.media?.mediaText || '';
-        link.href = styleSheet.href;
-        currentPipWindow.document.head.appendChild(link);
-      }
+      currentPipWindow.document.head.appendChild(pipLink);
     }
   });
+
+  // Copy the main SpicyLyrics style element
+  const spicyLyricsStyleElement = Component.GetRootComponent("styleElement") ?? (globalThis as any)?._sB_devLoader?.[(globalThis as any)._sB_devLoader.name_hash_map?.["spicy-lyrics"]]?.styleElement;
+
+  if (spicyLyricsStyleElement) {
+    // console.log("SpicyLyricsStyleElement", spicyLyricsStyleElement)
+    const newStyleElement = document.createElement("style");
+    newStyleElement.textContent = spicyLyricsStyleElement.textContent;
+    currentPipWindow.document.head.appendChild(newStyleElement);
+  }
+
+  // Additionally, copy the styles element with the id 'spicyLyrics-additionalStyling'
+  const additionalStyling = document.getElementById("spicyLyrics-additionalStyling");
+  if (additionalStyling) {
+    const newAdditionalStyling = document.createElement("style");
+    newAdditionalStyling.id = "spicyLyrics-additionalStyling";
+    newAdditionalStyling.textContent = additionalStyling.textContent;
+    currentPipWindow.document.head.appendChild(newAdditionalStyling);
+  }
 
   const additionalStylingElement = document.createElement("style");
   additionalStylingElement.textContent = `
