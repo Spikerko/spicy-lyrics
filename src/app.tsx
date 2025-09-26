@@ -12,7 +12,7 @@ import "./components/Utils/GlobalExecute.ts";
 
 import React from "react"
 import { Defer } from "@socali/modules/Scheduler";
-import { Spicetify } from "@spicetify/bundler";
+import { Spicetify, Component, _local_hashes } from "@spicetify/bundler";
 import { DynamicBackground } from "@spikerko/tools/DynamicBackground";
 import Whentil from "@spikerko/tools/Whentil";
 import ApplyDynamicBackground, {
@@ -166,7 +166,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.13.2";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.14.0";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -331,6 +331,8 @@ async function main() {
           }
         }
   `;
+
+  skeletonStyle.id = "spicyLyrics-additionalStyling";
   document.head.appendChild(skeletonStyle);
 
   App.SetReady();
@@ -710,7 +712,7 @@ async function main() {
       await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
 
       const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
-      if (!contentBox) return;
+      if (!contentBox || (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color")) return;
       ApplyDynamicBackground(contentBox);
     }
     Global.Event.listen("playback:songchange", onSongChange);
@@ -918,6 +920,11 @@ async function main() {
           lastTimeout = undefined;
         }
         lastTimeout = setTimeout(async () => {
+          if (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color") {
+            const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
+            if (contentBox) ApplyDynamicBackground(contentBox)
+          }
+
           const currentSongLyrics = storage.get("currentLyricsData");
           if (
             currentSongLyrics &&

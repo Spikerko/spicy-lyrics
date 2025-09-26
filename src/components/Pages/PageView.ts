@@ -423,8 +423,8 @@ function AppendViewControls(ReAppend: boolean = false) {
           Fullscreen.IsOpen
             ? (IsPIP ? "" : `<button id="FullscreenToggle" class="ViewControl">${
                 Fullscreen.CinemaViewOpen
-                  ? Icons.CloseFullscreen
-                  : Icons.Fullscreen
+                  ? Icons.Fullscreen
+                  : Icons.CloseFullscreen
               }</button>`)
             : ""
         }
@@ -489,7 +489,8 @@ function AppendViewControls(ReAppend: boolean = false) {
         }
         closeButton.addEventListener("click", () => {
           if (IsPIP) {
-            ClosePopupLyrics()
+            ClosePopupLyrics();
+            globalThis.focus();
             return;
           }
 
@@ -732,6 +733,10 @@ function AppendViewControls(ReAppend: boolean = false) {
           });
         }
         devToolsButton.addEventListener("click", () => {
+          if (IsPIP) {
+            globalThis.focus();
+          }
+
           Spicetify.PopupModal.display({
             title: "Spicy Lyrics DevTools",
             isLarge: true,

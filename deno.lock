@@ -5,7 +5,7 @@
     "jsr:@codemonument/cliffy@1.0.0-rc.3": "1.0.0-rc.3",
     "jsr:@luca/esbuild-deno-loader@0.11.1": "0.11.1",
     "jsr:@socali/modules@^4.4.1": "4.4.1",
-    "jsr:@spicetify/bundler@^1.1.9": "1.1.9",
+    "jsr:@spicetify/bundler@^1.2.0": "1.2.0",
     "jsr:@spikerko/tools@^1.5.6": "1.5.6",
     "jsr:@spikerko/web-modules@^1.0.5": "1.0.5",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
@@ -13,7 +13,6 @@
     "jsr:@std/encoding@^1.0.5": "1.0.10",
     "jsr:@std/fmt@0.221.0": "0.221.0",
     "jsr:@std/internal@^1.0.10": "1.0.10",
-    "jsr:@std/io@0.221.0": "0.221.0",
     "jsr:@std/path@1.1.2": "1.1.2",
     "jsr:@std/path@^1.0.6": "1.1.2",
     "npm:@applemusic-like-lyrics/core@~0.1.3": "0.1.3_@pixi+app@7.4.3__@pixi+core@7.4.3__@pixi+display@7.4.3___@pixi+core@7.4.3_@pixi+core@7.4.3_@pixi+display@7.4.3__@pixi+core@7.4.3_@pixi+filter-blur@7.4.3__@pixi+core@7.4.3_@pixi+filter-bulge-pinch@5.1.1__@pixi+core@7.4.3_@pixi+filter-color-matrix@7.4.3__@pixi+core@7.4.3_@pixi+sprite@7.4.3__@pixi+core@7.4.3__@pixi+display@7.4.3___@pixi+core@7.4.3_jss@10.10.0_jss-preset-default@10.10.0",
@@ -46,8 +45,7 @@
       "integrity": "e977470deb471f68e78244c34f7cd86c5e279ac37d2a271f14cad1bed74d3de3",
       "dependencies": [
         "jsr:@std/encoding@0.221.0",
-        "jsr:@std/fmt",
-        "jsr:@std/io"
+        "jsr:@std/fmt"
       ]
     },
     "@luca/esbuild-deno-loader@0.11.1": {
@@ -61,8 +59,8 @@
     "@socali/modules@4.4.1": {
       "integrity": "1a8ae6eb7279ba223413386ab72366512b1ad78503d370643d820b42cac9e966"
     },
-    "@spicetify/bundler@1.1.9": {
-      "integrity": "b1495b7c1cd419eb0637262ad31706efa06386b2eba3d45b69801fbe72193706",
+    "@spicetify/bundler@1.2.0": {
+      "integrity": "817298b5fdda5f9b0f14ab29372520baece30cbe72ec2f746de593e309211abb",
       "dependencies": [
         "jsr:@codemonument/cliffy",
         "jsr:@luca/esbuild-deno-loader",
@@ -102,9 +100,6 @@
     },
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
-    },
-    "@std/io@0.221.0": {
-      "integrity": "faf7f8700d46ab527fa05cc6167f4b97701a06c413024431c6b4d207caa010da"
     },
     "@std/path@1.1.2": {
       "integrity": "c0b13b97dfe06546d5e16bf3966b1cadf92e1cc83e56ba5476ad8b498d9e3038",
@@ -1672,7 +1667,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@socali/modules@^4.4.1",
-      "jsr:@spicetify/bundler@^1.1.9",
+      "jsr:@spicetify/bundler@^1.2.0",
       "jsr:@spikerko/tools@^1.5.6",
       "jsr:@spikerko/web-modules@^1.0.5",
       "npm:@applemusic-like-lyrics/core@~0.1.3",

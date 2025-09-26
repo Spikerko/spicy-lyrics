@@ -10,7 +10,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyric
     <div className="update-card-wrapper slm">
       <h2 className="header">Spicy Lyrics has been successfully updated!</h2>
       <div className="card version">
-        Version: {previousVersion || "Unknown"} → {spicyLyricsVersion || "Unknown"}
+        Version: {previousVersion || "Freshly new"} → {spicyLyricsVersion || "Unknown"}
       </div>
       <button
         className="card btn btn-release"
