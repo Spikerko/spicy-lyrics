@@ -57,7 +57,6 @@ import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import FontPacksInitial from "./components/ReactComponents/FontPacks/initial.tsx";
 import { SendJob } from "./utils/API/SendJob.ts";
 import { QueryClient } from "@tanstack/react-query";
 
@@ -1015,23 +1014,6 @@ async function main() {
   );
 
   Hometinue();
-
-  {
-    const FontPacksMenuItem = new Spicetify.Menu.Item(
-      "Font Packs - Spicy Lyrics",
-      false,
-      (_self) => {
-        Spicetify.PopupModal.display({
-          title: "Font Packs",
-          content: <FontPacksInitial />,
-          isLarge: true,
-        });
-      },
-      "lyrics"
-    )
-
-    FontPacksMenuItem.register();
-  }
 
   {
     Component.AddRootComponent("send-job", SendJob);
