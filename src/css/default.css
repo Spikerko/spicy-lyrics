@@ -29,7 +29,9 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 }
 
 #SpicyLyricsPage.UseSpicyFont,
-.SpicyLyricsFontPixel {
+#SpicyLyricsPage.UseSpicyFont *,
+.SpicyLyricsFontPixel,
+.SpicyLyricsFontPixel * {
   font-family: SpicyLyrics, "Noto Sans Georgian", "VazirmatnRegular" !important;
 }
 
@@ -47,7 +49,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   height: 5cqh;
   justify-content: center;
   opacity: 1;
-  transition: opacity 0.2s !important;
+  transition: opacity 0.3s !important;
   z-index: 101;
   --ViewControlSize: 100cqh;
 }
@@ -55,11 +57,23 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   position: absolute;
   width: 100cqw;
-  bottom: 24px;
+  top: 24px;
   opacity: 0;
 }
 
-:root:has(.SpicyBG.BackgroundLayer)
+
+#SpicyLyricsPage:not(.Fullscreen) .ViewControls::before {
+  z-index: -1;
+  content: "";
+  position: absolute;
+  inset: 0;
+  /* top: -8px; */
+  top: -24px;
+  opacity: 0.6;
+  background: linear-gradient(to bottom, var(--spice-main, #000000), transparent);
+}
+
+/* :root:has(.SpicyBG.BackgroundLayer)
   body:not(.SpicySidebarLyrics__Active)
   #SpicyLyricsPage:not(.Fullscreen)
   .ViewControls,
@@ -73,7 +87,7 @@ body.player-floating:has(.glassify-bg) #SpicyLyricsPage:not(.Fullscreen) .ViewCo
 
 :root:has(.lucid-bg) #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   bottom: 80px !important;
-}
+} */
 
 body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   --ViewControlSize: 90cqh;
@@ -103,6 +117,17 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
   text-align: center;
   -webkit-box-align: center;
   -webkit-box-pack: center;
+  transition: scale 0.25s, opacity 0.2s;
+  transform-origin: center bottom;
+}
+
+#SpicyLyricsPage .ViewControls .ViewControl:hover {
+  scale: 1.05;
+}
+
+#SpicyLyricsPage .ViewControls:has(.ViewControl:hover) > .ViewControl:not(:hover) {
+  scale: 0.99;
+  opacity: 0.75;
 }
 
 #SpicyLyricsPage .ViewControls .ViewControl svg:not(.NoFill) {
@@ -308,7 +333,7 @@ body:not(:has(.Root__main-view-overlay .BeautifulLyricsPage:is(.Fullscreen)))
 }
 
 .SpicyLyricsDevToolsContainer .Setting .SettingName {
-  font-size: 0.95rem;
+  font-size: 0.95rem !important;
   font-weight: 400;
 }
 
@@ -326,7 +351,7 @@ body:not(:has(.Root__main-view-overlay .BeautifulLyricsPage:is(.Fullscreen)))
   border-radius: 5px;
   padding: 5px 10px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.9rem !important;
   font-weight: 400;
 }
 
@@ -455,7 +480,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 12px;
       padding: 12px 20px;
-      font-size: 18px;
+      font-size: 18px !important;
       font-weight: bold;
       cursor: pointer;
       transition:
@@ -465,7 +490,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
     }
 
     .version {
-      font-size: 24px;
+      font-size: 24px !important;
       font-weight: bold;
       color: #ffffff;
     }
@@ -503,4 +528,28 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
 .GenericModal:has(.slm),
 .GenericModal:has(.slm) .main-trackCreditsModal-container {
   border-radius: 16px;
+}
+
+.Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
+  display: none !important;
+}
+
+.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header {
+  border-bottom: none !important;
+  padding: 24px 46px 0px !important;
+  margin-bottom: -40px !important;
+  position: relative;
+  z-index: 104;
+}
+
+.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
+  position: relative;
+  z-index: 106;
+}
+
+.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header h1 {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0px !important;
+  line-height: 0 !important;
 }

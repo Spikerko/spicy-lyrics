@@ -14,6 +14,7 @@ import { ApplySyllableLyrics } from "../Applyer/Synced/Syllable.ts";
 import { ClearLyricsPageContainer } from "../fetchLyrics.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
+import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
 
 /**
  * Union type for all lyrics data types
@@ -39,15 +40,17 @@ export default async function ApplyLyrics(lyrics: LyricsData | null | undefined)
   setBlurringLastLine(null);
   if (!lyrics) return;
 
+  EmitNotApplyed();
+
+  DestroyAllLyricsContainers();
+
+  ClearLyricsContentArrays();
+  ClearScrollSimplebar();
+  ClearLyricsPageContainer();
+
+  CleanUpIsByCommunity();
+
   if (Defaults.LyricsRenderer === "aml-lyrics") {
-    EmitNotApplyed();
-
-    DestroyAllLyricsContainers();
-
-    ClearLyricsContentArrays();
-    ClearScrollSimplebar();
-    ClearLyricsPageContainer();
-
     if (lyrics.AMLLContent) {
       const lrcs = lyrics.AMLLContent;
       const lyricsContainer = PageContainer.querySelector<HTMLElement>(

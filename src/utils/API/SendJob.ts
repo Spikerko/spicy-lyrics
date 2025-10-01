@@ -39,7 +39,7 @@ export async function SendJob(
   headers: Record<string, string> = {}
 ): Promise<JobResultGetter> {
   const spicyLyricsVersion = Session.SpicyLyrics.GetCurrentVersion()?.Text;
-  const res = await fetch(`${API_URL}/batch`, {
+  const res = await fetch(`${API_URL}/query`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

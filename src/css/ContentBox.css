@@ -214,12 +214,12 @@
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName {
   font-weight: 900;
-  font-size: calc(var(--default-font-size) * 2.25);
+  font-size: calc(var(--default-font-size) * 2.25) !important;
   color: white;
   text-align: center; /* Fallback for child alignment */
   opacity: 0.95;
   max-width: 85cqw;
-  line-height: calc(var(--title-height) * 12);
+  line-height: calc(var(--title-height) * 12) !important;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(
     90deg,
@@ -251,8 +251,8 @@
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists {
-  font-size: calc(var(--default-font-size) * 1.5);
-  line-height: calc(var(--title-height) * 8);
+  font-size: calc(var(--default-font-size) * 1.5) !important;
+  line-height: calc(var(--title-height) * 8) !important;
   font-weight: 400;
   color: white;
   opacity: 0.7;
@@ -781,7 +781,7 @@
 }
 
 #SpicyLyricsPage .Timeline .Time {
-  font-size: var(--default-font-size);
+  font-size: var(--default-font-size) !important;
 }
 
 #SpicyLyricsPage .Timeline .SliderBar .Handle {
@@ -869,14 +869,14 @@
 }
 
 #SpicyLyricsPage .NotificationContainer .NotificationText .NotificationTitle {
-  font-size: calc(var(--default-font-size) * 0.8);
+  font-size: calc(var(--default-font-size) * 0.8) !important;
   font-weight: 900;
   color: rgb(255, 255, 255);
   text-align: center;
 }
 
 #SpicyLyricsPage .NotificationContainer .NotificationText .NotificationDescription {
-  font-size: calc(var(--default-font-size) * 0.4);
+  font-size: calc(var(--default-font-size) * 0.4) !important;
   font-weight: 400;
   color: rgb(206, 206, 206);
   text-align: center;
@@ -884,7 +884,7 @@
 
 #SpicyLyricsPage .NotificationContainer .NotificationCloseButton {
   color: rgb(255, 255, 255);
-  font-size: calc(var(--default-font-size) * 0.3);
+  font-size: calc(var(--default-font-size) * 0.3) !important;
   cursor: pointer;
   width: 4cqh;
   height: 4cqh;
@@ -1027,15 +1027,15 @@
 
 #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .Metadata .SongName,
 #SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .Metadata .SongName {
-  font-size: 2.5rem;
-  line-height: 3rem;
+  font-size: 2.5rem !important;
+  line-height: 3rem !important;
   max-width: 100cqw;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .Metadata .SongName,
 .spicy-pip-wrapper #SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .Metadata .SongName {
-  font-size: 1.25rem;
-  line-height: 3rem;
+  font-size: 1.25rem !important;
+  line-height: 3rem !important;
   max-width: 100cqw;
 }
 
@@ -1046,15 +1046,15 @@
 
 #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .Metadata .Artists,
 #SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .Metadata .Artists {
-  font-size: 1.5rem;
-  line-height: 2rem;
+  font-size: 1.5rem !important;
+  line-height: 2rem !important;
   max-width: 100cqw;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .Metadata .Artists,
 .spicy-pip-wrapper #SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .Metadata .Artists {
-  font-size: 1rem;
-  line-height: 2rem;
+  font-size: 1rem !important;
+  line-height: 2rem !important;
   max-width: 100cqw;
 }
 

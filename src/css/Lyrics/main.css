@@ -27,7 +27,7 @@
   overflow-y: auto !important;
   height: calc(100% - var(--vertical-gap));
   width: 100%;
-  font-size: var(--DefaultLyricsSize);
+  font-size: var(--DefaultLyricsSize) !important;
   font-weight: 700;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -48,6 +48,10 @@
   container-type: size;
   opacity: 1;
   transition: opacity 0.25s;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsContent * {
+  font-weight: 700 !important;
 }
 
 body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent {

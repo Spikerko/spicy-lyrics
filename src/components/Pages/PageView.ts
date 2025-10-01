@@ -51,6 +51,7 @@ import {
 } from "../Utils/SidebarLyrics.ts";
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
+import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 
 // import { UpdateSongMoreInfo } from "../Utils/Annotations";
 
@@ -323,6 +324,7 @@ function DestroyPage() {
   PageView.IsOpened = false;
   Defaults.LyricsContainerExists = false;
   DestroyAllLyricsContainers();
+  CleanUpIsByCommunity();
 
   const legacyPage = document.querySelector<HTMLElement>(
     ".Root__main-view .main-view-container .os-host"
@@ -347,6 +349,7 @@ export let LyricsApplied = false;
 Global.Event.listen("lyrics:not-apply", () => {
   CleanupScrollEvents();
   LyricsApplied = false;
+  CleanUpIsByCommunity();
 });
 
 Global.Event.listen("lyrics:apply", ({ Type }: { Type: string }) => {

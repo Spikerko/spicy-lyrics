@@ -443,6 +443,10 @@ function OpenNowBar(skipSaving: boolean = false) {
           return null;
         }
 
+        // Track dragging state
+        let isDragging = false;
+        let dragPositionMs: number | null = null; // Track the current drag position in ms
+
         const updateTimelineState = (e = null) => {
           const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
           const DurationElem = TimelineElem.querySelector<HTMLElement>(".Time.Duration");
@@ -452,26 +456,30 @@ function OpenNowBar(skipSaving: boolean = false) {
             return;
           }
 
+          // If dragging, use the drag position for the position display
+          let positionToShow: number;
+          if (isDragging && dragPositionMs !== null) {
+            positionToShow = dragPositionMs;
+          } else {
+            positionToShow = e ?? SpotifyPlayer.GetPosition() ?? 0;
+          }
+
           // Update the progress bar state
           songProgressBar.Update({
             duration: SpotifyPlayer.GetDuration() ?? 0,
-            position: e ?? SpotifyPlayer.GetPosition() ?? 0,
+            position: positionToShow,
           });
 
           const sliderPercentage = songProgressBar.GetProgressPercentage();
           const formattedPosition = songProgressBar.GetFormattedPosition();
           const formattedDuration = songProgressBar.GetFormattedDuration();
 
-          SliderBar.style.setProperty("--SliderProgress", sliderPercentage.toString());
+          // Only update the SliderBar's progress if not dragging
+          if (!isDragging) {
+            SliderBar.style.setProperty("--SliderProgress", sliderPercentage.toString());
+          }
           DurationElem.textContent = formattedDuration;
           PositionElem.textContent = formattedPosition;
-
-          /* // console.log("Slider Percentage:", sliderPercentage);
-                    // console.log("Formatted Position:", formattedPosition);
-                    // console.log("Formatted Duration:", formattedDuration);
-
-                    // console.log("Position:", SpotifyPlayer.GetTrackPosition());
-                    // console.log("Duration:", SpotifyPlayer.GetTrackDuration()); */
         };
 
         const sliderBarHandler = (event: MouseEvent) => {
@@ -488,7 +496,6 @@ function OpenNowBar(skipSaving: boolean = false) {
         };
 
         // Add drag functionality
-        let isDragging = false;
 
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
           isDragging = true;
@@ -526,6 +533,7 @@ function OpenNowBar(skipSaving: boolean = false) {
 
           // Calculate position in milliseconds
           const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
+          dragPositionMs = positionMs; // Store the drag position
 
           // Update the position text during drag
           songProgressBar.Update({
@@ -542,6 +550,7 @@ function OpenNowBar(skipSaving: boolean = false) {
 
           const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
           if (PositionElem) {
+            // Show the formatted position for the drag position
             PositionElem.textContent = songProgressBar.GetFormattedPosition();
           }
         };
@@ -570,6 +579,7 @@ function OpenNowBar(skipSaving: boolean = false) {
 
           // Calculate the position in milliseconds
           const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
+          dragPositionMs = null; // Clear drag position
 
           // Emit event that dragging has ended with final position
           Global.Event.evoke("nowbar:timeline:dragging", {
@@ -583,6 +593,9 @@ function OpenNowBar(skipSaving: boolean = false) {
           if (typeof SpotifyPlayer !== "undefined" && SpotifyPlayer.Seek) {
             SpotifyPlayer.Seek(positionMs);
           }
+
+          // After seeking, update the timeline state to reflect the new position
+          updateTimelineState();
         };
 
         // Add event listeners for drag
@@ -1220,7 +1233,7 @@ Global.Event.listen("playback:shuffle", (e: string) => {
   }
 });
 
-Global.Event.listen("playback:position", (e: number) => {
+Global.Event.listen("playback:position_smooth", (e: number) => {
   if (Fullscreen.IsOpen) {
     if (ActiveSetupSongProgressBarInstance) {
       const updateTimelineState = ActiveSongProgressBarInstance_Map.get(

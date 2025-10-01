@@ -7,12 +7,15 @@ import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Loaders/LoaderContainer.css";
+import "./css/customizer.scss";
+import "./css/font-pack/font-pack.css";
+import "./css/ttml-profile/profile.css";
 
 import "./components/Utils/GlobalExecute.ts";
 
 import React from "react"
 import { Defer } from "@socali/modules/Scheduler";
-import { Spicetify, Component, _local_hashes } from "@spicetify/bundler";
+import { Spicetify, Component } from "@spicetify/bundler";
 import { DynamicBackground } from "@spikerko/tools/DynamicBackground";
 import Whentil from "@spikerko/tools/Whentil";
 import ApplyDynamicBackground, {
@@ -52,9 +55,13 @@ import { setSettingsMenu } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
-import UpdateDialog from "./components/UpdateDialog.tsx";
+import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
+import FontPacksInitial from "./components/ReactComponents/FontPacks/initial.tsx";
+import { SendJob } from "./utils/API/SendJob.ts";
+import { QueryClient } from "@tanstack/react-query";
 
+export const reactQueryClient = new QueryClient();
 
 async function main() {
   await Platform.OnSpotifyReady;
@@ -166,7 +173,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.14.0";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.15.0";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -913,6 +920,18 @@ async function main() {
     }
 
     {
+      let lastPosition = 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      new IntervalManager(Infinity, () => {
+        const pos = SpotifyPlayer.GetPosition();
+        if (pos !== lastPosition) {
+          Global.Event.evoke("playback:position_smooth", pos);
+        }
+        lastPosition = pos;
+      }).Start();
+    }
+
+    {
       let lastTimeout: any;
       Global.Event.listen("lyrics:apply", () => {
         if (lastTimeout !== undefined) {
@@ -920,11 +939,6 @@ async function main() {
           lastTimeout = undefined;
         }
         lastTimeout = setTimeout(async () => {
-          if (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color") {
-            const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
-            if (contentBox) ApplyDynamicBackground(contentBox)
-          }
-
           const currentSongLyrics = storage.get("currentLyricsData");
           if (
             currentSongLyrics &&
@@ -1001,6 +1015,27 @@ async function main() {
   );
 
   Hometinue();
+
+  {
+    const FontPacksMenuItem = new Spicetify.Menu.Item(
+      "Font Packs - Spicy Lyrics",
+      false,
+      (_self) => {
+        Spicetify.PopupModal.display({
+          title: "Font Packs",
+          content: <FontPacksInitial />,
+          isLarge: true,
+        });
+      },
+      "lyrics"
+    )
+
+    FontPacksMenuItem.register();
+  }
+
+  {
+    Component.AddRootComponent("send-job", SendJob);
+  }
 }
 
 main();

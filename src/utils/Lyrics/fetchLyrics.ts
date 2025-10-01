@@ -11,7 +11,7 @@ import { SetWaitingForHeight } from "../Scrolling/ScrollToActiveLine.ts";
 import storage from "../storage.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 10, {
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 11, {
   Unit: "Days",
   Duration: 3,
 });

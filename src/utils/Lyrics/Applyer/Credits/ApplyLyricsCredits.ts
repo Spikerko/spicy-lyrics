@@ -13,6 +13,6 @@ export function ApplyLyricsCredits(data: LyricsData, LyricsContainer: HTMLElemen
   CreditsElement.classList.add("Credits");
 
   const SongWriters = data.SongWriters.join(", ");
-  CreditsElement.textContent = `Credits: ${SongWriters}`;
+  CreditsElement.textContent = `Written by: ${SongWriters}`;
   LyricsContainer.appendChild(CreditsElement);
 }

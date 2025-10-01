@@ -5,7 +5,7 @@
     "jsr:@codemonument/cliffy@1.0.0-rc.3": "1.0.0-rc.3",
     "jsr:@luca/esbuild-deno-loader@0.11.1": "0.11.1",
     "jsr:@socali/modules@^4.4.1": "4.4.1",
-    "jsr:@spicetify/bundler@^1.2.0": "1.2.0",
+    "jsr:@spicetify/bundler@^1.2.2": "1.2.2",
     "jsr:@spikerko/tools@^1.5.6": "1.5.6",
     "jsr:@spikerko/web-modules@^1.0.5": "1.0.5",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
@@ -17,6 +17,7 @@
     "jsr:@std/path@^1.0.6": "1.1.2",
     "npm:@applemusic-like-lyrics/core@~0.1.3": "0.1.3_@pixi+app@7.4.3__@pixi+core@7.4.3__@pixi+display@7.4.3___@pixi+core@7.4.3_@pixi+core@7.4.3_@pixi+display@7.4.3__@pixi+core@7.4.3_@pixi+filter-blur@7.4.3__@pixi+core@7.4.3_@pixi+filter-bulge-pinch@5.1.1__@pixi+core@7.4.3_@pixi+filter-color-matrix@7.4.3__@pixi+core@7.4.3_@pixi+sprite@7.4.3__@pixi+core@7.4.3__@pixi+display@7.4.3___@pixi+core@7.4.3_jss@10.10.0_jss-preset-default@10.10.0",
     "npm:@biomejs/biome@*": "2.2.3",
+    "npm:@tanstack/react-query@^5.90.2": "5.90.2_react@19.1.1",
     "npm:autoprefixer@10.4.21": "10.4.21_postcss@8.5.6",
     "npm:chalk@5.6.0": "5.6.0",
     "npm:cssnano-preset-advanced@7.0.9": "7.0.9_postcss@8.5.6",
@@ -31,6 +32,7 @@
     "npm:langs@*": "2.0.0",
     "npm:ora@8.2.0": "8.2.0",
     "npm:postcss@8.5.6": "8.5.6",
+    "npm:react-dom@^19.1.1": "19.1.1_react@19.1.1",
     "npm:react@^19.1.1": "19.1.1",
     "npm:sass@1.90.0": "1.90.0",
     "npm:simplebar@*": "6.3.2",
@@ -59,8 +61,8 @@
     "@socali/modules@4.4.1": {
       "integrity": "1a8ae6eb7279ba223413386ab72366512b1ad78503d370643d820b42cac9e966"
     },
-    "@spicetify/bundler@1.2.0": {
-      "integrity": "817298b5fdda5f9b0f14ab29372520baece30cbe72ec2f746de593e309211abb",
+    "@spicetify/bundler@1.2.2": {
+      "integrity": "8628279c1836c42d0ade21a2cd21febae9aad0deadb71a6706d1969eb8a737ef",
       "dependencies": [
         "jsr:@codemonument/cliffy",
         "jsr:@luca/esbuild-deno-loader",
@@ -530,6 +532,16 @@
     },
     "@socket.io/component-emitter@3.1.2": {
       "integrity": "sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA=="
+    },
+    "@tanstack/query-core@5.90.2": {
+      "integrity": "sha512-k/TcR3YalnzibscALLwxeiLUub6jN5EDLwKDiO7q5f4ICEoptJ+n9+7vcEFy5/x/i6Q+Lb/tXrsKCggf5uQJXQ=="
+    },
+    "@tanstack/react-query@5.90.2_react@19.1.1": {
+      "integrity": "sha512-CLABiR+h5PYfOWr/z+vWFt5VsOA2ekQeRQBFSKlcoW6Ndx/f8rfyVmq4LbgOM4GG2qtxAxjLYLOpCNTYm4uKzw==",
+      "dependencies": [
+        "@tanstack/query-core",
+        "react"
+      ]
     },
     "@types/css-font-loading-module@0.0.12": {
       "integrity": "sha512-x2tZZYkSxXqWvTDgveSynfjq/T2HyiZHXb00j/+gy19yp70PHCizM48XFdjBCWH7eHBD0R5i/pw9yMBP/BH5uA=="
@@ -1459,6 +1471,13 @@
         "side-channel"
       ]
     },
+    "react-dom@19.1.1_react@19.1.1": {
+      "integrity": "sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw==",
+      "dependencies": [
+        "react",
+        "scheduler"
+      ]
+    },
     "react@19.1.1": {
       "integrity": "sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ=="
     },
@@ -1486,6 +1505,9 @@
     },
     "sax@1.4.1": {
       "integrity": "sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg=="
+    },
+    "scheduler@0.26.0": {
+      "integrity": "sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA=="
     },
     "side-channel-list@1.0.0": {
       "integrity": "sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==",
@@ -1667,11 +1689,13 @@
   "workspace": {
     "dependencies": [
       "jsr:@socali/modules@^4.4.1",
-      "jsr:@spicetify/bundler@^1.2.0",
+      "jsr:@spicetify/bundler@^1.2.2",
       "jsr:@spikerko/tools@^1.5.6",
       "jsr:@spikerko/web-modules@^1.0.5",
       "npm:@applemusic-like-lyrics/core@~0.1.3",
+      "npm:@tanstack/react-query@^5.90.2",
       "npm:fast-xml-parser@^5.2.5",
+      "npm:react-dom@^19.1.1",
       "npm:react@^19.1.1"
     ]
   }
