@@ -5,4 +5,7 @@ Bundle({
   Type: "Development",
   Name: ProjectName,
   EntrypointFile: "./src/app.tsx",
+  CustomBuildOptions: {
+    skipGlobalReplacementRules: true,
+  }
 });

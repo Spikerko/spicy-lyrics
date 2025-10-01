@@ -12,6 +12,7 @@ import Global from "../Global/Global.ts";
 import Platform from "../Global/Platform.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "./ArtistVisuals/Main.ts";
+import { PageContainer } from "../Pages/PageView.ts";
 
 const CoverArtCacheMap: CoverArtCache = new Map();
 
@@ -480,3 +481,31 @@ Platform.OnSpotifyReady
 .then(() => {
     prefetchBlurredCoverArt();
 }) */
+
+let staticColorBgTransitionTimeout = null;
+
+Global.Event.listen("playback:songchange", () => {
+  if (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color" && PageContainer) {
+    if (staticColorBgTransitionTimeout) {
+      clearTimeout(staticColorBgTransitionTimeout);
+      staticColorBgTransitionTimeout = null;
+
+      const dynamicBg = PageContainer.querySelector<HTMLElement>(".spicy-dynamic-bg.ColorBackground");
+      if (dynamicBg) {
+        dynamicBg.classList.add("spicy-dynamic-bg", "ColorBackground");
+        // Set initial fallback colors to black
+        dynamicBg.style.setProperty("--MinContrastColor", "18, 18, 18, 1");
+        dynamicBg.style.setProperty("--HighContrastColor", "18, 18, 18, 1");
+        dynamicBg.style.setProperty("--OverlayColor", "18, 18, 18, 1");
+      }
+    }
+
+    staticColorBgTransitionTimeout = setTimeout(() => {
+      const contentBox = PageContainer.querySelector<HTMLElement>(".ContentBox");
+      if (contentBox) ApplyDynamicBackground(contentBox);
+
+      clearTimeout(staticColorBgTransitionTimeout);
+      staticColorBgTransitionTimeout = null;
+    }, 1000);
+  }
+})
