@@ -58,6 +58,7 @@ import "./css/polyfills/tippy-polyfill.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import { QueryClient } from "@tanstack/react-query";
+import ReactDOM from "react-dom/client";
 
 export const reactQueryClient = new QueryClient();
 
@@ -585,9 +586,14 @@ async function main() {
 
     const previousVersion = storage.get("previous-version");
     if (previousVersion !== Defaults.SpicyLyricsVersion) {
+      const div = document.createElement("div");
+      ReactDOM.createRoot(div).render(
+        <UpdateDialog previousVersion={previousVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />
+      );
+      
       Spicetify.PopupModal.display({
         title: "Spicy Lyrics Updated!",
-        content: <UpdateDialog  previousVersion={previousVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />,
+        content: div,
         isLarge: true,
       });
     }

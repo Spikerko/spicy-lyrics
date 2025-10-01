@@ -3,55 +3,37 @@ import { useQuery } from "@tanstack/react-query";
 import { SendJob } from "../../../../utils/API/SendJob.ts";
 import { Spicetify } from "@spicetify/bundler";
 
-// Types
-type SpotifyImage = {
-  url: string;
-  height: number | null;
-  width: number | null;
-};
-type SpotifyArtist = {
-  id: string;
-  name: string;
-  uri: string;
-  [key: string]: any;
-};
-type SpotifyAlbum = {
-  id: string;
-  name: string;
-  images: SpotifyImage[];
-  release_date: string;
-  [key: string]: any;
-};
-type SpotifyTrack = {
-  id: string;
-  name: string;
-  artists: SpotifyArtist[];
-  album: SpotifyAlbum;
-  uri: string;
-  [key: string]: any;
-};
-type TTMLProfileData = {
-  data?: {
-    banner?: string;
-    avatar?: string;
-    displayName?: string;
-    username?: string;
-    id?: string;
-  };
-  type?: "maker" | "uploader" | "mixed";
-};
-type TTMLProfileUserList = {
-  makes: { id: string; views_count?: number }[];
-  uploads: { id: string; view_count?: number }[];
-};
-type TTMLProfileResponse = {
-  profile?: TTMLProfileData;
-  perUser?: TTMLProfileUserList;
-};
-type SongRowProps = {
-  trackId: string;
-  trackMap: Map<string, SpotifyTrack>;
-};
+// ErrorBoundary wrapper for safest rendering
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    // @ts-ignore aaa
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    // @ts-ignore aaa
+    if (this.state.error) {
+      return <div style={{ color: "red" }}>
+        Error: {String((this as any).state.error)}
+      </div>;
+    }
+    // @ts-ignore aaa
+    return this.props.children;
+  }
+}
+
+// Types (unchanged)
+type SpotifyImage = { url: string; height: number | null; width: number | null; };
+type SpotifyArtist = { id: string; name: string; uri: string; [key: string]: any; };
+type SpotifyAlbum = { id: string; name: string; images: SpotifyImage[]; release_date: string; [key: string]: any; };
+type SpotifyTrack = { id: string; name: string; artists: SpotifyArtist[]; album: SpotifyAlbum; uri: string; [key: string]: any; };
+type TTMLProfileData = { data?: { banner?: string; avatar?: string; displayName?: string; username?: string; id?: string; }; type?: "maker" | "uploader" | "mixed"; };
+type TTMLProfileUserList = { makes: { id: string; views_count?: number }[]; uploads: { id: string; view_count?: number }[]; };
+type TTMLProfileResponse = { profile?: TTMLProfileData; perUser?: TTMLProfileUserList; };
+type SongRowProps = { trackId: string; trackMap: Map<string, SpotifyTrack>; };
 type ProfileDisplayProps = { userId: string; hasProfileBanner: boolean };
 
 // Utility to filter valid track IDs
@@ -62,7 +44,7 @@ function validTrackIds(ids: string[]): string[] {
   );
 }
 
-// Fetch tracks from Spotify API in batches of 50
+// Fetch tracks from Spotify API in batches of 50 (unchanged)
 async function fetchAllSpotifyTracks(allIds: string[]): Promise<SpotifyTrack[]> {
   const batchSize = 50;
   const batches: string[][] = [];
@@ -82,7 +64,7 @@ async function fetchAllSpotifyTracks(allIds: string[]): Promise<SpotifyTrack[]> 
   return trackArrays.flat();
 }
 
-// Sort array of objects by view_count descending
+// Sort by view_count descending
 function sortByViewsDesc<T extends { view_count?: number }>(arr: T[]): T[] {
   return [...arr].sort((a, b) => (b.view_count ?? 0) - (a.view_count ?? 0));
 }
@@ -150,7 +132,6 @@ function ProfileSkeleton({ hasProfileBanner }: { hasProfileBanner: boolean }) {
     </div>
   );
 }
-
 function SongRowSkeleton() {
   return (
     <div className="ttml-profile-songrow ttml-profile-songrow-skeleton">
@@ -165,57 +146,45 @@ function SongRowSkeleton() {
 }
 
 // Main Profile Display
-export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisplayProps) {
-  // Query the profile data
+function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
   const userQuery = useQuery<TTMLProfileResponse, Error>({
     queryKey: ["ttml-user-query", userId],
     queryFn: async () => {
       const req = await SendJob([
         {
           handler: "ttmlProfile",
-          args: {
-            userId,
-            referrer: "lyricsCreditsView",
-          },
+          args: { userId, referrer: "lyricsCreditsView" },
         },
       ]);
       const profile = req.get("ttmlProfile");
-      if (profile === undefined)
+      if (!profile)
         throw new Error("ttmlProfile not found in response");
       if (profile.status !== 200)
         throw new Error(`ttmlProfile returned status ${profile.status}`);
       if (profile.type !== "json")
-        throw new Error(
-          `ttmlProfile returned type ${profile.type}, expected json`
-        );
+        throw new Error(`ttmlProfile returned type ${profile.type}, expected json`);
       if (!profile.responseData)
         throw new Error("ttmlProfile responseData is missing");
       return profile.responseData;
     },
-    retry: 500,
+    retry: 3,
   });
 
-  // Defensive: normalize makes and uploads so both have view_count property
-  const perUser: TTMLProfileUserList = userQuery.data?.perUser ?? {
-    uploads: [],
-    makes: [],
-  };
-  // Normalize "makes"
+  // Defensive normalization
+  const perUser: TTMLProfileUserList = userQuery.data?.perUser ?? { uploads: [], makes: [] };
   const normalizedMakes = (perUser.makes ?? []).map((item) => ({
-    id: item.id,
+    id: item.id ?? "",
     view_count: typeof item.views_count === "number" ? item.views_count : 0,
-  }));
-  // Normalize "uploads"
+  })).filter((item) => item.id);
   const normalizedUploads = (perUser.uploads ?? []).map((item) => ({
-    id: item.id,
+    id: item.id ?? "",
     view_count: typeof item.view_count === "number" ? item.view_count : 0,
-  }));
+  })).filter((item) => item.id);
 
   // Sort by view_count descending for UI display
   const sortedMakes = sortByViewsDesc(normalizedMakes);
   const sortedUploads = sortByViewsDesc(normalizedUploads);
 
-  // Filter to only valid tracks for display, but keep view_count for render
   const sortedValidMakes = sortedMakes.filter(item =>
     validTrackIds([item.id]).length > 0
   );
@@ -223,29 +192,26 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
     validTrackIds([item.id]).length > 0
   );
 
-  // Build a sorted, unique track ID list for *queryKey* (do not change order unless actual IDs change!)
   const allIds: string[] = React.useMemo(() => {
     const uniqSet = new Set<string>();
-    [...normalizedMakes, ...normalizedUploads].forEach(({id}) => {
+    [...normalizedMakes, ...normalizedUploads].forEach(({ id }) => {
       validTrackIds([id]).forEach((vId) => uniqSet.add(vId));
     });
     return Array.from(uniqSet).sort();
-  }, [perUser.makes, perUser.uploads]); // dependency: only changes if IDs list changes
+  }, [perUser.makes, perUser.uploads]);
 
-  // Fetch tracks: will only re-run if real track IDs change!
   const tracksQuery = useQuery<SpotifyTrack[], Error>({
     queryKey: ["spotify-tracks", allIds],
     queryFn: () =>
       allIds.length > 0 ? fetchAllSpotifyTracks(allIds) : Promise.resolve([]),
     enabled: userQuery.isSuccess && allIds.length > 0,
-    retry: 500,
+    retry: 3,
     staleTime: 120 * 60 * 1000,
   });
 
-  // Build track lookup
   const trackMap = React.useMemo(() => {
     const map = new Map<string, SpotifyTrack>();
-    tracksQuery.data?.forEach((t) => t?.id && map.set(t.id, t));
+    (tracksQuery.data ?? []).forEach((t) => t && t.id && map.set(t.id, t));
     return map;
   }, [tracksQuery.data]);
 
@@ -253,34 +219,30 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
 
   React.useEffect(() => {
     if (profile?.data?.banner) {
-      const modalContainer = document.querySelector(
+      const modalContainer = document.querySelector<HTMLElement>(
         ".GenericModal .main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)"
-      ) as HTMLElement | null;
-      if (modalContainer) {
-        modalContainer.style.setProperty("--banner-url-bg", `url(${String(profile.data.banner)})`);
+      );
+      if (modalContainer && typeof profile.data.banner === "string") {
+        modalContainer.style.setProperty("--banner-url-bg", `url(${profile.data.banner})`);
       }
     }
   }, [profile?.data?.banner]);
 
   if (userQuery.isLoading) {
-    // Skeleton loader for profile + tracks
     return <ProfileSkeleton hasProfileBanner={hasProfileBanner} />;
   }
   if (userQuery.isError) {
     return (
       <div className="ttml-profile-error">
-        <div>
-          Error:{" "}
-          {userQuery.error instanceof Error
-            ? userQuery.error.message
-            : String(userQuery.error)}
-        </div>
+        Error: {userQuery.error instanceof Error
+          ? userQuery.error.message
+          : String(userQuery.error)}
       </div>
     );
   }
 
-  // Render helper
-  function renderTrackList(items: {id: string, view_count?: number}[], listKey: string) {
+  // Helper for rendering track lists
+  function renderTrackList(items: { id: string, view_count?: number }[], listKey: string) {
     if (tracksQuery.isLoading)
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -291,21 +253,21 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
       );
     if (tracksQuery.isError)
       return <div>Error loading songs: {tracksQuery.error?.message}</div>;
-    if (items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return <div className="ttml-profile-song-missing">No songs found.</div>;
     }
-    return items.map(({id}) =>
-      // @ts-ignore
-      <SongRow key={`${listKey}-${id}`} trackId={id} trackMap={trackMap} />
+    return items.map(({ id }) =>
+      // @ts-ignore aaa
+      <SongRowSafe key={`${listKey}-${id}`} trackId={id} trackMap={trackMap} />
     );
   }
 
   return (
     <div className={`ttml-profile-container ${tracksQuery.isLoading ? "ttml-profile-root-sort-of-skeleton" : ""}`}>
       <div className="slm w-60 h-92 hidden-modal-header-style"></div>
-      {/* Banner/Profile Layout */}
+      {/* Banner/Profile */}
       <div className="ttml-profile-header-styled">
-        {profile?.data?.banner && (
+        {typeof profile?.data?.banner === "string" && profile.data.banner && (
           <img
             src={profile.data.banner}
             className="ttml-profile-banner-styled"
@@ -313,25 +275,27 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
           />
         )}
         <div className="ttml-profile-avatar-container-styled">
-          <img
-            src={profile?.data?.avatar}
-            className="ttml-profile-avatar-styled"
-            alt="Avatar"
-          />
+          {typeof profile?.data?.avatar === "string" && profile.data.avatar && (
+            <img
+              src={profile.data.avatar}
+              className="ttml-profile-avatar-styled"
+              alt="Avatar"
+            />
+          )}
         </div>
         <div className="ttml-profile-meta-styled">
           <div className="ttml-profile-displayname-styled">
-            {profile?.data?.displayName}
+            {profile?.data?.displayName ?? ""}
           </div>
           <div className="ttml-profile-username-styled">
-            {profile?.data?.username}{" "}
+            {profile?.data?.username ?? ""}
             <span className="ttml-profile-id-styled">
-              ({profile?.data?.id})
+              ({profile?.data?.id ?? ""})
             </span>
           </div>
         </div>
       </div>
-      {/* Two-column Song Layout */}
+      {/* Song Lists */}
       <div className="ttml-profile-columns">
         {profile.type !== "uploader" ? (
           <div className="ttml-profile-section ttml-profile-column ttml-profile-column-wide">
@@ -341,10 +305,7 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
                 ({sortedValidMakes.length})
               </span>
             </div>
-            <div
-              className="ttml-profile-songlist"
-              style={{ maxHeight: "100%", overflowY: "auto", minWidth: 0 }}
-            >
+            <div className="ttml-profile-songlist" style={{ maxHeight: "100%", overflowY: "auto", minWidth: 0 }}>
               {renderTrackList(sortedValidMakes, "makes")}
             </div>
           </div>
@@ -357,10 +318,7 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
                 ({sortedValidUploads.length})
               </span>
             </div>
-            <div
-              className="ttml-profile-songlist"
-              style={{ maxHeight: "100%", overflowY: "auto", minWidth: 0 }}
-            >
+            <div className="ttml-profile-songlist" style={{ maxHeight: "100%", overflowY: "auto", minWidth: 0 }}>
               {renderTrackList(sortedValidUploads, "uploads")}
             </div>
           </div>
@@ -370,30 +328,37 @@ export default function ProfileDisplay({ userId, hasProfileBanner }: ProfileDisp
   );
 }
 
-// ----- SongRow -----
-function SongRow({ trackId, trackMap }: SongRowProps) {
+// Safe SongRow rendering
+function SongRowSafe({ trackId, trackMap }: SongRowProps) {
   const track = trackMap.get(trackId);
   if (!track)
     return (
       <div className="ttml-profile-song-missing">Unknown Song ({trackId})</div>
     );
+  const albumImages = track.album?.images ?? [];
+  const imageSrc =
+    albumImages.length > 0
+      ? albumImages.reduce((minImg, img) =>
+          typeof img.width === "number" && typeof minImg.width === "number" && img.width < minImg.width ? img : minImg
+        ).url
+      : undefined;
   return (
     <div className="ttml-profile-songrow">
-      <img
-        src={
-          track.album?.images && track.album.images.length > 0
-            ? track.album.images.reduce((minImg, img) =>
-                img.width < minImg.width ? img : minImg
-              ).url
-            : undefined
-        }
-        alt={track.name}
-        className="ttml-profile-songart"
-      />
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={track.name}
+          className="ttml-profile-songart"
+        />
+      ) : (
+        <div className="ttml-profile-songart-skeleton skeleton"></div>
+      )}
       <div className="ttml-profile-songinfo">
-        <div className="ttml-profile-songname">{track.name}</div>
+        <div className="ttml-profile-songname">{track.name ?? "Unknown song name"}</div>
         <div className="ttml-profile-songartist">
-          {track.artists.map((a) => a.name).join(", ")}
+          {Array.isArray(track.artists)
+            ? track.artists.map((a) => a?.name ?? "Unknown").join(", ")
+            : "Unknown"}
         </div>
       </div>
       <a
@@ -401,7 +366,7 @@ function SongRow({ trackId, trackMap }: SongRowProps) {
           const uri = `spotify:track:${trackId}`;
           if (Spicetify.URI.isTrack(uri)) {
             Spicetify.Player.playUri(uri);
-            Spicetify.PopupModal.hide();
+            Spicetify.PopupModal.hide?.();
           }
         }}
         target="_blank"
@@ -413,3 +378,10 @@ function SongRow({ trackId, trackMap }: SongRowProps) {
     </div>
   );
 }
+
+// Export wrapped with error boundary for safety
+const ProfileDisplayExport = (props: ProfileDisplayProps) =>
+  <ErrorBoundary>
+    <ProfileDisplaySafe {...props} />
+  </ErrorBoundary>;
+export default ProfileDisplayExport;
