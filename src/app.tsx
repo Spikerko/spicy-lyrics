@@ -57,7 +57,6 @@ import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import { SendJob } from "./utils/API/SendJob.ts";
 import { QueryClient } from "@tanstack/react-query";
 
 export const reactQueryClient = new QueryClient();
@@ -1014,10 +1013,6 @@ async function main() {
   );
 
   Hometinue();
-
-  {
-    Component.AddRootComponent("send-job", SendJob);
-  }
 }
 
 main();
