@@ -89,6 +89,12 @@ export const GetPageRoot = () =>
   document.querySelector<HTMLElement>(
     ".Root__main-view .main-view-container div[data-overlayscrollbars-viewport]"
   ) ??
+  (() => {
+    const child = document.querySelector<HTMLElement>(
+      ".Root__main-view .main-view-container .main-view-container__scroll-node-child"
+    );
+    return child?.parentElement as HTMLElement | null;
+  })() ??
   document.querySelector<HTMLElement>(
     ".Root__main-view .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
   ) ??
