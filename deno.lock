@@ -5,8 +5,8 @@
     "jsr:@codemonument/cliffy@1.0.0-rc.3": "1.0.0-rc.3",
     "jsr:@luca/esbuild-deno-loader@0.11.1": "0.11.1",
     "jsr:@socali/modules@^4.4.1": "4.4.1",
-    "jsr:@spicetify/bundler@^1.2.5": "1.2.5",
-    "jsr:@spikerko/tools@^1.5.6": "1.5.6",
+    "jsr:@spicetify/bundler@^1.2.7": "1.2.7",
+    "jsr:@spikerko/tools@^1.6.0": "1.6.0",
     "jsr:@spikerko/web-modules@^1.0.5": "1.0.5",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
     "jsr:@std/encoding@0.221.0": "0.221.0",
@@ -61,8 +61,8 @@
     "@socali/modules@4.4.1": {
       "integrity": "1a8ae6eb7279ba223413386ab72366512b1ad78503d370643d820b42cac9e966"
     },
-    "@spicetify/bundler@1.2.5": {
-      "integrity": "037b4d0692fcfbdb0764fd15e89b9f593c81d70041ba6e0f6a76b155be03b39c",
+    "@spicetify/bundler@1.2.7": {
+      "integrity": "277302c22f0604d6948e8ee9cef38a048e4fa1055d97690a3140947ffb7aa2c3",
       "dependencies": [
         "jsr:@codemonument/cliffy",
         "jsr:@luca/esbuild-deno-loader",
@@ -78,8 +78,8 @@
         "npm:terser"
       ]
     },
-    "@spikerko/tools@1.5.6": {
-      "integrity": "0e92eafadaafb948cba04d6a6e468eb0f48fac6448d84e33a61584f2ce70066c",
+    "@spikerko/tools@1.6.0": {
+      "integrity": "b2ab46351d30c6b36f560a1840130cb897a98863ef3b8d0399d840c84e90a810",
       "dependencies": [
         "jsr:@3d/three",
         "jsr:@socali/modules"
@@ -1689,8 +1689,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@socali/modules@^4.4.1",
-      "jsr:@spicetify/bundler@^1.2.5",
-      "jsr:@spikerko/tools@^1.5.6",
+      "jsr:@spicetify/bundler@^1.2.7",
+      "jsr:@spikerko/tools@^1.6.0",
       "jsr:@spikerko/web-modules@^1.0.5",
       "npm:@applemusic-like-lyrics/core@~0.1.3",
       "npm:@tanstack/react-query@^5.90.2",

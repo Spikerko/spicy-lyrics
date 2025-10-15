@@ -28,6 +28,7 @@ const Defaults = {
   LyricsRenderer_Default: 0,
   CanvasBackground: false,
   PopupLyricsAllowed: true,
+  ViewControlsPosition: "Top",
 };
 
 export default Defaults;

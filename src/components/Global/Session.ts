@@ -28,7 +28,7 @@ const Session = {
   },
   GoBack: () => {
     if (sessionHistory.length > 1) {
-      Session.Navigate(sessionHistory[sessionHistory.length - 2]);
+      Spicetify.Platform.History.goBack();
     } else {
       Session.Navigate({ pathname: "/" });
     }

@@ -248,6 +248,19 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addDropDown(
+    "viewcontrols-position",
+    "View Controls Position",
+    ["Top", "Bottom"],
+    Defaults.ViewControlsPosition,
+    () => {
+      storage.set(
+        "viewControlsPosition",
+        settings.getFieldValue("viewcontrols-position") as string
+      );
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",

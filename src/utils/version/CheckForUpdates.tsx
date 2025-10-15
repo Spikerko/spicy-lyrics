@@ -1,8 +1,8 @@
 import React from "react";
-import { Spicetify } from "@spicetify/bundler";
 import { isDev } from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
 import ReactDOM from "react-dom/client";
+import { PopupModal } from "../../components/Modal.ts";
 
 let ShownUpdateNotice = false;
 
@@ -15,7 +15,8 @@ export async function CheckForUpdates(force: boolean = false) {
     const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
 
     const div = document.createElement("div");
-    ReactDOM.createRoot(div).render(
+    const reactRoot = ReactDOM.createRoot(div);
+    reactRoot.render(
       <div className="update-card-wrapper slm">
         <div className="card">
           <div>Your Spicy Lyrics version is outdated.</div>
@@ -37,9 +38,12 @@ export async function CheckForUpdates(force: boolean = false) {
       </div>
     );
 
-    Spicetify.PopupModal.display({
+    PopupModal.display({
       title: "New Update - Spicy Lyrics",
       content: div,
+      onClose: () => {
+        reactRoot.unmount();
+      }
     });
     ShownUpdateNotice = true;
   }

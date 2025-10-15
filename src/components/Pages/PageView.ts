@@ -48,12 +48,11 @@ import {
   CloseSidebarLyrics,
   OpenSidebarLyrics,
   isSpicySidebarMode,
+  cleanupSidebarLyricsObservers
 } from "../Utils/SidebarLyrics.ts";
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
-
-// import { UpdateSongMoreInfo } from "../Utils/Annotations";
 
 interface TippyInstance {
   destroy: () => void;
@@ -188,6 +187,13 @@ async function OpenPage(
       }
     }
   );
+
+  if (Defaults.ViewControlsPosition === "Top") {
+    elem.classList.add("ViewControlsPosition_Top")
+  } else if (Defaults.ViewControlsPosition === "Bottom") {
+    elem.classList.add("ViewControlsPosition_Bottom")
+  }
+
   /* 
         <div class="SongMoreInfo">
             <div class="Content">
@@ -318,6 +324,11 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 
 function DestroyPage() {
   if (!PageView.IsOpened) return;
+
+  if (isSpicySidebarMode) {
+    cleanupSidebarLyricsObservers();
+  }
+
   if (Fullscreen.IsOpen) Fullscreen.Close();
   if (!PageContainer) return;
 

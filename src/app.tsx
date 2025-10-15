@@ -59,6 +59,8 @@ import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import { QueryClient } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
+import { _action_lProfile } from "./utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
+import { PopupModal } from "./components/Modal.ts";
 
 export const reactQueryClient = new QueryClient();
 
@@ -83,6 +85,14 @@ async function main() {
 
   if (!storage.get("show_topbar_notifications")) {
     storage.set("show_topbar_notifications", "true");
+  }
+
+  if (!storage.get("viewControlsPosition")) {
+    storage.set("viewControlsPosition", "Top");
+  }
+
+  if (storage.get("viewControlsPosition")) {
+    Defaults.ViewControlsPosition = storage.get("viewControlsPosition").toString() as string;
   }
 
   if (!storage.get("lockedMediaBox")) {
@@ -172,7 +182,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.15.0";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.16.2";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -542,33 +552,6 @@ async function main() {
     SearchDOMForFullscreenButtons();
   }
 
-  {
-    const whentil = Whentil.When(
-      () => document.querySelector<HTMLElement>("style#dynamic-font-style"),
-      (element) => {
-        if (!element) {
-          whentil.Cancel();
-          return;
-        }
-
-        element.innerHTML = `
-* :not(#SpicyLyricsPage.UseSpicyFont *) {
-  font-family: Inter, sans-serif;
-}
-:root {
-  --font-family: Inter, sans-serif;
-  --encore-title-font-stack: Inter,CircularSp-Arab,CircularSp-Hebr,CircularSp-Cyrl,CircularSp-Grek,CircularSp-Deva,var(--fallback-fonts,sans-serif) !important;
-  --encore-variable-font-stack: Inter,CircularSp-Arab,CircularSp-Hebr,CircularSp-Cyrl,CircularSp-Grek,CircularSp-Deva,var(--fallback-fonts,sans-serif) !important;
-  --encore-body-font-stack: Inter,CircularSp-Arab,CircularSp-Hebr,CircularSp-Cyrl,CircularSp-Grek,CircularSp-Deva,var(--fallback-fonts,sans-serif) !important;
-}`.trim();
-      }
-    );
-
-    setTimeout(() => {
-      whentil.Cancel();
-    }, 50000);
-  }
-
   let button: any;
   if (ButtonList) {
     button = ButtonList[0];
@@ -587,14 +570,18 @@ async function main() {
     const previousVersion = storage.get("previous-version");
     if (previousVersion !== Defaults.SpicyLyricsVersion) {
       const div = document.createElement("div");
-      ReactDOM.createRoot(div).render(
+      const reactRoot = ReactDOM.createRoot(div);
+      reactRoot.render(
         <UpdateDialog previousVersion={previousVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />
       );
       
-      Spicetify.PopupModal.display({
+      PopupModal.display({
         title: "Spicy Lyrics Updated!",
         content: div,
         isLarge: true,
+        onClose: () => {
+          reactRoot.unmount();
+        }
       });
     }
 
@@ -1020,5 +1007,22 @@ async function main() {
 
   Hometinue();
 }
+
+const actions = ["lProfile"];
+
+// deno-lint-ignore no-explicit-any
+Component.AddRootComponent("enqueueAction", (action: string, include: any) => {
+  if (action == null) {
+    console.error("Action missing");
+  }
+
+  if (!actions.includes(action)) {
+    console.error("Action non-existent");
+  }
+
+  if (action === "lProfile")
+    return _action_lProfile(include.userId, include.hasProfileBanner);
+});
+
 
 main();

@@ -1,11 +1,13 @@
 @for $i from 1 through 300 {
   .main-embedWidgetGenerator-container:has(.slm.w-#{$i}) {
-    width: #{$i}vw;
+    --slm-width: #{$i}vw;
+    width: var(--slm-width);
   }
 }
 
 @for $i from 1 through 300 {
   .main-embedWidgetGenerator-container:has(.slm.h-#{$i}) {
-    height: #{$i}vh;
+    --slm-height: #{$i}vh;
+    height: var(--slm-height);
   }
 }

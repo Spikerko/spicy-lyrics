@@ -14,15 +14,12 @@ import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "./ArtistVisuals/Main.ts";
 import { PageContainer } from "../Pages/PageView.ts";
 
-const CoverArtCacheMap: CoverArtCache = new Map();
-
 const SongChangeSignal = new Signal();
 
 export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
   transition: Defaults.PrefersReducedMotion ? 0 : 0.5,
-  blur: 50,
-  speed: 0.2,
-  coverArtCache: CoverArtCacheMap,
+  blur: 45,
+  speed: 0.25,
   plugins: [
     TempoPlugin({
       SongChangeSignal,
@@ -33,8 +30,11 @@ export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
         const token = await Platform.GetSpotifyAccessToken();
         return `Bearer ${token}`;
       },
+      minSpeed: 0.25,
+      maxSpeed: 0.85,
     }),
   ],
+  cacheLimit: 5,
 };
 // Store the DynamicBackground instance and element for reuse
 export let currentBgInstance: DynamicBackground | null = null;

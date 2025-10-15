@@ -57,9 +57,17 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   position: absolute;
   width: 100cqw;
-  top: 24px;
   opacity: 0;
 }
+
+#SpicyLyricsPage.ViewControlsPosition_Bottom:not(.Fullscreen) .ViewControls {
+  bottom: 24px;
+}
+
+#SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
+  top: 24px;
+}
+
 
 
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls::before {
@@ -67,11 +75,19 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   content: "";
   position: absolute;
   inset: 0;
-  /* top: -8px; */
-  top: -24px;
   opacity: 0.6;
+}
+
+#SpicyLyricsPage.ViewControlsPosition_Bottom:not(.Fullscreen) .ViewControls::before {
+  bottom: -24px;
+  background: linear-gradient(to top, var(--spice-main, #000000), transparent);
+}
+
+#SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls::before {
+  top: -24px;
   background: linear-gradient(to bottom, var(--spice-main, #000000), transparent);
 }
+
 
 /* :root:has(.SpicyBG.BackgroundLayer)
   body:not(.SpicySidebarLyrics__Active)
@@ -121,12 +137,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
   transform-origin: center bottom;
 }
 
-#SpicyLyricsPage .ViewControls .ViewControl:hover {
-  scale: 1.05;
-}
-
 #SpicyLyricsPage .ViewControls:has(.ViewControl:hover) > .ViewControl:not(:hover) {
-  scale: 0.99;
   opacity: 0.75;
 }
 
@@ -530,19 +541,26 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   border-radius: 16px;
 }
 
+.main-trackCreditsModal-mainSection:has(.slm.scroll-x-hidden) {
+  overflow-x: hidden;
+}
+
+
 .Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
   display: none !important;
 }
 
 .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header {
-  border-bottom: none !important;
+  /* border-bottom: none !important;
   padding: 24px 46px 0px !important;
   margin-bottom: -40px !important;
   position: relative;
-  z-index: 104;
+  z-index: 104; */
+
+  display: none;
 }
 
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
+/* .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
   position: relative;
   z-index: 106;
 }
@@ -552,4 +570,15 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   pointer-events: none !important;
   height: 0px !important;
   line-height: 0 !important;
+} */
+
+.Animated__GenericModal__overlay {
+  opacity: 0;
+  margin-bottom: -150px;
+  transition: opacity .3s, margin-bottom .3s;
+}
+
+.Animated__GenericModal__overlay.Active {
+  opacity: 1;
+  margin-bottom: 0px;
 }
