@@ -94,6 +94,82 @@ export function RegisterSidebarLyrics() {
 let currentNPVWhentil: CancelableTask | null = null;
 let onOpen_wasThingOpen: string | undefined;
 
+// --- Helper to observe removal of #SpicyLyricsPage ---
+let spicyLyricsPageObserver: MutationObserver | null = null;
+let spicySidebarAsideObserver: MutationObserver | null = null;
+
+export function cleanupSidebarLyricsObservers() {
+  if (spicyLyricsPageObserver) {
+    try {
+      spicyLyricsPageObserver.disconnect();
+    } catch (_e) {}
+    spicyLyricsPageObserver = null;
+  }
+  if (spicySidebarAsideObserver) {
+    try {
+      spicySidebarAsideObserver.disconnect();
+    } catch (_e) {}
+    spicySidebarAsideObserver = null;
+  }
+}
+
+/**
+ * Observes removal of #SpicyLyricsPage and also addition of a new <aside> 
+ * into the parent container. Cleanup occurs if either event happens.
+ */
+function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
+  cleanupSidebarLyricsObservers();
+
+  const spicyLyricsEl = document.querySelector("#SpicyLyricsPage");
+  if (!spicyLyricsEl) return;
+  const parent = spicyLyricsEl.parentElement;
+  if (!parent) return;
+
+  // Observe for removal of #SpicyLyricsPage
+  spicyLyricsPageObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const n of Array.from(mutation.removedNodes)) {
+        if (n === spicyLyricsEl) {
+          cleanupSidebarLyricsObservers();
+          cleanupFn();
+          return;
+        }
+      }
+    }
+  });
+  spicyLyricsPageObserver.observe(parent, { childList: true });
+
+  // Observe for new <aside> being added to the parent container
+  spicySidebarAsideObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const n of Array.from(mutation.addedNodes)) {
+        if (n instanceof HTMLElement && n.tagName === "ASIDE") {
+          cleanupSidebarLyricsObservers();
+          cleanupFn();
+          return;
+        }
+      }
+    }
+  });
+  spicySidebarAsideObserver.observe(parent, { childList: true });
+}
+
+
+function runPageOpenWithCleanup(parentContainer: HTMLElement) {
+  PageView.Open(parentContainer, true);
+  // After opening, observe #SpicyLyricsPage for removal and cleanup
+  // Use setTimeout to wait for DOM update
+  setTimeout(() => {
+    observeSpicyLyricsPageRemoval(() => {
+      // Only run cleanup if we're still in sidebar mode
+      if (isSpicySidebarMode) {
+        // Do the main close, but suppress playbar button restoration
+        CloseSidebarLyrics(true);
+      }
+    });
+  }, 1);
+}
+
 export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
   onOpen_wasThingOpen = undefined;
   // console.log("[Spicy Lyrics Debug] OpenSidebarLyrics");
@@ -131,7 +207,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
       () => getQueueContainer() && !PageView.IsOpened,
       () => {
         // console.log("[Spicy Lyrics Debug] finalContainer appeared after click");
-        PageView.Open(parentContainer, true);
+        runPageOpenWithCleanup(parentContainer);
         Whentil.When(
           () => currentPageBgInstance,
           () => {
@@ -140,7 +216,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
         );
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
-        SetRSBListeners();
+        // SetRSBListeners();
       }
     );
   } else {
@@ -149,7 +225,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
       () => finalContainer && !PageView.IsOpened,
       () => {
         // console.log("[Spicy Lyrics Debug] Whentil with existing container");
-        PageView.Open(parentContainer, true);
+        runPageOpenWithCleanup(parentContainer);
         Whentil.When(
           () => currentPageBgInstance,
           () => {
@@ -158,7 +234,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
         );
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
-        SetRSBListeners();
+        // SetRSBListeners();
       }
     );
   }
@@ -169,52 +245,60 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
   // console.log("[Spicy Lyrics Debug] isSpicySidebarMode set to true");
 }
 
-export function CloseSidebarLyrics() {
+export function CloseSidebarLyrics(auto: boolean = false) {
   // console.log("[Spicy Lyrics Debug] CloseSidebarLyrics");
   if (!isSpicySidebarMode) {
     // console.log("[Spicy Lyrics Debug] not in sidebar mode, returning");
     return;
   }
+
   currentNPVWhentil?.Cancel();
   currentNPVWhentil = null;
+  
+  cleanupSidebarLyricsObservers();
+
   // console.log("[Spicy Lyrics Debug] PageView.Destroy()");
   PageView.Destroy();
   appendClosed();
-  CleanupRSBListeners();
+  //CleanupRSBListeners();
   isSpicySidebarMode = false;
   storage.set("sidebar-status", "closed");
-  if (onOpen_wasThingOpen === undefined) {
-    const queuePlaybarButton = getQueuePlaybarButton();
-    if (!queuePlaybarButton) {
-      console.error("[Spicy Lyrics] Queue playbar button is missing");
-      return;
+
+  if (!auto) {
+    if (onOpen_wasThingOpen === undefined) {
+      const queuePlaybarButton = getQueuePlaybarButton();
+      if (!queuePlaybarButton) {
+        console.error("[Spicy Lyrics] Queue playbar button is missing");
+        return;
+      }
+      queuePlaybarButton.click();
+    } else if (onOpen_wasThingOpen === "npv") {
+      const playbarButton = getNowPlayingViewPlaybarButton();
+      if (!playbarButton) {
+        console.error("[Spicy Lyrics] Now Playing View playbar button is missing");
+        return;
+      }
+      playbarButton.click();
+    } else if (onOpen_wasThingOpen === "queue") {
+      const queuePlaybarButton = getQueuePlaybarButton();
+      if (!queuePlaybarButton) {
+        console.error("[Spicy Lyrics] Queue playbar button is missing");
+        return;
+      }
+      queuePlaybarButton.click();
+    } else if (onOpen_wasThingOpen === "devices") {
+      const devicesPlaybarButton = getDevicesPlaybarButton();
+      if (!devicesPlaybarButton) {
+        console.error("[Spicy Lyrics] Devices playbar button is missing");
+        return;
+      }
+      devicesPlaybarButton.click();
     }
-    queuePlaybarButton.click();
-  } else if (onOpen_wasThingOpen === "npv") {
-    const playbarButton = getNowPlayingViewPlaybarButton();
-    if (!playbarButton) {
-      console.error("[Spicy Lyrics] Now Playing View playbar button is missing");
-      return;
-    }
-    playbarButton.click();
-  } else if (onOpen_wasThingOpen === "queue") {
-    const queuePlaybarButton = getQueuePlaybarButton();
-    if (!queuePlaybarButton) {
-      console.error("[Spicy Lyrics] Queue playbar button is missing");
-      return;
-    }
-    queuePlaybarButton.click();
-  } else if (onOpen_wasThingOpen === "devices") {
-    const devicesPlaybarButton = getDevicesPlaybarButton();
-    if (!devicesPlaybarButton) {
-      console.error("[Spicy Lyrics] Devices playbar button is missing");
-      return;
-    }
-    devicesPlaybarButton.click();
   }
+
   onOpen_wasThingOpen = undefined;
 }
-
+/* 
 let RSBAbortControllers: Array<AbortController | undefined> = [undefined, undefined, undefined];
 
 export function SetRSBListeners() {
@@ -235,6 +319,11 @@ export function SetRSBListeners() {
         if (!isSpicySidebarMode) return;
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
+        // cleanup observer on destroy
+        if (spicyLyricsPageObserver) {
+          try { spicyLyricsPageObserver.disconnect(); } catch(_e){}
+          spicyLyricsPageObserver = null;
+        }
         PageView.Destroy();
         appendClosed();
         isSpicySidebarMode = false;
@@ -280,7 +369,7 @@ export function CleanupRSBListeners() {
       RSBAbortControllers = [undefined, undefined, undefined];
     }
   });
-}
+} */
 
 Spicetify.Player.addEventListener("songchange", (e: any) => {
   if (e.data === null) {

@@ -6,6 +6,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { reactQueryClient } from "../../../../app.tsx";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
+import { PopupModal } from "../../../../components/Modal.ts";
 
 
 let isByCommunityAbortController: AbortController | null = null;
@@ -23,6 +24,61 @@ export function CleanUpIsByCommunity() {
     }
   });
   madeTippys.clear();
+}
+
+
+let ttmlProfileReactRoot: ReactDOM.Root | null = null;
+
+// Unmount the React root and clear reference
+export const unmountTTMLProfileReactRoot = () => {
+  if (ttmlProfileReactRoot) {
+    ttmlProfileReactRoot.unmount();
+    ttmlProfileReactRoot = null;
+  }
+};
+
+function showProfileModal(userId: string | undefined, hasProfileBanner: boolean) {
+  if (!userId) return;
+
+  // Set content to a placeholder div, React will mount into modal's <main> container instead
+  const placeholder = document.createElement("div");
+
+  // This function will mount React after the modal inserts its structure into DOM
+  const onModalDisplayed = () => {
+    // Find the modal's main element where content should go
+    const mainElement = PopupModal.querySelector("main.main-trackCreditsModal-originalCredits");
+    if (!mainElement) return;
+
+    // Clear any existing content in mainElement
+    mainElement.innerHTML = "";
+
+    // Create React root on the main element
+    ttmlProfileReactRoot = ReactDOM.createRoot(mainElement);
+
+    // Render React content
+    ttmlProfileReactRoot.render(
+      <QueryClientProvider client={reactQueryClient}>
+        <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
+      </QueryClientProvider>
+    );
+  };
+
+  PopupModal.display({
+    title: "TTML Profile",
+    // Pass placeholder as content so modal builds structure,
+    // React rendering happens in onModalDisplayed callback
+    content: placeholder,
+    isLarge: true,
+    onClose: () => unmountTTMLProfileReactRoot(),
+  });
+
+  // After modal DOM is ready, mount React inside it
+  onModalDisplayed();
+}
+
+
+export const _action_lProfile = (userId: string, hasProfileBanner: boolean) => {
+  showProfileModal(userId, hasProfileBanner);
 }
 
 export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): void {
@@ -73,22 +129,6 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
     }
   `;
   LyricsContainer.appendChild(songInfoElement);
-
-  // Click handler to mount React modal with full QueryClient context
-  function showProfileModal(userId: string | undefined, hasProfileBanner: boolean) {
-    if (!userId) return;
-    const div = document.createElement("div");
-    ReactDOM.createRoot(div).render(
-      <QueryClientProvider client={reactQueryClient}>
-        <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
-      </QueryClientProvider>
-    );
-    Spicetify.PopupModal.display({
-      title: "TTML Profile",
-      content: div,
-      isLarge: true,
-    });
-  }
 
   const uploaderSpan = songInfoElement.querySelector(".Uploader .song-info-profile-section");
   if (uploaderSpan) {

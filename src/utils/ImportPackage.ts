@@ -2,6 +2,7 @@ import type { Brand } from "../types/Brand.d.ts";
 
 const packagesUrl = "https://pkgs.spikerko.org";
 
+// deno-lint-ignore no-explicit-any
 export type Package = Brand<any, "Package">;
 
 export type PackageUrl = Brand<string, "PackageUrl">;

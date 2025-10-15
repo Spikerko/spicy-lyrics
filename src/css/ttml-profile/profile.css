@@ -3,10 +3,15 @@
   color: var(--spice-text);
   border-radius: 12px;
   max-width: 1200px;
-  margin: 2rem auto;
   box-shadow: 0px 6px 18px rgba(var(--spice-rgb-shadow), 0.2);
-  padding: 2rem;
+  padding: 3rem;
   font-family: SpicyLyrics, var(--encore-body-font-stack);
+  position: relative;
+  z-index: 10;
+}
+
+.main-trackCreditsModal-mainSection:has(.ttml-profile-container) {
+  padding: 3rem 32px 0;
 }
 
 .ttml-profile-header-styled {
@@ -134,12 +139,17 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ttml-profile-songname {
   font-weight: 600;
   font-size: 1.05rem;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ttml-profile-songartist {
@@ -147,6 +157,9 @@
   font-size: 0.91em;
   font-weight: 400;
   letter-spacing: 0.4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ttml-profile-songlink {
@@ -213,7 +226,7 @@
   background-color: transparent !important;
 }
 
-.main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)::before {
+/* .main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -240,6 +253,42 @@
   border-top-right-radius: 8px;
   z-index: -1;
   background: linear-gradient(to top, var(--spice-player), transparent);
+} */
+
+
+.fixed-node-container {
+  position: sticky;
+  height: 0;
+  width: 100%;
+  inset: 0;
+  z-index: -1;
+}
+
+.fixed-node-container .profile-point.type-banner .profile-point-banner {
+  width: var(--slm-width);
+  position: absolute;
+  left: -32px;
+  top: -3rem;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  mask-image: linear-gradient(to top, transparent 0%, black 100%);
+  opacity: 0.5;
+  anchor-name: --point-under-node-profile-banner;
+}
+
+.fixed-node-container .profile-point.type-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--slm-width);
+  height: 50px;
+  left: -32px;
+  top: calc(anchor(bottom) - 50px);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  z-index: 0;
+  background: linear-gradient(to top, var(--spice-player), transparent);
+  position-anchor: --point-under-node-profile-banner;
 }
 
 .ttml-profile-columns-display-subtext-length-count {
@@ -394,4 +443,25 @@
 
 .main-trackCreditsModal-mainSection:has(.ttml-profile-root-sort-of-skeleton) {
   overflow-y: hidden !important;
+}
+
+.ttml-profile-container .modal-controls {
+  position: absolute;
+  z-index: 9;
+  top: 10px;
+  right: 10px;
+}
+
+.ttml-profile-container.profile-bg-type-gradient {
+  --from-color: 0, 0, 0;
+  --to-color: 0, 0, 0;
+  --bg-rotation: 156deg;
+  background: linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0), linear-gradient(var(--bg-rotation), rgba(var(--from-color), 0.75), rgba(var(--to-color), 0.75));
+  background-attachment: fixed;
+}
+
+.ttml-profile-container.profile-bg-type-static {
+  --target-color: 0, 0, 0;
+  background: linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0), linear-gradient(rgba(var(--target-color), 0.75) 0 0);
+  background-attachment: fixed;
 }
