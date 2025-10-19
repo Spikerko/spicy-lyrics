@@ -1,7 +1,9 @@
-// @ts-expect-error
-import ImportedKuromoji from "./Kuromoji.js";
+// deno-lint-ignore-file no-async-promise-executor no-explicit-any
+import { RetrievePackage } from "../ImportPackage.ts";
 
-const Kuromoji = ImportedKuromoji as unknown as any;
+RetrievePackage("Kuromoji", "1.0.0", "js")
+  .then((p) => console.log("Loaded Kuromoji", p))
+  .catch(() => {});
 
 let Analyzer: any;
 export const init = (): Promise<void> => {
@@ -9,8 +11,13 @@ export const init = (): Promise<void> => {
     return Promise.resolve();
   }
 
-  return new Promise((resolve, reject) => {
-    Kuromoji.builder({
+  return new Promise(async (resolve, reject) => {
+    await RetrievePackage("Kuromoji", "1.0.0", "js");
+    while (!(window as any).kuromoji) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    console.log("Found Kuromoji!", (window as any).kuromoji);
+    (window as any).kuromoji.builder({
       dicPath: "https://kuromoji.pkgs.spikerko.org",
     }).build((error: any, analyzer: any) => {
       if (error) {
@@ -27,7 +34,6 @@ export const parse = (text = ""): Promise<any> => {
     return Promise.resolve([]);
   }
 
-  // deno-lint-ignore no-explicit-any
   const result = Analyzer.tokenize(text) as any[];
   for (const token of result) {
     token.verbose = {

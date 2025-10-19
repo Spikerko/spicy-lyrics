@@ -7,5 +7,7 @@ Bundle({
   EntrypointFile: "./src/app.tsx",
   CustomBuildOptions: {
     skipGlobalReplacementRules: true,
+    exposeComponentApis: true,
+    exposeComponentApisMutation: true,
   }
 });

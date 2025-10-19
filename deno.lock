@@ -5,7 +5,7 @@
     "jsr:@codemonument/cliffy@1.0.0-rc.3": "1.0.0-rc.3",
     "jsr:@luca/esbuild-deno-loader@0.11.1": "0.11.1",
     "jsr:@socali/modules@^4.4.1": "4.4.1",
-    "jsr:@spicetify/bundler@^1.2.7": "1.2.7",
+    "jsr:@spicetify/bundler@^1.3.0": "1.3.0",
     "jsr:@spikerko/tools@^1.6.0": "1.6.0",
     "jsr:@spikerko/web-modules@^1.0.5": "1.0.5",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
@@ -61,8 +61,8 @@
     "@socali/modules@4.4.1": {
       "integrity": "1a8ae6eb7279ba223413386ab72366512b1ad78503d370643d820b42cac9e966"
     },
-    "@spicetify/bundler@1.2.7": {
-      "integrity": "277302c22f0604d6948e8ee9cef38a048e4fa1055d97690a3140947ffb7aa2c3",
+    "@spicetify/bundler@1.3.0": {
+      "integrity": "66e4d55504d8cadfabbb05156d200c80d495d69021f8ebab6912be3b1163b16e",
       "dependencies": [
         "jsr:@codemonument/cliffy",
         "jsr:@luca/esbuild-deno-loader",
@@ -1689,7 +1689,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@socali/modules@^4.4.1",
-      "jsr:@spicetify/bundler@^1.2.7",
+      "jsr:@spicetify/bundler@^1.3.0",
       "jsr:@spikerko/tools@^1.6.0",
       "jsr:@spikerko/web-modules@^1.0.5",
       "npm:@applemusic-like-lyrics/core@~0.1.3",

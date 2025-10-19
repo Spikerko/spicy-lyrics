@@ -1,4 +1,4 @@
-import { Spicetify } from "@spicetify/bundler";
+import { Component, Spicetify } from "@spicetify/bundler";
 
 const prefix = "SpicyLyrics-";
 
@@ -28,6 +28,8 @@ function get(key: string) {
   const data = Spicetify.LocalStorage.get(`${prefix}${key}`);
   return data;
 }
+
+Component.AddRootComponent("appStorage", { getItem: get, setItem: set })
 
 export default {
   set,

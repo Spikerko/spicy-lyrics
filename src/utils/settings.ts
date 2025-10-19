@@ -1,10 +1,7 @@
-import { Spicetify } from "@spicetify/bundler";
+import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
-import { SpotifyPlayer } from "../components/Global/SpotifyPlayer.ts";
-import PageView, { ShowNotification } from "../components/Pages/PageView.ts";
-import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
-import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import storage from "./storage.ts";
+import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
 
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
@@ -18,6 +15,12 @@ export async function setSettingsMenu() {
   infos(SettingsSection);
 }
 
+Component.AddRootComponent("lCache", {
+  RemoveCurrentLyrics_AllCaches,
+  RemoveLyricsCache,
+  RemoveCurrentLyrics_StateCache,
+})
+
 function devSettings(SettingsSection: any) {
   const settings = new SettingsSection(
     "Spicy Lyrics - Developer Settings",
@@ -28,92 +31,21 @@ function devSettings(SettingsSection: any) {
     "remove-current-lyrics-all-caches",
     "Remove Lyrics for the current song from all caches",
     "Remove",
-    async () => {
-      const currentSongId = SpotifyPlayer.GetId();
-      if (!currentSongId || currentSongId === undefined) {
-        ShowNotification(`The current song id could not be retrieved`, "error");
-      }
-      try {
-        await LyricsStore.RemoveItem(currentSongId ?? "");
-        storage.set("currentLyricsData", null);
-        ShowNotification(
-          `Lyrics for the current song, have been removed from available all caches`,
-          "success"
-        );
-        if (PageView.IsOpened) {
-          const uri = SpotifyPlayer.GetUri();
-          if (uri && uri !== undefined) {
-            fetchLyrics(uri).then(ApplyLyrics);
-          }
-        }
-      } catch (error) {
-        ShowNotification(
-          `
-                <p>Lyrics for the current song, couldn't be removed from all available caches</p>
-                <p style="opacity: 0.75;">Check the console for more info</p>
-            `,
-          "error"
-        );
-        console.error("SpicyLyrics:", error);
-      }
-    }
+    async () => await RemoveCurrentLyrics_AllCaches(true)
   );
 
   settings.addButton(
     "remove-cached-lyrics",
     "Remove Cached Lyrics (Lyrics Stay in Cache for 3 days)",
     "Remove Cached Lyrics",
-    async () => {
-      try {
-        await LyricsStore.Destroy();
-        ShowNotification("The Lyrics Cache has been destroyed successfully", "success");
-        if (PageView.IsOpened) {
-          const uri = SpotifyPlayer.GetUri();
-          if (uri && uri !== undefined) {
-            fetchLyrics(uri).then(ApplyLyrics);
-          }
-        }
-      } catch (error) {
-        ShowNotification(
-          `
-                <p>The Lyrics cache, couldn't be removed</p>
-                <p style="opacity: 0.75;">Check the console for more info</p>
-            `,
-          "error"
-        );
-        console.error("SpicyLyrics:", error);
-      }
-    }
+    async () => await RemoveLyricsCache(true)
   );
 
   settings.addButton(
     "remove-current-song-lyrics-from-localStorage",
     "Remove Current Song Lyrics from internal state",
     "Remove Current Lyrics",
-    () => {
-      try {
-        storage.set("currentLyricsData", null);
-        ShowNotification(
-          "Lyrics for the current song, have been removed from the internal state successfully",
-          "success"
-        );
-        if (PageView.IsOpened) {
-          const uri = SpotifyPlayer.GetUri();
-          if (uri && uri !== undefined) {
-            fetchLyrics(uri).then(ApplyLyrics);
-          }
-        }
-      } catch (error) {
-        ShowNotification(
-          `
-                <p>Lyrics for the current song, couldn't be removed from the internal state</p>
-                <p style="opacity: 0.75;">Check the console for more info</p>
-            `,
-          "error"
-        );
-        console.error("SpicyLyrics:", error);
-      }
-    }
+    () => RemoveCurrentLyrics_StateCache(true)
   );
 
   settings.addToggle("dev-mode", "Dev Mode", Defaults.DevMode, () => {
