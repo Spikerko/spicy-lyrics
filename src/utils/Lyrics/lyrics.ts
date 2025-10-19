@@ -17,13 +17,13 @@ export const SimpleLyricsMode_LetterEffectsStrengthConfig = {
   LongerThan: 1500,
   Longer: {
     Glow: 0.4,
-    YOffset: 0.4,
-    Scale: 1.101,
+    YOffset: 0.45,
+    Scale: 1.103,
   },
   Shorter: {
-    Glow: 0.22,
-    YOffset: 0.078,
-    Scale: 1.083,
+    Glow: 0.285,
+    YOffset: 0.1,
+    Scale: 1.09,
   },
 };
 

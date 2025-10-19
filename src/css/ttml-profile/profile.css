@@ -465,3 +465,45 @@
   background: linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0), linear-gradient(rgba(var(--target-color), 0.75) 0 0);
   background-attachment: fixed;
 }
+
+
+.ttml-profile-container {
+  --spice-subtext: rgba(255,255,255,.6) !important;
+  --spice-misc: var(--spice-subtext) !important;
+}
+
+.ttml-profile-songinfo {
+  gap: 0;
+  line-height: 1.25;
+}
+
+.ttml-profile-header-styled,
+.ttml-profile-songrow,
+.ttml-profile-sc-tab-selector {
+  background: rgba(var(--spice-rgb-text), 0.1);
+  border: 1px solid rgba(var(--spice-rgb-text), 0.1);
+  transition: background .3s ease;
+}
+
+.ttml-profile-header-styled:hover,
+.ttml-profile-songrow:hover,
+.ttml-profile-sc-tab-selector:hover {
+  background: rgba(var(--spice-rgb-text), 0.2);
+}
+
+.ttml-profile-songlink {
+  border: 1px solid rgba(var(--spice-rgb-text), 0.1);
+  border-radius: 8px;
+  color: var(--spice-text);
+  background: rgba(var(--spice-rgb-button), 0.4);
+  padding: 4px 12px;
+  transform: scale(1);
+  transition: transform .3s ease, background .3s ease;
+}
+
+.ttml-profile-songlink:focus,
+.ttml-profile-songlink:hover {
+  color: var(--spice-text);
+  background: rgba(var(--spice-rgb-button), 0.8);
+  transform: scale(1.05);
+}

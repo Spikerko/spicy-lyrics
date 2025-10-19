@@ -3,8 +3,6 @@ import { franc } from "npm:franc-all";
 import Kuroshiro from "npm:kuroshiro";
 import langs from "npm:langs";
 import { RetrievePackage } from "../ImportPackage.ts";
-import Aromanize from "./Aromanize.ts";
-import greekRomanization from "./GreekRomanization.js";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
 
@@ -23,22 +21,31 @@ const CyrillicTextTest = /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]
 // Greek (Basic + Extended)
 const GreekTextTest = /[\u0370-\u03FF\u1F00-\u1FFF]/;
 
-const RomanizeKorean = (lyricMetadata: any, primaryLanguage: string) => {
+// Load Packages
+RetrievePackage("pinyin", "4.0.0", "mjs")
+  .then((p) => console.log("Loaded pinyin", p))
+  .catch(() => {});
+
+RetrievePackage("aromanize", "1.0.0", "js")
+  .then((p) => console.log("Loaded aromanize", p))
+  .catch(() => {});
+
+RetrievePackage("GreekRomanization", "1.0.0", "js")
+  .then((p) => console.log("Loaded GreekRomanization", p))
+  .catch(() => {});
+
+const RomanizeKorean = async (lyricMetadata: any, primaryLanguage: string) => {
+  const aromanize = await RetrievePackage("aromanize", "1.0.0", "js");
+  while (!aromanize) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
   if (primaryLanguage === "kor" || KoreanTextTest.test(lyricMetadata.Text)) {
-    lyricMetadata.RomanizedText = Aromanize(
+    lyricMetadata.RomanizedText = aromanize.default(
       lyricMetadata.Text,
       "RevisedRomanizationTransliteration"
     );
   }
 };
-
-// Load Pinyin
-
-RetrievePackage("pinyin", "4.0.0", "mjs")
-  .then((data) => {
-    console.log(`Spicy Lyrics Package: "Pinyin" Retrieved`, data);
-  })
-  .catch(() => {});
 
 const RomanizeChinese = async (lyricMetadata: any, primaryLanguage: string) => {
   const pinyin = await RetrievePackage("pinyin", "4.0.0", "mjs");
@@ -90,8 +97,12 @@ const RomanizeCyrillic = async (lyricMetadata: any, primaryLanguage: string, iso
 };
 
 const RomanizeGreek = async (lyricMetadata: any, primaryLanguage: string) => {
+  const greekRomanization = await RetrievePackage("GreekRomanization", "1.0.0", "js");
+  while (!greekRomanization) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
   if (primaryLanguage === "ell" || GreekTextTest.test(lyricMetadata.Text)) {
-    const result = greekRomanization(lyricMetadata.Text);
+    const result = greekRomanization.default(lyricMetadata.Text);
     if (result != null) {
       lyricMetadata.RomanizedText = result;
     }
