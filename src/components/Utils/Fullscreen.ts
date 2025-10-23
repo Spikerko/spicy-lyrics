@@ -276,21 +276,22 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
       SpicyPage?.classList.add("ForcedCompactMode");
       EnableCompactMode();
     }
-
-    setTimeout(() => {
-      PageView.AppendViewControls(true);
-
-      const NoLyrics = storage.get("currentLyricsData")?.toString()?.includes("NO_LYRICS");
-      if (NoLyrics && !IsCompactMode()) {
-        SpicyPage
-          ?.querySelector(".ContentBox .LyricsContainer")
-          ?.classList.add("Hidden");
-        SpicyPage
-          ?.querySelector<HTMLElement>(".ContentBox")
-          ?.classList.add("LyricsHidden");
-      }
-    }, 75);
   }, 750);
+
+  setTimeout(() => {
+    PageView.AppendViewControls(true);
+
+    const NoLyrics = storage.get("currentLyricsData")?.toString()?.includes("NO_LYRICS");
+    if (NoLyrics && !IsCompactMode()) {
+      SpicyPage
+        ?.querySelector(".ContentBox .LyricsContainer")
+        ?.classList.add("Hidden");
+      SpicyPage
+        ?.querySelector<HTMLElement>(".ContentBox")
+        ?.classList.add("LyricsHidden");
+    }
+  }, 75);
+
   GetCurrentLyricsContainerInstance()?.Resize();
 }
 

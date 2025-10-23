@@ -15,6 +15,11 @@ import { ClearLyricsPageContainer } from "../fetchLyrics.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
+import { IsCompactMode } from "../../../components/Utils/CompactMode.ts";
+import Fullscreen from "../../../components/Utils/Fullscreen.ts";
+import storage from "../../storage.ts";
+import { SpotifyPlayer } from "../../../components/Global/SpotifyPlayer.ts";
+import { _local_hashes, Component } from "@spicetify/bundler";
 
 /**
  * Union type for all lyrics data types
@@ -31,14 +36,26 @@ export const resetLyricsPlayer = () => {
   currentLyricsPlayer = null;
 };
 
+let currentAbortController: AbortController | null = null;
+
+export const cleanupApplyLyricsAbortController = () => {
+  if (currentAbortController) {
+    currentAbortController.abort();
+    currentAbortController = null
+  }
+}
+
 /**
  * Apply lyrics based on their type
  * @param lyrics - The lyrics data to apply
  */
-export default async function ApplyLyrics(lyrics: LyricsData | null | undefined): Promise<void> {
+export default async function ApplyLyrics(lyricsContent: [object | string, number] | null): Promise<void> {
   if (!PageContainer) return;
   setBlurringLastLine(null);
-  if (!lyrics) return;
+  console.log("lyricsContent", lyricsContent)
+  if (!lyricsContent) return;
+
+  cleanupApplyLyricsAbortController()
 
   EmitNotApplyed();
 
@@ -49,6 +66,88 @@ export default async function ApplyLyrics(lyrics: LyricsData | null | undefined)
   ClearLyricsPageContainer();
 
   CleanUpIsByCommunity();
+
+  const [descriptor, _status] = lyricsContent;
+
+  let noticeContent: string | null = null;
+
+  switch (descriptor) {
+    case "lyrics-not-found": {
+      noticeContent = `We don't have any lyrics for this song`
+      break;
+    }
+    case "dj": {
+      noticeContent = `Viewing lyrics, while using the DJ, is not supported`
+      break;
+    }
+    case "unknown-track": {
+      noticeContent = `We could not access the info for this song`
+      break;
+    }
+    case "unknown-error": {
+      noticeContent = `An unknown error happened`
+      break;
+    }
+    case "offline": {
+      noticeContent = `Please go online to enjoy your lyrics experience!`
+      break;
+    }
+    case "status-not-200": {
+      noticeContent = `A server error occurred`
+      break;
+    }
+    default:
+      break;
+  }
+
+  if (noticeContent) {
+    storage.set("currentlyFetching", "false");
+    Defaults.CurrentLyricsType = "None";
+    
+    if (descriptor === "lyrics-not-found") {
+      const trackId = SpotifyPlayer.GetId() ?? "";
+      storage.set("currentLyricsData", `NO_LYRICS:${trackId}`);
+    }
+
+    const lyricsContainer = PageContainer.querySelector<HTMLElement>(
+      ".LyricsContainer .LyricsContent"
+    );
+
+    if (!lyricsContainer) return;
+
+    if (!currentAbortController || currentAbortController.signal.aborted) {
+      currentAbortController = new AbortController();
+    }
+
+    const currentNoticeElement = document.createElement("div");
+    currentNoticeElement.classList.add("LyricsNotice");
+    lyricsContainer.appendChild(currentNoticeElement);
+
+    if (!IsCompactMode() && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && descriptor === "lyrics-not-found") {
+      PageContainer?.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.add("Hidden");
+      PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.add("LyricsHidden");
+    }
+
+    currentNoticeElement.innerHTML = `
+      <p class="notice-descriptor">${noticeContent.trim()}</p>
+      <p class="notice-footer">Need more help? Join our <a>Discord</a>.</p>
+    `;
+
+    // Add click handler to log when the Discord link is clicked
+    const discordLink = currentNoticeElement.querySelector("a");
+    if (discordLink) {
+      discordLink.addEventListener("click", () => {
+        Component.GetRootComponent("enqueueAction")("serverInvite");
+      }, { signal: currentAbortController.signal });
+    }
+
+    SetWaitingForHeight(false);
+    EmitApply("None", null)
+    
+    return;
+  }
+
+  const lyrics = descriptor as LyricsData;
 
   if (Defaults.LyricsRenderer === "aml-lyrics") {
     if (lyrics.AMLLContent) {

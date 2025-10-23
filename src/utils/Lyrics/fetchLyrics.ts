@@ -11,12 +11,12 @@ import { SetWaitingForHeight } from "../Scrolling/ScrollToActiveLine.ts";
 import storage from "../storage.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 11, {
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
   Unit: "Days",
   Duration: 3,
 });
 
-export default async function fetchLyrics(uri: string) {
+export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
   const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
 
   //if (!PageContainer) return;
@@ -28,22 +28,22 @@ export default async function fetchLyrics(uri: string) {
 
   //if (!Fullscreen.IsOpen) PageView.AppendViewControls(true);
 
-  if (SpotifyPlayer.IsDJ()) return DJMessage();
+  if (SpotifyPlayer.IsDJ()) return ["dj", 400];
 
   if (
     Spicetify.Player.data?.item?.mediaType &&
     Spicetify.Player.data?.item?.mediaType !== "audio"
   ) {
-    return NotTrackMessage();
+    return ["unknown-track", 400];
   }
 
   const IsSomethingElseThanTrack = SpotifyPlayer.GetContentType() !== "track";
   if (IsSomethingElseThanTrack) {
-    return NotTrackMessage();
+    return ["unknown-track", 400];
   }
 
   const currFetching = storage.get("currentlyFetching");
-  if (currFetching === "true") return;
+  if (currFetching === "true") return null;
 
   storage.set("currentlyFetching", "true");
 
@@ -62,7 +62,7 @@ export default async function fetchLyrics(uri: string) {
         const split = savedLyricsData.split(":");
         const id = split[1];
         if (id === trackId) {
-          return await noLyricsMessage(false, true);
+          return ["lyrics-not-found", 404];
         }
       } else {
         const lyricsData = JSON.parse(savedLyricsData);
@@ -80,7 +80,7 @@ export default async function fetchLyrics(uri: string) {
           PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
           PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
           PageView.AppendViewControls(true);
-          return lyricsData;
+          return [lyricsData, 200];
         }
       }
     } catch (error) {
@@ -95,7 +95,7 @@ export default async function fetchLyrics(uri: string) {
       const lyricsFromCacheRes = await LyricsStore.GetItem(trackId);
       if (lyricsFromCacheRes) {
         if (lyricsFromCacheRes?.Value === "NO_LYRICS") {
-          return await noLyricsMessage(false, true);
+          return ["lyrics-not-found", 404];
         }
         const lyricsFromCache = lyricsFromCacheRes ?? {};
 
@@ -112,17 +112,17 @@ export default async function fetchLyrics(uri: string) {
         PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
         PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
         PageView.AppendViewControls(true);
-        return { ...lyricsFromCache, fromCache: true };
+        return [{ ...lyricsFromCache, fromCache: true }, 200];
       }
     } catch (error) {
       console.error("Error parsing saved lyrics data:", error);
-      return await noLyricsMessage(false, true);
+      return ["unknown-error", 0];
     }
   }
 
   SetWaitingForHeight(false);
 
-  if (!navigator.onLine) return urOfflineMessage();
+  if (!navigator.onLine) return ["offline", 400];
 
   ShowLoaderContainer();
 
@@ -154,7 +154,7 @@ export default async function fetchLyrics(uri: string) {
     const lyricsJob = jobs.get("LYRICS_ID");
     if (!lyricsJob) {
       console.error("Lyrics job not found");
-      return await noLyricsMessage(false, true);
+      return ["lyrics-not-found", 404];
     }
 
     status = lyricsJob.status;
@@ -166,22 +166,11 @@ export default async function fetchLyrics(uri: string) {
     lyricsText = JSON.stringify(lyricsJob.responseData);
 
     if (status !== 200) {
-      if (status === 500) return await noLyricsMessage(false, true);
-      if (status === 401) {
-        storage.set("currentlyFetching", "false");
-        //fetchLyrics(uri);
-        //window.location.reload();
-        return await noLyricsMessage(false, false);
-      }
-
-      if (status === 404) {
-        return await noLyricsMessage(false, true);
-      }
-      return await noLyricsMessage(false, true);
+      return ["status-not-200", status]
     }
 
-    if (lyricsText === null) return await noLyricsMessage(false, false);
-    if (lyricsText === "") return await noLyricsMessage(false, true);
+    if (lyricsText === null) return ["lyrics-not-found", 404];
+    if (lyricsText === "") return ["lyrics-not-found", 404];
 
     // const providerLyrics = JSON.parse(lyricsText);
     const lyrics = JSON.parse(lyricsText);
@@ -205,12 +194,12 @@ export default async function fetchLyrics(uri: string) {
     PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
     PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
     PageView.AppendViewControls(true);
-    return { ...lyrics, fromCache: false };
+    return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {
     console.error("Error fetching lyrics:", error);
     storage.set("currentlyFetching", "false");
 
-    return await noLyricsMessage(false, true);
+    return ["unknown-error", 0];
   }
 }
 

@@ -1,0 +1,132 @@
+
+#SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent {
+  .LyricsNotice {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80cqw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: white;
+    transform: translate(-50%, -50%);
+    font-weight: 500;
+    opacity: .7;
+
+    transition:
+      padding-right 0.4s,
+      padding-left 0.4s;
+
+    .notice-descriptor {
+      font-size: clamp(1.25rem, 3.5cqw, 2.5rem);
+    }
+
+    .notice-footer {
+      font-size: clamp(0.95rem, 3.5cqw, 1.45rem);
+      margin-top: 1cqh;
+      white-space: nowrap;
+
+      a {
+        display: inline-block;
+        anchor-name: --anchor-notice-footer-anchor;
+        isolation: isolate;
+
+        cursor: pointer;
+
+        --hover-after-push: 3px;
+
+        transition: 800ms
+          linear(
+            0,
+            0.029 1.6%,
+            0.123 3.5%,
+            0.651 10.6%,
+            0.862 14.1%,
+            1.002 17.7%,
+            1.046 19.6%,
+            1.074 21.6%,
+            1.087 23.9%,
+            1.086 26.6%,
+            1.014 38.5%,
+            0.994 46.3%,
+            1
+          );
+
+        margin: 0px;
+        padding-top: 2px;
+        padding-bottom: 2px;
+
+        &::after {
+          content: "";
+          position: absolute;
+          z-index: -1;
+          top: calc(anchor(bottom) - 5px);
+          left: anchor(left);
+          right: anchor(right);
+          bottom: calc(anchor(bottom) + 2.5px);
+          width: anchor(width);
+
+          border-radius: 100em;
+
+          position-anchor: --anchor-notice-footer-anchor;
+
+          background: rgba(255, 255, 255, 0.65);
+
+          transition: 800ms
+            linear(
+              0,
+              0.029 1.6%,
+              0.123 3.5%,
+              0.651 10.6%,
+              0.862 14.1%,
+              1.002 17.7%,
+              1.046 19.6%,
+              1.074 21.6%,
+              1.087 23.9%,
+              1.086 26.6%,
+              1.014 38.5%,
+              0.994 46.3%,
+              1
+            );
+        }
+
+        &:hover {
+          text-decoration: none !important;
+          margin-left: var(--hover-after-push);
+          margin-right: var(--hover-after-push);
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+
+        &:hover::after {
+          background: rgba(255, 255, 255, 0.35);
+          top: calc(anchor(top) - var(--hover-after-push));
+          bottom: calc(anchor(bottom) - var(--hover-after-push));
+          left: calc(anchor(left) - var(--hover-after-push));
+          right: calc(anchor(right) - var(--hover-after-push));
+        }
+      }
+    }
+  }
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent {
+  
+  .LyricsNotice {
+    top: 8cqh;
+    left: var(--LyricsLeftSidePadding);
+    transform: none;
+    width: 80cqw;
+    align-items: flex-start;
+    text-align: start;
+
+    .notice-descriptor {
+      font-size: clamp(1rem, 3.5cqw, 2.5rem);
+    }
+
+    .notice-footer {
+      font-size: clamp(0.85rem, 3.5cqw, 1.45rem);
+    }
+  }
+}

@@ -5,6 +5,7 @@ import { Spicetify } from "@spicetify/bundler";
 import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
+cleanupApplyLyricsAbortController,
   resetLyricsPlayer,
 } from "../../utils/Lyrics/Global/Applyer.ts";
 import {
@@ -324,6 +325,8 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 
 function DestroyPage() {
   if (!PageView.IsOpened) return;
+
+  cleanupApplyLyricsAbortController();
 
   if (isSpicySidebarMode) {
     cleanupSidebarLyricsObservers();
