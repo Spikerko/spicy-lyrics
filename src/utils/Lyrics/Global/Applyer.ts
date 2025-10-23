@@ -109,6 +109,8 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     if (descriptor === "lyrics-not-found") {
       const trackId = SpotifyPlayer.GetId() ?? "";
       storage.set("currentLyricsData", `NO_LYRICS:${trackId}`);
+    } else {
+      storage.set("currentLyricsData", null);
     }
 
     const lyricsContainer = PageContainer.querySelector<HTMLElement>(
