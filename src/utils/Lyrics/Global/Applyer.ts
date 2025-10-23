@@ -51,8 +51,8 @@ export const cleanupApplyLyricsAbortController = () => {
  */
 export default async function ApplyLyrics(lyricsContent: [object | string, number] | null): Promise<void> {
   if (!PageContainer) return;
-  setBlurringLastLine(null);
   console.log("lyricsContent", lyricsContent)
+  setBlurringLastLine(null);
   if (!lyricsContent) return;
 
   cleanupApplyLyricsAbortController()
@@ -101,8 +101,11 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
   }
 
   if (noticeContent) {
-    storage.set("currentlyFetching", "false");
     Defaults.CurrentLyricsType = "None";
+
+    PageContainer
+      .querySelector<HTMLElement>(".ContentBox")
+        ?.classList.remove("WaitingForHeight");
     
     if (descriptor === "lyrics-not-found") {
       const trackId = SpotifyPlayer.GetId() ?? "";
@@ -141,8 +144,8 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
       }, { signal: currentAbortController.signal });
     }
 
-    SetWaitingForHeight(false);
     EmitApply("None", null)
+    SetWaitingForHeight(false);
     
     return;
   }
