@@ -118,7 +118,6 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
         storage.set("currentLyricsData", JSON.stringify(lyricsFromCache));
         storage.set("currentlyFetching", "false");
-        HideLoaderContainer();
         Defaults.CurrentLyricsType = lyricsFromCache.Type;
         PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
         PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
@@ -170,6 +169,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     const lyricsJob = jobs.get("LYRICS_ID");
     if (!lyricsJob) {
       console.error("Lyrics job not found");
+      HideLoaderContainer();
       storage.set("currentlyFetching", "false");
       return ["lyrics-not-found", 404];
     }
@@ -184,18 +184,22 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
     if (status !== 200) {
       if (status === 404) {
+        HideLoaderContainer();
         storage.set("currentlyFetching", "false");
         return ["lyrics-not-found", 404];
       }
+      HideLoaderContainer();
       storage.set("currentlyFetching", "false");
       return ["status-not-200", status];
     }
 
     if (lyricsText === null) {
+      HideLoaderContainer();
       storage.set("currentlyFetching", "false");
       return ["lyrics-not-found", 404];
     }
     if (lyricsText === "") {
+      HideLoaderContainer();
       storage.set("currentlyFetching", "false");
       return ["lyrics-not-found", 404];
     }
@@ -222,13 +226,13 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
     PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
     PageView.AppendViewControls(true);
+    HideLoaderContainer();
     storage.set("currentlyFetching", "false");
     return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {
     console.error("Error fetching lyrics:", error);
     storage.set("currentlyFetching", "false");
-
-    storage.set("currentlyFetching", "false");
+    HideLoaderContainer();
     return ["unknown-error", 0];
   }
 }
