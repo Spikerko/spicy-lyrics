@@ -51,7 +51,6 @@ export const cleanupApplyLyricsAbortController = () => {
  */
 export default async function ApplyLyrics(lyricsContent: [object | string, number] | null): Promise<void> {
   if (!PageContainer) return;
-  console.log("lyricsContent", lyricsContent)
   setBlurringLastLine(null);
   if (!lyricsContent) return;
 
