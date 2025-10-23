@@ -17,7 +17,7 @@ import { PageContainer } from "../Pages/PageView.ts";
 const SongChangeSignal = new Signal();
 
 export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
-  transition: Defaults.PrefersReducedMotion ? 0 : 0.5,
+  transition: Defaults.PrefersReducedMotion ? 0 : 1.5,
   blur: 45,
   speed: 0.25,
   plugins: [
@@ -31,7 +31,7 @@ export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
         return `Bearer ${token}`;
       },
       minSpeed: 0.25,
-      maxSpeed: 0.85,
+      maxSpeed: 1.85,
     }),
   ],
   cacheLimit: 5,

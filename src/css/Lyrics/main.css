@@ -50,7 +50,12 @@
   transition: opacity 0.25s;
 }
 
-#SpicyLyricsPage .LyricsContainer .LyricsContent * {
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent:has(.LyricsNotice) {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsContent:not(:has(.LyricsNotice)) * {
   font-weight: 700 !important;
 }
 

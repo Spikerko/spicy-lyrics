@@ -917,6 +917,12 @@
   .LyricsContent
   .simplebar-content-wrapper
   .SpicyLyricsScrollContainer,
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar.Active:is(.LeftSide)
+  + .LyricsContainer
+  .LyricsContent
+  .LyricsNotice,
 #SpicyLyricsPage
   .ContentBox
   .NowBar:not(.Active)
@@ -934,7 +940,13 @@
   + .LyricsContainer
   .LyricsContent
   .simplebar-content-wrapper
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar.Active:is(.RightSide)
+  + .LyricsContainer
+  .LyricsContent
+  .LyricsNotice {
   padding-right: var(--LyricsLeftSidePadding) !important;
   padding-left: calc(var(--LyricsRightSidePadding) * 1.45) !important;
 }

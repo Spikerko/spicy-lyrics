@@ -1,5 +1,6 @@
 // CSS Imports
 import "./css/default.css";
+import "./css/default.scss";
 import "./css/Simplebar.css";
 import "./css/ContentBox.css";
 // import "./css/SongMoreInfo.css";
@@ -182,7 +183,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.17.0";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.17.5";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -736,6 +737,8 @@ async function main() {
     window.addEventListener("online", () => {
       storage.set("lastFetchedUri", null);
 
+      Component.GetRootComponent("lCache").RemoveCurrentLyrics_StateCache(false);
+      
       fetchLyrics(Spicetify.Player.data?.item?.uri).then(ApplyLyrics);
     });
 
@@ -1022,6 +1025,9 @@ Component.AddRootComponent("enqueueAction", (action: string, include: any) => {
 
   if (action === "lProfile")
     return _action_lProfile(include.userId, include.hasProfileBanner);
+
+  if (action === "serverInvite")
+    return window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");
 });
 
 
