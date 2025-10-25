@@ -183,7 +183,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.3";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.4";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -670,24 +670,21 @@ async function main() {
     }).Start();
 
     async function onSongChange(event: any) {
-      const IsSomethingElseThanTrack = SpotifyPlayer.GetContentType() !== "track";
+      const contentType = SpotifyPlayer.GetContentType();
 
-      if (IsSomethingElseThanTrack || SpotifyPlayer.IsDJ()) {
-        if (!button) return;
-        button.Button.deregister();
-        button.Registered = false;
+      if (contentType === "episode") {
+        PageContainer?.classList.add("episode-content-type");
       } else {
-        if (!button) return;
-        if (!button.Registered) {
-          button.Button.register();
-          button.Registered = true;
-        }
+        PageContainer?.classList.remove("episode-content-type");
       }
 
-      if (!IsSomethingElseThanTrack && !SpotifyPlayer.IsDJ()) {
-        if (PageContainer?.querySelector(".ContentBox .NowBar")) {
-          Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
-        }
+      if (!button.Registered) {
+        button.Button.register();
+        button.Registered = true;
+      }
+
+      if (PageContainer?.querySelector(".ContentBox .NowBar")) {
+        Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
       }
 
       fetchLyrics(event?.data?.item?.uri).then(ApplyLyrics);

@@ -3,6 +3,7 @@ import { Spicetify } from "@spicetify/bundler";
 import GetProgress, {
   _DEPRECATED___GetProgress,
 } from "../../utils/Gets/GetProgress.ts";
+import { SpotifyFetch } from "./SpotifyFetch.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //type ArtworkSize = "s" | "l" | "xl" | "d";
@@ -132,6 +133,9 @@ export const SpotifyPlayer = {
   },
   GetPosition: GetProgress,
   GetContentType: GetContentType,
+  GetMediaType: (): string => {
+    return Spicetify?.Player?.data?.item?.mediaType;
+  },
   GetDuration: (): number => {
     if (Spicetify?.Player?.data?.item.duration.milliseconds) {
       return Spicetify.Player.data.item.duration.milliseconds;
@@ -143,8 +147,10 @@ export const SpotifyPlayer = {
       (Spicetify?.Player as any)?.origin?.seekTo(position);
   },
   GetCover: (size: CoverSizes): string | undefined => {
-    if (Spicetify?.Player?.data?.item.images) {
-      const covers = Spicetify.Player.data.item?.images;
+    // @ts-ignore aaa
+    if (Spicetify?.Player?.data?.item.images || Spicetify.Player.data.item?.show?.images) {
+      // @ts-ignore aaa
+      const covers = Spicetify.Player.data.item?.images ?? Spicetify.Player.data.item?.show?.images;
       if (covers.length > 0) {
         const cover = covers?.find((cover) => cover.label === size);
         return (
@@ -170,6 +176,10 @@ export const SpotifyPlayer = {
   },
   GetName: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.name;
+  },
+  GetShowName: (): string | undefined => {
+    // @ts-ignore aaa
+    return Spicetify?.Player?.data?.item?.show?.name;
   },
   GetAlbumName: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.metadata?.album_title;

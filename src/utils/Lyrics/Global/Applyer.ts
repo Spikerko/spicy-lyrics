@@ -95,6 +95,18 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
       noticeContent = `A server error occurred`
       break;
     }
+    case "video-track": {
+      noticeContent = `We currently don't have support for video lyrics`
+      break;
+    }
+    case "episode-track": {
+      noticeContent = `We currently don't have support for podcast episode lyrics`
+      break;
+    }
+    case "mixed-track": {
+      noticeContent = `We currently don't have support for video podcast episode lyrics`
+      break;
+    }
     default:
       break;
   }
