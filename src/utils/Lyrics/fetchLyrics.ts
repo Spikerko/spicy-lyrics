@@ -33,17 +33,27 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return ["dj", 400];
   }
 
+  const mediaType = SpotifyPlayer.GetMediaType();
+
   if (
-    Spicetify.Player.data?.item?.mediaType &&
-    Spicetify.Player.data?.item?.mediaType !== "audio"
+    mediaType &&
+    mediaType !== "audio"
   ) {
     storage.set("currentlyFetching", "false");
+    if (mediaType === "video") {
+      return ["video-track", 400];
+    } else if (mediaType === "mixed") {
+      return ["mixed-track", 400];
+    }
     return ["unknown-track", 400];
   }
 
-  const IsSomethingElseThanTrack = SpotifyPlayer.GetContentType() !== "track";
-  if (IsSomethingElseThanTrack) {
+  const contentType = SpotifyPlayer.GetContentType();
+  if (contentType !== "track") {
     storage.set("currentlyFetching", "false");
+    if (contentType === "episode") {
+      return ["episode-track", 400];
+    }
     return ["unknown-track", 400];
   }
 

@@ -165,7 +165,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           });
         }
 
-        const onclick = async () => {
+        const onclick = () => {
           SpotifyPlayer.ToggleLike();
           setTimeout(() => {
             const IsLiked = SpotifyPlayer.IsLiked();
@@ -1038,8 +1038,15 @@ function UpdateNowBar(force = false) {
     SongNameSpan.textContent = songName ?? "";
   }
 
+  const contentType = SpotifyPlayer.GetContentType();
+
+  if (contentType === "episode") {
+    const showName = SpotifyPlayer.GetShowName();
+    ArtistsSpan.textContent = showName ?? "";
+  }
+
   const artists = SpotifyPlayer.GetArtists();
-  if (artists && ArtistsSpan) {
+  if (artists && ArtistsSpan && contentType !== "episode") {
     const processedArtists = artists.map((artist) => artist.name)?.join(", ");
     ArtistsSpan.textContent = processedArtists ?? "";
   }

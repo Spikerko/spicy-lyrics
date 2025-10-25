@@ -63,6 +63,10 @@ export const requestPositionSync = () => {
 
 // Function to get the current progress
 export default function GetProgress() {
+  if (SpotifyPlayer.GetContentType() !== "track") {
+    return Spicetify.Player.getProgress();
+  }
+
   if (!syncedPosition) {
     console.error("Synced Position: Unavailable");
     if (SpotifyPlayer?._DEPRECATED_?.GetTrackPosition) {

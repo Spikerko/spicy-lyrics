@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SendJob } from "../../../../utils/API/SendJob.ts";
 import { Spicetify } from "@spicetify/bundler";
 import { PopupModal } from "../../../Modal.ts";
+import { SpotifyFetch } from "../../../Global/SpotifyFetch.ts";
 
 // ErrorBoundary wrapper for safest rendering
 class ErrorBoundary extends React.Component {
@@ -67,7 +68,7 @@ type TTMLProfileData = {
   type?: "maker" | "uploader" | "mixed";
 };
 type TTMLProfileUserList = {
-  makes: { id: string; views_count?: number }[];
+  makes: { id: string; view_count?: number }[];
   uploads: { id: string; view_count?: number }[];
 };
 type TTMLProfileResponse = {
@@ -120,9 +121,10 @@ async function fetchAllSpotifyTracks(
   }
   const trackArrays: SpotifyTrack[][] = await Promise.all(
     batches.map(async (ids) => {
-      const response = await Spicetify.CosmosAsync.get(
+      const req = await SpotifyFetch(
         `https://api.spotify.com/v1/tracks?ids=${ids.join(",")}`
       );
+      const response = await req.json();
       return response.tracks && Array.isArray(response.tracks)
         ? response.tracks
         : [];
@@ -255,7 +257,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
   const normalizedMakes = (perUser.makes ?? [])
     .map((item) => ({
       id: item.id ?? "",
-      view_count: typeof item.views_count === "number" ? item.views_count : 0,
+      view_count: typeof item.view_count === "number" ? item.view_count : 0,
     }))
     .filter((item) => item.id);
   const normalizedUploads = (perUser.uploads ?? [])

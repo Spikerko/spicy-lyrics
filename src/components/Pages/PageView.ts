@@ -298,6 +298,13 @@ async function OpenPage(
   }
 
   PageContainer = elem;
+
+  const contentType = SpotifyPlayer.GetContentType();
+  if (contentType === "episode") {
+    elem?.classList.add("episode-content-type");
+  } else {
+    elem?.classList.remove("episode-content-type");
+  }
 }
 
 /* Global.Event.listen("playback:songchange", () => {
@@ -437,7 +444,6 @@ function AppendViewControls(ReAppend: boolean = false) {
         }
         ${
           NowBarObj.Open &&
-          !(isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen)) &&
           !isSpicySidebarMode
             ? IsPIP ? "" : `<button id="NowBarSideToggle" class="ViewControl">${Icons.Fullscreen}</button>`
             : ""

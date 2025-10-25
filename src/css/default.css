@@ -582,3 +582,12 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   opacity: 1;
   margin-bottom: 0px;
 }
+
+#SpicyLyricsPage .ContentBox.LyricsHidden .ViewControls #NowBarSideToggle {
+  display: none !important;
+}
+
+#SpicyLyricsPage.episode-content-type .ContentBox .NowBar .Heart {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
