@@ -352,6 +352,8 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
     ));
   }
 
+  const userPronouns = profile?.data?.interfaceContent?.profileDetails?.pronouns;
+
   return (
     <>
       <div className="fixed-node-container">
@@ -442,9 +444,18 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
             </div>
             <div className="ttml-profile-username-styled">
               {profile?.data?.username ?? ""}
-              <span className="ttml-profile-id-styled">
+              {/* <span className="ttml-profile-id-styled">
                 ({profile?.data?.id ?? ""})
-              </span>
+              </span> */}
+
+              {userPronouns ? (
+                <>
+                  <span className="_dotSpacer_"></span>
+                  <span className="ttml-profile-pronouns-styled">
+                    {userPronouns}
+                  </span>
+                </>
+              ) : null}
             </div>
           </div>
         </div>

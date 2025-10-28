@@ -8,6 +8,7 @@
   font-family: SpicyLyrics, var(--encore-body-font-stack);
   position: relative;
   z-index: 10;
+  min-height: calc(100vh - 10.5rem);
 }
 
 .main-trackCreditsModal-mainSection:has(.ttml-profile-container) {
@@ -51,7 +52,6 @@
   width: 128px;
   height: 128px;
   border-radius: 50%;
-  border: 5px solid var(--spice-main-elevated);
   box-shadow: 0px 2px 12px rgba(var(--spice-rgb-shadow), 0.3);
   object-fit: cover;
   background: #000000;
@@ -71,9 +71,13 @@
   font-weight: 700;
 }
 
-.ttml-profile-username-styled {
+.ttml-profile-username-styled,
+.ttml-profile-pronouns-styled {
   color: var(--spice-subtext);
   font-size: 1.11rem;
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .ttml-profile-id-styled {
@@ -497,13 +501,19 @@
   color: var(--spice-text);
   background: rgba(var(--spice-rgb-button), 0.4);
   padding: 4px 12px;
-  transform: scale(1);
-  transition: transform .3s ease, background .3s ease;
+  transition: background .3s ease;
 }
 
 .ttml-profile-songlink:focus,
 .ttml-profile-songlink:hover {
   color: var(--spice-text);
   background: rgba(var(--spice-rgb-button), 0.8);
-  transform: scale(1.05);
+}
+
+._dotSpacer_ {
+  display: inline-block;
+  background-color: white;
+  border-radius: 50%;
+  height: 4px;
+  width: 4px;
 }
