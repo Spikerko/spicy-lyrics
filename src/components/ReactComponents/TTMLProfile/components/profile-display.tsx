@@ -225,7 +225,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
           args: { userId, referrer: "lyricsCreditsView" },
         },
       ]);
-      const profile = req.get("ttmlProfile");
+      const profile = req.get("0");
       if (!profile) throw new Error("ttmlProfile not found in response");
       if (profile.status !== 200)
         throw new Error(`ttmlProfile returned status ${profile.status}`);

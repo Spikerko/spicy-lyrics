@@ -7,6 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { reactQueryClient } from "../../../../app.tsx";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 import { PopupModal } from "../../../../components/Modal.ts";
+import { actions } from "../../../../actions.ts";
 
 
 let isByCommunityAbortController: AbortController | null = null;
@@ -77,9 +78,9 @@ function showProfileModal(userId: string | undefined, hasProfileBanner: boolean)
 }
 
 
-export const _action_lProfile = (userId: string, hasProfileBanner: boolean) => {
+actions.push("lyricsProfile", (userId: string, hasProfileBanner: boolean) => {
   showProfileModal(userId, hasProfileBanner);
-}
+});
 
 export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): void {
   if (!data.source || !LyricsContainer) return;
@@ -110,19 +111,19 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       These lyrics have been provided by our community
     </span>
     ${
-      data.ttmlUploadsData?.Uploader?.username && data.ttmlUploadsData?.Uploader?.avatar
+      data.TTMLUploadMetadata?.Uploader?.username && data.TTMLUploadMetadata?.Uploader?.avatar
         ? `
         <span class="Uploader">
-          <span><span style="opacity: 0.5;">Uploaded${!data.ttmlUploadsData.Maker?.username ? " and Made" : ""} by </span><span class="song-info-profile-section">@${data.ttmlUploadsData.Uploader.username} <span>${data.ttmlUploadsData.Uploader.avatar ? `<img src="${data.ttmlUploadsData.Uploader.avatar}" alt="${data.ttmlUploadsData.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
+          <span><span style="opacity: 0.5;">Uploaded${!data.TTMLUploadMetadata.Maker?.username ? " and Made" : ""} by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Uploader.username} <span>${data.TTMLUploadMetadata.Uploader.avatar ? `<img src="${data.TTMLUploadMetadata.Uploader.avatar}" alt="${data.TTMLUploadMetadata.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
         </span>
         `.trim()
         : ""
     }
     ${
-      data.ttmlUploadsData?.Maker?.username && data.ttmlUploadsData?.Maker?.avatar
+      data.TTMLUploadMetadata?.Maker?.username && data.TTMLUploadMetadata?.Maker?.avatar
         ? `
         <span class="Maker">
-          <span><span style="opacity: 0.5;">Made by </span><span class="song-info-profile-section">@${data.ttmlUploadsData.Maker.username} <span>${data.ttmlUploadsData.Maker.avatar ? `<img src="${data.ttmlUploadsData.Maker.avatar}" alt="${data.ttmlUploadsData.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
+          <span><span style="opacity: 0.5;">Made by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Maker.username} <span>${data.TTMLUploadMetadata.Maker.avatar ? `<img src="${data.TTMLUploadMetadata.Maker.avatar}" alt="${data.TTMLUploadMetadata.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
         </span>
         `.trim()
         : ""
@@ -144,10 +145,10 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       "click",
       () => {
         const hasProfileBanner =
-          typeof data.ttmlUploadsData?.Uploader?.hasProfileBanner === "boolean"
-            ? data.ttmlUploadsData.Uploader.hasProfileBanner
+          typeof data.TTMLUploadMetadata?.Uploader?.hasProfileBanner === "boolean"
+            ? data.TTMLUploadMetadata.Uploader.hasProfileBanner
             : true;
-        showProfileModal(data.ttmlUploadsData?.Uploader?.id, hasProfileBanner);
+        showProfileModal(data.TTMLUploadMetadata?.Uploader?.id, hasProfileBanner);
         if (IsPIP) {
           globalThis.focus();
         }
@@ -170,10 +171,10 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       "click",
       () => {
         const hasProfileBanner =
-          typeof data.ttmlUploadsData?.Maker?.hasProfileBanner === "boolean"
-            ? data.ttmlUploadsData.Maker.hasProfileBanner
+          typeof data.TTMLUploadMetadata?.Maker?.hasProfileBanner === "boolean"
+            ? data.TTMLUploadMetadata.Maker.hasProfileBanner
             : true;
-        showProfileModal(data.ttmlUploadsData?.Maker?.id, hasProfileBanner);
+        showProfileModal(data.TTMLUploadMetadata?.Maker?.id, hasProfileBanner);
         if (IsPIP) {
           globalThis.focus();
         }

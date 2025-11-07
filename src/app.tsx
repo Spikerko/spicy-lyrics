@@ -60,8 +60,8 @@ import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import { QueryClient } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
-import { _action_lProfile } from "./utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { PopupModal } from "./components/Modal.ts";
+import { actions } from "./actions.ts";
 
 export const reactQueryClient = new QueryClient();
 
@@ -102,6 +102,14 @@ async function main() {
 
   if (storage.get("lockedMediaBox")) {
     Defaults.CompactMode_LockedMediaBox = storage.get("lockedMediaBox") === "true";
+  }
+
+  if (!storage.get("settingsOnTop")) {
+    storage.set("settingsOnTop", "true");
+  }
+
+  if (storage.get("settingsOnTop")) {
+    Defaults.SettingsOnTop = storage.get("settingsOnTop") === "true";
   }
 
   if (!storage.get("disablePopupLyrics")) {
@@ -183,7 +191,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.6";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.7";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -202,6 +210,10 @@ async function main() {
       document.querySelector("html").style.setProperty("--SpicyLyrics-LineSpacing", "2cqw 0");
     }
   } */
+
+  if (Defaults.SettingsOnTop) {
+    document.body.classList.add("sl_settings_top");
+  }
 
   // Lets set out the Settings Menu
   setSettingsMenu();
@@ -1006,26 +1018,15 @@ async function main() {
   );
 
   Hometinue();
+
+  { // Add `serverInvite` action
+    actions.push("serverInvite", () => {
+      // deno-lint-ignore no-window
+      return window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");
+    })
+  }
 }
 
-const actions = ["lProfile"];
-
-// deno-lint-ignore no-explicit-any
-Component.AddRootComponent("enqueueAction", (action: string, include: any) => {
-  if (action == null) {
-    console.error("Action missing");
-  }
-
-  if (!actions.includes(action)) {
-    console.error("Action non-existent");
-  }
-
-  if (action === "lProfile")
-    return _action_lProfile(include.userId, include.hasProfileBanner);
-
-  if (action === "serverInvite")
-    return window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");
-});
 
 
 main();

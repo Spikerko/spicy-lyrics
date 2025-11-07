@@ -1,6 +1,5 @@
-import { Spicetify } from "@spicetify/bundler";
 import { GetExpireStore } from "@spikerko/tools/Cache";
-import Defaults from "../../components/Global/Defaults.ts";
+import Defaults, { isDev } from "../../components/Global/Defaults.ts";
 import Platform from "../../components/Global/Platform.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
@@ -14,7 +13,7 @@ import { ProcessLyrics } from "./ProcessLyrics.ts";
 export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
   Unit: "Days",
   Duration: 3,
-});
+}, isDev);
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
   const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
@@ -74,7 +73,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   // Check if there's already data in localStorage
   const savedLyricsData = storage.get("currentLyricsData")?.toString();
 
-  if (savedLyricsData) {
+  if (savedLyricsData && !isDev) {
     try {
       if (savedLyricsData.includes("NO_LYRICS")) {
         const split = savedLyricsData.split(":");
@@ -164,7 +163,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     const jobs = await SendJob(
       [
         {
-          handler: "LYRICS_ID",
+          handler: "lyrics",
           args: {
             id: trackId,
             auth: "SpicyLyrics-WebAuth",
@@ -176,7 +175,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       }
     );
 
-    const lyricsJob = jobs.get("LYRICS_ID");
+    const lyricsJob = jobs.get("0");
     if (!lyricsJob) {
       console.error("Lyrics job not found");
       HideLoaderContainer();

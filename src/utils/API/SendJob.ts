@@ -5,6 +5,7 @@ const API_URL = Defaults.lyrics.api.url;
 
 export type Job = {
   handler: string;
+  processId?: string;
   args?: any;
 };
 
@@ -38,15 +39,20 @@ export async function SendJob(
   jobs: Job[],
   headers: Record<string, string> = {}
 ): Promise<JobResultGetter> {
-  const spicyLyricsVersion = Session.SpicyLyrics.GetCurrentVersion()?.Text;
+  const spicyLyricsVersion = Session.SpicyLyrics.GetCurrentVersion();
   const res = await fetch(`${API_URL}/query`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "SpicyLyrics-Version": spicyLyricsVersion ?? "",
+      "SpicyLyrics-Version": spicyLyricsVersion?.Text ?? "",
       ...headers,
     },
-    body: JSON.stringify({ jobs }),
+    body: JSON.stringify({
+      jobs,
+      client: {
+        version: spicyLyricsVersion?.Text ?? "unknown"
+      }
+    }),
   });
 
   if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
@@ -55,7 +61,7 @@ export async function SendJob(
   const results: Map<string, JobResult> = new Map();
 
   for (const job of data.jobs) {
-    results.set(job.handler, job.result);
+    results.set(job.processId, job.result);
   }
 
   return {

@@ -23,15 +23,12 @@ const GreekTextTest = /[\u0370-\u03FF\u1F00-\u1FFF]/;
 
 // Load Packages
 RetrievePackage("pinyin", "4.0.0", "mjs")
-  .then((p) => console.log("Loaded pinyin", p))
   .catch(() => {});
 
 RetrievePackage("aromanize", "1.0.0", "js")
-  .then((p) => console.log("Loaded aromanize", p))
   .catch(() => {});
 
 RetrievePackage("GreekRomanization", "1.0.0", "js")
-  .then((p) => console.log("Loaded GreekRomanization", p))
   .catch(() => {});
 
 const RomanizeKorean = async (lyricMetadata: any, primaryLanguage: string) => {
