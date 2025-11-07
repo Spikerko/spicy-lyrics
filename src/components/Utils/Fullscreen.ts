@@ -21,8 +21,8 @@ const Fullscreen = {
 
 const ControlsMaid = new Maid();
 
-const controlsOpacitySpring = new Spring(0, 2, 2, 0.65);
-const artworkBrightnessSpring = new Spring(0, 2, 2, 0.78);
+const controlsOpacitySpring = new Spring(0, 2, 2, 0); // Goal: 0.65
+const artworkBrightnessSpring = new Spring(0, 2, 2, 0); // Goal: 0.78
 
 let animationLastTimestamp: number | undefined;
 

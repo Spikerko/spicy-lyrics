@@ -130,3 +130,29 @@
     }
   }
 }
+
+body.sl_settings_top {
+  .x-settings-headerContainer {
+    order: -4;
+  }
+  
+  #spicy-lyrics-settings {
+    order: -3;
+  }
+  
+  #spicy-lyrics-dev-settings {
+    order: -2;
+  }
+  
+  #spicy-lyrics-settings-info {
+    order: -1;
+  }
+}
+
+#spicy-lyrics-settings,
+#spicy-lyrics-dev-settings,
+#spicy-lyrics-settings-info {
+  border: 2px var(--background-highlight) solid;
+  padding: 12px;
+  border-radius: 8px;
+}

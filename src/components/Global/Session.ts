@@ -75,13 +75,12 @@ const Session = {
       return Session.SpicyLyrics.ParseVersion(Defaults.SpicyLyricsVersion);
     },
     GetLatestVersion: async (): Promise<VersionParsedData> => {
-      //const res = await fetch(`https://api.spicylyrics.org/version?origin_version=${Session.SpicyLyrics.GetCurrentVersion().Text}`);
       const res = await SendJob([
         {
-          handler: "VERSION",
+          handler: "ext_version",
         },
       ]);
-      const versionJob = res.get("VERSION");
+      const versionJob = res.get("0");
       if (!versionJob || versionJob.status !== 200 || versionJob.type !== "text") return undefined;
       const data = versionJob.responseData;
       return Session.SpicyLyrics.ParseVersion(data);

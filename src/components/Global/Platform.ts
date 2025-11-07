@@ -1,5 +1,5 @@
 import { Defer, Timeout } from "@socali/modules/Scheduler";
-import type { Spicetify } from "@spicetify/bundler";
+import { Spicetify } from "@spicetify/bundler";
 
 // Spotify Types
 type TokenProviderResponse = {
@@ -79,6 +79,9 @@ const GetSpotifyAccessToken = (): Promise<string> => {
 const Platform = {
   OnSpotifyReady,
   GetSpotifyAccessToken,
+  get SpotifyVersion(): number[] {
+    return Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
+  }
 };
 
 export default Platform;

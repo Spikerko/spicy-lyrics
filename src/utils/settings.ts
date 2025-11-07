@@ -12,7 +12,7 @@ export async function setSettingsMenu() {
 
   generalSettings(SettingsSection);
   devSettings(SettingsSection);
-  infos(SettingsSection);
+  //infos(SettingsSection);
 }
 
 Component.AddRootComponent("lCache", {
@@ -193,6 +193,10 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
+    storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
+  });
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",
@@ -205,7 +209,7 @@ function generalSettings(SettingsSection: any) {
   settings.pushSettings();
 }
 
-function infos(SettingsSection: any) {
+/* function infos(SettingsSection: any) {
   const settings = new SettingsSection("Spicy Lyrics - Info", "spicy-lyrics-settings-info");
 
   settings.addButton(
@@ -216,4 +220,4 @@ function infos(SettingsSection: any) {
   );
 
   settings.pushSettings();
-}
+} */

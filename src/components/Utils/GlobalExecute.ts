@@ -90,7 +90,7 @@ async function ParseTTML(ttml: string): Promise<any | null> {
         },
       },
     ]);
-    const job = jobResponse.get("PARSE_TTML");
+    const job = jobResponse.get("0");
     if (!job) {
       return null;
     }

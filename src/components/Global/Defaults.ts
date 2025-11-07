@@ -29,6 +29,7 @@ const Defaults = {
   CanvasBackground: false,
   PopupLyricsAllowed: true,
   ViewControlsPosition: "Top",
+  SettingsOnTop: true,
 };
 
 export default Defaults;

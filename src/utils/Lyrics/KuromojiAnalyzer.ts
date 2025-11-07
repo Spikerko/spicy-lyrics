@@ -2,7 +2,6 @@
 import { RetrievePackage } from "../ImportPackage.ts";
 
 RetrievePackage("Kuromoji", "1.0.0", "js")
-  .then((p) => console.log("Loaded Kuromoji", p))
   .catch(() => {});
 
 let Analyzer: any;
@@ -16,7 +15,6 @@ export const init = (): Promise<void> => {
     while (!(window as any).kuromoji) {
       await new Promise((r) => setTimeout(r, 50));
     }
-    console.log("Found Kuromoji!", (window as any).kuromoji);
     (window as any).kuromoji.builder({
       dicPath: "https://kuromoji.pkgs.spikerko.org",
     }).build((error: any, analyzer: any) => {
