@@ -24,7 +24,7 @@ const Sockets = {
 
 async function ConnectSockets() {
   for (const key of Object.keys(Sockets?.sockets)) {
-    //await Sockets.sockets[key]?.connect();
+    await Sockets.sockets[key]?.connect();
   }
 }
 
