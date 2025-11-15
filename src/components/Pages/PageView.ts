@@ -772,15 +772,15 @@ function AppendViewControls(ReAppend: boolean = false) {
             content: `
                             <div class="SpicyLyricsDevToolsContainer">
                                 <div class="Setting">
-                                    <div class="SettingName"><span>Upload TTML (for the current song)</span></div>
+                                    <div class="SettingName"><span>Load TTML (for the current song)</span></div>
                                     <div class="SettingValue">
-                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Upload</button>
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load TTML</button>
                                     </div>
                                 </div>
                                 <div class="Setting">
                                     <div class="SettingName"><span>Reset TTML (for the current song)</span></div>
                                     <div class="SettingValue">
-                                        <button onclick="window._spicy_lyrics.execute('reset-ttml')">Reset</button>
+                                        <button onclick="window._spicy_lyrics.execute('reset-ttml')">Reset TTML</button>
                                     </div>
                                 </div>
                             </div>
