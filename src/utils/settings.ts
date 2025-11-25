@@ -36,8 +36,8 @@ function devSettings(SettingsSection: any) {
 
   settings.addButton(
     "remove-cached-lyrics",
-    "Remove Cached Lyrics (Lyrics Stay in Cache for 3 days)",
-    "Remove Cached Lyrics",
+    "Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)",
+    "Clear Cached Lyrics",
     async () => await RemoveLyricsCache(true)
   );
 
