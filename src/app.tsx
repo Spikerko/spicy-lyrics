@@ -71,17 +71,19 @@ async function main() {
   Global.SetScope("fullscreen.open", false);
 
   Global.SetScope("fullscreen.onopen", (cb: any) => {
-    Global.Event.listen("fullscreen:open", () => {
+    const id = Global.Event.listen("fullscreen:open", () => {
       Global.SetScope("fullscreen.open", true);
       cb();
     });
+    return () => Global.Event.unListen(id);
   });
 
   Global.SetScope("fullscreen.onclose", (cb: any) => {
-    Global.Event.listen("fullscreen:exit", () => {
+    const id = Global.Event.listen("fullscreen:exit", () => {
       Global.SetScope("fullscreen.open", false);
       cb();
     });
+    return () => Global.Event.unListen(id);
   });
 
   if (!storage.get("show_topbar_notifications")) {
@@ -191,7 +193,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.7";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.15";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -511,6 +513,10 @@ async function main() {
     if (e.key === "Shift") {
       Global.Saves.shift_key_pressed = false;
     }
+  });
+
+  window.addEventListener("blur", () => {
+    Global.Saves.shift_key_pressed = false;
   });
 
   Global.Event.listen("pagecontainer:available", () => {
@@ -922,7 +928,7 @@ async function main() {
       }).Start();
     }
 
-    {
+    /* {
       let lastPosition = 0;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       new IntervalManager(Infinity, () => {
@@ -932,7 +938,7 @@ async function main() {
         }
         lastPosition = pos;
       }).Start();
-    }
+    } */
 
     {
       let lastTimeout: any;

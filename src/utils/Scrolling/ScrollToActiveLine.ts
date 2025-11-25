@@ -224,7 +224,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
     ScrollTo(
       container,
       scrollToLine,
-      lastPosition !== 0 && wasDrasticPositionChange(lastPosition ?? 0, Position),
+      shouldForceScroll || (lastPosition !== 0 && wasDrasticPositionChange(lastPosition ?? 0, Position)),
       GetScrollType()
     );
     if (forceScrollQueued) {

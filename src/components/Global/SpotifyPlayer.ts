@@ -217,7 +217,14 @@ export const SpotifyPlayer = {
     );
   },
   IsLiked: () => Spicetify?.Player?.getHeart(),
-  ToggleLike: () => Spicetify?.Player?.toggleHeart(),
+  ToggleLike: async () => {
+    const uris = [SpotifyPlayer.GetUri()];
+    if (SpotifyPlayer.IsLiked()) {
+      await Spicetify.Platform.LibraryAPI.remove({ uris });
+    } else {
+      await Spicetify.Platform.LibraryAPI.add({ uris });
+    }
+  },
   Playbar: (() => {
     let rightContainer: HTMLElement | null;
     let sibling: HTMLElement | null;
