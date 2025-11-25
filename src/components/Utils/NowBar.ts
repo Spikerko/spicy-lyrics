@@ -166,15 +166,26 @@ function OpenNowBar(skipSaving: boolean = false) {
         }
 
         const onclick = () => {
+          if (SpotifyPlayer.GetContentType() === "episode") return;
+
+          const IsLiked = SpotifyPlayer.IsLiked();
+          if (IsLiked) {
+            HeartElement.classList.remove("Filled");
+            HeartElement.classList.remove("press02");
+            HeartElement.classList.add("reverse_press02");
+            setTimeout(() => {
+              HeartElement.classList.remove("reverse_press02");
+            }, 160);
+          } else {
+            HeartElement.classList.add("Filled");
+            HeartElement.classList.remove("reverse_press02");
+            HeartElement.classList.add("press02");
+            setTimeout(() => {
+              HeartElement.classList.remove("press02");
+            }, 100);
+          }
+
           SpotifyPlayer.ToggleLike();
-          setTimeout(() => {
-            const IsLiked = SpotifyPlayer.IsLiked();
-            if (IsLiked) {
-              HeartElement.classList.add("Filled");
-            } else {
-              HeartElement.classList.remove("Filled");
-            }
-          }, 85);
         };
 
         HeartElement.addEventListener("click", onclick);
@@ -1240,7 +1251,7 @@ Global.Event.listen("playback:shuffle", (e: string) => {
   }
 });
 
-Global.Event.listen("playback:position_smooth", (e: number) => {
+Global.Event.listen("playback:position", (e: number) => {
   if (Fullscreen.IsOpen) {
     if (ActiveSetupSongProgressBarInstance) {
       const updateTimelineState = ActiveSongProgressBarInstance_Map.get(

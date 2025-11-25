@@ -58,6 +58,12 @@ const CreateLyricsContainer = (): LyricsContainerReturnObject => {
       QueueForceScroll();
       await delay(5);
       SetWaitingForHeight(false);
+
+      await delay(125);
+      Container.style.height = `${GetContainerHeight(Container)}px`;
+      ScrollSimplebar?.recalculate();
+      await delay(10);
+      QueueForceScroll();
     })();
   };
 

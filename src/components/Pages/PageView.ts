@@ -5,7 +5,7 @@ import { Spicetify } from "@spicetify/bundler";
 import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
-cleanupApplyLyricsAbortController,
+  cleanupApplyLyricsAbortController,
   resetLyricsPlayer,
 } from "../../utils/Lyrics/Global/Applyer.ts";
 import {
