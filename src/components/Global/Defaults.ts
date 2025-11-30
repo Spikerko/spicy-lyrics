@@ -10,7 +10,7 @@ const Defaults = {
   LyricsContainerExists: false,
   SkipSpicyFont: false,
   OldStyleFont: false,
-  SpicyLyricsVersion: (await (await fetch("https://raw.githubusercontent.com/spikerko/spicy-lyrics/main/VERSION",)).text()).trim(),
+  SpicyLyricsVersion: "0.0.0",
   replace_lyrics_button: false,
   show_topbar_notifications: true,
   PrefersReducedMotion: false,

@@ -197,8 +197,15 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = (await (await fetch("https://raw.githubusercontent.com/spikerko/spicy-lyrics/main/VERSION",)).text()).trim();
-
+  try {
+    const version = await fetch("https://raw.githubusercontent.com/spikerko/spicy-lyrics/main/VERSION");
+    if (version.ok) {
+      Defaults.SpicyLyricsVersion = (await version.text()).trim();
+    }
+  } catch {
+    console.error("Failed to fetch SpicyLyricsVersion, using default");
+    Defaults.SpicyLyricsVersion = "0.0.0";
+  }
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
