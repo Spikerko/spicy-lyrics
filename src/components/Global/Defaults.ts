@@ -11,6 +11,7 @@ const Defaults = {
   SkipSpicyFont: false,
   OldStyleFont: false,
   SpicyLyricsVersion: "0.0.0",
+  replace_lyrics_button: true,
   show_topbar_notifications: true,
   PrefersReducedMotion: false,
   StaticBackground_Preset: false,
