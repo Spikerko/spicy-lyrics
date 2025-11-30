@@ -286,7 +286,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       if (lead.IsPartOfWord || (prev?.IsPartOfWord && currentWordGroup)) {
         if (!currentWordGroup) {
           const group = document.createElement("span");
-          group.classList.add("spicy-word-group");
+          group.classList.add("word-group");
           lineElem.appendChild(group);
           currentWordGroup = group;
         }
@@ -398,7 +398,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           if (bw.IsPartOfWord || (prevBG?.IsPartOfWord && currentBGWordGroup)) {
             if (!currentBGWordGroup) {
               const group = document.createElement("span");
-              group.classList.add("spicy-word-group");
+              group.classList.add("word-group");
               lineE.appendChild(group);
               currentBGWordGroup = group;
             }
