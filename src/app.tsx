@@ -193,7 +193,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.15";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? (await (await fetch("/version.txt")).text()).trim(),
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -463,6 +463,17 @@ async function main() {
   }
 
   RegisterSidebarLyrics();
+  function registerButton(button: typeof ButtonList) {
+    if (!button.Button) return;
+    if (button.Registered) return;
+    button.Button.register();
+    button.Registered = true;
+    if (button.Button.label !== "Spicy Lyrics" && storage.get("replace_lyrics_button") !== "true") return;
+    const oldLyrics = document.getElementsByClassName("main-nowPlayingBar-lyricsButton",);
+    for (const oldBtn of Array.from(oldLyrics)) {
+      oldBtn.replaceWith(button.Button.element);
+    }
+  }
 
   // console.log("[Spicy Lyrics Debug] Setting up initial sidebar status check");
   //Whentil.When(() => document.querySelector<HTMLElement>(".Root__right-sidebar .XOawmCGZcQx4cesyNfVO:not(:has(.h0XG5HZ9x0lYV7JNwhoA.JHlPg4iOkqbXmXjXwVdo)):has(.jD_TVjbjclUwewP7P9e8)") && getQueuePlaybarButton(), () => {
@@ -522,10 +533,7 @@ async function main() {
   Global.Event.listen("pagecontainer:available", () => {
     if (!ButtonList) return;
     for (const button of ButtonList) {
-      if (!button.Registered) {
-        if (button.Button) button.Button.register();
-        button.Registered = true;
-      }
+      registerButton(button)
     }
   });
 
@@ -696,10 +704,7 @@ async function main() {
         PageContainer?.classList.remove("episode-content-type");
       }
 
-      if (!button.Registered) {
-        button.Button.register();
-        button.Registered = true;
-      }
+      registerButton(button)
 
       if (PageContainer?.querySelector(".ContentBox .NowBar")) {
         Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
@@ -752,7 +757,8 @@ async function main() {
     window.addEventListener("online", () => {
       storage.set("lastFetchedUri", null);
 
-      Component.GetRootComponent("lCache").RemoveCurrentLyrics_StateCache(false);
+      const lCacheRoot = Component.GetRootComponent("lCache") as any;
+      lCacheRoot?.RemoveCurrentLyrics_StateCache?.(false);
       
       fetchLyrics(Spicetify.Player.data?.item?.uri).then(ApplyLyrics);
     });
@@ -1014,11 +1020,7 @@ async function main() {
         button.Button.deregister();
         button.Registered = false;
       } else {
-        if (!button) return;
-        if (!button.Registered) {
-          button.Button.register();
-          button.Registered = true;
-        }
+        registerButton(button)
       }
     }
   );

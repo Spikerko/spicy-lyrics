@@ -137,6 +137,18 @@ function generalSettings(SettingsSection: any) {
   );
 
   settings.addToggle(
+    "replace_lyrics_button",
+    "Replace Spotify's Lyrics Button",
+    Defaults.replace_lyrics_button,
+    () => {
+      storage.set(
+        "replace_lyrics_button",
+        settings.getFieldValue("replace_lyrics_button") as string
+      );
+    }
+  );
+
+  settings.addToggle(
     "hide_npv_bg",
     "Hide Now Playing View Dynamic Background",
     Defaults.hide_npv_bg,
