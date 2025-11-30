@@ -90,6 +90,10 @@ async function main() {
     storage.set("show_topbar_notifications", "true");
   }
 
+  if (!storage.get("replace_lyrics_button")) {
+    storage.set("replace_lyrics_button", "false");
+  }
+
   if (!storage.get("viewControlsPosition")) {
     storage.set("viewControlsPosition", "Top");
   }
@@ -193,7 +197,8 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? (await (await fetch("/version.txt")).text()).trim(),
+  Defaults.SpicyLyricsVersion = (await (await fetch("https://raw.githubusercontent.com/spikerko/spicy-lyrics/main/VERSION",)).text()).trim();
+
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
