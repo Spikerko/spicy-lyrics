@@ -97,6 +97,10 @@ async function main() {
     storage.set("show_topbar_notifications", "true");
   }
 
+  if (!storage.get("replace_lyrics_button")) {
+    storage.set("replace_lyrics_button", "true");
+  }
+
   if (!storage.get("viewControlsPosition")) {
     storage.set("viewControlsPosition", "Top");
   }
@@ -548,7 +552,11 @@ async function main() {
       if (button.Registered) continue;
       button.Button.register();
       button.Registered = true;
-      if (button.Button.label !== "Spicy Lyrics") continue;
+      if (
+        button.Button.label !== "Spicy Lyrics" &&
+        storage.get("replace_lyrics_button") === "true"
+      )
+        continue;
       const oldLyrics = document.getElementsByClassName(
         "main-nowPlayingBar-lyricsButton",
       );
@@ -752,7 +760,10 @@ async function main() {
         button.Registered = true;
       }
 
-      if (button.Button.label == "Spicy Lyrics") {
+      if (
+        button.Button.label !== "Spicy Lyrics" &&
+        storage.get("replace_lyrics_button") === "true"
+      ) {
         const oldLyrics = document.getElementsByClassName(
           "main-nowPlayingBar-lyricsButton",
         );
@@ -1096,7 +1107,10 @@ async function main() {
           button.Button.register();
           button.Registered = true;
         }
-        if (button.Button.label == "Spicy Lyrics") {
+        if (
+          button.Button.label !== "Spicy Lyrics" &&
+          storage.get("replace_lyrics_button") === "true"
+        ) {
           const oldLyrics = document.getElementsByClassName(
             "main-nowPlayingBar-lyricsButton",
           );
