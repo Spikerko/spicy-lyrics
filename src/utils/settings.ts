@@ -1,14 +1,19 @@
 import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
-import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
+import {
+  RemoveCurrentLyrics_AllCaches,
+  RemoveCurrentLyrics_StateCache,
+  RemoveLyricsCache,
+} from "./LyricsCacheTools.ts";
 
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
 
-  const { SettingsSection } = await import("../edited_packages/spcr-settings/settingsSection.tsx");
+  const { SettingsSection } =
+    await import("../edited_packages/spcr-settings/settingsSection.tsx");
 
   generalSettings(SettingsSection);
   devSettings(SettingsSection);
@@ -19,33 +24,33 @@ Component.AddRootComponent("lCache", {
   RemoveCurrentLyrics_AllCaches,
   RemoveLyricsCache,
   RemoveCurrentLyrics_StateCache,
-})
+});
 
 function devSettings(SettingsSection: any) {
   const settings = new SettingsSection(
     "Spicy Lyrics - Developer Settings",
-    "spicy-lyrics-dev-settings"
+    "spicy-lyrics-dev-settings",
   );
 
   settings.addButton(
     "remove-current-lyrics-all-caches",
     "Remove Lyrics for the current song from all caches",
     "Remove",
-    async () => await RemoveCurrentLyrics_AllCaches(true)
+    async () => await RemoveCurrentLyrics_AllCaches(true),
   );
 
   settings.addButton(
     "remove-cached-lyrics",
     "Remove Cached Lyrics (Lyrics Stay in Cache for 3 days)",
     "Remove Cached Lyrics",
-    async () => await RemoveLyricsCache(true)
+    async () => await RemoveLyricsCache(true),
   );
 
   settings.addButton(
     "remove-current-song-lyrics-from-localStorage",
     "Remove Current Song Lyrics from internal state",
     "Remove Current Lyrics",
-    () => RemoveCurrentLyrics_StateCache(true)
+    () => RemoveCurrentLyrics_StateCache(true),
   );
 
   settings.addToggle("dev-mode", "Dev Mode", Defaults.DevMode, () => {
@@ -64,8 +69,11 @@ function generalSettings(SettingsSection: any) {
     "Static Background",
     Defaults.StaticBackground_Preset,
     () => {
-      storage.set("staticBackground", settings.getFieldValue("static-background") as string);
-    }
+      storage.set(
+        "staticBackground",
+        settings.getFieldValue("static-background") as string,
+      );
+    },
   );
 
   settings.addDropDown(
@@ -76,14 +84,22 @@ function generalSettings(SettingsSection: any) {
     () => {
       storage.set(
         "staticBackgroundType",
-        settings.getFieldValue("static-background-type") as string
+        settings.getFieldValue("static-background-type") as string,
       );
-    }
+    },
   );
 
-  settings.addToggle("simple-lyrics-mode", "Simple Lyrics Mode", Defaults.SimpleLyricsMode, () => {
-    storage.set("simpleLyricsMode", settings.getFieldValue("simple-lyrics-mode") as string);
-  });
+  settings.addToggle(
+    "simple-lyrics-mode",
+    "Simple Lyrics Mode",
+    Defaults.SimpleLyricsMode,
+    () => {
+      storage.set(
+        "simpleLyricsMode",
+        settings.getFieldValue("simple-lyrics-mode") as string,
+      );
+    },
+  );
 
   settings.addDropDown(
     "simple-lyrics-mode-rendering-type",
@@ -91,7 +107,9 @@ function generalSettings(SettingsSection: any) {
     ["Calculate (More performant)", "Animate (Legacy, More laggier)"],
     Defaults.SimpleLyricsMode_RenderingType_Default,
     () => {
-      const value = settings.getFieldValue("simple-lyrics-mode-rendering-type") as string;
+      const value = settings.getFieldValue(
+        "simple-lyrics-mode-rendering-type",
+      ) as string;
       const processedValue =
         value === "Calculate (More performant)"
           ? "calculate"
@@ -99,7 +117,7 @@ function generalSettings(SettingsSection: any) {
             ? "animate"
             : "calculate";
       storage.set("simpleLyricsModeRenderingType", processedValue);
-    }
+    },
   );
 
   settings.addToggle(
@@ -107,21 +125,47 @@ function generalSettings(SettingsSection: any) {
     "Minimal Lyrics Mode (Only in Fullscreen/Cinema View)",
     Defaults.MinimalLyricsMode,
     () => {
-      storage.set("minimalLyricsMode", settings.getFieldValue("minimal-lyrics-mode") as string);
-    }
+      storage.set(
+        "minimalLyricsMode",
+        settings.getFieldValue("minimal-lyrics-mode") as string,
+      );
+    },
   );
 
-  settings.addToggle("skip-spicy-font", "Skip Spicy Font*", Defaults.SkipSpicyFont, () => {
-    storage.set("skip-spicy-font", settings.getFieldValue("skip-spicy-font") as string);
-  });
+  settings.addToggle(
+    "skip-spicy-font",
+    "Skip Spicy Font*",
+    Defaults.SkipSpicyFont,
+    () => {
+      storage.set(
+        "skip-spicy-font",
+        settings.getFieldValue("skip-spicy-font") as string,
+      );
+    },
+  );
 
   settings.addToggle(
     "old-style-font",
-    "Old Style Font (Gets Overriden by the previous option)",
+    "Old Style Font (Gets Overridden by the previous option)",
     Defaults.OldStyleFont,
     () => {
-      storage.set("old-style-font", settings.getFieldValue("old-style-font") as string);
-    }
+      storage.set(
+        "old-style-font",
+        settings.getFieldValue("old-style-font") as string,
+      );
+    },
+  );
+
+  settings.addToggle(
+    "replace_lyrics_button",
+    "Replace Lyrics Button",
+    Defaults.replace_lyrics_button,
+    () => {
+      storage.set(
+        "replace_lyrics_button",
+        settings.getFieldValue("replace_lyrics_button") as string,
+      );
+    },
   );
 
   settings.addToggle(
@@ -131,9 +175,9 @@ function generalSettings(SettingsSection: any) {
     () => {
       storage.set(
         "show_topbar_notifications",
-        settings.getFieldValue("show_topbar_notifications") as string
+        settings.getFieldValue("show_topbar_notifications") as string,
       );
-    }
+    },
   );
 
   settings.addToggle(
@@ -141,8 +185,11 @@ function generalSettings(SettingsSection: any) {
     "Hide Now Playing View Dynamic Background",
     Defaults.hide_npv_bg,
     () => {
-      storage.set("hide_npv_bg", settings.getFieldValue("hide_npv_bg") as string);
-    }
+      storage.set(
+        "hide_npv_bg",
+        settings.getFieldValue("hide_npv_bg") as string,
+      );
+    },
   );
 
   settings.addToggle(
@@ -150,8 +197,11 @@ function generalSettings(SettingsSection: any) {
     "Lock the MediaBox size while in Forced Compact Mode",
     Defaults.CompactMode_LockedMediaBox,
     () => {
-      storage.set("lockedMediaBox", settings.getFieldValue("lock_mediabox") as string);
-    }
+      storage.set(
+        "lockedMediaBox",
+        settings.getFieldValue("lock_mediabox") as string,
+      );
+    },
   );
 
   settings.addDropDown(
@@ -168,7 +218,7 @@ function generalSettings(SettingsSection: any) {
             ? "aml-lyrics"
             : "Spicy";
       storage.set("lyricsRenderer", processedValue);
-    }
+    },
   );
 
   settings.addToggle(
@@ -176,8 +226,11 @@ function generalSettings(SettingsSection: any) {
     "Disable Popup Lyrics",
     !Defaults.PopupLyricsAllowed,
     () => {
-      storage.set("disablePopupLyrics", settings.getFieldValue("disable-popup-lyrics") as string);
-    }
+      storage.set(
+        "disablePopupLyrics",
+        settings.getFieldValue("disable-popup-lyrics") as string,
+      );
+    },
   );
 
   settings.addDropDown(
@@ -188,14 +241,22 @@ function generalSettings(SettingsSection: any) {
     () => {
       storage.set(
         "viewControlsPosition",
-        settings.getFieldValue("viewcontrols-position") as string
+        settings.getFieldValue("viewcontrols-position") as string,
       );
-    }
+    },
   );
 
-  settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
-    storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
-  });
+  settings.addToggle(
+    "settings-on-top",
+    "Display the settings panels on top of the settings page?",
+    Defaults.SettingsOnTop,
+    () => {
+      storage.set(
+        "settingsOnTop",
+        settings.getFieldValue("settings-on-top") as string,
+      );
+    },
+  );
 
   settings.addButton(
     "save-n-reload",
@@ -203,7 +264,7 @@ function generalSettings(SettingsSection: any) {
     "Save & Reload",
     () => {
       window.location.reload();
-    }
+    },
   );
 
   settings.pushSettings();
