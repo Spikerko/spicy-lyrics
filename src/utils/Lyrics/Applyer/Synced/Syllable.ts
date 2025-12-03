@@ -212,6 +212,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     LyricsContainer.appendChild(lineElem);
 
+    let currentWordGroup: HTMLSpanElement | null = null;
+
     line.Lead.Syllables.forEach((lead, iL, aL) => {
       let word = document.createElement("span");
 
@@ -247,11 +249,6 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           word.style.scale = IdleEmphasisLyricsScale.toString();
           word.style.transform = `translateY(calc(var(--DefaultLyricsSize) * 0.02))`;
         }
-
-        //const contentDuration = totalDuration > 200 ? totalDuration : 200;
-        //word.style.setProperty("--content-duration", `${contentDuration}ms`);
-
-        lineElem.appendChild(word);
       } else {
         word.textContent =
           UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text;
@@ -272,9 +269,6 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             ? word.classList.add("PartOfWord")
             : null;
 
-        lineElem.appendChild(word);
-
-        // Check if Syllables.Lead exists
         if (LyricsObject.Types.Syllable.Lines[CurrentLineLyricsObject]?.Syllables?.Lead) {
           LyricsObject.Types.Syllable.Lines[CurrentLineLyricsObject].Syllables?.Lead.push({
             HTMLElement: word,
@@ -285,6 +279,26 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         } else {
           console.warn("Syllables.Lead is undefined for CurrentLineLyricsObject");
         }
+      }
+
+      const prev = aL[iL - 1];
+
+      if (lead.IsPartOfWord || (prev?.IsPartOfWord && currentWordGroup)) {
+        if (!currentWordGroup) {
+          const group = document.createElement("span");
+          group.classList.add("word-group");
+          lineElem.appendChild(group);
+          currentWordGroup = group;
+        }
+
+        currentWordGroup.appendChild(word);
+
+        if (!lead.IsPartOfWord && prev?.IsPartOfWord) {
+          currentWordGroup = null;
+        }
+      } else {
+        currentWordGroup = null;
+        lineElem.appendChild(word);
       }
     });
 
@@ -306,6 +320,9 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           lineE.classList.add("OppositeAligned");
         }
         LyricsContainer.appendChild(lineE);
+
+        let currentBGWordGroup: HTMLSpanElement | null = null;
+
         bg.Syllables.forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
@@ -341,11 +358,6 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
               bwE.style.scale = IdleEmphasisLyricsScale.toString();
               bwE.style.transform = `translateY(calc(var(--font-size) * 0.02))`;
             }
-
-            //const contentDuration = totalDuration > 200 ? totalDuration : 200;
-            //bwE.style.setProperty("--content-duration", `${contentDuration}ms`);
-
-            lineE.appendChild(bwE);
           } else {
             bwE.textContent =
               UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text;
@@ -379,7 +391,25 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
               : bw.IsPartOfWord
                 ? bwE.classList.add("PartOfWord")
                 : null;
+          }
 
+          const prevBG = bA[bI - 1];
+
+          if (bw.IsPartOfWord || (prevBG?.IsPartOfWord && currentBGWordGroup)) {
+            if (!currentBGWordGroup) {
+              const group = document.createElement("span");
+              group.classList.add("word-group");
+              lineE.appendChild(group);
+              currentBGWordGroup = group;
+            }
+
+            currentBGWordGroup.appendChild(bwE);
+
+            if (!bw.IsPartOfWord && prevBG?.IsPartOfWord) {
+              currentBGWordGroup = null;
+            }
+          } else {
+            currentBGWordGroup = null;
             lineE.appendChild(bwE);
           }
         });

@@ -285,8 +285,9 @@
   scale: var(--DefaultEmphasisLyricsScale);
 } */
 
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .word-group {
+#SpicyLyricsPage.SpicyRenderer .word-group {
   display: inline-flex;
+  white-space: nowrap;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung .word,
