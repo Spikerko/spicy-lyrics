@@ -29,8 +29,8 @@ function devSettings(SettingsSection: any) {
 
   settings.addButton(
     "remove-current-lyrics-all-caches",
-    "Remove Lyrics for the current song from all caches",
-    "Remove",
+    "Clear Lyrics for the current song from all caches",
+    "Clear",
     async () => await RemoveCurrentLyrics_AllCaches(true)
   );
 
@@ -43,8 +43,8 @@ function devSettings(SettingsSection: any) {
 
   settings.addButton(
     "remove-current-song-lyrics-from-localStorage",
-    "Remove Current Song Lyrics from internal state",
-    "Remove Current Lyrics",
+    "Clear Current Song Lyrics from internal state",
+    "Clear Current Lyrics",
     () => RemoveCurrentLyrics_StateCache(true)
   );
 
