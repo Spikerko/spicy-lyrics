@@ -197,15 +197,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  try {
-    const version = await fetch("https://raw.githubusercontent.com/spikerko/spicy-lyrics/main/VERSION");
-    if (version.ok) {
-      Defaults.SpicyLyricsVersion = (await version.text()).trim();
-    }
-  } catch {
-    console.error("Failed to fetch SpicyLyricsVersion, using default");
-    Defaults.SpicyLyricsVersion = "0.0.0";
-  }
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.50";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -769,8 +761,8 @@ async function main() {
     window.addEventListener("online", () => {
       storage.set("lastFetchedUri", null);
 
-      const lCacheRoot = Component.GetRootComponent("lCache") as any;
-      lCacheRoot?.RemoveCurrentLyrics_StateCache?.(false);
+
+      Component.GetRootComponent("lCache").RemoveCurrentLyrics_StateCache(false);
       
       fetchLyrics(Spicetify.Player.data?.item?.uri).then(ApplyLyrics);
     });
