@@ -288,6 +288,7 @@
 #SpicyLyricsPage.SpicyRenderer .word-group {
   display: inline-flex;
   white-space: nowrap;
+  flex-wrap: wrap;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung .word,
