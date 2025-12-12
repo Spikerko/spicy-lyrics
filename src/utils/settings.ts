@@ -71,7 +71,7 @@ function generalSettings(SettingsSection: any) {
   settings.addDropDown(
     "static-background-type",
     "Static Background Type (Only works when Static Background is Enabled)",
-    ["Auto", "Artist Header Visual", "Cover Art", "Color"],
+    ["Automatic", "Artist Header Visual", "Cover Art", "Color"],
     Defaults.StaticBackgroundType_Preset,
     () => {
       storage.set(
@@ -93,9 +93,9 @@ function generalSettings(SettingsSection: any) {
     () => {
       const value = settings.getFieldValue("simple-lyrics-mode-rendering-type") as string;
       const processedValue =
-        value === "Calculate (More performant)"
+        value === "Calculate (Performance)"
           ? "calculate"
-          : value === "Animate (Legacy, More laggier)"
+          : value === "Animate (Legacy, Unoptimized)"
             ? "animate"
             : "calculate";
       storage.set("simpleLyricsModeRenderingType", processedValue);
