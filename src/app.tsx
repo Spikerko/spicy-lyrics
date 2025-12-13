@@ -527,6 +527,13 @@ async function main() {
         button.Registered = true;
       }
     }
+
+    const spicyLyricsButton = ButtonList[0];
+    let isLocallyPlaying = Spicetify.URI.isLocalTrack(Spicetify.Player.data?.item?.uri);
+    if (isLocallyPlaying) {
+      spicyLyricsButton.Button.deregister();
+      spicyLyricsButton.Registered = false;
+    }
   });
 
   {
@@ -696,10 +703,16 @@ async function main() {
         PageContainer?.classList.remove("episode-content-type");
       }
 
-      if (!button.Registered) {
+      let isLocallyPlaying = Spicetify.URI.isLocalTrack(Spicetify.Player.data?.item?.uri);
+
+      if (isLocallyPlaying) {
+        button.Button.deregister();
+        button.Registered = false;
+      }
+      else {
         button.Button.register();
         button.Registered = true;
-      }
+     }
 
       if (PageContainer?.querySelector(".ContentBox .NowBar")) {
         Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
@@ -1008,8 +1021,9 @@ async function main() {
     () => SpotifyPlayer.GetContentType(),
     () => {
       const IsSomethingElseThanTrack = SpotifyPlayer.GetContentType() !== "track";
+      let isLocallyPlaying = Spicetify.URI.isLocalTrack(Spicetify.Player.data?.item?.uri);
 
-      if (IsSomethingElseThanTrack) {
+      if (IsSomethingElseThanTrack || isLocallyPlaying) {
         if (!button) return;
         button.Button.deregister();
         button.Registered = false;
