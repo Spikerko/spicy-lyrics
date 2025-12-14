@@ -1059,9 +1059,7 @@ function UpdateNowBar(force = false) {
   const artists = SpotifyPlayer.GetArtists();
   if (artists && ArtistsSpan && contentType !== "episode") {
     const processedArtists = artists.map((artist) => artist.name)?.join(", ");
-    const releaseYear = SpotifyPlayer.GetReleaseYear();
-    const artistsText = releaseYear ? `${processedArtists} ⋅ ${releaseYear}` : processedArtists;
-    ArtistsSpan.textContent = artistsText ?? "";
+    ArtistsSpan.textContent = processedArtists ?? "";
   }
 }
 

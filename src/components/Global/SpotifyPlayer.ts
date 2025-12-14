@@ -196,19 +196,6 @@ export const SpotifyPlayer = {
       Spicetify?.Player?.data?.item?.uri ?? Spicetify.Player.data?.track?.uri
     );
   },
-  GetReleaseYear: (): string | undefined => {
-    try {
-      const releaseDate = Spicetify?.Player?.data?.item?.album?.release_date;
-      if (releaseDate) {
-        const year = releaseDate.split("-")[0];
-        if (/^\d{4}$/.test(year)) {
-          return year;
-        }
-      }
-    } catch (error) {
-    }
-    return undefined;
-  },
   Pause: Spicetify?.Player?.pause,
   Play: Spicetify?.Player?.play,
   TogglePlayState: Spicetify?.Player?.togglePlay,
