@@ -9,6 +9,7 @@ import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { ShowNotification } from "../Pages/PageView.ts";
+import { t } from "../../utils/i18n.ts";
 
 Global.SetScope("execute", (command: string) => {
   switch (command) {
@@ -25,12 +26,12 @@ Global.SetScope("execute", (command: string) => {
             const ttml = e.target?.result as string;
             // console.log("TTML file loaded:", ttml);
             if (Defaults.LyricsRenderer === "aml-lyrics") {
-              ShowNotification("Found TTML, Inserting...", "info", 5000);
+              ShowNotification(t("notifications.foundTTMLInserting"), "info", 5000);
               const lyricsLines = await parseTTML(ttml);
               currentLyricsPlayer?.setLyricLines(lyricsLines.lines);
-              ShowNotification("Lyrics Applied!", "success", 5000);
+              ShowNotification(t("notifications.lyricsApplied"), "success", 5000);
             } else {
-              ShowNotification("Found TTML, Parsing...", "info", 5000);
+              ShowNotification(t("notifications.foundTTMLParsing"), "info", 5000);
               ParseTTML(ttml).then(async (result) => {
                 const dataToSave = {
                   ...result?.Result,
@@ -44,10 +45,10 @@ Global.SetScope("execute", (command: string) => {
                   fetchLyrics(SpotifyPlayer.GetUri() ?? "")
                     .then((lyrics) => {
                       ApplyLyrics(lyrics);
-                      ShowNotification("Lyrics Parsed and Applied!", "success", 5000);
+                      ShowNotification(t("notifications.lyricsParsedAndApplied"), "success", 5000);
                     })
                     .catch((err) => {
-                      ShowNotification("Error applying lyrics", "error", 5000);
+                      ShowNotification(t("notifications.errorApplyingLyrics"), "error", 5000);
                       console.error("Error applying lyrics:", err);
                     });
                 }, 25);
@@ -56,7 +57,7 @@ Global.SetScope("execute", (command: string) => {
           };
           reader.onerror = (e) => {
             console.error("Error reading file:", e.target?.error);
-            ShowNotification("Error reading TTML file.", "error", 5000);
+            ShowNotification(t("notifications.errorReadingTTML"), "error", 5000);
           };
           reader.readAsText(file);
         }
@@ -67,12 +68,12 @@ Global.SetScope("execute", (command: string) => {
     case "reset-ttml":
       // console.log("Reset TTML");
       storage.set("currentLyricsData", "");
-      ShowNotification("TTML has been reset.", "info", 5000);
+      ShowNotification(t("notifications.ttmlReset"), "info", 5000);
       setTimeout(() => {
         fetchLyrics(SpotifyPlayer.GetUri() ?? "")
           .then(ApplyLyrics)
           .catch((err) => {
-            ShowNotification("Error applying lyrics", "error", 5000);
+            ShowNotification(t("notifications.errorApplyingLyrics"), "error", 5000);
             console.error("Error applying lyrics:", err);
           });
       }, 25);
@@ -114,7 +115,7 @@ async function ParseTTML(ttml: string): Promise<any | null> {
     return job.responseData;
   } catch (error) {
     console.error("Error parsing TTML:", error);
-    ShowNotification("Error parsing TTML", "error", 5000);
+    ShowNotification(t("notifications.errorParsingTTML"), "error", 5000);
     return null;
   }
 }

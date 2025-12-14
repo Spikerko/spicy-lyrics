@@ -4,6 +4,7 @@ import { SendJob } from "../../../../utils/API/SendJob.ts";
 import { Spicetify } from "@spicetify/bundler";
 import { PopupModal } from "../../../Modal.ts";
 import { SpotifyFetch } from "../../../Global/SpotifyFetch.ts";
+import { t } from "../../../../utils/i18n.ts";
 
 // ErrorBoundary wrapper for safest rendering
 class ErrorBoundary extends React.Component {
@@ -320,7 +321,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
   if (userQuery.isError) {
     return (
       <div className="ttml-profile-error">
-        Error:{" "}
+        {t("ttmlProfile.error")}{" "}
         {userQuery.error instanceof Error
           ? userQuery.error.message
           : String(userQuery.error)}
@@ -342,9 +343,9 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
         </div>
       );
     if (tracksQuery.isError)
-      return <div>Error loading songs: {tracksQuery.error?.message}</div>;
+      return <div>{t("ttmlProfile.errorLoadingSongs")} {tracksQuery.error?.message}</div>;
     if (!Array.isArray(items) || items.length === 0) {
-      return <div className="ttml-profile-song-missing">No songs found.</div>;
+      return <div className="ttml-profile-song-missing">{t("ttmlProfile.noSongsFound")}</div>;
     }
     return items.map(({ id }) => (
       // @ts-ignore aaa
@@ -398,7 +399,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
           <div className="controls-close-modal">
             <button
               type="button"
-              aria-label="Close"
+              aria-label={t("ttmlProfile.close")}
               className="main-trackCreditsModal-closeBtn"
               onClick={() => PopupModal.hide()}
             >
@@ -408,7 +409,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
                 viewBox="0 0 32 32"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                <title>Close</title>
+                <title>{t("ttmlProfile.close")}</title>
                 <path
                   d="M31.098 29.794L16.955 15.65 31.097 1.51 29.683.093 15.54 14.237 1.4.094-.016 1.508 14.126 15.65-.016 29.795l1.414 1.414L15.54 17.065l14.144 14.143"
                   fill="currentColor"
@@ -425,7 +426,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
             <img
               src={profile.data.banner}
               className="ttml-profile-banner-styled"
-              alt="Banner"
+              alt={t("ttmlProfile.banner")}
             />
           )}
           <div className="ttml-profile-avatar-container-styled">
@@ -434,7 +435,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
                 <img
                   src={profile.data.avatar}
                   className="ttml-profile-avatar-styled"
-                  alt="Avatar"
+                  alt={t("ttmlProfile.avatar")}
                 />
               )}
           </div>
@@ -464,7 +465,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
           {profile.type !== "uploader" ? (
             <div className="ttml-profile-section ttml-profile-column ttml-profile-column-wide">
               <div className="ttml-profile-columns-display-top">
-                <h3>Makes</h3>
+                <h3>{t("ttmlProfile.makes")}</h3>
                 <span className="ttml-profile-columns-display-subtext-length-count">
                   ({sortedValidMakes.length})
                 </span>
@@ -480,7 +481,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
           {profile.type !== "maker" ? (
             <div className="ttml-profile-section ttml-profile-column ttml-profile-column-wide">
               <div className="ttml-profile-columns-display-top">
-                <h3>Uploads</h3>
+                <h3>{t("ttmlProfile.uploads")}</h3>
                 <span className="ttml-profile-columns-display-subtext-length-count">
                   ({sortedValidUploads.length})
                 </span>
@@ -504,7 +505,7 @@ function SongRowSafe({ trackId, trackMap }: SongRowProps) {
   const track = trackMap.get(trackId);
   if (!track)
     return (
-      <div className="ttml-profile-song-missing">Unknown Song ({trackId})</div>
+      <div className="ttml-profile-song-missing">{t("ttmlProfile.unknownSong")} ({trackId})</div>
     );
   const albumImages = track.album?.images ?? [];
   const imageSrc =
@@ -526,12 +527,12 @@ function SongRowSafe({ trackId, trackMap }: SongRowProps) {
       )}
       <div className="ttml-profile-songinfo">
         <div className="ttml-profile-songname">
-          {track.name ?? "Unknown song name"}
+          {track.name ?? t("ttmlProfile.unknownSongName")}
         </div>
         <div className="ttml-profile-songartist">
           {Array.isArray(track.artists)
-            ? track.artists.map((a) => a?.name ?? "Unknown").join(", ")
-            : "Unknown"}
+            ? track.artists.map((a) => a?.name ?? t("ttmlProfile.unknown")).join(", ")
+            : t("ttmlProfile.unknown")}
         </div>
       </div>
       <a
@@ -546,7 +547,7 @@ function SongRowSafe({ trackId, trackMap }: SongRowProps) {
         rel="noopener noreferrer"
         className="ttml-profile-songlink"
       >
-        Listen
+        {t("ttmlProfile.listen")}
       </a>
     </div>
   );

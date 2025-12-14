@@ -1,0 +1,16 @@
+# Crowdin Configuration
+# NOTE: Replace "your-project-id" with your actual Crowdin project ID
+# The project ID is safe to commit - it's just an identifier
+project_id: "your-project-id"
+
+# API token is read from environment variable for security
+# NEVER commit your API token directly to the repository!
+# Set this as a GitHub Secret or local environment variable
+api_token_env: "CROWDIN_TOKEN"
+
+preserve_hierarchy: true
+
+files:
+  - source: /locales/en.json
+    translation: /locales/%two_letters_code%.json
+    update_option: update_as_unapproved

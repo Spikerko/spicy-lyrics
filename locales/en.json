@@ -1,0 +1,111 @@
+{
+  "update": {
+    "outdated": "Your Spicy Lyrics version is outdated.",
+    "clickToUpdate": "To update, click on the \"Update\" button.",
+    "versionFrom": "Version: From:",
+    "versionTo": "To:",
+    "unknown": "Unknown",
+    "updateButton": "Update",
+    "title": "New Update - Spicy Lyrics",
+    "successTitle": "Spicy Lyrics has been successfully updated!",
+    "freshlyNew": "Freshly new",
+    "releaseNotes": "Release Notes →",
+    "joinDiscord": "Join our Discord Server! →",
+    "boostDiscord": "Help our community grow by boosting our Discord server 🚀!"
+  },
+  "settings": {
+    "devSettings": {
+      "title": "Spicy Lyrics - Developer Settings",
+      "clearCurrentAllCaches": "Clear Lyrics for the current song from all caches",
+      "clearCachedLyrics": "Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)",
+      "clearCurrentInternal": "Clear Current Song Lyrics from internal state",
+      "devMode": "Dev Mode",
+      "clearButton": "Clear",
+      "clearCachedLyricsButton": "Clear Cached Lyrics",
+      "clearCurrentLyricsButton": "Clear Current Lyrics"
+    },
+    "general": {
+      "title": "Spicy Lyrics",
+      "staticBackground": "Static Background",
+      "staticBackgroundType": "Static Background Type (Only works when Static Background is Enabled)",
+      "staticBackgroundTypes": {
+        "auto": "Auto",
+        "artistHeader": "Artist Header Visual",
+        "coverArt": "Cover Art",
+        "color": "Color"
+      },
+      "simpleLyricsMode": "Simple Lyrics Mode",
+      "simpleLyricsModeRenderingType": "Simple Lyrics Mode - Rendering Type",
+      "simpleLyricsModeRenderingTypes": {
+        "calculate": "Calculate (More performant)",
+        "animate": "Animate (Legacy, More laggier)"
+      },
+      "minimalLyricsMode": "Minimal Lyrics Mode (Only in Fullscreen/Cinema View)",
+      "skipSpicyFont": "Skip Spicy Font*",
+      "oldStyleFont": "Old Style Font (Gets Overriden by the previous option)",
+      "showTopbarNotifications": "Show Topbar Notifications",
+      "hideNPVBg": "Hide Now Playing View Dynamic Background",
+      "lockMediaBox": "Lock the MediaBox size while in Forced Compact Mode",
+      "lyricsRenderer": "Lyrics Renderer",
+      "lyricsRendererTypes": {
+        "spicy": "Spicy Lyrics (Default) (Stable)",
+        "aml": "AML Lyrics (Experimental) (Unstable)"
+      },
+      "disablePopupLyrics": "Disable Popup Lyrics",
+      "viewControlsPosition": "View Controls Position",
+      "viewControlsPositions": {
+        "top": "Top",
+        "bottom": "Bottom"
+      },
+      "settingsOnTop": "Display the settings panels on top of the settings page?",
+      "saveAndReload": "Save your current settings and reload.",
+      "saveAndReloadButton": "Save & Reload"
+    },
+    "language": {
+      "autoLanguage": "Automatic Language (Follows Spotify Language)",
+      "selectLanguage": "Select Language"
+    }
+  },
+  "notifications": {
+    "currentSongIdNotRetrieved": "The current song id could not be retrieved",
+    "lyricsRemovedAllCaches": "Lyrics for the current song, have been removed from available all caches",
+    "lyricsRemovalFailed": "Lyrics for the current song, couldn't be removed from all available caches",
+    "lyricsCacheDestroyed": "The Lyrics Cache has been destroyed successfully",
+    "lyricsCacheRemovalFailed": "The Lyrics cache, couldn't be removed",
+    "lyricsRemovedInternalState": "Lyrics for the current song, have been removed from the internal state successfully",
+    "lyricsRemovalInternalStateFailed": "Lyrics for the current song, couldn't be removed from the internal state",
+    "checkConsole": "Check the console for more info",
+    "foundTTMLInserting": "Found TTML, Inserting...",
+    "lyricsApplied": "Lyrics Applied!",
+    "foundTTMLParsing": "Found TTML, Parsing...",
+    "lyricsParsedAndApplied": "Lyrics Parsed and Applied!",
+    "errorApplyingLyrics": "Error applying lyrics",
+    "errorReadingTTML": "Error reading TTML file.",
+    "ttmlReset": "TTML has been reset.",
+    "errorParsingTTML": "Error parsing TTML"
+  },
+  "ttmlProfile": {
+    "title": "TTML Profile",
+    "viewProfile": "View TTML Profile",
+    "communityLyrics": "These lyrics have been provided by our community",
+    "uploadedBy": "Uploaded",
+    "uploadedAndMadeBy": " and Made",
+    "by": " by ",
+    "madeBy": "Made by ",
+    "makes": "Makes",
+    "uploads": "Uploads",
+    "noSongsFound": "No songs found.",
+    "unknownSong": "Unknown Song",
+    "unknownSongName": "Unknown song name",
+    "unknown": "Unknown",
+    "listen": "Listen",
+    "close": "Close",
+    "banner": "Banner",
+    "avatar": "Avatar",
+    "error": "Error:",
+    "errorLoadingSongs": "Error loading songs:"
+  },
+  "common": {
+    "close": "Close"
+  }
+}
