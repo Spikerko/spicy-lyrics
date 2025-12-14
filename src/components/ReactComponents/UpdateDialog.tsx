@@ -1,4 +1,5 @@
 import React from "react";
+import { t } from "../../utils/i18n.ts";
 
 interface UpdateDialogProps {
   previousVersion: string;
@@ -8,9 +9,9 @@ interface UpdateDialogProps {
 const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyricsVersion }) => {
   return (
     <div className="update-card-wrapper slm">
-      <h2 className="header">Spicy Lyrics has been successfully updated!</h2>
+      <h2 className="header">{t("update.successTitle")}</h2>
       <div className="card version">
-        Version: {previousVersion || "Freshly new"} → {spicyLyricsVersion || "Unknown"}
+        {t("update.versionFrom")} {previousVersion || t("update.freshlyNew")} {t("update.versionTo")} {spicyLyricsVersion || t("update.unknown")}
       </div>
       <button
         className="card btn btn-release"
@@ -21,14 +22,14 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyric
           )
         }
       >
-        Release Notes →
+        {t("update.releaseNotes")}
       </button>
       <button
         className="card btn btn-discord"
         onClick={() => window.open("https://discord.com/invite/uqgXU5wh8j", "_blank")}
       >
-        <p>Join our Discord Server! →</p>
-        <p style={{ opacity: "0.45", marginTop: "0.25cqh" }}>Help our community grow by boosting our Discord server 🚀!</p>
+        <p>{t("update.joinDiscord")}</p>
+        <p style={{ opacity: "0.45", marginTop: "0.25cqh" }}>{t("update.boostDiscord")}</p>
       </button>
     </div>
   );

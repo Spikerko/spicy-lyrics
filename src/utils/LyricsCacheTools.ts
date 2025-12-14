@@ -3,12 +3,13 @@ import PageView, { ShowNotification } from "../components/Pages/PageView.ts";
 import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import storage from "./storage.ts";
+import { t } from "./i18n.ts";
 
 export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
   const currentSongId = SpotifyPlayer.GetId();
   if (!currentSongId || currentSongId === undefined) {
     ui
-      ? ShowNotification(`The current song id could not be retrieved`, "error")
+      ? ShowNotification(t("notifications.currentSongIdNotRetrieved"), "error")
       : null;
   }
   try {
@@ -16,7 +17,7 @@ export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
     storage.set("currentLyricsData", null);
     ui
       ? ShowNotification(
-          `Lyrics for the current song, have been removed from available all caches`,
+          t("notifications.lyricsRemovedAllCaches"),
           "success"
         )
       : null;
@@ -30,8 +31,8 @@ export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
     ui
       ? ShowNotification(
           `
-            <p>Lyrics for the current song, couldn't be removed from all available caches</p>
-            <p style="opacity: 0.75;">Check the console for more info</p>
+            <p>${t("notifications.lyricsRemovalFailed")}</p>
+            <p style="opacity: 0.75;">${t("notifications.checkConsole")}</p>
         `,
           "error"
         )
@@ -45,7 +46,7 @@ export const RemoveLyricsCache = async (ui: boolean = false) => {
     await LyricsStore.Destroy();
     ui
       ? ShowNotification(
-          "The Lyrics Cache has been destroyed successfully",
+          t("notifications.lyricsCacheDestroyed"),
           "success"
         )
       : null;
@@ -59,8 +60,8 @@ export const RemoveLyricsCache = async (ui: boolean = false) => {
     ui
       ? ShowNotification(
           `
-                <p>The Lyrics cache, couldn't be removed</p>
-                <p style="opacity: 0.75;">Check the console for more info</p>
+                <p>${t("notifications.lyricsCacheRemovalFailed")}</p>
+                <p style="opacity: 0.75;">${t("notifications.checkConsole")}</p>
             `,
           "error"
         )
@@ -74,7 +75,7 @@ export const RemoveCurrentLyrics_StateCache = (ui: boolean = false) => {
     storage.set("currentLyricsData", null);
     ui
       ? ShowNotification(
-          "Lyrics for the current song, have been removed from the internal state successfully",
+          t("notifications.lyricsRemovedInternalState"),
           "success"
         )
       : null;
@@ -88,8 +89,8 @@ export const RemoveCurrentLyrics_StateCache = (ui: boolean = false) => {
     ui
       ? ShowNotification(
           `
-                <p>Lyrics for the current song, couldn't be removed from the internal state</p>
-                <p style="opacity: 0.75;">Check the console for more info</p>
+                <p>${t("notifications.lyricsRemovalInternalStateFailed")}</p>
+                <p style="opacity: 0.75;">${t("notifications.checkConsole")}</p>
             `,
           "error"
         )

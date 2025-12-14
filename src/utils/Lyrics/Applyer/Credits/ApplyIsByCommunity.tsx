@@ -8,6 +8,7 @@ import { reactQueryClient } from "../../../../app.tsx";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 import { PopupModal } from "../../../../components/Modal.ts";
 import { actions } from "../../../../actions.ts";
+import { t } from "../../../i18n.ts";
 
 
 let isByCommunityAbortController: AbortController | null = null;
@@ -65,7 +66,7 @@ function showProfileModal(userId: string | undefined, hasProfileBanner: boolean)
   };
 
   PopupModal.display({
-    title: "TTML Profile",
+    title: t("ttmlProfile.title"),
     // Pass placeholder as content so modal builds structure,
     // React rendering happens in onModalDisplayed callback
     content: placeholder,
@@ -108,13 +109,13 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
 
   songInfoElement.innerHTML = `
     <span style="opacity: 0.5;">
-      These lyrics have been provided by our community
+      ${t("ttmlProfile.communityLyrics")}
     </span>
     ${
       data.TTMLUploadMetadata?.Uploader?.username && data.TTMLUploadMetadata?.Uploader?.avatar
         ? `
         <span class="Uploader">
-          <span><span style="opacity: 0.5;">Uploaded${!data.TTMLUploadMetadata.Maker?.username ? " and Made" : ""} by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Uploader.username} <span>${data.TTMLUploadMetadata.Uploader.avatar ? `<img src="${data.TTMLUploadMetadata.Uploader.avatar}" alt="${data.TTMLUploadMetadata.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
+          <span><span style="opacity: 0.5;">${t("ttmlProfile.uploadedBy")}${!data.TTMLUploadMetadata.Maker?.username ? t("ttmlProfile.uploadedAndMadeBy") : ""}${t("ttmlProfile.by")}</span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Uploader.username} <span>${data.TTMLUploadMetadata.Uploader.avatar ? `<img src="${data.TTMLUploadMetadata.Uploader.avatar}" alt="${data.TTMLUploadMetadata.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
         </span>
         `.trim()
         : ""
@@ -123,7 +124,7 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       data.TTMLUploadMetadata?.Maker?.username && data.TTMLUploadMetadata?.Maker?.avatar
         ? `
         <span class="Maker">
-          <span><span style="opacity: 0.5;">Made by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Maker.username} <span>${data.TTMLUploadMetadata.Maker.avatar ? `<img src="${data.TTMLUploadMetadata.Maker.avatar}" alt="${data.TTMLUploadMetadata.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
+          <span><span style="opacity: 0.5;">${t("ttmlProfile.madeBy")}</span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Maker.username} <span>${data.TTMLUploadMetadata.Maker.avatar ? `<img src="${data.TTMLUploadMetadata.Maker.avatar}" alt="${data.TTMLUploadMetadata.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
         </span>
         `.trim()
         : ""
@@ -137,7 +138,7 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       madeTippys.add(
         Spicetify.Tippy(uploaderSpan, {
           ...Spicetify.TippyProps,
-          content: `View TTML Profile`,
+          content: t("ttmlProfile.viewProfile"),
         })
       )
     }
@@ -163,7 +164,7 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       madeTippys.add(
         Spicetify.Tippy(makerSpan, {
           ...Spicetify.TippyProps,
-          content: `View TTML Profile`,
+          content: t("ttmlProfile.viewProfile"),
         })
       )
     }

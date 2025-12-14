@@ -3,6 +3,7 @@ import { isDev } from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "../../components/Modal.ts";
+import { t } from "../i18n.ts";
 
 let ShownUpdateNotice = false;
 
@@ -19,12 +20,12 @@ export async function CheckForUpdates(force: boolean = false) {
     reactRoot.render(
       <div className="update-card-wrapper slm">
         <div className="card">
-          <div>Your Spicy Lyrics version is outdated.</div>
-          <div>To update, click on the "Update" button.</div>
+          <div>{t("update.outdated")}</div>
+          <div>{t("update.clickToUpdate")}</div>
         </div>
         <div className="card">
-          Version: From: {currentVersion?.Text || "Unknown"} → To:{" "}
-          {latestVersion?.Text || "Unknown"}
+          {t("update.versionFrom")} {currentVersion?.Text || t("update.unknown")} {t("update.versionTo")}{" "}
+          {latestVersion?.Text || t("update.unknown")}
         </div>
         <button
           onClick={() =>
@@ -33,13 +34,13 @@ export async function CheckForUpdates(force: boolean = false) {
           className="btn-release"
           data-encore-id="buttonSecondary"
         >
-          Update
+          {t("update.updateButton")}
         </button>
       </div>
     );
 
     PopupModal.display({
-      title: "New Update - Spicy Lyrics",
+      title: t("update.title"),
       content: div,
       onClose: () => {
         reactRoot.unmount();

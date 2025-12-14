@@ -62,11 +62,15 @@ import { QueryClient } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { actions } from "./actions.ts";
+import { initI18n } from "./utils/i18n.ts";
 
 export const reactQueryClient = new QueryClient();
 
 async function main() {
   await Platform.OnSpotifyReady;
+  
+  // Initialize translations before anything else
+  await initI18n();
 
   Global.SetScope("fullscreen.open", false);
 

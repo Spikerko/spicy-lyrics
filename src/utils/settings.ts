@@ -2,6 +2,7 @@ import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
+import { t, AVAILABLE_LANGUAGES, getSpotifyLanguage, setLanguage } from "./i18n.ts";
 
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
@@ -23,32 +24,32 @@ Component.AddRootComponent("lCache", {
 
 function devSettings(SettingsSection: any) {
   const settings = new SettingsSection(
-    "Spicy Lyrics - Developer Settings",
+    t("settings.devSettings.title"),
     "spicy-lyrics-dev-settings"
   );
 
   settings.addButton(
     "remove-current-lyrics-all-caches",
-    "Clear Lyrics for the current song from all caches",
-    "Clear",
+    t("settings.devSettings.clearCurrentAllCaches"),
+    t("settings.devSettings.clearButton"),
     async () => await RemoveCurrentLyrics_AllCaches(true)
   );
 
   settings.addButton(
     "remove-cached-lyrics",
-    "Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)",
-    "Clear Cached Lyrics",
+    t("settings.devSettings.clearCachedLyrics"),
+    t("settings.devSettings.clearCachedLyricsButton"),
     async () => await RemoveLyricsCache(true)
   );
 
   settings.addButton(
     "remove-current-song-lyrics-from-localStorage",
-    "Clear Current Song Lyrics from internal state",
-    "Clear Current Lyrics",
+    t("settings.devSettings.clearCurrentInternal"),
+    t("settings.devSettings.clearCurrentLyricsButton"),
     () => RemoveCurrentLyrics_StateCache(true)
   );
 
-  settings.addToggle("dev-mode", "Dev Mode", Defaults.DevMode, () => {
+  settings.addToggle("dev-mode", t("settings.devSettings.devMode"), Defaults.DevMode, () => {
     storage.set("devMode", settings.getFieldValue("dev-mode") as string);
     window.location.reload();
   });
@@ -57,11 +58,11 @@ function devSettings(SettingsSection: any) {
 }
 
 function generalSettings(SettingsSection: any) {
-  const settings = new SettingsSection("Spicy Lyrics", "spicy-lyrics-settings");
+  const settings = new SettingsSection(t("settings.general.title"), "spicy-lyrics-settings");
 
   settings.addToggle(
     "static-background",
-    "Static Background",
+    t("settings.general.staticBackground"),
     Defaults.StaticBackground_Preset,
     () => {
       storage.set("staticBackground", settings.getFieldValue("static-background") as string);
@@ -70,8 +71,8 @@ function generalSettings(SettingsSection: any) {
 
   settings.addDropDown(
     "static-background-type",
-    "Static Background Type (Only works when Static Background is Enabled)",
-    ["Auto", "Artist Header Visual", "Cover Art", "Color"],
+    t("settings.general.staticBackgroundType"),
+    [t("settings.general.staticBackgroundTypes.auto"), t("settings.general.staticBackgroundTypes.artistHeader"), t("settings.general.staticBackgroundTypes.coverArt"), t("settings.general.staticBackgroundTypes.color")],
     Defaults.StaticBackgroundType_Preset,
     () => {
       storage.set(
@@ -81,21 +82,21 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
-  settings.addToggle("simple-lyrics-mode", "Simple Lyrics Mode", Defaults.SimpleLyricsMode, () => {
+  settings.addToggle("simple-lyrics-mode", t("settings.general.simpleLyricsMode"), Defaults.SimpleLyricsMode, () => {
     storage.set("simpleLyricsMode", settings.getFieldValue("simple-lyrics-mode") as string);
   });
 
   settings.addDropDown(
     "simple-lyrics-mode-rendering-type",
-    "Simple Lyrics Mode - Rendering Type",
-    ["Calculate (More performant)", "Animate (Legacy, More laggier)"],
+    t("settings.general.simpleLyricsModeRenderingType"),
+    [t("settings.general.simpleLyricsModeRenderingTypes.calculate"), t("settings.general.simpleLyricsModeRenderingTypes.animate")],
     Defaults.SimpleLyricsMode_RenderingType_Default,
     () => {
       const value = settings.getFieldValue("simple-lyrics-mode-rendering-type") as string;
       const processedValue =
-        value === "Calculate (More performant)"
+        value === t("settings.general.simpleLyricsModeRenderingTypes.calculate")
           ? "calculate"
-          : value === "Animate (Legacy, More laggier)"
+          : value === t("settings.general.simpleLyricsModeRenderingTypes.animate")
             ? "animate"
             : "calculate";
       storage.set("simpleLyricsModeRenderingType", processedValue);
@@ -104,20 +105,20 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "minimal-lyrics-mode",
-    "Minimal Lyrics Mode (Only in Fullscreen/Cinema View)",
+    t("settings.general.minimalLyricsMode"),
     Defaults.MinimalLyricsMode,
     () => {
       storage.set("minimalLyricsMode", settings.getFieldValue("minimal-lyrics-mode") as string);
     }
   );
 
-  settings.addToggle("skip-spicy-font", "Skip Spicy Font*", Defaults.SkipSpicyFont, () => {
+  settings.addToggle("skip-spicy-font", t("settings.general.skipSpicyFont"), Defaults.SkipSpicyFont, () => {
     storage.set("skip-spicy-font", settings.getFieldValue("skip-spicy-font") as string);
   });
 
   settings.addToggle(
     "old-style-font",
-    "Old Style Font (Gets Overriden by the previous option)",
+    t("settings.general.oldStyleFont"),
     Defaults.OldStyleFont,
     () => {
       storage.set("old-style-font", settings.getFieldValue("old-style-font") as string);
@@ -126,7 +127,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "show_topbar_notifications",
-    "Show Topbar Notifications",
+    t("settings.general.showTopbarNotifications"),
     Defaults.show_topbar_notifications,
     () => {
       storage.set(
@@ -138,7 +139,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "hide_npv_bg",
-    "Hide Now Playing View Dynamic Background",
+    t("settings.general.hideNPVBg"),
     Defaults.hide_npv_bg,
     () => {
       storage.set("hide_npv_bg", settings.getFieldValue("hide_npv_bg") as string);
@@ -147,7 +148,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "lock_mediabox",
-    "Lock the MediaBox size while in Forced Compact Mode",
+    t("settings.general.lockMediaBox"),
     Defaults.CompactMode_LockedMediaBox,
     () => {
       storage.set("lockedMediaBox", settings.getFieldValue("lock_mediabox") as string);
@@ -156,15 +157,15 @@ function generalSettings(SettingsSection: any) {
 
   settings.addDropDown(
     "lyrics-renderer",
-    "Lyrics Renderer",
-    ["Spicy Lyrics (Default) (Stable)", "AML Lyrics (Experimental) (Unstable)"],
+    t("settings.general.lyricsRenderer"),
+    [t("settings.general.lyricsRendererTypes.spicy"), t("settings.general.lyricsRendererTypes.aml")],
     Defaults.LyricsRenderer_Default,
     () => {
       const value = settings.getFieldValue("lyrics-renderer") as string;
       const processedValue =
-        value === "Spicy Lyrics (Default) (Stable)"
+        value === t("settings.general.lyricsRendererTypes.spicy")
           ? "Spicy"
-          : value === "AML Lyrics (Experimental) (Unstable)"
+          : value === t("settings.general.lyricsRendererTypes.aml")
             ? "aml-lyrics"
             : "Spicy";
       storage.set("lyricsRenderer", processedValue);
@@ -173,7 +174,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "disable-popup-lyrics",
-    "Disable Popup Lyrics",
+    t("settings.general.disablePopupLyrics"),
     !Defaults.PopupLyricsAllowed,
     () => {
       storage.set("disablePopupLyrics", settings.getFieldValue("disable-popup-lyrics") as string);
@@ -182,8 +183,8 @@ function generalSettings(SettingsSection: any) {
 
   settings.addDropDown(
     "viewcontrols-position",
-    "View Controls Position",
-    ["Top", "Bottom"],
+    t("settings.general.viewControlsPosition"),
+    [t("settings.general.viewControlsPositions.top"), t("settings.general.viewControlsPositions.bottom")],
     Defaults.ViewControlsPosition,
     () => {
       storage.set(
@@ -193,14 +194,52 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
-  settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
+  settings.addToggle("settings-on-top", t("settings.general.settingsOnTop"), Defaults.SettingsOnTop, () => {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
+  // Language Settings
+  settings.addToggle(
+    "auto-language",
+    t("settings.language.autoLanguage"),
+    storage.get("autoLanguage") !== "false",
+    () => {
+      const isAuto = settings.getFieldValue("auto-language") as boolean;
+      storage.set("autoLanguage", String(isAuto));
+      if (isAuto) {
+        const spotifyLang = getSpotifyLanguage();
+        setLanguage(spotifyLang).then(() => {
+          window.location.reload();
+        });
+      }
+    }
+  );
+
+  const languageOptions = Object.entries(AVAILABLE_LANGUAGES).map(([code, name]) => name);
+  const currentLangCode = storage.get("language") || "en";
+  const currentLangName = AVAILABLE_LANGUAGES[currentLangCode as keyof typeof AVAILABLE_LANGUAGES] || "English";
+
+  settings.addDropDown(
+    "manual-language",
+    t("settings.language.selectLanguage"),
+    languageOptions,
+    currentLangName,
+    () => {
+      const selectedName = settings.getFieldValue("manual-language") as string;
+      const selectedCode = Object.entries(AVAILABLE_LANGUAGES).find(([_, name]) => name === selectedName)?.[0];
+      if (selectedCode) {
+        storage.set("autoLanguage", "false");
+        setLanguage(selectedCode).then(() => {
+          window.location.reload();
+        });
+      }
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
-    "Save your current settings and reload.",
-    "Save & Reload",
+    t("settings.general.saveAndReload"),
+    t("settings.general.saveAndReloadButton"),
     () => {
       window.location.reload();
     }
