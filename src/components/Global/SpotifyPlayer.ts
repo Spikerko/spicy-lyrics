@@ -184,6 +184,31 @@ export const SpotifyPlayer = {
   GetAlbumName: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.metadata?.album_title;
   },
+  GetAlbumUri: (): string | undefined => {
+    return Spicetify?.Player?.data?.item?.metadata?.album_uri;
+  },
+  GetAlbumReleaseYear: async (): Promise<string | undefined> => {
+    try {
+      const albumUri = SpotifyPlayer.GetAlbumUri();
+      if (!albumUri) return undefined;
+      
+      const albumId = albumUri.split(":")[2];
+      if (!albumId) return undefined;
+      
+      const response = await SpotifyFetch(`https://api.spotify.com/v1/albums/${albumId}`);
+      if (!response.ok) return undefined;
+      
+      const albumData = await response.json();
+      if (albumData?.release_date) {
+        
+        return albumData.release_date.split("-")[0];
+      }
+      return undefined;
+    } catch (error) {
+      console.error("Error fetching album release year:", error);
+      return undefined;
+    }
+  },
   GetId: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.uri?.split(":")[2];
   },

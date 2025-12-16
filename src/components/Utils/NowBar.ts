@@ -15,6 +15,7 @@ import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
 import { isSpicySidebarMode } from "./SidebarLyrics.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 
+
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
   Apply: () => void;
@@ -1059,7 +1060,14 @@ function UpdateNowBar(force = false) {
   const artists = SpotifyPlayer.GetArtists();
   if (artists && ArtistsSpan && contentType !== "episode") {
     const processedArtists = artists.map((artist) => artist.name)?.join(", ");
-    ArtistsSpan.textContent = processedArtists ?? "";
+    
+    SpotifyPlayer.GetAlbumReleaseYear().then((year) => {
+      if (year && ArtistsSpan) {
+        ArtistsSpan.innerHTML = `${processedArtists} <b>·</b> ${year}`;
+      } else {
+        ArtistsSpan.textContent = processedArtists ?? "";
+      }
+    });
   }
 }
 
