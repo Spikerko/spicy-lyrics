@@ -1,1 +1,1 @@
-import("https://public.storage.spicylyrics.org/entrypoint.mjs");
+import("https://public.storage.spicylyrics.org/2/entrypoint.mjs");
