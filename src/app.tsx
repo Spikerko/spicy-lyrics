@@ -193,7 +193,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.25";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.55";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
