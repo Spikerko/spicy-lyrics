@@ -70,7 +70,7 @@ export async function SendJob(
   const primary = Defaults.lyrics.api.url;
   const fallbacks = [
     "https://coregateway.spicylyrics.org",
-    "https://lcgateway.spicylyrics.org",
+    "https://lcgateway.spikerko.org",
   ];
 
   // Try first host
