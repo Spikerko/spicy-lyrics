@@ -122,7 +122,7 @@ async function fetchAllSpotifyTracks(
   const trackArrays: SpotifyTrack[][] = await Promise.all(
     batches.map(async (ids) => {
       const req = await SpotifyFetch(
-        `https://api.spotify.com/v1/tracks/${ids.join(",")}`
+        `https://api.spotify.com/v1/tracks?ids=${ids.join(",")}`
       );
       const response = await req.json();
       return response.tracks && Array.isArray(response.tracks)
