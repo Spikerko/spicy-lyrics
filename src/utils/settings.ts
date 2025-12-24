@@ -154,22 +154,25 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
-  settings.addDropDown(
-    "lyrics-renderer",
-    "Lyrics Renderer",
-    ["Spicy Lyrics (Default) (Stable)", "AML Lyrics (Experimental) (Unstable)"],
-    Defaults.LyricsRenderer_Default,
-    () => {
-      const value = settings.getFieldValue("lyrics-renderer") as string;
-      const processedValue =
-        value === "Spicy Lyrics (Default) (Stable)"
-          ? "Spicy"
-          : value === "AML Lyrics (Experimental) (Unstable)"
-            ? "aml-lyrics"
-            : "Spicy";
-      storage.set("lyricsRenderer", processedValue);
-    }
-  );
+  // Force lyrics renderer to Spicy
+  storage.set("lyricsRenderer", "Spicy");
+
+  // settings.addDropDown(
+  //   "lyrics-renderer",
+  //   "Lyrics Renderer",
+  //   ["Spicy Lyrics (Default) (Stable)", "AML Lyrics (Experimental) (Unstable)"],
+  //   Defaults.LyricsRenderer_Default,
+  //   () => {
+  //     const value = settings.getFieldValue("lyrics-renderer") as string;
+  //     const processedValue =
+  //       value === "Spicy Lyrics (Default) (Stable)"
+  //         ? "Spicy"
+  //         : value === "AML Lyrics (Experimental) (Unstable)"
+  //           ? "aml-lyrics"
+  //           : "Spicy";
+  //     storage.set("lyricsRenderer", processedValue);
+  //   }
+  // );
 
   settings.addToggle(
     "disable-popup-lyrics",
