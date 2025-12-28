@@ -2,14 +2,13 @@ import { Timeout } from "@socali/modules/Scheduler";
 import { Signal } from "@socali/modules/Signal";
 import { Spicetify } from "@spicetify/bundler";
 import {
-  type CoverArtCache,
+  //type CoverArtCache,
   DynamicBackground,
   type DynamicBackgroundOptions,
 } from "@spikerko/tools/DynamicBackground";
-import TempoPlugin from "@spikerko/tools/TempoPlugin";
 import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
-import Platform from "../Global/Platform.ts";
+//import Platform from "../Global/Platform.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "./ArtistVisuals/Main.ts";
 import { PageContainer } from "../Pages/PageView.ts";
@@ -20,7 +19,7 @@ export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
   transition: Defaults.PrefersReducedMotion ? 0 : 1.5,
   blur: 45,
   speed: 0.25,
-  plugins: [
+  /* plugins: [
     TempoPlugin({
       SongChangeSignal,
       getSongId: () => SpotifyPlayer.GetId() ?? "",
@@ -33,7 +32,7 @@ export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
       minSpeed: 0.25,
       maxSpeed: 1.85,
     }),
-  ],
+  ], */
   cacheLimit: 5,
 };
 // Store the DynamicBackground instance and element for reuse
