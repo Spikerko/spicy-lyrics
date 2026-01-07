@@ -11,9 +11,12 @@
     "@spikerko/tools": "jsr:@spikerko/tools@^1.6.0",
     "@spikerko/web-modules": "jsr:@spikerko/web-modules@^1.0.5",
     "@tanstack/react-query": "npm:@tanstack/react-query@^5.90.2",
+    "@types/semver": "npm:@types/semver@^7.7.1",
     "fast-xml-parser": "npm:fast-xml-parser@^5.2.5",
     "react": "npm:react@^19.1.1",
-    "react-dom": "npm:react-dom@^19.1.1"
+    "react-dom": "npm:react-dom@^19.1.1",
+    "semver": "npm:semver@^7.7.3",
+    "socket.io-client": "npm:socket.io-client@^4.8.3"
   },
   "compilerOptions": {
     "lib": ["deno.window", "dom", "es2020"],

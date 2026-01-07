@@ -111,19 +111,19 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
       These lyrics have been provided by our community
     </span>
     ${
-      data.TTMLUploadMetadata?.Uploader?.username && data.TTMLUploadMetadata?.Uploader?.avatar
+      data.TTMLUploadMetadata?.Maker?.username && data.TTMLUploadMetadata?.Maker?.avatar
         ? `
-        <span class="Uploader">
-          <span><span style="opacity: 0.5;">Uploaded${!data.TTMLUploadMetadata.Maker?.username ? " and Made" : ""} by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Uploader.username} <span>${data.TTMLUploadMetadata.Uploader.avatar ? `<img src="${data.TTMLUploadMetadata.Uploader.avatar}" alt="${data.TTMLUploadMetadata.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
+        <span class="Maker">
+          <span><span style="opacity: 0.5;">Made by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Maker.username} <span>${data.TTMLUploadMetadata.Maker.avatar ? `<img src="${data.TTMLUploadMetadata.Maker.avatar}" alt="${data.TTMLUploadMetadata.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
         </span>
         `.trim()
         : ""
     }
     ${
-      data.TTMLUploadMetadata?.Maker?.username && data.TTMLUploadMetadata?.Maker?.avatar
+      data.TTMLUploadMetadata?.Uploader?.username && data.TTMLUploadMetadata?.Uploader?.avatar
         ? `
-        <span class="Maker">
-          <span><span style="opacity: 0.5;">Made by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Maker.username} <span>${data.TTMLUploadMetadata.Maker.avatar ? `<img src="${data.TTMLUploadMetadata.Maker.avatar}" alt="${data.TTMLUploadMetadata.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
+        <span class="Uploader">
+          <span><span style="opacity: 0.5;">${!data.TTMLUploadMetadata.Maker?.username ? "Made by" : "Uploaded by"} </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Uploader.username} <span>${data.TTMLUploadMetadata.Uploader.avatar ? `<img src="${data.TTMLUploadMetadata.Uploader.avatar}" alt="${data.TTMLUploadMetadata.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
         </span>
         `.trim()
         : ""

@@ -1,5 +1,5 @@
 import { Spicetify } from "@spicetify/bundler";
-import { SendJob } from "../../utils/API/SendJob.ts";
+import { Query } from "../../utils/API/Query.ts";
 import Defaults from "./Defaults.ts";
 import Global from "./Global.ts";
 
@@ -75,14 +75,14 @@ const Session = {
       return Session.SpicyLyrics.ParseVersion(Defaults.SpicyLyricsVersion);
     },
     GetLatestVersion: async (): Promise<VersionParsedData> => {
-      const res = await SendJob([
+      const res = await Query([
         {
-          handler: "ext_version",
+          operation: "ext_version",
         },
       ]);
       const versionJob = res.get("0");
-      if (!versionJob || versionJob.status !== 200 || versionJob.type !== "text") return undefined;
-      const data = versionJob.responseData;
+      if (!versionJob || versionJob.httpStatus !== 200 || versionJob.format !== "text") return undefined;
+      const data = versionJob.data;
       return Session.SpicyLyrics.ParseVersion(data);
     },
     IsOutdated: async (): Promise<boolean> => {

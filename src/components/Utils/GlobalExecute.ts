@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-case-declarations
 import { parseTTML } from "../../edited_packages/applemusic-like-lyrics-lyric/parser.ts";
-import { SendJob } from "../../utils/API/SendJob.ts";
+import { Query } from "../../utils/API/Query.ts";
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
 import ApplyLyrics, { currentLyricsPlayer } from "../../utils/Lyrics/Global/Applyer.ts";
 import { ProcessLyrics } from "../../utils/Lyrics/ProcessLyrics.ts";
@@ -82,36 +82,36 @@ Global.SetScope("execute", (command: string) => {
 
 async function ParseTTML(ttml: string): Promise<any | null> {
   try {
-    const jobResponse = await SendJob([
+    const query = await Query([
       {
-        handler: "PARSE_TTML",
-        args: {
+        operation: "parseTTML",
+        variables: {
           ttml,
         },
       },
     ]);
-    const job = jobResponse.get("0");
-    if (!job) {
+    const queryResult = query.get("0");
+    if (!queryResult) {
       return null;
     }
 
-    if (job.status !== 200) {
+    if (queryResult.httpStatus !== 200) {
       return null;
     }
 
-    if (!job.responseData) {
+    if (!queryResult.data) {
       return null;
     }
 
-    if (job.type !== "json") {
+    if (queryResult.format !== "json") {
       return null;
     }
 
-    if (job.responseData.error) {
+    if (queryResult.data.error) {
       return null;
     }
 
-    return job.responseData;
+    return queryResult.data;
   } catch (error) {
     console.error("Error parsing TTML:", error);
     ShowNotification("Error parsing TTML", "error", 5000);

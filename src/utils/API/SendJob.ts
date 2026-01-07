@@ -63,7 +63,7 @@ export interface JobResultGetter {
   get(handler: string): JobResult | undefined;
 }
 
-export async function SendJob(
+async function SendJob(
   jobs: Job[],
   headers: Record<string, string> = {}
 ): Promise<JobResultGetter> {

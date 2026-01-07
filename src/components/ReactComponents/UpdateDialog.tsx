@@ -10,7 +10,7 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyric
     <div className="update-card-wrapper slm">
       <h2 className="header">Spicy Lyrics has been successfully updated!</h2>
       <div className="card version">
-        Version: {previousVersion || "Freshly new"} → {spicyLyricsVersion || "Unknown"}
+        Version: {previousVersion ? `${previousVersion} → ` : ""}{spicyLyricsVersion || "Unknown"}
       </div>
       <button
         className="card btn btn-release"
@@ -28,7 +28,6 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyric
         onClick={() => window.open("https://discord.com/invite/uqgXU5wh8j", "_blank")}
       >
         <p>Join our Discord Server! →</p>
-        <p style={{ opacity: "0.45", marginTop: "0.25cqh" }}>Help our community grow by boosting our Discord server 🚀!</p>
       </button>
     </div>
   );
