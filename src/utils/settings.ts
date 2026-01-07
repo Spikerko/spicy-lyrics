@@ -161,7 +161,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addDropDown(
     "lyrics-renderer",
-    "Lyrics Renderer",
+    "Lyrics Renderer (Deprecated - will not work)",
     ["Spicy Lyrics (Default) (Stable)", "AML Lyrics (Experimental) (Unstable)"],
     Defaults.LyricsRenderer_Default,
     () => {
