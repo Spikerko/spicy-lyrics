@@ -5,7 +5,7 @@ import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../components/Utils/Fullscreen.ts";
-import { SendJob } from "../API/SendJob.ts";
+import { Query } from "../API/Query.ts";
 import { SetWaitingForHeight } from "../Scrolling/ScrollToActiveLine.ts";
 import storage from "../storage.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
@@ -13,7 +13,7 @@ import { ProcessLyrics } from "./ProcessLyrics.ts";
 export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
   Unit: "Days",
   Duration: 3,
-}, isDev);
+}, isDev as true);
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
   const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
@@ -160,11 +160,11 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     let lyricsText = "";
     let status = 0;
 
-    const jobs = await SendJob(
+    const queries = await Query(
       [
         {
-          handler: "lyrics",
-          args: {
+          operation: "lyrics",
+          variables: {
             id: trackId,
             auth: "SpicyLyrics-WebAuth",
           },
@@ -175,21 +175,21 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       }
     );
 
-    const lyricsJob = jobs.get("0");
-    if (!lyricsJob) {
-      console.error("Lyrics job not found");
+    const lyricsQuery = queries.get("0");
+    if (!lyricsQuery) {
+      console.error("[Spicy Lyrics] Lyrics query not found");
       HideLoaderContainer();
       storage.set("currentlyFetching", "false");
       return ["lyrics-not-found", 404];
     }
 
-    status = lyricsJob.status;
+    status = lyricsQuery.httpStatus;
 
-    if (lyricsJob.type !== "json") {
+    if (lyricsQuery.format !== "json") {
       lyricsText = "";
     }
 
-    lyricsText = JSON.stringify(lyricsJob.responseData);
+    lyricsText = JSON.stringify(lyricsQuery.data);
 
     if (status !== 200) {
       if (status === 404) {

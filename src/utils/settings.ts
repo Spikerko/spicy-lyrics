@@ -48,8 +48,13 @@ function devSettings(SettingsSection: any) {
     () => RemoveCurrentLyrics_StateCache(true)
   );
 
-  settings.addToggle("dev-mode", "Dev Mode", Defaults.DevMode, () => {
+  settings.addToggle("dev-mode", "TTML Maker mode (previously Dev Mode)", Defaults.DevMode, () => {
     storage.set("devMode", settings.getFieldValue("dev-mode") as string);
+    window.location.reload();
+  });
+
+  settings.addToggle("developer-mode", "Developer Mode", Defaults.DeveloperMode, () => {
+    storage.set("developerMode", settings.getFieldValue("developer-mode") as string);
     window.location.reload();
   });
 

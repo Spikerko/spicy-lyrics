@@ -1,0 +1,74 @@
+.SL_ci_tippywrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .ci_tippy_lbtext {
+        filter: brightness(0.7);
+        font-size: 0.75rem;
+    }
+}
+
+.SL_ConnectionIndicator {
+    margin-left: 12px;
+    width: 135px;
+
+    .ci_root_wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        filter: brightness(0.7);
+
+        .ci_title {
+            font-size: 0.75rem;
+        }
+
+        .ci_title_sm {
+            font-size: 0.6rem;
+        }
+
+        .ci_latency_wrapper {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.75rem;
+
+            .ci_latency_value:has(svg) {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                filter: brightness(1.7);
+            }
+
+            .ci_latency_colori {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                --coloring: gray;
+                background-color: var(--coloring);
+
+                &.cs_great {
+                    --coloring: #33d17a;
+                }
+
+                &.cs_ok {
+                    --coloring: #ffe666;
+                }
+
+                &.cs_bad {
+                    --coloring: #ff944d;
+                }
+
+                &.cs_horrible {
+                    --coloring: #e74c3c;
+                }
+            }
+        }
+    }
+
+}
+

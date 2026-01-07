@@ -30,6 +30,7 @@ const Defaults = {
   PopupLyricsAllowed: true,
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
+  DeveloperMode: false,
 };
 
 export default Defaults;

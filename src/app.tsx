@@ -51,7 +51,6 @@ import { ScrollingIntervalTime } from "./utils/Lyrics/lyrics.ts";
 import { ScrollToActiveLine } from "./utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts";
 // Unused import removed: import sleep from "./utils/sleep";
-import Sockets from "./utils/Sockets/main.ts";
 import { setSettingsMenu } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
@@ -62,6 +61,8 @@ import { QueryClient } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { actions } from "./actions.ts";
+import { connectionIndicatorInit } from "./utils/connectionIndicatorTool.ts";
+import "./utils/Socket/main.ts";
 
 export const reactQueryClient = new QueryClient();
 
@@ -193,7 +194,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.55";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.62";
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -577,8 +578,6 @@ async function main() {
   }
 
   const Hometinue = async () => {
-    await Sockets.all.ConnectSockets();
-
     Whentil.When(
       () => Spicetify.Platform.PlaybackAPI,
       () => {
@@ -1033,6 +1032,8 @@ async function main() {
   }
 }
 
-
-
 main();
+
+if (storage.get("developerMode") === "true") {
+  connectionIndicatorInit();
+}

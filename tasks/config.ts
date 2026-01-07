@@ -1,3 +1,3 @@
 export const ProjectName = "spicy-lyrics";
 
-export const ProjectVersion = "5.18.61";
+export const ProjectVersion = "5.19.0";

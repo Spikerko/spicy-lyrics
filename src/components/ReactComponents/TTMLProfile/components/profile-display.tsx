@@ -1,9 +1,8 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { SendJob } from "../../../../utils/API/SendJob.ts";
+import { Query } from "../../../../utils/API/Query.ts";
 import { Spicetify } from "@spicetify/bundler";
 import { PopupModal } from "../../../Modal.ts";
-import { SpotifyFetch } from "../../../Global/SpotifyFetch.ts";
 
 // ErrorBoundary wrapper for safest rendering
 class ErrorBoundary extends React.Component {
@@ -112,25 +111,15 @@ function validTrackIds(ids: string[]): string[] {
 
 // Fetch tracks from Spotify API in batches of 50 (unchanged)
 async function fetchAllSpotifyTracks(
-  allIds: string[]
-): Promise<SpotifyTrack[]> {
-  const batchSize = 50;
-  const batches: string[][] = [];
-  for (let i = 0; i < allIds.length; i += batchSize) {
-    batches.push(allIds.slice(i, i + batchSize));
-  }
-  const trackArrays: SpotifyTrack[][] = await Promise.all(
-    batches.map(async (ids) => {
-      const req = await SpotifyFetch(
-        `https://api.spotify.com/v1/tracks?ids=${ids.join(",")}`
-      );
-      const response = await req.json();
-      return response.tracks && Array.isArray(response.tracks)
-        ? response.tracks
-        : [];
-    })
-  );
-  return trackArrays.flat();
+  userId: string
+): Promise<any> {
+  const data = await Query([
+    {
+      operation: "ttmlProfileTracks",
+      variables: { userId },
+    },
+  ])
+  return data.get("0").data;
 }
 
 // Sort by view_count descending
@@ -219,27 +208,27 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
   const userQuery = useQuery<TTMLProfileResponse, Error>({
     queryKey: ["ttml-user-query", userId],
     queryFn: async () => {
-      const req = await SendJob([
+      const req = await Query([
         {
-          handler: "ttmlProfile",
-          args: { userId, referrer: "lyricsCreditsView" },
+          operation: "ttmlProfile",
+          variables: { userId, referrer: "lyricsCreditsView" },
         },
       ]);
       const profile = req.get("0");
       if (!profile) throw new Error("ttmlProfile not found in response");
-      if (profile.status !== 200)
-        throw new Error(`ttmlProfile returned status ${profile.status}`);
-      if (profile.type !== "json")
+      if (profile.httpStatus !== 200)
+        throw new Error(`ttmlProfile returned status ${profile.httpStatus}`);
+      if (profile.format !== "json")
         throw new Error(
-          `ttmlProfile returned type ${profile.type}, expected json`
+          `ttmlProfile returned type ${profile.format}, expected json`
         );
-      if (!profile.responseData)
+      if (!profile.data)
         throw new Error("ttmlProfile responseData is missing");
-      if (!profile.responseData?.profile?.data)
+      if (!profile.data?.profile?.data)
         throw Object.assign(new Error("ttmlProfile doesn't exist"), {
           noRetry: true,
         });
-      return profile.responseData;
+      return profile.data;
     },
     // deno-lint-ignore no-explicit-any
     retry(failureCount, error: any) {
@@ -286,18 +275,17 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
     return Array.from(uniqSet).sort();
   }, [perUser.makes, perUser.uploads]);
 
-  const tracksQuery = useQuery<SpotifyTrack[], Error>({
-    queryKey: ["spotify-tracks", allIds],
-    queryFn: () =>
-      allIds.length > 0 ? fetchAllSpotifyTracks(allIds) : Promise.resolve([]),
+  const tracksQuery = useQuery<any, Error>({
+    queryKey: ["spotify-tracks", userId],
+    queryFn: () => fetchAllSpotifyTracks(userId),
     enabled: userQuery.isSuccess && allIds.length > 0,
     retry: 3,
     staleTime: 120 * 60 * 1000,
   });
 
   const trackMap = React.useMemo(() => {
-    const map = new Map<string, SpotifyTrack>();
-    (tracksQuery.data ?? []).forEach((t) => t && t.id && map.set(t.id, t));
+    const map = new Map<string, any>();
+    (tracksQuery.data?.data ?? []).forEach((t) => t && t.id && map.set(t.id, t));
     return map;
   }, [tracksQuery.data]);
 
