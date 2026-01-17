@@ -1,11 +1,19 @@
 # Spicy Lyrics
 
-#### Check out our [YourSite.ee](https://yoursit.ee/lyrics)!
+### Check out our *[Sitee](https://yoursit.ee/lyrics)*
+#### Make your own at -> [https://yoursit.ee](https://yoursit.ee)
 
-## How to install Spicy Lyrics Externally!
-1. Make sure to have [Spicetify](https://spicetify.app) installed
+# How to install Spicy Lyrics
+
+## 1. Using the Spicetify Marketplace (recommended)
+1. Search `Spicy Lyrics` under the "Extensions" tab
+2. Click the Install button on the Spicy Lyrics extension
+3. All done!
+
+## 2. Externally (not recommended)
+1. Make sure you have [Spicetify](https://spicetify.app) installed
 2. Download the [spicy-lyrics.mjs](./builds/spicy-lyrics.mjs) file
-3. Put the file inside the Spicetify Extensions directory. Find the correct directory here: [https://spicetify.app/docs/advanced-usage/extensions](https://spicetify.app/docs/advanced-usage/extensions)
+3. Put the file inside the Spicetify Extensions directory. Find the correct directory here: [https://spicetify.app/docs/customization/extensions#manual-installation](https://spicetify.app/docs/customization/extensions#manual-installation)
 4. Then, run ```spicetify config extensions spicy-lyrics.mjs```
 5. Then apply Spicetify by running ```spicetify apply```
 6. All done!
@@ -19,4 +27,4 @@ I've seen a problem with the Spotify Lyrics. They're plain, just static colors. 
 ![Extension Example](./previews/page.gif)
 
 
-*Inspired by [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics) by [@surfbryce](https://github.com/surfbryce)*
+*Inspired by [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics)*

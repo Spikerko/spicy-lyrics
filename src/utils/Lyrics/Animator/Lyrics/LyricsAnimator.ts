@@ -191,7 +191,7 @@ const SungLetterGlow = 0.2;
 // Promote an element to its own compositor layer for GPU-accelerated animations
 function promoteToGPU(el: HTMLElement): void {
   // Hint to the browser that transform and opacity will change frequently
-  el.style.willChange = "transform, opacity";
+  el.style.willChange = "transform, opacity, text-shadow, scale";
   // Avoid costly repaints due to backface rendering
   el.style.backfaceVisibility = "hidden";
 }
@@ -199,7 +199,7 @@ function promoteToGPU(el: HTMLElement): void {
 // Variant that also hints filter changes (useful for blur)
 function promoteToGPUWithFilter(el: HTMLElement): void {
   const existing = el.style.willChange?.trim();
-  const desired = "transform, opacity, filter";
+  const desired = "transform, opacity, text-shadow, scale, filter";
   if (!existing || existing.indexOf("filter") === -1) {
     el.style.willChange = desired;
   }
@@ -477,8 +477,7 @@ function getProgressPercentage(currentTime: number, startTime: number, endTime: 
 
 let lastAnimateFrameTime = 0;
 
-// Configurable frame limiter: default to 15 FPS
-let FRAME_INTERVAL_MS = 1000 / 15;
+const FRAME_INTERVAL_MS = 1000 / 50;
 
 /* Global.SetScope("lyrics.animator.set_frame_interval", (input: number) => {
   FRAME_INTERVAL = input;
