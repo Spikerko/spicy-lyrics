@@ -32,7 +32,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 #SpicyLyricsPage.UseSpicyFont *,
 .SpicyLyricsFontPixel,
 .SpicyLyricsFontPixel * {
-  font-family: SpicyLyrics, "Noto Sans Georgian", "VazirmatnRegular" !important;
+  font-family: SpicyLyrics, "Noto Sans Georgian", "VazirmatnRegular", sans-serif !important;
 }
 
 .Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child,

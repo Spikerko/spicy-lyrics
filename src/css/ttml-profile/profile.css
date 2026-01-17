@@ -5,7 +5,7 @@
   max-width: 1200px;
   box-shadow: 0px 6px 18px rgba(var(--spice-rgb-shadow), 0.2);
   padding: 3rem;
-  font-family: SpicyLyrics, var(--encore-body-font-stack);
+  font-family: SpicyLyrics, var(--encore-body-font-stack), sans-serif;
   position: relative;
   z-index: 10;
   min-height: calc(100vh - 10.5rem);
