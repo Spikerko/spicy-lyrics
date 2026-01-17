@@ -604,3 +604,13 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
     transform: rotate(360deg);
   }
 }
+
+.main-embedWidgetGenerator-container:has(.slm.h-92) {
+  --slm-height: 92vh;
+  height: var(--slm-height);
+}
+
+.main-embedWidgetGenerator-container:has(.slm.w-60) {
+  --slm-width: 60vw;
+  width: var(--slm-width);
+}

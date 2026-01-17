@@ -8,7 +8,6 @@ import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Loaders/LoaderContainer.css";
-import "./css/customizer.scss";
 import "./css/font-pack/font-pack.css";
 import "./css/ttml-profile/profile.css";
 
