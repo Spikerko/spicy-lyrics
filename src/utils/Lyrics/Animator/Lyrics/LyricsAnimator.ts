@@ -480,13 +480,6 @@ let lastAnimateFrameTime = 0;
 // Configurable frame limiter: default to 15 FPS
 let FRAME_INTERVAL_MS = 1000 / 15;
 
-// Optional: allow runtime adjustment of the limiter
-export function setFrameLimitFPS(fps: number): void {
-  // Clamp to reasonable bounds to avoid extreme values
-  const clamped = Clamp(fps, 10, 180);
-  FRAME_INTERVAL_MS = 1000 / clamped;
-}
-
 /* Global.SetScope("lyrics.animator.set_frame_interval", (input: number) => {
   FRAME_INTERVAL = input;
 }) */
