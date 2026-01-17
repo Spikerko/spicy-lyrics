@@ -477,7 +477,7 @@ function getProgressPercentage(currentTime: number, startTime: number, endTime: 
 
 let lastAnimateFrameTime = 0;
 
-// Configurable frame limiter: default to 30 FPS
+// Configurable frame limiter: default to 15 FPS
 let FRAME_INTERVAL_MS = 1000 / 15;
 
 // Optional: allow runtime adjustment of the limiter
