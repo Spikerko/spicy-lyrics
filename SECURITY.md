@@ -3,7 +3,22 @@
 ## Reporting a Vulnerability
 
 If you believe you have discovered a security vulnerability affecting
-any part of this project, please report it responsibly via email.
+any part of this project, please report it responsibly using **one of the
+methods below**.
+
+### Preferred: GitHub Private Vulnerability Reporting
+
+For vulnerabilities affecting repositories hosted on GitHub, please use
+**GitHub’s Private Vulnerability Reporting** feature. This allows you to
+confidentially report security issues directly through the repository,
+without public disclosure.
+
+This is the **recommended** reporting method for GitHub-hosted components.
+
+### Alternative: Email
+
+If GitHub Private Vulnerability Reporting is unavailable or unsuitable
+for your report, you may contact us via email.
 
 **Email:** hi@spicylyrics.org
 
