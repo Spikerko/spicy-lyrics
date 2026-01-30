@@ -1,5 +1,5 @@
 import cyrillicToLatin from "npm:cyrillic-romanization";
-import { francAll } from "npm:franc-all";
+import { franc } from "npm:franc-all";
 import Kuroshiro from "npm:kuroshiro";
 import langs from "npm:langs";
 import { RetrievePackage } from "../ImportPackage.ts";
@@ -210,7 +210,7 @@ export const ProcessLyrics = async (lyrics: any) => {
         textToProcess += `\n${lyrics.Lines[index].Text}`;
       }
 
-      const language = francAll(textToProcess);
+      const language = franc(textToProcess);
       const languageISO2 = langs.where("3", language)?.["1"];
 
       lyrics.Language = language;
@@ -230,7 +230,7 @@ export const ProcessLyrics = async (lyrics: any) => {
       }
       const textToProcess = lines.join("\n");
 
-      const language = francAll(textToProcess);
+      const language = franc(textToProcess);
       const languageISO2 = langs.where("3", language)?.["1"];
 
       lyrics.Language = language;
@@ -258,7 +258,7 @@ export const ProcessLyrics = async (lyrics: any) => {
       }
       const textToProcess = lines.join("\n");
 
-      const language = francAll(textToProcess);
+      const language = franc(textToProcess);
       const languageISO2 = langs.where("3", language)?.["1"];
 
       lyrics.Language = language;
