@@ -5,6 +5,14 @@ import langs from "npm:langs";
 import { RetrievePackage } from "../ImportPackage.ts";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
+import { lyricsBetweenShow } from "./lyrics.ts";
+import { bengaliRomanization } from "./Romanization/bengaliRomanization.ts";
+import { hindiRomanization } from "./Romanization/hindiRomanization.ts";
+import { gujaratiRomanization } from "./Romanization/gujaratiRomanization.ts";
+import { malayalamRomanization } from "./Romanization/malayalamRomanization.ts";
+import { tamilRomanization } from "./Romanization/tamilRomanization.ts";
+import { teluguRomanization } from "./Romanization/teluguRomanization.ts";
+import { punjabiRomanization } from "./Romanization/punjabiRomanization.ts";
 
 // Constants
 const RomajiConverter = new Kuroshiro();
@@ -21,15 +29,21 @@ const CyrillicTextTest = /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]
 // Greek (Basic + Extended)
 const GreekTextTest = /[\u0370-\u03FF\u1F00-\u1FFF]/;
 
+// Indic Scripts
+const HINDI_REGEX = /[\u0900-\u097F]/;
+const PUNJABI_REGEX = /[\u0a00-\u0a7f]/;
+const GUJARATI_REGEX = /[\u0a80-\u0af0]/;
+const MALAYALAM_REGEX = /[\u0d00-\u0d7f]/;
+const TELUGU_REGEX = /[\u0c00-\u0c7f]/;
+const TAMIL_REGEX = /[\u0b80-\u0bff]/;
+const BENGALI_REGEX = /[\u0980-\u09ff]/;
+
 // Load Packages
-RetrievePackage("pinyin", "4.0.0", "mjs")
-  .catch(() => {});
+RetrievePackage("pinyin", "4.0.0", "mjs").catch(() => {});
 
-RetrievePackage("aromanize", "1.0.0", "js")
-  .catch(() => {});
+RetrievePackage("aromanize", "1.0.0", "js").catch(() => {});
 
-RetrievePackage("GreekRomanization", "1.0.0", "js")
-  .catch(() => {});
+RetrievePackage("GreekRomanization", "1.0.0", "js").catch(() => {});
 
 const RomanizeKorean = async (lyricMetadata: any, primaryLanguage: string) => {
   const aromanize = await RetrievePackage("aromanize", "1.0.0", "js");
@@ -106,6 +120,21 @@ const RomanizeGreek = async (lyricMetadata: any, primaryLanguage: string) => {
   }
 };
 
+const GetRomanizeFn = async (lyricMetadata: any, fn: (text: string) => string) => {
+  const result = fn(lyricMetadata.Text);
+  if (result != null) {
+    lyricMetadata.RomanizedText = result;
+  }
+};
+
+const RomanizeHindi = (l: any) => GetRomanizeFn(l, hindiRomanization);
+const RomanizePunjabi = (l: any) => GetRomanizeFn(l, punjabiRomanization);
+const RomanizeMalayalam = (l: any) => GetRomanizeFn(l, malayalamRomanization);
+const RomanizeGujarati = (l: any) => GetRomanizeFn(l, gujaratiRomanization);
+const RomanizeTamil = (l: any) => GetRomanizeFn(l, tamilRomanization);
+const RomanizeTelugu = (l: any) => GetRomanizeFn(l, teluguRomanization);
+const RomanizeBengali = (l: any) => GetRomanizeFn(l, bengaliRomanization);
+
 const Romanize = async (lyricMetadata: any, rootInformation: any): Promise<string | undefined> => {
   const primaryLanguage = rootInformation.Language;
   const iso2Language = rootInformation.LanguageISO2;
@@ -141,6 +170,34 @@ const Romanize = async (lyricMetadata: any, rootInformation: any): Promise<strin
     await RomanizeGreek(lyricMetadata, primaryLanguage);
     rootInformation.IncludesRomanization = true;
     return "Greek";
+  } else if (primaryLanguage === "ben" || BENGALI_REGEX.test(lyricMetadata.Text)) {
+    RomanizeBengali(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "bengali";
+  } else if (primaryLanguage === "guj" || GUJARATI_REGEX.test(lyricMetadata.Text)) {
+    RomanizeGujarati(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "gujarati";
+  } else if (primaryLanguage === "pan" || PUNJABI_REGEX.test(lyricMetadata.Text)) {
+    RomanizePunjabi(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "punjabi";
+  } else if (primaryLanguage === "mal" || MALAYALAM_REGEX.test(lyricMetadata.Text)) {
+    RomanizeMalayalam(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "malayalam";
+  } else if (primaryLanguage === "tam" || TAMIL_REGEX.test(lyricMetadata.Text)) {
+    RomanizeTamil(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "tamil";
+  } else if (primaryLanguage === "tel" || TELUGU_REGEX.test(lyricMetadata.Text)) {
+    RomanizeTelugu(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "telugu";
+  } else if (primaryLanguage === "hin" || HINDI_REGEX.test(lyricMetadata.Text)) {
+    RomanizeHindi(lyricMetadata);
+    rootInformation.IncludesRomanization = true;
+    return "hindi";
   } else {
     rootInformation.IncludesRomanization = false;
     return undefined;
