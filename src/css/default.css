@@ -2,8 +2,7 @@
   --bg-rotation-degree: 258deg;
   --spicy-lyrics-fonts:
     SpicyLyrics, "VazirmatnRegular", "Noto Sans", "Noto Sans Devanagari", "Noto Sans Georgian",
-    "CircularSp-Arab", "CircularSp-Hebr", "CircularSp-Cyrl", "CircularSp-Grek", "CircularSp-Deva"
-    sans-serif;
+    "CircularSp-Arab", "CircularSp-Hebr", "CircularSp-Cyrl", "CircularSp-Grek", "CircularSp-Deva", sans-serif;
 }
 
 .main-nowPlayingView-contextItemInfo::before {
