@@ -66,9 +66,13 @@ interface LyricsData {
   styles?: Record<string, string>;
 }
 
-const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+const segmenter =
+  typeof Intl !== "undefined" && "Segmenter" in Intl
+    ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+    : null;
 const splitByGrapheme = (text: string): string[] => {
-  return Array.from(segmenter.segment(text)).map((s) => s.segment);
+  if (!segmenter) return Array.from(text);
+  return Array.from(segmenter.segment(text), (s) => s.segment);
 };
 
 export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): void {
