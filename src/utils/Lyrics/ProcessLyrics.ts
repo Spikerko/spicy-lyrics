@@ -32,7 +32,7 @@ const GreekTextTest = /[\u0370-\u03FF\u1F00-\u1FFF]/;
 // Indic Scripts
 const HINDI_REGEX = /[\u0900-\u097F]/;
 const PUNJABI_REGEX = /[\u0a00-\u0a7f]/;
-const GUJARATI_REGEX = /[\u0a80-\u0af0]/;
+const GUJARATI_REGEX = /[\u0a80-\u0aff]/;
 const MALAYALAM_REGEX = /[\u0d00-\u0d7f]/;
 const TELUGU_REGEX = /[\u0c00-\u0c7f]/;
 const TAMIL_REGEX = /[\u0b80-\u0bff]/;
