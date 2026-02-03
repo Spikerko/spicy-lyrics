@@ -5,7 +5,7 @@
   max-width: 1200px;
   box-shadow: 0px 6px 18px rgba(var(--spice-rgb-shadow), 0.2);
   padding: 3rem;
-  font-family: SpicyLyrics, var(--encore-body-font-stack), sans-serif;
+  font-family: var(--spicy-lyrics-fonts) !important;
   position: relative;
   z-index: 10;
   min-height: calc(100vh - 10.5rem);
@@ -174,7 +174,9 @@
   margin-left: 18px;
   border-radius: 4px;
   padding: 2px 8px;
-  transition: background 0.14s, color 0.14s;
+  transition:
+    background 0.14s,
+    color 0.14s;
   cursor: pointer;
 }
 
@@ -217,7 +219,6 @@
   border: 1px solid var(--spice-notification-error);
 }
 
-
 .ttml-profile-container:has(.ttml-profile-banner-styled) {
   background: rgba(var(--spice-rgb-highlight), 0.9);
 }
@@ -226,7 +227,8 @@
   overflow: hidden !important;
 }
 
-.main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled) .main-trackCreditsModal-originalCredits {
+.main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)
+  .main-trackCreditsModal-originalCredits {
   background-color: transparent !important;
 }
 
@@ -258,7 +260,6 @@
   z-index: -1;
   background: linear-gradient(to top, var(--spice-player), transparent);
 } */
-
 
 .fixed-node-container {
   position: sticky;
@@ -460,19 +461,22 @@
   --from-color: 0, 0, 0;
   --to-color: 0, 0, 0;
   --bg-rotation: 156deg;
-  background: linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0), linear-gradient(var(--bg-rotation), rgba(var(--from-color), 0.75), rgba(var(--to-color), 0.75));
+  background:
+    linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0),
+    linear-gradient(var(--bg-rotation), rgba(var(--from-color), 0.75), rgba(var(--to-color), 0.75));
   background-attachment: fixed;
 }
 
 .ttml-profile-container.profile-bg-type-static {
   --target-color: 0, 0, 0;
-  background: linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0), linear-gradient(rgba(var(--target-color), 0.75) 0 0);
+  background:
+    linear-gradient(rgba(var(--spice-rgb-highlight), 0.35) 0 0),
+    linear-gradient(rgba(var(--target-color), 0.75) 0 0);
   background-attachment: fixed;
 }
 
-
 .ttml-profile-container {
-  --spice-subtext: rgba(255,255,255,.6) !important;
+  --spice-subtext: rgba(255, 255, 255, 0.6) !important;
   --spice-misc: var(--spice-subtext) !important;
 }
 
@@ -486,7 +490,7 @@
 .ttml-profile-sc-tab-selector {
   background: rgba(var(--spice-rgb-text), 0.1);
   border: 1px solid rgba(var(--spice-rgb-text), 0.1);
-  transition: background .3s ease;
+  transition: background 0.3s ease;
 }
 
 .ttml-profile-header-styled:hover,
@@ -501,7 +505,7 @@
   color: var(--spice-text);
   background: rgba(var(--spice-rgb-button), 0.4);
   padding: 4px 12px;
-  transition: background .3s ease;
+  transition: background 0.3s ease;
 }
 
 .ttml-profile-songlink:focus,

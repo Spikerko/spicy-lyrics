@@ -1,5 +1,8 @@
 :root {
   --bg-rotation-degree: 258deg;
+  --spicy-lyrics-fonts:
+    SpicyLyrics, "VazirmatnRegular", "Noto Sans", "Noto Sans Devanagari", "Noto Sans Georgian",
+    "CircularSp-Arab", "CircularSp-Hebr", "CircularSp-Cyrl", "CircularSp-Grek", "CircularSp-Deva", sans-serif;
 }
 
 .main-nowPlayingView-contextItemInfo::before {
@@ -32,7 +35,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 #SpicyLyricsPage.UseSpicyFont *,
 .SpicyLyricsFontPixel,
 .SpicyLyricsFontPixel * {
-  font-family: SpicyLyrics, "Noto Sans Georgian", "VazirmatnRegular", sans-serif !important;
+  font-family: var(--spicy-lyrics-fonts) !important;
 }
 
 .Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
@@ -68,8 +71,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   top: 24px;
 }
 
-
-
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls::before {
   z-index: -1;
   content: "";
@@ -87,7 +88,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   top: -24px;
   background: linear-gradient(to bottom, var(--spice-main, #000000), transparent);
 }
-
 
 /* :root:has(.SpicyBG.BackgroundLayer)
   body:not(.SpicySidebarLyrics__Active)
@@ -133,7 +133,9 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
   text-align: center;
   -webkit-box-align: center;
   -webkit-box-pack: center;
-  transition: scale 0.25s, opacity 0.2s;
+  transition:
+    scale 0.25s,
+    opacity 0.2s;
   transform-origin: center bottom;
 }
 
@@ -466,8 +468,8 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
 }
 
 .GenericModal__overlay {
-  .main-trackCreditsModal-container:has(.update-card-wrapper){
-    width: min(35rem,60vw);
+  .main-trackCreditsModal-container:has(.update-card-wrapper) {
+    width: min(35rem, 60vw);
   }
   .update-card-wrapper {
     display: flex;
@@ -534,8 +536,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   }
 }
 
-
-
 .GenericModal:has(.slm),
 .GenericModal:has(.slm) .main-trackCreditsModal-container {
   border-radius: 16px;
@@ -544,7 +544,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
 .main-trackCreditsModal-mainSection:has(.slm.scroll-x-hidden) {
   overflow-x: hidden;
 }
-
 
 .Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
   display: none !important;
@@ -575,7 +574,9 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
 .Animated__GenericModal__overlay {
   opacity: 0;
   margin-bottom: -150px;
-  transition: opacity .3s, margin-bottom .3s;
+  transition:
+    opacity 0.3s,
+    margin-bottom 0.3s;
 }
 
 .Animated__GenericModal__overlay.Active {
