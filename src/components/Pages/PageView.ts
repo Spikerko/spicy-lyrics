@@ -937,11 +937,7 @@ export const ShowNotification = (
 ) => {
   const AnySpicetify = Spicetify as any;
   AnySpicetify.Snackbar.enqueueSnackbar(
-    Spicetify.React.createElement("div", {
-      dangerouslySetInnerHTML: {
-        __html: content,
-      },
-    }),
+    Spicetify.React.createElement("div", null, content),
     {
       variant,
       autoHideDuration,
