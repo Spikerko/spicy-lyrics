@@ -54,7 +54,7 @@ export const OpenPopupLyrics = async () => {
       PageView.Destroy();
       Session.GoBack();
     }
-    OpenPopupLyrics();
+    await OpenPopupLyrics();
     return;
   }
 
