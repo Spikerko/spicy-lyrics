@@ -64,7 +64,9 @@ export const OpenPopupLyrics = async () => {
   // @ts-ignore: documentPictureInPicture is not yet standard
   const docPiP = globalThis.documentPictureInPicture;
   if (!docPiP || typeof docPiP.requestWindow !== "function")
-    throw new Error("documentPictureInPicture API is not available in this browser.");
+    throw new Error(
+      "documentPictureInPicture API is not available in this browser.",
+    );
 
   // Open a Picture-in-Picture window.
   // @ts-ignore: requestWindow is not yet standard
@@ -92,8 +94,8 @@ export const OpenPopupLyrics = async () => {
       if (link.href && (isFont || isLocalCss || isUserCss)) {
         const pipLink = document.createElement("link");
         pipLink.rel = "stylesheet";
-        pipLink.type = link.type || 'text/css';
-        pipLink.media = link.media || '';
+        pipLink.type = link.type || "text/css";
+        pipLink.media = link.media || "";
         pipLink.href = link.href;
         // Copy classes if it's a userCSS link
         if (isUserCss) pipLink.className = link.className;
@@ -128,16 +130,49 @@ export const OpenPopupLyrics = async () => {
   }
 
   const additionalStylingElement = document.createElement("style");
+
+  // Keep MediaBox square without changing its natural size.
+  // Fixes flex/grid stretching that turned it rectangular in PiP.
+  // We let width behave as before, force height to follow width (aspect-ratio),
+  // and prevent parent layouts from stretching it or pushing it out of bounds.
   additionalStylingElement.textContent = `
-    .app-drag-region {
-      -webkit-app-region: drag;
-      app-region: drag;
-      position: fixed;
-      height: 40px;
-      inset: 0;
-      width: 100cqw;
+    .app-drag-region{
+      -webkit-app-region:drag;
+      app-region:drag;
+      position:fixed;
+      height:40px;
+      inset:0;
+      width:100cqw;
     }
-  `.replace(/\s+/g, ' ').replace(/;\s*/g, ';').replace(/{\s*/g, '{').replace(/\s*}/g, '}').trim();
+    .spicy-pip-wrapper .Header .MediaBox{
+      position:relative!important;
+      aspect-ratio:1/1!important;
+      height:auto!important;
+      flex:0 0 auto!important;
+      align-self:flex-start!important;
+      max-width:100%!important;
+      max-height:100%!important;
+      overflow:hidden!important;
+    }
+    .spicy-pip-wrapper .Header .MediaBox .MediaImage{
+      position:absolute!important;
+      inset:0!important;
+      width:100%!important;
+      height:100%!important;
+      background-size:cover!important;
+      background-position:center!important;
+      background-repeat:no-repeat!important;
+    }
+    .spicy-pip-wrapper .Header .MediaBox .MediaContent{
+      position:absolute!important;
+      inset:0!important;
+    }
+  `
+    .replace(/\s+/g, " ")
+    .replace(/;\s*/g, ";")
+    .replace(/{\s*/g, "{")
+    .replace(/\s*}/g, "}")
+    .trim();
 
   currentPipWindow.document.head.appendChild(additionalStylingElement);
 
