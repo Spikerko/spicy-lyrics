@@ -145,27 +145,8 @@ export const OpenPopupLyrics = async () => {
       width:100cqw;
     }
     .spicy-pip-wrapper .Header .MediaBox{
-      position:relative!important;
       aspect-ratio:1/1!important;
       height:auto!important;
-      flex:0 0 auto!important;
-      align-self:flex-start!important;
-      max-width:100%!important;
-      max-height:100%!important;
-      overflow:hidden!important;
-    }
-    .spicy-pip-wrapper .Header .MediaBox .MediaImage{
-      position:absolute!important;
-      inset:0!important;
-      width:100%!important;
-      height:100%!important;
-      background-size:cover!important;
-      background-position:center!important;
-      background-repeat:no-repeat!important;
-    }
-    .spicy-pip-wrapper .Header .MediaBox .MediaContent{
-      position:absolute!important;
-      inset:0!important;
     }
   `
     .replace(/\s+/g, " ")
