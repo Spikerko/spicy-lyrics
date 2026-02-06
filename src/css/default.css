@@ -2,9 +2,15 @@
   --bg-rotation-degree: 258deg;
 }
 
-/* Fix for layout thrashing */
+/* Take the elapsed time out of normal layout flow to avoid document-wide reflow
+ * when the text updates every second. The progress bar is offset manually to
+ * preserve spacing.
+ */
+.playback-bar {
+  position: relative;
+}
 .playback-bar > .playback-bar__progress-time-elapsed {
-  height: 16.8px;
+  height: 100%;
   position: absolute;
 }
 .playback-bar > .playback-progressbar-container {
