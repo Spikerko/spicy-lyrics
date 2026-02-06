@@ -2,6 +2,15 @@
   --bg-rotation-degree: 258deg;
 }
 
+/* Fix for layout thrashing */
+.playback-bar > .playback-bar__progress-time-elapsed {
+  height: 16.8px;
+  position: absolute;
+}
+.playback-bar > .playback-progressbar-container {
+  margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
+}
+
 .main-nowPlayingView-contextItemInfo::before {
   display: none;
 }
