@@ -324,16 +324,6 @@ function SetupSongProgressBar(instanceMap: Map<string, any>): SongProgressBarIns
     PositionElem.textContent = formattedPosition;
   };
 
-  const sliderBarHandler = (event: MouseEvent) => {
-    const positionMs = songProgressBar.CalculatePositionFromClick({
-      sliderBar: SliderBar,
-      event: event,
-    });
-    if (typeof SpotifyPlayer !== "undefined" && SpotifyPlayer.Seek) {
-      SpotifyPlayer.Seek(positionMs);
-    }
-  };
-
   const handleDragStart = (event: MouseEvent | TouchEvent) => {
     isDragging = true;
     document.body.style.userSelect = "none";
@@ -405,14 +395,12 @@ function SetupSongProgressBar(instanceMap: Map<string, any>): SongProgressBarIns
 
   SliderBar.addEventListener("mousedown", handleDragStart);
   SliderBar.addEventListener("touchstart", handleDragStart);
-  SliderBar.addEventListener("click", sliderBarHandler);
 
   updateTimelineState();
   instanceMap.set("updateTimelineState_Function", updateTimelineState);
 
   const cleanup = () => {
     if (SliderBar) {
-      SliderBar.removeEventListener("click", sliderBarHandler);
       SliderBar.removeEventListener("mousedown", handleDragStart);
       SliderBar.removeEventListener("touchstart", handleDragStart);
       document.removeEventListener("mousemove", handleDragMove);
