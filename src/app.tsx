@@ -203,7 +203,7 @@ async function main() {
   }
 
   if (!storage.get("escapeKeyFunction")) {
-    storage.set("escapeKeyFunction", "Default");
+    storage.set("escapeKeyFunction", "Exit to Cinema");
   }
 
   if (storage.get("escapeKeyFunction")) {
@@ -787,7 +787,10 @@ async function main() {
 
       Component.GetRootComponent("lCache").RemoveCurrentLyrics_StateCache(false);
       
-      fetchLyrics(Spicetify.Player.data?.item?.uri).then(ApplyLyrics);
+      const onlineUri = Spicetify.Player.data?.item?.uri;
+      if (onlineUri) {
+        fetchLyrics(onlineUri).then(ApplyLyrics);
+      }
     });
 
     new IntervalManager(ScrollingIntervalTime, () => {

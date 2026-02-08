@@ -32,7 +32,7 @@ const Defaults = {
   SettingsOnTop: true,
   DeveloperMode: false,
   AlwaysDisplayPlaybackControls: false,
-  EscapeKeyFunction: "Default" as string,
+  EscapeKeyFunction: "Exit to Cinema" as string,
 };
 
 export default Defaults;

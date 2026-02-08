@@ -24,7 +24,7 @@ const Fullscreen = {
 
 document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
-    if (Defaults.EscapeKeyFunction === "Exit Fully") {
+    if (Defaults.EscapeKeyFunction === "Exit Fullscreen + Close Lyrics") {
       Close();
       if (isSpicySidebarMode) {
         CloseSidebarLyrics();
@@ -36,6 +36,21 @@ document.addEventListener("fullscreenchange", () => {
     } else {
       Fullscreen.CinemaViewOpen = true;
     }
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || !Fullscreen.IsOpen || !Fullscreen.CinemaViewOpen) return;
+
+  if (Defaults.EscapeKeyFunction === "Exit Fullscreen + Close Lyrics") {
+    Close();
+    if (isSpicySidebarMode) {
+      CloseSidebarLyrics();
+    } else {
+      Session.GoBack();
+    }
+  } else {
+    Close();
   }
 });
 

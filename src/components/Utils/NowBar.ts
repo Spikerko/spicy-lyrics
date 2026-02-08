@@ -778,7 +778,9 @@ function CloseNowBar() {
   if (!NowBar) return;
   NowBar.classList.remove("Active");
   storage.set("IsNowBarOpen", "false");
-  RestoreSpotifyPlaybackBar();
+  if (!PageView.IsOpened) {
+    RestoreSpotifyPlaybackBar();
+  }
   CleanUpActiveComponents();
   CleanUpInlineControls();
 

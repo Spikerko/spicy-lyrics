@@ -148,8 +148,8 @@ function generalSettings(SettingsSection: any) {
   settings.addDropDown(
     "escape-key-function",
     "Escape Key Function",
-    ["Default", "Exit Fullscreen", "Exit Fully"],
-    Defaults.EscapeKeyFunction === "Exit Fully" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
+    ["Exit to Cinema", "Exit Fullscreen", "Exit Fullscreen + Close Lyrics"],
+    Defaults.EscapeKeyFunction === "Exit Fullscreen + Close Lyrics" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
     () => {
       const value = settings.getFieldValue("escape-key-function") as string;
       storage.set("escapeKeyFunction", value);
@@ -164,7 +164,7 @@ function generalSettings(SettingsSection: any) {
     () => {
       const value = settings.getFieldValue("disable-popup-lyrics") as string;
       storage.set("disablePopupLyrics", value);
-      Defaults.PopupLyricsAllowed = !(value === "true" || value === true);
+      window.location.reload();
     }
   );
 
