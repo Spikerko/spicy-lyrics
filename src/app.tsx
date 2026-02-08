@@ -187,7 +187,7 @@ async function main() {
   }
 
   if (!storage.get("alwaysDisplayPlaybackControls")) {
-    storage.set("alwaysDisplayPlaybackControls", "true");
+    storage.set("alwaysDisplayPlaybackControls", "false");
   }
 
   if (storage.get("alwaysDisplayPlaybackControls")) {
@@ -701,8 +701,8 @@ async function main() {
     new IntervalManager(1, async () => {
       try {
         await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
-      } catch {
-        // No song data available, skip
+      } catch (err) {
+        console.debug("Skipping NowPlayingBar dynamic BG update:", err);
       }
     }).Start();
 

@@ -340,7 +340,9 @@ function SetupSongProgressBar(instanceMap: Map<string, any>): SongProgressBarIns
     if (!isDragging) return;
     let clientX: number;
     if ("touches" in event) {
-      clientX = event.touches[0].clientX;
+      const touch = event.touches[0] ?? event.changedTouches?.[0];
+      if (!touch) return;
+      clientX = touch.clientX;
     } else {
       clientX = event.clientX;
     }

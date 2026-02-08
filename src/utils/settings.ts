@@ -2,7 +2,7 @@ import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import { SpotifyPlayer } from "../components/Global/SpotifyPlayer.ts";
 import PageView, { ShowNotification } from "../components/Pages/PageView.ts";
-import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
+import fetchLyrics, { LyricsStore, UserTTMLStore } from "./Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
 import storage from "./storage.ts";
@@ -211,6 +211,7 @@ function generalSettings(SettingsSection: any) {
     async () => {
       try {
         await LyricsStore.Destroy();
+        await UserTTMLStore.Destroy();
         storage.set("currentLyricsData", null);
 
         ShowNotification("All lyrics caches cleared", "success");

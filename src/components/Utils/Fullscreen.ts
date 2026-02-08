@@ -46,6 +46,9 @@ document.addEventListener("fullscreenchange", () => {
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || !Fullscreen.IsOpen || !Fullscreen.CinemaViewOpen) return;
 
+  e.preventDefault();
+  e.stopPropagation();
+
   if (Defaults.EscapeKeyFunction === "Exit Fullscreen + Close Lyrics") {
     CloseAndExitLyrics();
   } else {

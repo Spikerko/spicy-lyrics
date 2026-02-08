@@ -78,7 +78,9 @@ Global.SetScope("execute", (command: string) => {
       const resetSongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
       storage.set("currentLyricsData", "");
       if (resetSongKey) {
-        UserTTMLStore.RemoveItem(resetSongKey);
+        UserTTMLStore.RemoveItem(resetSongKey).catch((err) =>
+          console.error("Error removing user TTML:", err)
+        );
       }
       ShowNotification("TTML has been reset.", "info", 5000);
       setTimeout(() => {
