@@ -38,7 +38,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "old-style-font",
-    "Old Style Font (Gets Overriden by the previous option)",
+    "Old Style Font (Gets Overridden by the previous option)",
     Defaults.OldStyleFont,
     () => {
       const value = settings.getFieldValue("old-style-font") as string;

@@ -376,7 +376,9 @@ function SetupSongProgressBar(instanceMap: Map<string, any>): SongProgressBarIns
     document.removeEventListener("touchend", handleDragEnd);
     let clientX: number;
     if ("changedTouches" in event) {
-      clientX = event.changedTouches[0].clientX;
+      const touch = event.changedTouches?.[0] ?? event.touches?.[0];
+      if (!touch) return;
+      clientX = touch.clientX;
     } else {
       clientX = (event as MouseEvent).clientX;
     }
@@ -1105,9 +1107,6 @@ function updateLoopOnInstance(instance: PlaybackControlsInstance | null, loopTyp
   const PlaybackControls = instance.GetElement();
   const LoopButton = PlaybackControls.querySelector(".LoopToggle");
   if (!LoopButton) return;
-
-  const SVG = LoopButton.querySelector("svg");
-  if (!SVG) return;
 
   replaceSvgElement(LoopButton, loopType === "track" ? Icons.LoopTrack : Icons.Loop);
   const newSvg = LoopButton.querySelector<HTMLElement>("svg");

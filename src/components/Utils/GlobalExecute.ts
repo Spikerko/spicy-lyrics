@@ -10,7 +10,7 @@ import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { ShowNotification } from "../Pages/PageView.ts";
 
-Global.SetScope("execute", (command: string) => {
+Global.SetScope("execute", async (command: string) => {
   switch (command) {
     case "upload-ttml": {
       // console.log("Upload TTML");
@@ -36,8 +36,12 @@ Global.SetScope("execute", (command: string) => {
             } else {
               ShowNotification("Found TTML, Parsing...", "info", 5000);
               ParseTTML(ttml).then(async (result) => {
+                if (!result?.Result) {
+                  ShowNotification("Error parsing TTML", "error", 5000);
+                  return;
+                }
                 const dataToSave = {
-                  ...result?.Result,
+                  ...result.Result,
                   id: SpotifyPlayer.GetId(),
                 };
 
@@ -78,9 +82,7 @@ Global.SetScope("execute", (command: string) => {
       const resetSongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
       storage.set("currentLyricsData", "");
       if (resetSongKey) {
-        UserTTMLStore.RemoveItem(resetSongKey).catch((err) =>
-          console.error("Error removing user TTML:", err)
-        );
+        await UserTTMLStore.RemoveItem(resetSongKey);
       }
       ShowNotification("TTML has been reset.", "info", 5000);
       setTimeout(() => {

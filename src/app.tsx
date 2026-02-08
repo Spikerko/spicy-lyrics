@@ -726,7 +726,9 @@ async function main() {
 
       const songUri = event?.data?.item?.uri;
       if (songUri) {
-        fetchLyrics(songUri).then(ApplyLyrics);
+        fetchLyrics(songUri).then(ApplyLyrics).catch((err) => {
+          console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+        });
       }
 
       if (
@@ -754,7 +756,7 @@ async function main() {
       const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
       if (!contentBox || (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color")) return;
       try {
-        ApplyDynamicBackground(contentBox);
+        await ApplyDynamicBackground(contentBox);
       } catch (err) {
         console.error("Error applying dynamic background:", err);
       }
@@ -763,7 +765,9 @@ async function main() {
 
     const initUri = SpotifyPlayer.GetUri();
     if (initUri) {
-      fetchLyrics(initUri).then(ApplyLyrics);
+      fetchLyrics(initUri).then(ApplyLyrics).catch((err) => {
+        console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+      });
     }
 
     if (
@@ -789,7 +793,9 @@ async function main() {
       
       const onlineUri = Spicetify.Player.data?.item?.uri;
       if (onlineUri) {
-        fetchLyrics(onlineUri).then(ApplyLyrics);
+        fetchLyrics(onlineUri).then(ApplyLyrics).catch((err) => {
+          console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+        });
       }
     });
 
@@ -993,7 +999,9 @@ async function main() {
             if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
               const refetchUri = SpotifyPlayer.GetUri();
               if (refetchUri) {
-                fetchLyrics(refetchUri).then(ApplyLyrics);
+                fetchLyrics(refetchUri).then(ApplyLyrics).catch((err) => {
+                  console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+                });
               }
             }
           }
