@@ -31,7 +31,8 @@ const Defaults = {
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
   DeveloperMode: false,
-  AlwaysDisplayPlaybackControls: true,
+  AlwaysDisplayPlaybackControls: false,
+  EscapeKeyFunction: "Default" as string,
 };
 
 export default Defaults;

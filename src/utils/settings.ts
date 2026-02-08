@@ -1,7 +1,11 @@
 import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
-import storage from "./storage.ts";
+import { SpotifyPlayer } from "../components/Global/SpotifyPlayer.ts";
+import PageView, { ShowNotification } from "../components/Pages/PageView.ts";
+import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
+import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
+import storage from "./storage.ts";
 
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
@@ -141,6 +145,18 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addDropDown(
+    "escape-key-function",
+    "Escape Key Function",
+    ["Default", "Exit Fullscreen", "Exit Fully"],
+    Defaults.EscapeKeyFunction === "Exit Fully" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
+    () => {
+      const value = settings.getFieldValue("escape-key-function") as string;
+      storage.set("escapeKeyFunction", value);
+      Defaults.EscapeKeyFunction = value;
+    }
+  );
+
   settings.addToggle(
     "disable-popup-lyrics",
     "Disable Popup Lyrics",
@@ -193,9 +209,26 @@ function generalSettings(SettingsSection: any) {
     "Clear all lyrics caches at once",
     "Clear All",
     async () => {
-      await RemoveCurrentLyrics_AllCaches(true);
-      await RemoveLyricsCache(true);
-      RemoveCurrentLyrics_StateCache(true);
+      try {
+        const currentSongId = SpotifyPlayer.GetId();
+        if (currentSongId) {
+          await LyricsStore.RemoveItem(currentSongId);
+        }
+        await LyricsStore.Destroy();
+        storage.set("currentLyricsData", null);
+
+        ShowNotification("All lyrics caches cleared", "success");
+
+        if (PageView.IsOpened) {
+          const uri = SpotifyPlayer.GetUri();
+          if (uri) {
+            fetchLyrics(uri).then(ApplyLyrics);
+          }
+        }
+      } catch (error) {
+        ShowNotification("Error clearing caches", "error");
+        console.error("SpicyLyrics:", error);
+      }
     }
   );
 

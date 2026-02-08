@@ -202,6 +202,14 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
+  if (!storage.get("escapeKeyFunction")) {
+    storage.set("escapeKeyFunction", "Default");
+  }
+
+  if (storage.get("escapeKeyFunction")) {
+    Defaults.EscapeKeyFunction = storage.get("escapeKeyFunction").toString() as string;
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
 
   /* if (storage.get("lyrics_spacing")) {

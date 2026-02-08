@@ -4,12 +4,15 @@ import Spring from "@socali/modules/Spring";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
+import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
+import Session from "../Global/Session.ts";
 import PageView, { Compactify, GetPageRoot, PageContainer, Tooltips } from "../Pages/PageView.ts";
 import { EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
 import { CleanUpNowBarComponents, CloseNowBar, DeregisterNowBarBtn, OpenNowBar } from "./NowBar.ts";
-import TransferElement from "./TransferElement.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { CloseSidebarLyrics, isSpicySidebarMode } from "./SidebarLyrics.ts";
+import TransferElement from "./TransferElement.ts";
 
 const Fullscreen = {
   Open,
@@ -18,6 +21,21 @@ const Fullscreen = {
   IsOpen: false,
   CinemaViewOpen: false,
 };
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
+    if (Defaults.EscapeKeyFunction === "Exit Fullscreen") {
+      Close();
+    } else if (Defaults.EscapeKeyFunction === "Exit Fully") {
+      Close();
+      if (isSpicySidebarMode) {
+        CloseSidebarLyrics();
+      } else {
+        Session.GoBack();
+      }
+    }
+  }
+});
 
 const ControlsMaid = new Maid();
 

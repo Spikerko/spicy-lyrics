@@ -21,10 +21,17 @@ export const UserTTMLStore = GetExpireStore<any>("SpicyLyrics_UserTTMLStore", 12
 }, isDev as true);
 
 export function getSongKey(uri: string): string {
+  if (!uri || !uri.trim() || !uri.startsWith("spotify:")) {
+    return "";
+  }
   if (uri.startsWith("spotify:local:")) {
     return uri;
   }
-  return uri.split(":")[2];
+  const parts = uri.split(":");
+  if (parts.length < 3 || !parts[2]) {
+    return "";
+  }
+  return parts[2];
 }
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
@@ -84,11 +91,11 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   const songKey = getSongKey(uri);
 
   // Check for user-loaded TTML first (highest priority)
-  if (UserTTMLStore) {
+  if (UserTTMLStore && songKey) {
     try {
       const userTTML = await UserTTMLStore.GetItem(songKey);
       if (userTTML) {
-        const lyricsData = { ...userTTML, id: trackId };
+        const lyricsData = { ...userTTML, id: trackId, fromCache: true };
         storage.set("currentLyricsData", JSON.stringify(lyricsData));
         storage.set("currentlyFetching", "false");
 

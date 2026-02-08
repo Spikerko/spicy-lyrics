@@ -29,7 +29,9 @@ Global.SetScope("execute", (command: string) => {
               const lyricsLines = await parseTTML(ttml);
               currentLyricsPlayer?.setLyricLines(lyricsLines.lines);
               const amlSongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
-              await UserTTMLStore.SetItem(amlSongKey, { SourceTTML: ttml, Type: "Syllable", id: SpotifyPlayer.GetId() });
+              if (amlSongKey) {
+                await UserTTMLStore.SetItem(amlSongKey, { SourceTTML: ttml, Type: "Syllable", id: SpotifyPlayer.GetId() });
+              }
               ShowNotification("Lyrics Applied!", "success", 5000);
             } else {
               ShowNotification("Found TTML, Parsing...", "info", 5000);
@@ -42,7 +44,9 @@ Global.SetScope("execute", (command: string) => {
                 await ProcessLyrics(dataToSave);
 
                 const spicySongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
-                await UserTTMLStore.SetItem(spicySongKey, dataToSave);
+                if (spicySongKey) {
+                  await UserTTMLStore.SetItem(spicySongKey, dataToSave);
+                }
 
                 storage.set("currentLyricsData", JSON.stringify(dataToSave));
                 setTimeout(() => {
@@ -73,7 +77,9 @@ Global.SetScope("execute", (command: string) => {
       // console.log("Reset TTML");
       const resetSongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
       storage.set("currentLyricsData", "");
-      UserTTMLStore.RemoveItem(resetSongKey);
+      if (resetSongKey) {
+        UserTTMLStore.RemoveItem(resetSongKey);
+      }
       ShowNotification("TTML has been reset.", "info", 5000);
       setTimeout(() => {
         fetchLyrics(SpotifyPlayer.GetUri() ?? "")
