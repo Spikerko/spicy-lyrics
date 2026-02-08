@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-case-declarations
 import { parseTTML } from "../../edited_packages/applemusic-like-lyrics-lyric/parser.ts";
 import { Query } from "../../utils/API/Query.ts";
-import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
+import fetchLyrics, { UserTTMLStore, getSongKey } from "../../utils/Lyrics/fetchLyrics.ts";
 import ApplyLyrics, { currentLyricsPlayer } from "../../utils/Lyrics/Global/Applyer.ts";
 import { ProcessLyrics } from "../../utils/Lyrics/ProcessLyrics.ts";
 import storage from "../../utils/storage.ts";
@@ -28,6 +28,8 @@ Global.SetScope("execute", (command: string) => {
               ShowNotification("Found TTML, Inserting...", "info", 5000);
               const lyricsLines = await parseTTML(ttml);
               currentLyricsPlayer?.setLyricLines(lyricsLines.lines);
+              const amlSongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
+              await UserTTMLStore.SetItem(amlSongKey, { SourceTTML: ttml, Type: "Syllable", id: SpotifyPlayer.GetId() });
               ShowNotification("Lyrics Applied!", "success", 5000);
             } else {
               ShowNotification("Found TTML, Parsing...", "info", 5000);
@@ -38,6 +40,9 @@ Global.SetScope("execute", (command: string) => {
                 };
 
                 await ProcessLyrics(dataToSave);
+
+                const spicySongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
+                await UserTTMLStore.SetItem(spicySongKey, dataToSave);
 
                 storage.set("currentLyricsData", JSON.stringify(dataToSave));
                 setTimeout(() => {
@@ -64,9 +69,11 @@ Global.SetScope("execute", (command: string) => {
       fileInput.click();
       break;
     }
-    case "reset-ttml":
+    case "reset-ttml": {
       // console.log("Reset TTML");
+      const resetSongKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
       storage.set("currentLyricsData", "");
+      UserTTMLStore.RemoveItem(resetSongKey);
       ShowNotification("TTML has been reset.", "info", 5000);
       setTimeout(() => {
         fetchLyrics(SpotifyPlayer.GetUri() ?? "")
@@ -77,6 +84,7 @@ Global.SetScope("execute", (command: string) => {
           });
       }, 25);
       break;
+    }
   }
 });
 

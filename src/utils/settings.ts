@@ -133,7 +133,7 @@ function generalSettings(SettingsSection: any) {
     "viewcontrols-position",
     "View Controls Position",
     ["Top", "Bottom"],
-    Defaults.ViewControlsPosition,
+    Defaults.ViewControlsPosition === "Bottom" ? 1 : 0,
     () => {
       const value = settings.getFieldValue("viewcontrols-position") as string;
       storage.set("viewControlsPosition", value);
