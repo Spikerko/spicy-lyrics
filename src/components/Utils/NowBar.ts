@@ -7,6 +7,7 @@ import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/Cr
 import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
+import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
@@ -17,13 +18,13 @@ import { IsPIP } from "./PopupLyrics.ts";
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
-  Apply: () => void;
+  Apply: (targetContainer?: HTMLElement) => void;
   CleanUp: () => void;
   GetElement: () => HTMLElement;
 }
 
 interface SongProgressBarInstance {
-  Apply: () => void;
+  Apply: (targetContainer?: HTMLElement) => void;
   CleanUp: () => void;
   GetElement: () => HTMLElement;
 }
@@ -44,6 +45,19 @@ let ActiveHeartMaid: Maid | null = null;
 export const NowBarObj = {
   Open: false,
 };
+
+export function HideSpotifyPlaybackBar() {
+  document.body.classList.add('SpicyLyrics__PlaybackBarHidden');
+}
+
+export function RestoreSpotifyPlaybackBar() {
+  document.body.classList.remove('SpicyLyrics__PlaybackBarHidden');
+}
+
+// Inline controls instances (separate from the overlay controls)
+let InlinePlaybackControlsInstance: PlaybackControlsInstance | null = null;
+let InlineSongProgressBarInstance: SongProgressBarInstance | null = null;
+let InlineSongProgressBarInstance_Map = new Map<string, any>();
 
 /* const ActiveMarquees = new Map();
 
@@ -96,6 +110,386 @@ function ApplyMarquee(baseWidth, elementWidth, name) {
         getComputedName: () => `marquee_${name}`,
     };
 } */
+
+// Module-level setup functions (extracted for reuse by both overlay and inline controls)
+
+function SetupPlaybackControls(): PlaybackControlsInstance {
+  const ControlsElement = document.createElement("div");
+  ControlsElement.classList.add("PlaybackControls");
+  ControlsElement.innerHTML = `
+    <div class="PlaybackControl ShuffleToggle">
+        ${Icons.Shuffle}
+    </div>
+    ${Icons.PrevTrack}
+    <div class="PlaybackControl PlayStateToggle ${
+      SpotifyPlayer.IsPlaying ? "Playing" : "Paused"
+    }">
+        ${SpotifyPlayer.IsPlaying ? Icons.Pause : Icons.Play}
+    </div>
+    ${Icons.NextTrack}
+    <div class="PlaybackControl LoopToggle">
+        ${SpotifyPlayer.LoopType === "track" ? Icons.LoopTrack : Icons.Loop}
+    </div>
+  `;
+
+  if (SpotifyPlayer.LoopType !== "none") {
+    const loopToggle = ControlsElement.querySelector(".LoopToggle");
+    if (loopToggle) {
+      loopToggle.classList.add("Enabled");
+      const loopSvg = ControlsElement.querySelector<HTMLElement>(".LoopToggle svg");
+      if (loopSvg) {
+        loopSvg.style.filter = "drop-shadow(0 0 5px white)";
+      }
+    }
+  }
+
+  if (SpotifyPlayer.ShuffleType !== "none") {
+    const shuffleToggle = ControlsElement.querySelector(".ShuffleToggle");
+    if (shuffleToggle) {
+      shuffleToggle.classList.add("Enabled");
+      const shuffleSvg = ControlsElement.querySelector<HTMLElement>(".ShuffleToggle svg");
+      if (shuffleSvg) {
+        shuffleSvg.style.filter = "drop-shadow(0 0 5px white)";
+      }
+    }
+  }
+
+  const eventHandlers = {
+    pressHandlers: new Map(),
+    releaseHandlers: new Map(),
+    clickHandlers: new Map(),
+  };
+
+  const playbackControls = ControlsElement.querySelectorAll(".PlaybackControl");
+
+  playbackControls.forEach((control) => {
+    const pressHandler = () => {
+      control.classList.add("Pressed");
+    };
+    const releaseHandler = () => {
+      control.classList.remove("Pressed");
+    };
+
+    eventHandlers.pressHandlers.set(control, pressHandler);
+    eventHandlers.releaseHandlers.set(control, releaseHandler);
+
+    control.addEventListener("mousedown", pressHandler);
+    control.addEventListener("touchstart", pressHandler);
+    control.addEventListener("mouseup", releaseHandler);
+    control.addEventListener("mouseleave", releaseHandler);
+    control.addEventListener("touchend", releaseHandler);
+  });
+
+  const PlayPauseControl = ControlsElement.querySelector(".PlayStateToggle");
+  const PrevTrackControl = ControlsElement.querySelector(".PrevTrack");
+  const NextTrackControl = ControlsElement.querySelector(".NextTrack");
+  const ShuffleControl = ControlsElement.querySelector(".ShuffleToggle");
+  const LoopControl = ControlsElement.querySelector(".LoopToggle");
+
+  const playPauseHandler = () => { SpotifyPlayer.TogglePlayState(); };
+  const prevTrackHandler = () => { SpotifyPlayer.Skip.Prev(); };
+  const nextTrackHandler = () => { SpotifyPlayer.Skip.Next(); };
+
+  const shuffleHandler = () => {
+    if (!ShuffleControl) return;
+    if (SpotifyPlayer.ShuffleType === "none") {
+      SpotifyPlayer.ShuffleType = "normal";
+      ShuffleControl.classList.add("Enabled");
+      Spicetify.Player.setShuffle(true);
+    } else if (SpotifyPlayer.ShuffleType === "normal") {
+      SpotifyPlayer.ShuffleType = "none";
+      ShuffleControl.classList.remove("Enabled");
+      Spicetify.Player.setShuffle(false);
+    }
+  };
+
+  const loopHandler = () => {
+    if (!LoopControl) return;
+    if (SpotifyPlayer.LoopType === "none") {
+      LoopControl.classList.add("Enabled");
+    } else {
+      LoopControl.classList.remove("Enabled");
+    }
+    if (SpotifyPlayer.LoopType === "none") {
+      SpotifyPlayer.LoopType = "context";
+      Spicetify.Player.setRepeat(1);
+    } else if (SpotifyPlayer.LoopType === "context") {
+      SpotifyPlayer.LoopType = "track";
+      Spicetify.Player.setRepeat(2);
+    } else if (SpotifyPlayer.LoopType === "track") {
+      SpotifyPlayer.LoopType = "none";
+      Spicetify.Player.setRepeat(0);
+    }
+  };
+
+  eventHandlers.clickHandlers.set(PlayPauseControl, playPauseHandler);
+  eventHandlers.clickHandlers.set(PrevTrackControl, prevTrackHandler);
+  eventHandlers.clickHandlers.set(NextTrackControl, nextTrackHandler);
+  eventHandlers.clickHandlers.set(ShuffleControl, shuffleHandler);
+  eventHandlers.clickHandlers.set(LoopControl, loopHandler);
+
+  if (PlayPauseControl) PlayPauseControl.addEventListener("click", playPauseHandler);
+  if (PrevTrackControl) PrevTrackControl.addEventListener("click", prevTrackHandler);
+  if (NextTrackControl) NextTrackControl.addEventListener("click", nextTrackHandler);
+  if (ShuffleControl) ShuffleControl.addEventListener("click", shuffleHandler);
+  if (LoopControl) LoopControl.addEventListener("click", loopHandler);
+
+  const cleanup = () => {
+    playbackControls.forEach((control) => {
+      const pressHandler = eventHandlers.pressHandlers.get(control);
+      const releaseHandler = eventHandlers.releaseHandlers.get(control);
+      control.removeEventListener("mousedown", pressHandler);
+      control.removeEventListener("touchstart", pressHandler);
+      control.removeEventListener("mouseup", releaseHandler);
+      control.removeEventListener("mouseleave", releaseHandler);
+      control.removeEventListener("touchend", releaseHandler);
+    });
+    if (PlayPauseControl) PlayPauseControl.removeEventListener("click", eventHandlers.clickHandlers.get(PlayPauseControl));
+    if (PrevTrackControl) PrevTrackControl.removeEventListener("click", eventHandlers.clickHandlers.get(PrevTrackControl));
+    if (NextTrackControl) NextTrackControl.removeEventListener("click", eventHandlers.clickHandlers.get(NextTrackControl));
+    if (ShuffleControl) ShuffleControl.removeEventListener("click", eventHandlers.clickHandlers.get(ShuffleControl));
+    if (LoopControl) LoopControl.removeEventListener("click", eventHandlers.clickHandlers.get(LoopControl));
+    eventHandlers.pressHandlers.clear();
+    eventHandlers.releaseHandlers.clear();
+    eventHandlers.clickHandlers.clear();
+    if (ControlsElement.parentNode) {
+      ControlsElement.parentNode.removeChild(ControlsElement);
+    }
+  };
+
+  return {
+    Apply: (targetContainer?: HTMLElement) => {
+      if (targetContainer) {
+        targetContainer.appendChild(ControlsElement);
+      }
+    },
+    CleanUp: cleanup,
+    GetElement: () => ControlsElement,
+  };
+}
+
+function SetupSongProgressBar(instanceMap: Map<string, any>): SongProgressBarInstance | null {
+  const songProgressBar = new SongProgressBar();
+  instanceMap.set("SongProgressBar_ClassInstance", songProgressBar);
+
+  songProgressBar.Update({
+    duration: SpotifyPlayer.GetPosition() ?? 0,
+    position: SpotifyPlayer.GetDuration() ?? 0,
+  });
+
+  const TimelineElem = document.createElement("div");
+  instanceMap.set("TimeLineElement", TimelineElem);
+  TimelineElem.classList.add("Timeline");
+  TimelineElem.innerHTML = `
+    <span class="Time Position">${songProgressBar.GetFormattedPosition() ?? "0:00"}</span>
+    <div class="SliderBar" style="--SliderProgress: ${songProgressBar.GetProgressPercentage() ?? 0}">
+        <div class="Handle"></div>
+    </div>
+    <span class="Time Duration">${songProgressBar.GetFormattedDuration() ?? "0:00"}</span>
+  `;
+
+  const SliderBar = TimelineElem.querySelector<HTMLElement>(".SliderBar");
+  if (!SliderBar) {
+    console.error("Could not find SliderBar element");
+    return null;
+  }
+
+  let isDragging = false;
+  let dragPositionMs: number | null = null;
+
+  const updateTimelineState = (e = null) => {
+    const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
+    const DurationElem = TimelineElem.querySelector<HTMLElement>(".Time.Duration");
+
+    if (!PositionElem || !DurationElem || !SliderBar) {
+      console.error("Missing required elements for timeline update");
+      return;
+    }
+
+    let positionToShow: number;
+    if (isDragging && dragPositionMs !== null) {
+      positionToShow = dragPositionMs;
+    } else {
+      positionToShow = e ?? SpotifyPlayer.GetPosition() ?? 0;
+    }
+
+    songProgressBar.Update({
+      duration: SpotifyPlayer.GetDuration() ?? 0,
+      position: positionToShow,
+    });
+
+    const sliderPercentage = songProgressBar.GetProgressPercentage();
+    const formattedPosition = songProgressBar.GetFormattedPosition();
+    const formattedDuration = songProgressBar.GetFormattedDuration();
+
+    if (!isDragging) {
+      SliderBar.style.setProperty("--SliderProgress", sliderPercentage.toString());
+    }
+    DurationElem.textContent = formattedDuration;
+    PositionElem.textContent = formattedPosition;
+  };
+
+  const sliderBarHandler = (event: MouseEvent) => {
+    const positionMs = songProgressBar.CalculatePositionFromClick({
+      sliderBar: SliderBar,
+      event: event,
+    });
+    if (typeof SpotifyPlayer !== "undefined" && SpotifyPlayer.Seek) {
+      SpotifyPlayer.Seek(positionMs);
+    }
+  };
+
+  const handleDragStart = (event: MouseEvent | TouchEvent) => {
+    isDragging = true;
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleDragMove);
+    document.addEventListener("touchmove", handleDragMove);
+    document.addEventListener("mouseup", handleDragEnd);
+    document.addEventListener("touchend", handleDragEnd);
+    Global.Event.evoke("nowbar:timeline:dragging", { isDragging: true });
+    handleDragMove(event);
+  };
+
+  const handleDragMove = (event: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    let clientX: number;
+    if ("touches" in event) {
+      clientX = event.touches[0].clientX;
+    } else {
+      clientX = event.clientX;
+    }
+    const rect = SliderBar.getBoundingClientRect();
+    const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    SliderBar.style.setProperty("--SliderProgress", percentage.toString());
+    const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
+    dragPositionMs = positionMs;
+    songProgressBar.Update({
+      duration: SpotifyPlayer.GetDuration() ?? 0,
+      position: positionMs,
+    });
+    Global.Event.evoke("nowbar:timeline:dragging", {
+      isDragging: true,
+      percentage: percentage,
+      positionMs: positionMs,
+    });
+    const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
+    if (PositionElem) {
+      PositionElem.textContent = songProgressBar.GetFormattedPosition();
+    }
+  };
+
+  const handleDragEnd = (event: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.style.userSelect = "";
+    document.removeEventListener("mousemove", handleDragMove);
+    document.removeEventListener("touchmove", handleDragMove);
+    document.removeEventListener("mouseup", handleDragEnd);
+    document.removeEventListener("touchend", handleDragEnd);
+    let clientX: number;
+    if ("changedTouches" in event) {
+      clientX = event.changedTouches[0].clientX;
+    } else {
+      clientX = (event as MouseEvent).clientX;
+    }
+    const rect = SliderBar.getBoundingClientRect();
+    const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
+    dragPositionMs = null;
+    Global.Event.evoke("nowbar:timeline:dragging", {
+      isDragging: false,
+      percentage: percentage,
+      positionMs: positionMs,
+      finalPosition: true,
+    });
+    if (typeof SpotifyPlayer !== "undefined" && SpotifyPlayer.Seek) {
+      SpotifyPlayer.Seek(positionMs);
+    }
+    updateTimelineState();
+  };
+
+  SliderBar.addEventListener("mousedown", handleDragStart);
+  SliderBar.addEventListener("touchstart", handleDragStart);
+  SliderBar.addEventListener("click", sliderBarHandler);
+
+  updateTimelineState();
+  instanceMap.set("updateTimelineState_Function", updateTimelineState);
+
+  const cleanup = () => {
+    if (SliderBar) {
+      SliderBar.removeEventListener("click", sliderBarHandler);
+      SliderBar.removeEventListener("mousedown", handleDragStart);
+      SliderBar.removeEventListener("touchstart", handleDragStart);
+      document.removeEventListener("mousemove", handleDragMove);
+      document.removeEventListener("touchmove", handleDragMove);
+      document.removeEventListener("mouseup", handleDragEnd);
+      document.removeEventListener("touchend", handleDragEnd);
+    }
+    const progressBar = instanceMap.get("SongProgressBar_ClassInstance");
+    if (progressBar) {
+      progressBar.Destroy();
+    }
+    if (TimelineElem.parentNode) {
+      TimelineElem.parentNode.removeChild(TimelineElem);
+    }
+    instanceMap.clear();
+  };
+
+  return {
+    Apply: (targetContainer?: HTMLElement) => {
+      if (targetContainer) {
+        targetContainer.appendChild(TimelineElem);
+      }
+    },
+    GetElement: () => TimelineElem,
+    CleanUp: cleanup,
+  };
+}
+
+// Inline controls setup/cleanup
+
+function SetupInlineControls() {
+  const timelineContainer = PageContainer?.querySelector<HTMLElement>(
+    ".ContentBox .NowBar .Header .InlineTimeline"
+  );
+  const controlsContainer = PageContainer?.querySelector<HTMLElement>(
+    ".ContentBox .NowBar .Header .InlinePlaybackControls"
+  );
+
+  CleanUpInlineControls();
+
+  const showFullControls = Fullscreen.IsOpen && Defaults.AlwaysDisplayPlaybackControls;
+  const showTimelineOnly = !Fullscreen.IsOpen && !isSpicySidebarMode;
+
+  if (!showFullControls && !showTimelineOnly) return;
+
+  // Timeline between cover art and song title
+  if (timelineContainer) {
+    InlineSongProgressBarInstance = SetupSongProgressBar(InlineSongProgressBarInstance_Map);
+    InlineSongProgressBarInstance?.Apply(timelineContainer);
+  }
+
+  // Playback controls below song title/artists (only in cinema/fullscreen when setting is enabled)
+  if (showFullControls && controlsContainer) {
+    InlinePlaybackControlsInstance = SetupPlaybackControls();
+    InlinePlaybackControlsInstance?.Apply(controlsContainer);
+  }
+}
+
+function CleanUpInlineControls() {
+  if (InlinePlaybackControlsInstance) {
+    InlinePlaybackControlsInstance.CleanUp();
+    InlinePlaybackControlsInstance = null;
+  }
+  if (InlineSongProgressBarInstance) {
+    InlineSongProgressBarInstance.CleanUp();
+    InlineSongProgressBarInstance = null;
+  }
+  if (InlineSongProgressBarInstance_Map.size > 0) {
+    InlineSongProgressBarInstance_Map.clear();
+  }
+  InlineSongProgressBarInstance_Map = new Map<string, any>();
+}
 
 let NowBarFullscreenMaid: Maid | null = null;
 
@@ -210,464 +604,10 @@ function OpenNowBar(skipSaving: boolean = false) {
         AppendQueue.push(HeartElement);
       }
 
-      const SetupPlaybackControls = () => {
-        const ControlsElement = document.createElement("div");
-        ControlsElement.classList.add("PlaybackControls");
-        ControlsElement.innerHTML = `
-                    <div class="PlaybackControl ShuffleToggle">
-                        ${Icons.Shuffle}
-                    </div>
-                    ${Icons.PrevTrack}
-                    <div class="PlaybackControl PlayStateToggle ${
-                      SpotifyPlayer.IsPlaying ? "Playing" : "Paused"
-                    }">
-                        ${SpotifyPlayer.IsPlaying ? Icons.Pause : Icons.Play}
-                    </div>
-                    ${Icons.NextTrack}
-                    <div class="PlaybackControl LoopToggle">
-                        ${SpotifyPlayer.LoopType === "track" ? Icons.LoopTrack : Icons.Loop}
-                    </div>
-                `;
-
-        if (SpotifyPlayer.LoopType !== "none") {
-          const loopToggle = ControlsElement.querySelector(".LoopToggle");
-          if (loopToggle) {
-            loopToggle.classList.add("Enabled");
-            const loopSvg = ControlsElement.querySelector<HTMLElement>(".LoopToggle svg");
-            if (loopSvg) {
-              loopSvg.style.filter = "drop-shadow(0 0 5px white)";
-            }
-          }
-        }
-
-        if (SpotifyPlayer.ShuffleType !== "none") {
-          const shuffleToggle = ControlsElement.querySelector(".ShuffleToggle");
-          if (shuffleToggle) {
-            shuffleToggle.classList.add("Enabled");
-            const shuffleSvg = ControlsElement.querySelector<HTMLElement>(".ShuffleToggle svg");
-            if (shuffleSvg) {
-              shuffleSvg.style.filter = "drop-shadow(0 0 5px white)";
-            }
-          }
-        }
-
-        // Store event handlers so they can be removed later
-        const eventHandlers = {
-          pressHandlers: new Map(),
-          releaseHandlers: new Map(),
-          clickHandlers: new Map(),
-        };
-
-        // Find all playback controls
-        const playbackControls = ControlsElement.querySelectorAll(".PlaybackControl");
-
-        // Add event listeners to each control with named functions
-        playbackControls.forEach((control) => {
-          // Create handlers for this specific control
-          const pressHandler = () => {
-            control.classList.add("Pressed");
-          };
-
-          const releaseHandler = () => {
-            control.classList.remove("Pressed");
-          };
-
-          // Store handlers in the Map with the control as the key
-          eventHandlers.pressHandlers.set(control, pressHandler);
-          eventHandlers.releaseHandlers.set(control, releaseHandler);
-
-          // Add event listeners
-          control.addEventListener("mousedown", pressHandler);
-          control.addEventListener("touchstart", pressHandler);
-
-          control.addEventListener("mouseup", releaseHandler);
-          control.addEventListener("mouseleave", releaseHandler);
-          control.addEventListener("touchend", releaseHandler);
-        });
-
-        const PlayPauseControl = ControlsElement.querySelector(".PlayStateToggle");
-        const PrevTrackControl = ControlsElement.querySelector(".PrevTrack");
-        const NextTrackControl = ControlsElement.querySelector(".NextTrack");
-        const ShuffleControl = ControlsElement.querySelector(".ShuffleToggle");
-        const LoopControl = ControlsElement.querySelector(".LoopToggle");
-
-        // Create named handlers for click events
-        const playPauseHandler = () => {
-          SpotifyPlayer.TogglePlayState();
-        };
-
-        const prevTrackHandler = () => {
-          SpotifyPlayer.Skip.Prev();
-        };
-
-        const nextTrackHandler = () => {
-          SpotifyPlayer.Skip.Next();
-        };
-
-        const shuffleHandler = () => {
-          if (!ShuffleControl) return;
-
-          if (SpotifyPlayer.ShuffleType === "none") {
-            SpotifyPlayer.ShuffleType = "normal";
-            ShuffleControl.classList.add("Enabled");
-            Spicetify.Player.setShuffle(true);
-          } else if (SpotifyPlayer.ShuffleType === "normal") {
-            SpotifyPlayer.ShuffleType = "none";
-            ShuffleControl.classList.remove("Enabled");
-            Spicetify.Player.setShuffle(false);
-          }
-        };
-
-        const loopHandler = () => {
-          if (!LoopControl) return;
-
-          if (SpotifyPlayer.LoopType === "none") {
-            LoopControl.classList.add("Enabled");
-          } else {
-            LoopControl.classList.remove("Enabled");
-          }
-
-          if (SpotifyPlayer.LoopType === "none") {
-            SpotifyPlayer.LoopType = "context";
-            Spicetify.Player.setRepeat(1);
-          } else if (SpotifyPlayer.LoopType === "context") {
-            SpotifyPlayer.LoopType = "track";
-            Spicetify.Player.setRepeat(2);
-          } else if (SpotifyPlayer.LoopType === "track") {
-            SpotifyPlayer.LoopType = "none";
-            Spicetify.Player.setRepeat(0);
-          }
-        };
-
-        // Store click handlers
-        eventHandlers.clickHandlers.set(PlayPauseControl, playPauseHandler);
-        eventHandlers.clickHandlers.set(PrevTrackControl, prevTrackHandler);
-        eventHandlers.clickHandlers.set(NextTrackControl, nextTrackHandler);
-        eventHandlers.clickHandlers.set(ShuffleControl, shuffleHandler);
-        eventHandlers.clickHandlers.set(LoopControl, loopHandler);
-
-        // Add click event listeners
-        if (PlayPauseControl) {
-          PlayPauseControl.addEventListener("click", playPauseHandler);
-        }
-        if (PrevTrackControl) {
-          PrevTrackControl.addEventListener("click", prevTrackHandler);
-        }
-        if (NextTrackControl) {
-          NextTrackControl.addEventListener("click", nextTrackHandler);
-        }
-        if (ShuffleControl) {
-          ShuffleControl.addEventListener("click", shuffleHandler);
-        }
-        if (LoopControl) {
-          LoopControl.addEventListener("click", loopHandler);
-        }
-
-        // Create and return a cleanup function
-        const cleanup = () => {
-          // Remove press/release handlers
-          playbackControls.forEach((control) => {
-            const pressHandler = eventHandlers.pressHandlers.get(control);
-            const releaseHandler = eventHandlers.releaseHandlers.get(control);
-
-            control.removeEventListener("mousedown", pressHandler);
-            control.removeEventListener("touchstart", pressHandler);
-
-            control.removeEventListener("mouseup", releaseHandler);
-            control.removeEventListener("mouseleave", releaseHandler);
-            control.removeEventListener("touchend", releaseHandler);
-          });
-
-          // Remove click handlers
-          if (PlayPauseControl) {
-            PlayPauseControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(PlayPauseControl)
-            );
-          }
-          if (PrevTrackControl) {
-            PrevTrackControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(PrevTrackControl)
-            );
-          }
-          if (NextTrackControl) {
-            NextTrackControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(NextTrackControl)
-            );
-          }
-          if (ShuffleControl) {
-            ShuffleControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(ShuffleControl)
-            );
-          }
-          if (LoopControl) {
-            LoopControl.removeEventListener("click", eventHandlers.clickHandlers.get(LoopControl));
-          }
-
-          // Clear the maps
-          eventHandlers.pressHandlers.clear();
-          eventHandlers.releaseHandlers.clear();
-          eventHandlers.clickHandlers.clear();
-
-          // Remove the controls element from DOM if it exists
-          if (ControlsElement.parentNode) {
-            ControlsElement.parentNode.removeChild(ControlsElement);
-          }
-        };
-
-        return {
-          Apply: () => {
-            AppendQueue.push(ControlsElement);
-          },
-          CleanUp: cleanup,
-          GetElement: () => ControlsElement,
-        };
-      };
-
-      const SetupSongProgressBar = () => {
-        const songProgressBar = new SongProgressBar();
-        ActiveSongProgressBarInstance_Map.set("SongProgressBar_ClassInstance", songProgressBar);
-
-        // Update initial values
-        songProgressBar.Update({
-          duration: SpotifyPlayer.GetPosition() ?? 0,
-          position: SpotifyPlayer.GetDuration() ?? 0,
-        });
-
-        const TimelineElem = document.createElement("div");
-        ActiveSongProgressBarInstance_Map.set("TimeLineElement", TimelineElem);
-        TimelineElem.classList.add("Timeline");
-        TimelineElem.innerHTML = `
-                    <span class="Time Position">${songProgressBar.GetFormattedPosition() ?? "0:00"}</span>
-                    <div class="SliderBar" style="--SliderProgress: ${songProgressBar.GetProgressPercentage() ?? 0}">
-                        <div class="Handle"></div>
-                    </div>
-                    <span class="Time Duration">${songProgressBar.GetFormattedDuration() ?? "0:00"}</span>
-                `;
-
-        const SliderBar = TimelineElem.querySelector<HTMLElement>(".SliderBar");
-        if (!SliderBar) {
-          console.error("Could not find SliderBar element");
-          return null;
-        }
-
-        // Track dragging state
-        let isDragging = false;
-        let dragPositionMs: number | null = null; // Track the current drag position in ms
-
-        const updateTimelineState = (e = null) => {
-          const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
-          const DurationElem = TimelineElem.querySelector<HTMLElement>(".Time.Duration");
-
-          if (!PositionElem || !DurationElem || !SliderBar) {
-            console.error("Missing required elements for timeline update");
-            return;
-          }
-
-          // If dragging, use the drag position for the position display
-          let positionToShow: number;
-          if (isDragging && dragPositionMs !== null) {
-            positionToShow = dragPositionMs;
-          } else {
-            positionToShow = e ?? SpotifyPlayer.GetPosition() ?? 0;
-          }
-
-          // Update the progress bar state
-          songProgressBar.Update({
-            duration: SpotifyPlayer.GetDuration() ?? 0,
-            position: positionToShow,
-          });
-
-          const sliderPercentage = songProgressBar.GetProgressPercentage();
-          const formattedPosition = songProgressBar.GetFormattedPosition();
-          const formattedDuration = songProgressBar.GetFormattedDuration();
-
-          // Only update the SliderBar's progress if not dragging
-          if (!isDragging) {
-            SliderBar.style.setProperty("--SliderProgress", sliderPercentage.toString());
-          }
-          DurationElem.textContent = formattedDuration;
-          PositionElem.textContent = formattedPosition;
-        };
-
-        const sliderBarHandler = (event: MouseEvent) => {
-          // Direct use of the SliderBar element for click calculation
-          const positionMs = songProgressBar.CalculatePositionFromClick({
-            sliderBar: SliderBar,
-            event: event,
-          });
-
-          // Use the calculated position (in milliseconds)
-          if (typeof SpotifyPlayer !== "undefined" && SpotifyPlayer.Seek) {
-            SpotifyPlayer.Seek(positionMs);
-          }
-        };
-
-        // Add drag functionality
-
-        const handleDragStart = (event: MouseEvent | TouchEvent) => {
-          isDragging = true;
-          document.body.style.userSelect = "none"; // Prevent text selection during drag
-
-          // Add the event listeners for drag movement and end
-          document.addEventListener("mousemove", handleDragMove);
-          document.addEventListener("touchmove", handleDragMove);
-          document.addEventListener("mouseup", handleDragEnd);
-          document.addEventListener("touchend", handleDragEnd);
-
-          // Emit event that dragging has started
-          Global.Event.evoke("nowbar:timeline:dragging", { isDragging: true });
-
-          // Handle the initial position update
-          handleDragMove(event);
-        };
-
-        const handleDragMove = (event: MouseEvent | TouchEvent) => {
-          if (!isDragging) return;
-
-          // Get the mouse/touch position
-          let clientX: number;
-          if ("touches" in event) {
-            clientX = event.touches[0].clientX;
-          } else {
-            clientX = event.clientX;
-          }
-
-          const rect = SliderBar.getBoundingClientRect();
-          const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-
-          // Update the slider visually during drag
-          SliderBar.style.setProperty("--SliderProgress", percentage.toString());
-
-          // Calculate position in milliseconds
-          const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
-          dragPositionMs = positionMs; // Store the drag position
-
-          // Update the position text during drag
-          songProgressBar.Update({
-            duration: SpotifyPlayer.GetDuration() ?? 0,
-            position: positionMs,
-          });
-
-          // Emit event with current drag position
-          Global.Event.evoke("nowbar:timeline:dragging", {
-            isDragging: true,
-            percentage: percentage,
-            positionMs: positionMs,
-          });
-
-          const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
-          if (PositionElem) {
-            // Show the formatted position for the drag position
-            PositionElem.textContent = songProgressBar.GetFormattedPosition();
-          }
-        };
-
-        const handleDragEnd = (event: MouseEvent | TouchEvent) => {
-          if (!isDragging) return;
-          isDragging = false;
-          document.body.style.userSelect = ""; // Restore text selection
-
-          // Remove the event listeners
-          document.removeEventListener("mousemove", handleDragMove);
-          document.removeEventListener("touchmove", handleDragMove);
-          document.removeEventListener("mouseup", handleDragEnd);
-          document.removeEventListener("touchend", handleDragEnd);
-
-          // Get the final position
-          let clientX: number;
-          if ("changedTouches" in event) {
-            clientX = event.changedTouches[0].clientX;
-          } else {
-            clientX = (event as MouseEvent).clientX;
-          }
-
-          const rect = SliderBar.getBoundingClientRect();
-          const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-
-          // Calculate the position in milliseconds
-          const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
-          dragPositionMs = null; // Clear drag position
-
-          // Emit event that dragging has ended with final position
-          Global.Event.evoke("nowbar:timeline:dragging", {
-            isDragging: false,
-            percentage: percentage,
-            positionMs: positionMs,
-            finalPosition: true,
-          });
-
-          // Seek to the new position
-          if (typeof SpotifyPlayer !== "undefined" && SpotifyPlayer.Seek) {
-            SpotifyPlayer.Seek(positionMs);
-          }
-
-          // After seeking, update the timeline state to reflect the new position
-          updateTimelineState();
-        };
-
-        // Add event listeners for drag
-        SliderBar.addEventListener("mousedown", handleDragStart);
-        SliderBar.addEventListener("touchstart", handleDragStart);
-
-        // Keep the click handler for simple clicks
-        SliderBar.addEventListener("click", sliderBarHandler);
-
-        // Run initial update
-        updateTimelineState();
-        ActiveSongProgressBarInstance_Map.set("updateTimelineState_Function", updateTimelineState);
-
-        const cleanup = () => {
-          // Remove event listeners
-          if (SliderBar) {
-            SliderBar.removeEventListener("click", sliderBarHandler);
-            SliderBar.removeEventListener("mousedown", handleDragStart);
-            SliderBar.removeEventListener("touchstart", handleDragStart);
-
-            // Also remove any potentially active document listeners
-            document.removeEventListener("mousemove", handleDragMove);
-            document.removeEventListener("touchmove", handleDragMove);
-            document.removeEventListener("mouseup", handleDragEnd);
-            document.removeEventListener("touchend", handleDragEnd);
-          }
-
-          // Clean up the progress bar instance
-          const progressBar = ActiveSongProgressBarInstance_Map.get(
-            "SongProgressBar_ClassInstance"
-          );
-          if (progressBar) {
-            progressBar.Destroy();
-          }
-
-          // Remove the timeline element from DOM if it's attached
-          if (TimelineElem.parentNode) {
-            TimelineElem.parentNode.removeChild(TimelineElem);
-          }
-
-          // Clear the map
-          ActiveSongProgressBarInstance_Map.clear();
-        };
-
-        return {
-          Apply: () => {
-            AppendQueue.push(TimelineElem);
-          },
-          GetElement: () => TimelineElem,
-          CleanUp: cleanup,
-        };
-      };
-
-      ActivePlaybackControlsInstance = SetupPlaybackControls();
-      if (ActivePlaybackControlsInstance) {
-        ActivePlaybackControlsInstance.Apply();
-      }
-
-      ActiveSetupSongProgressBarInstance = SetupSongProgressBar();
-      if (ActiveSetupSongProgressBarInstance) {
-        ActiveSetupSongProgressBarInstance.Apply();
+      // Only create overlay playback controls + timeline when inline controls are NOT active
+      if (!Defaults.AlwaysDisplayPlaybackControls) {
+        ActivePlaybackControlsInstance = SetupPlaybackControls();
+        ActiveSetupSongProgressBarInstance = SetupSongProgressBar(ActiveSongProgressBarInstance_Map);
       }
 
       // Use a more reliable approach to add elements
@@ -677,13 +617,13 @@ function OpenNowBar(skipSaving: boolean = false) {
             ".ContentBox .NowBar .Header .MediaBox .MediaContent .ViewControls"
           ),
         () => {
-          const MediaBox = PageContainer.querySelector(
+          const MediaBoxContent = PageContainer.querySelector(
             ".ContentBox .NowBar .Header .MediaBox .MediaContent"
           );
-          if (!MediaBox) return;
+          if (!MediaBoxContent) return;
 
           // Ensure there's no duplicate elements before appending
-          const viewControls = MediaBox.querySelector(".ViewControls");
+          const viewControls = MediaBoxContent.querySelector(".ViewControls");
 
           // Create a temporary fragment to avoid multiple reflows
           const fragment = document.createDocumentFragment();
@@ -691,34 +631,20 @@ function OpenNowBar(skipSaving: boolean = false) {
             fragment.appendChild(element);
           });
 
+          // Add the playback controls and timeline to the overlay only when inline controls are off
+          if (!Defaults.AlwaysDisplayPlaybackControls) {
+            if (ActivePlaybackControlsInstance) {
+              fragment.appendChild(ActivePlaybackControlsInstance.GetElement());
+            }
+            if (ActiveSetupSongProgressBarInstance) {
+              fragment.appendChild(ActiveSetupSongProgressBarInstance.GetElement());
+            }
+          }
+
           // Ensure proper order - first view controls, then our custom elements
-          MediaBox.innerHTML = "";
-          if (viewControls) MediaBox.appendChild(viewControls);
-          MediaBox.appendChild(fragment);
-
-          /* AppendQueue.forEach((element) => {
-                        if (element.classList.contains("marqueeify")) {
-                            const childMarquee = element.querySelector("span");
-                            if (!childMarquee) return;
-
-                            // Use text measurement instead of element width
-                            const textWidth = measureTextWidth(childMarquee.textContent || "");
-
-                            // Only apply marquee if text width is greater than 200px
-                            if (textWidth > 200) {
-                                const marquee = ApplyMarquee(
-                                    element.getAttribute("marquee-base-width") ?? "100%",
-                                    `${textWidth}px`,
-                                    "albumName"
-                                );
-                                childMarquee.style.animation = `${marquee.getComputedName()} 25s linear infinite`;
-                            } else {
-                                // Center the text if it doesn't need marquee
-                                childMarquee.style.textAlign = "center";
-                                childMarquee.style.width = "100%";
-                            }
-                        }
-                    }); */
+          MediaBoxContent.innerHTML = "";
+          if (viewControls) MediaBoxContent.appendChild(viewControls);
+          MediaBoxContent.appendChild(fragment);
         }
       );
     }
@@ -814,7 +740,9 @@ function OpenNowBar(skipSaving: boolean = false) {
         });
     } */
   NowBarObj.Open = true;
+  HideSpotifyPlaybackBar();
   PageView.AppendViewControls(true);
+  SetupInlineControls();
 }
 
 function CleanUpActiveComponents() {
@@ -868,6 +796,8 @@ function CloseNowBar() {
   NowBar.classList.remove("Active");
   storage.set("IsNowBarOpen", "false");
   CleanUpActiveComponents();
+  CleanUpInlineControls();
+  RestoreSpotifyPlaybackBar();
 
   const spicyLyricsPage = PageContainer;
   if (spicyLyricsPage) {
@@ -1157,98 +1087,88 @@ function DeregisterNowBarBtn() {
   PageView.AppendViewControls(true);
 }
 
-Global.Event.listen("playback:playpause", (e: { data: { isPaused: boolean } }) => {
-  // console.log("PlayPause", e);
-  if (Fullscreen.IsOpen) {
-    // console.log("Fullscreen Opened");
-    if (ActivePlaybackControlsInstance) {
-      // console.log("ActivePlaybackControlsInstance - Exists");
-      const PlaybackControls = ActivePlaybackControlsInstance.GetElement();
-      const PlayPauseButton = PlaybackControls.querySelector(".PlayStateToggle");
-      if (!PlayPauseButton) return;
+// Helper to update play/pause state on a playback controls instance
+function updatePlayPauseOnInstance(instance: PlaybackControlsInstance | null, isPaused: boolean) {
+  if (!instance) return;
+  const PlaybackControls = instance.GetElement();
+  const PlayPauseButton = PlaybackControls.querySelector(".PlayStateToggle");
+  if (!PlayPauseButton) return;
 
-      if (e.data.isPaused) {
-        // console.log("Paused");
-        PlayPauseButton.classList.remove("Playing");
-        PlayPauseButton.classList.add("Paused");
-        const SVG = PlayPauseButton.querySelector("svg");
-        if (SVG) {
-          SVG.innerHTML = Icons.Play;
-        }
-      } else {
-        // console.log("Playing");
-        PlayPauseButton.classList.remove("Paused");
-        PlayPauseButton.classList.add("Playing");
-        const SVG = PlayPauseButton.querySelector("svg");
-        if (SVG) {
-          SVG.innerHTML = Icons.Pause;
-        }
-      }
-    }
+  if (isPaused) {
+    PlayPauseButton.classList.remove("Playing");
+    PlayPauseButton.classList.add("Paused");
+    const SVG = PlayPauseButton.querySelector("svg");
+    if (SVG) SVG.innerHTML = Icons.Play;
+  } else {
+    PlayPauseButton.classList.remove("Paused");
+    PlayPauseButton.classList.add("Playing");
+    const SVG = PlayPauseButton.querySelector("svg");
+    if (SVG) SVG.innerHTML = Icons.Pause;
   }
+}
+
+// Helper to update loop state on a playback controls instance
+function updateLoopOnInstance(instance: PlaybackControlsInstance | null, loopType: string) {
+  if (!instance) return;
+  const PlaybackControls = instance.GetElement();
+  const LoopButton = PlaybackControls.querySelector(".LoopToggle");
+  if (!LoopButton) return;
+
+  const SVG = LoopButton.querySelector("svg");
+  if (!SVG) return;
+
+  SVG.style.filter = "";
+  if (loopType === "track") {
+    SVG.innerHTML = Icons.LoopTrack;
+  } else {
+    SVG.innerHTML = Icons.Loop;
+  }
+  if (loopType !== "none") {
+    LoopButton.classList.add("Enabled");
+    SVG.style.filter = "drop-shadow(0 0 5px white)";
+  } else {
+    LoopButton.classList.remove("Enabled");
+  }
+}
+
+// Helper to update shuffle state on a playback controls instance
+function updateShuffleOnInstance(instance: PlaybackControlsInstance | null, shuffleType: string) {
+  if (!instance) return;
+  const PlaybackControls = instance.GetElement();
+  const ShuffleButton = PlaybackControls.querySelector(".ShuffleToggle");
+  if (!ShuffleButton) return;
+
+  const SVG = ShuffleButton.querySelector("svg");
+  if (!SVG) return;
+
+  SVG.style.filter = "";
+  if (shuffleType !== "none") {
+    ShuffleButton.classList.add("Enabled");
+    SVG.style.filter = "drop-shadow(0 0 5px white)";
+  } else {
+    ShuffleButton.classList.remove("Enabled");
+  }
+}
+
+Global.Event.listen("playback:playpause", (e: { data: { isPaused: boolean } }) => {
+  if (Fullscreen.IsOpen) {
+    updatePlayPauseOnInstance(ActivePlaybackControlsInstance, e.data.isPaused);
+  }
+  updatePlayPauseOnInstance(InlinePlaybackControlsInstance, e.data.isPaused);
 });
 
 Global.Event.listen("playback:loop", (e: string) => {
-  // console.log("Loop", e);
   if (Fullscreen.IsOpen) {
-    // console.log("Fullscreen Opened");
-    if (ActivePlaybackControlsInstance) {
-      // console.log("ActivePlaybackControlsInstance - Exists");
-      const PlaybackControls = ActivePlaybackControlsInstance.GetElement();
-      const LoopButton = PlaybackControls.querySelector(".LoopToggle");
-      if (!LoopButton) return;
-
-      const SVG = LoopButton.querySelector("svg");
-      if (!SVG) return;
-
-      // First reset any inline styles
-      SVG.style.filter = "";
-
-      // Update loop icon
-      if (e === "track") {
-        SVG.innerHTML = Icons.LoopTrack;
-      } else {
-        SVG.innerHTML = Icons.Loop;
-      }
-
-      // Toggle class for brightness
-      if (e !== "none") {
-        LoopButton.classList.add("Enabled");
-        // Apply drop-shadow directly via style
-        SVG.style.filter = "drop-shadow(0 0 5px white)";
-      } else {
-        LoopButton.classList.remove("Enabled");
-      }
-    }
+    updateLoopOnInstance(ActivePlaybackControlsInstance, e);
   }
+  updateLoopOnInstance(InlinePlaybackControlsInstance, e);
 });
 
 Global.Event.listen("playback:shuffle", (e: string) => {
-  // console.log("Shuffle", e);
   if (Fullscreen.IsOpen) {
-    // console.log("Fullscreen Opened");
-    if (ActivePlaybackControlsInstance) {
-      // console.log("ActivePlaybackControlsInstance - Exists");
-      const PlaybackControls = ActivePlaybackControlsInstance.GetElement();
-      const ShuffleButton = PlaybackControls.querySelector(".ShuffleToggle");
-      if (!ShuffleButton) return;
-
-      const SVG = ShuffleButton.querySelector("svg");
-      if (!SVG) return;
-
-      // First reset any inline styles
-      SVG.style.filter = "";
-
-      // Toggle class for brightness
-      if (e !== "none") {
-        ShuffleButton.classList.add("Enabled");
-        // Apply drop-shadow directly via style
-        SVG.style.filter = "drop-shadow(0 0 5px white)";
-      } else {
-        ShuffleButton.classList.remove("Enabled");
-      }
-    }
+    updateShuffleOnInstance(ActivePlaybackControlsInstance, e);
   }
+  updateShuffleOnInstance(InlinePlaybackControlsInstance, e);
 });
 
 Global.Event.listen("playback:position", (e: number) => {
@@ -1257,20 +1177,30 @@ Global.Event.listen("playback:position", (e: number) => {
       const updateTimelineState = ActiveSongProgressBarInstance_Map.get(
         "updateTimelineState_Function"
       );
-      updateTimelineState(e);
-      // console.log("Timeline Updated!");
+      if (updateTimelineState) updateTimelineState(e);
     }
+  }
+  // Also update inline timeline
+  if (InlineSongProgressBarInstance) {
+    const updateTimelineState = InlineSongProgressBarInstance_Map.get(
+      "updateTimelineState_Function"
+    );
+    if (updateTimelineState) updateTimelineState(e);
   }
 });
 
 Global.Event.listen("fullscreen:exit", () => {
   CleanUpActiveComponents();
   CleanupMediaBox();
+  // Re-setup inline controls for regular view (timeline only)
+  CleanUpInlineControls();
+  setTimeout(() => SetupInlineControls(), 100);
 });
 
 Global.Event.listen("page:destroy", () => {
   CleanupMediaBox();
   CleanUpActiveComponents();
+  CleanUpInlineControls();
 });
 
 Global.Event.listen("nowbar:timeline:dragging", () => {

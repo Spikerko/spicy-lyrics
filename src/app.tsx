@@ -186,6 +186,14 @@ async function main() {
     Defaults.MinimalLyricsMode = storage.get("minimalLyricsMode") === "true";
   }
 
+  if (!storage.get("alwaysDisplayPlaybackControls")) {
+    storage.set("alwaysDisplayPlaybackControls", "true");
+  }
+
+  if (storage.get("alwaysDisplayPlaybackControls")) {
+    Defaults.AlwaysDisplayPlaybackControls = storage.get("alwaysDisplayPlaybackControls") === "true";
+  }
+
   if (!storage.get("hide_npv_bg")) {
     storage.set("hide_npv_bg", "false");
   }

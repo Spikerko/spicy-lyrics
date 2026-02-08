@@ -44,6 +44,8 @@ import {
   Session_OpenNowBar,
   ToggleNowBar,
   OpenNowBar,
+  HideSpotifyPlaybackBar,
+  RestoreSpotifyPlaybackBar,
 } from "../Utils/NowBar.ts";
 import {
   CloseSidebarLyrics,
@@ -156,6 +158,7 @@ async function OpenPage(
                             <div class="MediaContent"></div>
                             <div class="MediaImage"></div>
                         </div>
+                        <div class="InlineTimeline"></div>
                         <div class="Metadata">
                             <div class="SongName">
                                 <span></span>
@@ -164,6 +167,7 @@ async function OpenPage(
                                 <span></span>
                             </div>
                         </div>
+                        <div class="InlinePlaybackControls"></div>
                     </div>
                 </div>
             </div>
@@ -220,6 +224,8 @@ async function OpenPage(
         </div>
     */
   PageContainer = elem;
+
+  HideSpotifyPlaybackBar();
 
   const SkipSpicyFont = storage.get("skip-spicy-font");
   if (SkipSpicyFont !== "true") {
@@ -332,6 +338,8 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 
 function DestroyPage() {
   if (!PageView.IsOpened) return;
+
+  RestoreSpotifyPlaybackBar();
 
   cleanupApplyLyricsAbortController();
 

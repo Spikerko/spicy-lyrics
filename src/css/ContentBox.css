@@ -1672,3 +1672,111 @@
   border-radius: 9cqh !important;
   --BorderRadius: 9cqh !important;
 }
+
+/* InlineTimeline - between MediaBox and Metadata */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 1cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline:has(> *) {
+  display: flex;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline .Timeline {
+  position: relative;
+  bottom: auto;
+  padding: 1cqw 0;
+}
+
+/* Reduce Metadata top margin when InlineTimeline is populated */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline:has(> *) + .Metadata {
+  margin-top: 1cqw;
+}
+
+/* InlinePlaybackControls - below Metadata */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 3cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls:has(> *) {
+  display: flex;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6cqw;
+  width: 100%;
+  height: 4.5cqw;
+  padding: 0;
+  container-type: size;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl {
+  aspect-ratio: 1;
+  display: flex;
+  fill: #fff;
+  align-items: center;
+  cursor: pointer;
+  justify-content: center;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1),
+    filter 0.175s ease-out !important;
+  --ShrinkScale: 0.9;
+  --ShrinkDelta: calc(1 - var(--ShrinkScale));
+  height: 100cqh;
+  width: 7.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.TrackSkip.PrevTrack {
+  rotate: 180deg;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.ShuffleToggle,
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.LoopToggle {
+  width: 4cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.PlayStateToggle {
+  width: 5.6cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl:not(.Pressed) {
+  animation: pressAnimation 0.6s;
+  animation-fill-mode: forwards;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.Pressed {
+  transform: scale(var(--ShrinkScale));
+  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls:hover .PlaybackControl:not(:hover) {
+  opacity: 0.5;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl:hover {
+  opacity: 1 !important;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.ShuffleToggle.Enabled,
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.LoopToggle.Enabled {
+  filter: brightness(2.75);
+}
+
+/* Hide both in compact mode (limited space) */
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .InlineTimeline,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .InlineTimeline,
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .InlinePlaybackControls,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .InlinePlaybackControls {
+  display: none !important;
+}
