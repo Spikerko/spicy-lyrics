@@ -206,11 +206,6 @@ function SetupPlaybackControls(): PlaybackControlsInstance {
   const loopHandler = () => {
     if (!LoopControl) return;
     if (SpotifyPlayer.LoopType === "none") {
-      LoopControl.classList.add("Enabled");
-    } else {
-      LoopControl.classList.remove("Enabled");
-    }
-    if (SpotifyPlayer.LoopType === "none") {
       SpotifyPlayer.LoopType = "context";
       Spicetify.Player.setRepeat(1);
     } else if (SpotifyPlayer.LoopType === "context") {
@@ -1085,6 +1080,17 @@ function DeregisterNowBarBtn() {
   PageView.AppendViewControls(true);
 }
 
+function replaceSvgElement(container: Element, svgString: string) {
+  const oldSvg = container.querySelector("svg");
+  if (!oldSvg) return;
+  const template = document.createElement("template");
+  template.innerHTML = svgString.trim();
+  const newSvg = template.content.firstElementChild;
+  if (newSvg && oldSvg.parentElement) {
+    oldSvg.parentElement.replaceChild(newSvg, oldSvg);
+  }
+}
+
 // Helper to update play/pause state on a playback controls instance
 function updatePlayPauseOnInstance(instance: PlaybackControlsInstance | null, isPaused: boolean) {
   if (!instance) return;
@@ -1095,13 +1101,11 @@ function updatePlayPauseOnInstance(instance: PlaybackControlsInstance | null, is
   if (isPaused) {
     PlayPauseButton.classList.remove("Playing");
     PlayPauseButton.classList.add("Paused");
-    const SVG = PlayPauseButton.querySelector("svg");
-    if (SVG) SVG.innerHTML = Icons.Play;
+    replaceSvgElement(PlayPauseButton, Icons.Play);
   } else {
     PlayPauseButton.classList.remove("Paused");
     PlayPauseButton.classList.add("Playing");
-    const SVG = PlayPauseButton.querySelector("svg");
-    if (SVG) SVG.innerHTML = Icons.Pause;
+    replaceSvgElement(PlayPauseButton, Icons.Pause);
   }
 }
 
@@ -1115,17 +1119,14 @@ function updateLoopOnInstance(instance: PlaybackControlsInstance | null, loopTyp
   const SVG = LoopButton.querySelector("svg");
   if (!SVG) return;
 
-  SVG.style.filter = "";
-  if (loopType === "track") {
-    SVG.innerHTML = Icons.LoopTrack;
-  } else {
-    SVG.innerHTML = Icons.Loop;
-  }
+  replaceSvgElement(LoopButton, loopType === "track" ? Icons.LoopTrack : Icons.Loop);
+  const newSvg = LoopButton.querySelector<HTMLElement>("svg");
   if (loopType !== "none") {
     LoopButton.classList.add("Enabled");
-    SVG.style.filter = "drop-shadow(0 0 5px white)";
+    if (newSvg) newSvg.style.filter = "drop-shadow(0 0 5px white)";
   } else {
     LoopButton.classList.remove("Enabled");
+    if (newSvg) newSvg.style.filter = "";
   }
 }
 
