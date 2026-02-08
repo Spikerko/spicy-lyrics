@@ -834,6 +834,17 @@
 
 #SpicyLyricsPage .Timeline .Time {
   font-size: var(--default-font-size) !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 5ch;
+  flex-shrink: 0;
+}
+
+#SpicyLyricsPage .Timeline .Time.Position {
+  text-align: right;
+}
+
+#SpicyLyricsPage .Timeline .Time.Duration {
+  text-align: left;
 }
 
 #SpicyLyricsPage .Timeline .SliderBar .Handle {
