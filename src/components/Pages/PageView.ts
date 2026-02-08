@@ -68,14 +68,14 @@ export const Tooltips: {
   FullscreenToggle: TippyInstance | null;
   CinemaView: TippyInstance | null;
   NowBarSideToggle: TippyInstance | null;
-  DevTools: TippyInstance | null;
+  LoadTTML: TippyInstance | null;
 } = {
   Close: null,
   NowBarToggle: null,
   FullscreenToggle: null,
   CinemaView: null,
   NowBarSideToggle: null,
-  DevTools: null,
+  LoadTTML: null,
 };
 
 const PageView = {
@@ -418,7 +418,6 @@ function AppendViewControls(ReAppend: boolean = false) {
   const isNoLyrics =
     storage.get("currentLyricsData")?.toString() ===
     `NO_LYRICS:${SpotifyPlayer.GetId()}`;
-  const isDevMode = storage.get("devMode") === "true";
   elem.innerHTML = `
         ${
           Fullscreen.IsOpen || Fullscreen.CinemaViewOpen
@@ -474,11 +473,7 @@ function AppendViewControls(ReAppend: boolean = false) {
               }</button>`
             : ""
         }
-        ${
-          isDevMode
-            ? `<button id="DevTools" class="ViewControl">${Icons.DevTools}</button>`
-            : ""
-        }
+        <button id="LoadTTML" class="ViewControl">${Icons.LoadTTML}</button>
         <button id="Close" class="ViewControl">${Icons.Close}</button>
     `;
 
@@ -760,35 +755,41 @@ function AppendViewControls(ReAppend: boolean = false) {
       }
     }
 
-    const devToolsButton = elem.querySelector("#DevTools");
-    if (devToolsButton && isDevMode) {
+    const loadTTMLButton = elem.querySelector("#LoadTTML");
+    if (loadTTMLButton) {
       try {
         if (!isPip) {
-          Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
+          Tooltips.LoadTTML = Spicetify.Tippy(loadTTMLButton, {
             ...Spicetify.TippyProps,
-            content: `DevTools`,
+            content: `Load TTML`,
           });
         }
-        devToolsButton.addEventListener("click", () => {
+        loadTTMLButton.addEventListener("click", () => {
           if (IsPIP) {
             globalThis.focus();
           }
 
           Spicetify.PopupModal.display({
-            title: "Spicy Lyrics DevTools",
+            title: "Load TTML",
             isLarge: true,
             content: `
                             <div class="SpicyLyricsDevToolsContainer">
                                 <div class="Setting">
-                                    <div class="SettingName"><span>Load TTML (for the current song)</span></div>
+                                    <div class="SettingName"><span>Load TTML for the current song</span></div>
                                     <div class="SettingValue">
                                         <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load TTML</button>
                                     </div>
                                 </div>
                                 <div class="Setting">
-                                    <div class="SettingName"><span>Reset TTML (for the current song)</span></div>
+                                    <div class="SettingName"><span>Reset TTML for the current song</span></div>
                                     <div class="SettingValue">
                                         <button onclick="window._spicy_lyrics.execute('reset-ttml')">Reset TTML</button>
+                                    </div>
+                                </div>
+                                <div class="Setting" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                                    <div class="SettingName"><span>Need help creating TTML files?</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
                                     </div>
                                 </div>
                             </div>
@@ -796,7 +797,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           });
         });
       } catch (err) {
-        console.warn("Failed to setup DevTools tooltip:", err);
+        console.warn("Failed to setup LoadTTML tooltip:", err);
       }
     }
   }
