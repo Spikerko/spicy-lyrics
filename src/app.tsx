@@ -699,7 +699,11 @@ async function main() {
     });
 
     new IntervalManager(1, async () => {
-      await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      try {
+        await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      } catch {
+        // No song data available, skip
+      }
     }).Start();
 
     async function onSongChange(event: any) {
@@ -720,7 +724,10 @@ async function main() {
         Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
       }
 
-      fetchLyrics(event?.data?.item?.uri).then(ApplyLyrics);
+      const songUri = event?.data?.item?.uri;
+      if (songUri) {
+        fetchLyrics(songUri).then(ApplyLyrics);
+      }
 
       if (
         Defaults.StaticBackground &&
@@ -738,15 +745,26 @@ async function main() {
         }
       }
 
-      await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      try {
+        await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      } catch (err) {
+        console.error("Error applying dynamic BG to NowPlayingBar:", err);
+      }
 
       const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
       if (!contentBox || (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color")) return;
-      ApplyDynamicBackground(contentBox);
+      try {
+        ApplyDynamicBackground(contentBox);
+      } catch (err) {
+        console.error("Error applying dynamic background:", err);
+      }
     }
     Global.Event.listen("playback:songchange", onSongChange);
 
-    fetchLyrics(SpotifyPlayer.GetUri() ?? "").then(ApplyLyrics);
+    const initUri = SpotifyPlayer.GetUri();
+    if (initUri) {
+      fetchLyrics(initUri).then(ApplyLyrics);
+    }
 
     if (
       Defaults.StaticBackground &&
@@ -970,7 +988,10 @@ async function main() {
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics.toString());
             if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
-              fetchLyrics(SpotifyPlayer.GetUri() ?? "").then(ApplyLyrics);
+              const refetchUri = SpotifyPlayer.GetUri();
+              if (refetchUri) {
+                fetchLyrics(refetchUri).then(ApplyLyrics);
+              }
             }
           }
         }, 1000);

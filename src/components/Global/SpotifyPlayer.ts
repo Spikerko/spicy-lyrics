@@ -137,7 +137,7 @@ export const SpotifyPlayer = {
     return Spicetify?.Player?.data?.item?.mediaType;
   },
   GetDuration: (): number => {
-    if (Spicetify?.Player?.data?.item.duration.milliseconds) {
+    if (Spicetify?.Player?.data?.item?.duration?.milliseconds) {
       return Spicetify.Player.data.item.duration.milliseconds;
     }
     return 0;
@@ -147,16 +147,15 @@ export const SpotifyPlayer = {
       (Spicetify?.Player as any)?.origin?.seekTo(position);
   },
   GetCover: (size: CoverSizes): string | undefined => {
+    const item = Spicetify?.Player?.data?.item;
+    if (!item) return "https://images.spikerko.org/SongPlaceholderFull.png";
     // @ts-ignore aaa
-    if (Spicetify?.Player?.data?.item.images || Spicetify.Player.data.item?.show?.images) {
-      // @ts-ignore aaa
-      const covers = Spicetify.Player.data.item?.images ?? Spicetify.Player.data.item?.show?.images;
-      if (covers.length > 0) {
-        const cover = covers?.find((cover) => cover.label === size);
-        return (
-          cover?.url ?? "https://images.spikerko.org/SongPlaceholderFull.png"
-        );
-      }
+    const covers = item.images ?? item.show?.images;
+    if (covers?.length > 0) {
+      const cover = covers.find((cover: any) => cover.label === size);
+      return (
+        cover?.url ?? "https://images.spikerko.org/SongPlaceholderFull.png"
+      );
     }
     return "https://images.spikerko.org/SongPlaceholderFull.png";
   },
@@ -193,7 +192,7 @@ export const SpotifyPlayer = {
   GetUri: (): string | undefined => {
     return (
       // @ts-ignore aaa
-      Spicetify?.Player?.data?.item?.uri ?? Spicetify.Player.data?.track?.uri
+      Spicetify?.Player?.data?.item?.uri ?? Spicetify?.Player?.data?.track?.uri
     );
   },
   Pause: Spicetify?.Player?.pause,
@@ -206,14 +205,16 @@ export const SpotifyPlayer = {
   LoopType: "none",
   ShuffleType: "none",
   IsDJ: (): boolean => {
+    const data = Spicetify?.Player?.data;
+    if (!data) return false;
     return (
-      Spicetify.Player.data?.item?.provider?.startsWith("narration") ||
-      (Spicetify.Player.data?.restrictions?.disallowSeekingReasons?.length >
+      data.item?.provider?.startsWith("narration") ||
+      (data.restrictions?.disallowSeekingReasons?.length >
         0 &&
-        Spicetify.Player.data?.restrictions?.disallowSeekingReasons[0].includes(
+        data.restrictions?.disallowSeekingReasons[0]?.includes(
           "narration"
         )) ||
-      Spicetify.Player.data?.item?.type === "unknown"
+      data.item?.type === "unknown"
     );
   },
   IsLiked: () => Spicetify?.Player?.getHeart(),

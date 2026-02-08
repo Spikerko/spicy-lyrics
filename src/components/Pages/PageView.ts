@@ -250,16 +250,20 @@ async function OpenPage(
     ".ContentBox"
   );
   if (contentBox) {
-    ApplyDynamicBackground(contentBox);
+    try {
+      ApplyDynamicBackground(contentBox);
+    } catch (err) {
+      console.error("Error applying dynamic background:", err);
+    }
   }
 
   addLinesEvListener();
 
   {
-    if (!Spicetify.Player.data?.item?.uri) return; // Exit if `uri` is not available
-    const currentUri = Spicetify.Player.data.item.uri;
-
-    fetchLyrics(currentUri).then(ApplyLyrics);
+    const currentUri = Spicetify?.Player?.data?.item?.uri;
+    if (currentUri) {
+      fetchLyrics(currentUri).then(ApplyLyrics);
+    }
   }
 
   Session_OpenNowBar();
