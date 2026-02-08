@@ -497,6 +497,7 @@ function OpenNowBar(skipSaving: boolean = false) {
     spicyLyricsPage?.classList.remove("NowBarStatus__Open");
     return;
   }
+  HideSpotifyPlaybackBar();
   UpdateNowBar(true);
   NowBar.classList.add("Active");
 
@@ -789,6 +790,7 @@ function CloseNowBar() {
   if (!NowBar) return;
   NowBar.classList.remove("Active");
   storage.set("IsNowBarOpen", "false");
+  RestoreSpotifyPlaybackBar();
   CleanUpActiveComponents();
   CleanUpInlineControls();
 
