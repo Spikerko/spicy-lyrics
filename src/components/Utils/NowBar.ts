@@ -44,6 +44,7 @@ let ActiveHeartMaid: Maid | null = null;
 
 export const NowBarObj = {
   Open: false,
+  _inlineSetupTimer: null as ReturnType<typeof setTimeout> | null,
 };
 
 export function HideSpotifyPlaybackBar() {
@@ -1180,12 +1181,22 @@ Global.Event.listen("fullscreen:exit", () => {
   CleanupMediaBox();
   // Re-setup inline controls for regular view (timeline only)
   CleanUpInlineControls();
-  setTimeout(() => {
-    if (PageView.IsOpened) SetupInlineControls();
+  if (NowBarObj._inlineSetupTimer) {
+    clearTimeout(NowBarObj._inlineSetupTimer);
+  }
+  NowBarObj._inlineSetupTimer = setTimeout(() => {
+    NowBarObj._inlineSetupTimer = null;
+    if (PageView.IsOpened && NowBarObj.Open && !Fullscreen.IsOpen) {
+      SetupInlineControls();
+    }
   }, 100);
 });
 
 Global.Event.listen("page:destroy", () => {
+  if (NowBarObj._inlineSetupTimer) {
+    clearTimeout(NowBarObj._inlineSetupTimer);
+    NowBarObj._inlineSetupTimer = null;
+  }
   CleanupMediaBox();
   CleanUpActiveComponents();
   CleanUpInlineControls();

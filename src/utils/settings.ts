@@ -218,7 +218,8 @@ function generalSettings(SettingsSection: any) {
         if (PageView.IsOpened) {
           const uri = SpotifyPlayer.GetUri();
           if (uri) {
-            fetchLyrics(uri).then(ApplyLyrics);
+            const result = await fetchLyrics(uri);
+            ApplyLyrics(result);
           }
         }
       } catch (error) {
