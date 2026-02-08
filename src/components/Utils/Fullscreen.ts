@@ -22,15 +22,19 @@ const Fullscreen = {
   CinemaViewOpen: false,
 };
 
+const CloseAndExitLyrics = () => {
+  Close();
+  if (isSpicySidebarMode) {
+    CloseSidebarLyrics();
+  } else {
+    Session.GoBack();
+  }
+};
+
 document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
     if (Defaults.EscapeKeyFunction === "Exit Fullscreen + Close Lyrics") {
-      Close();
-      if (isSpicySidebarMode) {
-        CloseSidebarLyrics();
-      } else {
-        Session.GoBack();
-      }
+      CloseAndExitLyrics();
     } else if (Defaults.EscapeKeyFunction === "Exit Fullscreen") {
       Close();
     } else {
@@ -43,12 +47,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || !Fullscreen.IsOpen || !Fullscreen.CinemaViewOpen) return;
 
   if (Defaults.EscapeKeyFunction === "Exit Fullscreen + Close Lyrics") {
-    Close();
-    if (isSpicySidebarMode) {
-      CloseSidebarLyrics();
-    } else {
-      Session.GoBack();
-    }
+    CloseAndExitLyrics();
   } else {
     Close();
   }

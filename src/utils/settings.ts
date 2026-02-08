@@ -210,10 +210,6 @@ function generalSettings(SettingsSection: any) {
     "Clear All",
     async () => {
       try {
-        const currentSongId = SpotifyPlayer.GetId();
-        if (currentSongId) {
-          await LyricsStore.RemoveItem(currentSongId);
-        }
         await LyricsStore.Destroy();
         storage.set("currentLyricsData", null);
 

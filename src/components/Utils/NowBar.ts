@@ -468,9 +468,6 @@ function CleanUpInlineControls() {
     InlineSongProgressBarInstance.CleanUp();
     InlineSongProgressBarInstance = null;
   }
-  if (InlineSongProgressBarInstance_Map.size > 0) {
-    InlineSongProgressBarInstance_Map.clear();
-  }
   InlineSongProgressBarInstance_Map = new Map<string, any>();
 }
 
@@ -778,9 +775,7 @@ function CloseNowBar() {
   if (!NowBar) return;
   NowBar.classList.remove("Active");
   storage.set("IsNowBarOpen", "false");
-  if (!PageView.IsOpened) {
-    RestoreSpotifyPlaybackBar();
-  }
+  RestoreSpotifyPlaybackBar();
   CleanUpActiveComponents();
   CleanUpInlineControls();
 
@@ -968,7 +963,7 @@ function UpdateNowBar(force = false) {
 
   if (contentType === "episode") {
     const showName = SpotifyPlayer.GetShowName();
-    ArtistsSpan.textContent = showName ?? "";
+    if (ArtistsSpan) ArtistsSpan.textContent = showName ?? "";
   }
 
   const artists = SpotifyPlayer.GetArtists();
@@ -1185,7 +1180,9 @@ Global.Event.listen("fullscreen:exit", () => {
   CleanupMediaBox();
   // Re-setup inline controls for regular view (timeline only)
   CleanUpInlineControls();
-  setTimeout(() => SetupInlineControls(), 100);
+  setTimeout(() => {
+    if (PageView.IsOpened) SetupInlineControls();
+  }, 100);
 });
 
 Global.Event.listen("page:destroy", () => {
