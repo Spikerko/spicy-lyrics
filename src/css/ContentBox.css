@@ -713,7 +713,7 @@
   .PlaybackControls
   .PlaybackControl.Pressed {
   transform: scale(var(--ShrinkScale));
-  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1), transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
 }
 
 #SpicyLyricsPage.Fullscreen
@@ -1757,7 +1757,7 @@
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.Pressed {
   transform: scale(var(--ShrinkScale));
-  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1), transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls:hover .PlaybackControl:not(:hover) {

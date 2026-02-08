@@ -273,8 +273,8 @@ function SetupSongProgressBar(instanceMap: Map<string, any>): SongProgressBarIns
   instanceMap.set("SongProgressBar_ClassInstance", songProgressBar);
 
   songProgressBar.Update({
-    duration: SpotifyPlayer.GetPosition() ?? 0,
-    position: SpotifyPlayer.GetDuration() ?? 0,
+    duration: SpotifyPlayer.GetDuration() ?? 0,
+    position: SpotifyPlayer.GetPosition() ?? 0,
   });
 
   const TimelineElem = document.createElement("div");
@@ -740,7 +740,6 @@ function OpenNowBar(skipSaving: boolean = false) {
         });
     } */
   NowBarObj.Open = true;
-  HideSpotifyPlaybackBar();
   PageView.AppendViewControls(true);
   SetupInlineControls();
 }
@@ -797,7 +796,6 @@ function CloseNowBar() {
   storage.set("IsNowBarOpen", "false");
   CleanUpActiveComponents();
   CleanUpInlineControls();
-  RestoreSpotifyPlaybackBar();
 
   const spicyLyricsPage = PageContainer;
   if (spicyLyricsPage) {
