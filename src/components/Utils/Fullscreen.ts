@@ -24,15 +24,17 @@ const Fullscreen = {
 
 document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
-    if (Defaults.EscapeKeyFunction === "Exit Fullscreen") {
-      Close();
-    } else if (Defaults.EscapeKeyFunction === "Exit Fully") {
+    if (Defaults.EscapeKeyFunction === "Exit Fully") {
       Close();
       if (isSpicySidebarMode) {
         CloseSidebarLyrics();
       } else {
         Session.GoBack();
       }
+    } else if (Defaults.EscapeKeyFunction === "Exit Fullscreen") {
+      Close();
+    } else {
+      Fullscreen.CinemaViewOpen = true;
     }
   }
 });
