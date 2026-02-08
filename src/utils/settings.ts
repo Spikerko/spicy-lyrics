@@ -202,6 +202,18 @@ function generalSettings(SettingsSection: any) {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
+  settings.addToggle(
+    "always-display-playback-controls",
+    "Always display Playback Bar and Controls",
+    Defaults.AlwaysDisplayPlaybackControls,
+    () => {
+      storage.set(
+        "alwaysDisplayPlaybackControls",
+        settings.getFieldValue("always-display-playback-controls") as string
+      );
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",

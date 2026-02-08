@@ -143,6 +143,7 @@ out
 
 # End of https://www.toptal.com/developers/gitignore/api/node
 
+.claude
 
 dist/
 
@@ -160,6 +161,5 @@ src/components/PopupModal/PopupModal.ts
 TODO.md
 
 src/packages/
-
 
 public-storage/
