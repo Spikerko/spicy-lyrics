@@ -88,7 +88,7 @@ function generalSettings(SettingsSection: any) {
   settings.addToggle(
     "static-background",
     "Static Background",
-    Defaults.StaticBackground_Preset,
+    Defaults.StaticBackground,
     () => {
       const value = settings.getFieldValue("static-background") as string;
       storage.set("staticBackground", value);
@@ -100,7 +100,7 @@ function generalSettings(SettingsSection: any) {
     "static-background-type",
     "Static Background Type (Only works when Static Background is Enabled)",
     ["Auto", "Artist Header Visual", "Cover Art", "Color"],
-    Defaults.StaticBackgroundType_Preset,
+    Defaults.StaticBackgroundType === "Color" ? 3 : Defaults.StaticBackgroundType === "Cover Art" ? 2 : Defaults.StaticBackgroundType === "Artist Header Visual" ? 1 : 0,
     () => {
       const value = settings.getFieldValue("static-background-type") as string;
       storage.set("staticBackgroundType", value);

@@ -253,7 +253,7 @@ async function OpenPage(
   );
   if (contentBox) {
     try {
-      ApplyDynamicBackground(contentBox);
+      await ApplyDynamicBackground(contentBox);
     } catch (err) {
       console.error("Error applying dynamic background:", err);
     }

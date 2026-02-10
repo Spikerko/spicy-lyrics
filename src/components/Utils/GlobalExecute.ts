@@ -231,25 +231,28 @@ Global.SetScope("execute", async (command: string) => {
           }
         }
 
-        // Batch fetch track metadata from Spotify API
+        // Batch fetch track metadata from Spotify API (max 50 IDs per request)
         const trackMeta: Record<string, { name: string; artists: string }> = {};
         if (nonLocalIds.length > 0) {
-          try {
-            const resp = await (Spicetify as any).CosmosAsync.get(
-              `https://api.spotify.com/v1/tracks?ids=${nonLocalIds.join(",")}`
-            );
-            if (resp?.tracks) {
-              for (const track of resp.tracks) {
-                if (track) {
-                  trackMeta[track.id] = {
-                    name: track.name,
-                    artists: track.artists.map((a: any) => a.name).join(", "),
-                  };
+          for (let i = 0; i < nonLocalIds.length; i += 50) {
+            const chunk = nonLocalIds.slice(i, i + 50);
+            try {
+              const resp = await (Spicetify as any).CosmosAsync.get(
+                `https://api.spotify.com/v1/tracks?ids=${chunk.join(",")}`
+              );
+              if (resp?.tracks) {
+                for (const track of resp.tracks) {
+                  if (track) {
+                    trackMeta[track.id] = {
+                      name: track.name,
+                      artists: track.artists.map((a: any) => a.name).join(", "),
+                    };
+                  }
                 }
               }
+            } catch (metaErr) {
+              console.warn("Could not fetch track metadata for batch:", metaErr);
             }
-          } catch (metaErr) {
-            console.warn("Could not fetch track metadata:", metaErr);
           }
         }
 
