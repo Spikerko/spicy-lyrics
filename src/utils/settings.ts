@@ -123,13 +123,25 @@ function generalSettings(SettingsSection: any) {
   settings.addGroup("Playback & Controls");
 
   settings.addToggle(
-    "always-display-playback-controls",
-    "Always display Playback Bar and Controls",
-    Defaults.AlwaysDisplayPlaybackControls,
+    "replace-spotify-playbar",
+    "Replace Spotify playbar with NowBar playbar (performance gain workaround)",
+    Defaults.ReplaceSpotifyPlaybar,
     () => {
-      const value = settings.getFieldValue("always-display-playback-controls") as string;
-      storage.set("alwaysDisplayPlaybackControls", value);
-      Defaults.AlwaysDisplayPlaybackControls = value === "true" || value === true;
+      const value = settings.getFieldValue("replace-spotify-playbar") as string;
+      storage.set("replaceSpotifyPlaybar", value);
+      Defaults.ReplaceSpotifyPlaybar = value === "true" || value === true;
+    }
+  );
+
+  settings.addDropDown(
+    "always-show-in-fullscreen",
+    "Always show in Fullscreen/Cinema",
+    ["None", "Time", "Controls", "Both"],
+    Defaults.AlwaysShowInFullscreen === "Both" ? 3 : Defaults.AlwaysShowInFullscreen === "Controls" ? 2 : Defaults.AlwaysShowInFullscreen === "Time" ? 1 : 0,
+    () => {
+      const value = settings.getFieldValue("always-show-in-fullscreen") as string;
+      storage.set("alwaysShowInFullscreen", value);
+      Defaults.AlwaysShowInFullscreen = value;
     }
   );
 

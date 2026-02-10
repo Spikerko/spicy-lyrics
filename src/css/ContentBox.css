@@ -531,6 +531,19 @@
   container-type: size;
 }
 
+/* Move playback controls to bottom when timeline is shown inline instead of in overlay */
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent:not(:has(.Timeline))
+  .PlaybackControls {
+  bottom: 0;
+  padding-bottom: 5cqh;
+}
+
 #SpicyLyricsPage.Fullscreen
   .ContentBox
   .NowBar

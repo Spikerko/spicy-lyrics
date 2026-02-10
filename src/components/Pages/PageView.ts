@@ -225,7 +225,9 @@ async function OpenPage(
     */
   PageContainer = elem;
 
-  HideSpotifyPlaybackBar();
+  if (Defaults.ReplaceSpotifyPlaybar) {
+    HideSpotifyPlaybackBar();
+  }
 
   const SkipSpicyFont = storage.get("skip-spicy-font");
   if (SkipSpicyFont !== "true") {
@@ -343,7 +345,9 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 function DestroyPage() {
   if (!PageView.IsOpened) return;
 
-  RestoreSpotifyPlaybackBar();
+  if (Defaults.ReplaceSpotifyPlaybar) {
+    RestoreSpotifyPlaybackBar();
+  }
 
   cleanupApplyLyricsAbortController();
 

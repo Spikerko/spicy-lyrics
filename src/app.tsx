@@ -186,12 +186,20 @@ async function main() {
     Defaults.MinimalLyricsMode = storage.get("minimalLyricsMode") === "true";
   }
 
-  if (!storage.get("alwaysDisplayPlaybackControls")) {
-    storage.set("alwaysDisplayPlaybackControls", "false");
+  if (!storage.get("replaceSpotifyPlaybar")) {
+    storage.set("replaceSpotifyPlaybar", "false");
   }
 
-  if (storage.get("alwaysDisplayPlaybackControls")) {
-    Defaults.AlwaysDisplayPlaybackControls = storage.get("alwaysDisplayPlaybackControls") === "true";
+  if (storage.get("replaceSpotifyPlaybar")) {
+    Defaults.ReplaceSpotifyPlaybar = storage.get("replaceSpotifyPlaybar") === "true";
+  }
+
+  if (!storage.get("alwaysShowInFullscreen")) {
+    storage.set("alwaysShowInFullscreen", "None");
+  }
+
+  if (storage.get("alwaysShowInFullscreen")) {
+    Defaults.AlwaysShowInFullscreen = storage.get("alwaysShowInFullscreen").toString() as string;
   }
 
   if (!storage.get("hide_npv_bg")) {

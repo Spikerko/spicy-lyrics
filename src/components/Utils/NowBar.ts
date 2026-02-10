@@ -446,19 +446,23 @@ function SetupInlineControls() {
 
   CleanUpInlineControls();
 
-  const showFullControls = Fullscreen.IsOpen && Defaults.AlwaysDisplayPlaybackControls;
-  const showTimelineOnly = !Fullscreen.IsOpen && !isSpicySidebarMode;
+  const setting = Defaults.AlwaysShowInFullscreen;
+  const inFullscreen = Fullscreen.IsOpen;
 
-  if (!showFullControls && !showTimelineOnly) return;
+  const showTimeline = (!inFullscreen && !isSpicySidebarMode && Defaults.ReplaceSpotifyPlaybar) ||
+    (inFullscreen && (setting === "Time" || setting === "Both"));
+  const showControls = inFullscreen && (setting === "Controls" || setting === "Both");
+
+  if (!showTimeline && !showControls) return;
 
   // Timeline between cover art and song title
-  if (timelineContainer) {
+  if (showTimeline && timelineContainer) {
     InlineSongProgressBarInstance = SetupSongProgressBar(InlineSongProgressBarInstance_Map);
     InlineSongProgressBarInstance?.Apply(timelineContainer);
   }
 
   // Playback controls below song title/artists (only in cinema/fullscreen when setting is enabled)
-  if (showFullControls && controlsContainer) {
+  if (showControls && controlsContainer) {
     InlinePlaybackControlsInstance = SetupPlaybackControls();
     InlinePlaybackControlsInstance?.Apply(controlsContainer);
   }
@@ -487,7 +491,9 @@ function OpenNowBar(skipSaving: boolean = false) {
     spicyLyricsPage?.classList.remove("NowBarStatus__Open");
     return;
   }
-  HideSpotifyPlaybackBar();
+  if (Defaults.ReplaceSpotifyPlaybar) {
+    HideSpotifyPlaybackBar();
+  }
   UpdateNowBar(true);
   NowBar.classList.add("Active");
 
@@ -590,9 +596,15 @@ function OpenNowBar(skipSaving: boolean = false) {
         AppendQueue.push(HeartElement);
       }
 
-      // Only create overlay playback controls + timeline when inline controls are NOT active
-      if (!Defaults.AlwaysDisplayPlaybackControls) {
+      // Only create overlay components when they're not handled by inline controls
+      const _setting = Defaults.AlwaysShowInFullscreen;
+      const _skipOverlayControls = _setting === "Controls" || _setting === "Both";
+      const _skipOverlayTimeline = _setting === "Time" || _setting === "Both";
+
+      if (!_skipOverlayControls) {
         ActivePlaybackControlsInstance = SetupPlaybackControls();
+      }
+      if (!_skipOverlayTimeline) {
         ActiveSetupSongProgressBarInstance = SetupSongProgressBar(ActiveSongProgressBarInstance_Map);
       }
 
@@ -617,14 +629,12 @@ function OpenNowBar(skipSaving: boolean = false) {
             fragment.appendChild(element);
           });
 
-          // Add the playback controls and timeline to the overlay only when inline controls are off
-          if (!Defaults.AlwaysDisplayPlaybackControls) {
-            if (ActivePlaybackControlsInstance) {
-              fragment.appendChild(ActivePlaybackControlsInstance.GetElement());
-            }
-            if (ActiveSetupSongProgressBarInstance) {
-              fragment.appendChild(ActiveSetupSongProgressBarInstance.GetElement());
-            }
+          // Add overlay components that aren't handled by inline controls
+          if (ActivePlaybackControlsInstance) {
+            fragment.appendChild(ActivePlaybackControlsInstance.GetElement());
+          }
+          if (ActiveSetupSongProgressBarInstance) {
+            fragment.appendChild(ActiveSetupSongProgressBarInstance.GetElement());
           }
 
           // Ensure proper order - first view controls, then our custom elements
