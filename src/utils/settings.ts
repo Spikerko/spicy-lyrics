@@ -2,7 +2,7 @@ import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import { SpotifyPlayer } from "../components/Global/SpotifyPlayer.ts";
 import PageView, { ShowNotification } from "../components/Pages/PageView.ts";
-import fetchLyrics, { LyricsStore, UserTTMLStore } from "./Lyrics/fetchLyrics.ts";
+import fetchLyrics, { LyricsStore, UserTTMLStore, SessionTTMLStore } from "./Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
 import storage from "./storage.ts";
@@ -219,11 +219,11 @@ function generalSettings(SettingsSection: any) {
   settings.addButton(
     "clear-all-caches",
     "Clear all lyrics caches at once",
-    "Clear All",
+    "Clear All Caches",
     async () => {
       try {
         await LyricsStore.Destroy();
-        await UserTTMLStore.Destroy();
+        SessionTTMLStore.clear();
         storage.set("currentLyricsData", null);
 
         ShowNotification("All lyrics caches cleared", "success");
@@ -237,6 +237,30 @@ function generalSettings(SettingsSection: any) {
         }
       } catch (error) {
         ShowNotification("Error clearing caches", "error");
+        console.error("SpicyLyrics:", error);
+      }
+    }
+  );
+
+  settings.addButton(
+    "clear-ttml-db",
+    "Clear the local TTML Database (user-uploaded TTMLs)",
+    "Clear Database",
+    async () => {
+      try {
+        await UserTTMLStore.Destroy();
+        SessionTTMLStore.clear();
+        ShowNotification("TTML database cleared", "success");
+
+        if (PageView.IsOpened) {
+          const uri = SpotifyPlayer.GetUri();
+          if (uri) {
+            const result = await fetchLyrics(uri);
+            ApplyLyrics(result);
+          }
+        }
+      } catch (error) {
+        ShowNotification("Error clearing TTML database", "error");
         console.error("SpicyLyrics:", error);
       }
     }
@@ -261,6 +285,13 @@ function generalSettings(SettingsSection: any) {
     "Clear Current Song Lyrics from internal state",
     "Clear Current Lyrics",
     () => RemoveCurrentLyrics_StateCache(true)
+  );
+
+  settings.addButton(
+    "explore-ttml-db",
+    "Explore local TTML Database",
+    "Open",
+    () => (globalThis as any)._spicy_lyrics?.execute?.("explore-ttml-db")
   );
 
   // --- Advanced ---

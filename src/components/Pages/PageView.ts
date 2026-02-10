@@ -781,11 +781,24 @@ function AppendViewControls(ReAppend: boolean = false) {
             title: "Load TTML",
             isLarge: true,
             content: `
+                            <style>.SpicyLyricsDevToolsContainer .SettingValue button { min-width: 140px; box-sizing: border-box; text-align: center; }</style>
                             <div class="SpicyLyricsDevToolsContainer">
                                 <div class="Setting">
-                                    <div class="SettingName"><span>Load TTML for the current song</span></div>
+                                    <div class="SettingName"><span>Temporarily load TTML for the current song</span></div>
                                     <div class="SettingValue">
-                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load TTML</button>
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml-temp')">Load Temporary</button>
+                                    </div>
+                                </div>
+                                <div class="Setting">
+                                    <div class="SettingName"><span>Load TTML for the current session (persists until restart)</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml-session')">Load Session</button>
+                                    </div>
+                                </div>
+                                <div class="Setting">
+                                    <div class="SettingName"><span>Load TTML for the current song (persistent)</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load Persistent</button>
                                     </div>
                                 </div>
                                 <div class="Setting">

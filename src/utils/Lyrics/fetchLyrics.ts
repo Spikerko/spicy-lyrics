@@ -20,6 +20,8 @@ export const UserTTMLStore = GetExpireStore<any>("SpicyLyrics_UserTTMLStore", 12
   Duration: 365,
 }, isDev as true);
 
+export const SessionTTMLStore = new Map<string, any>();
+
 export function getSongKey(uri: string): string {
   if (!uri || !uri.trim() || !uri.startsWith("spotify:")) {
     return "";
@@ -90,7 +92,30 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   const trackId = uri.split(":")[2];
   const songKey = getSongKey(uri);
 
-  // Check for user-loaded TTML first (highest priority)
+  // Check for session TTML first (highest priority, cleared on restart)
+  if (songKey && SessionTTMLStore.has(songKey)) {
+    const sessionData = SessionTTMLStore.get(songKey);
+    if (sessionData) {
+      const lyricsData = { ...sessionData, id: trackId, fromCache: true };
+      storage.set("currentLyricsData", JSON.stringify(lyricsData));
+      storage.set("currentlyFetching", "false");
+
+      if (lyricsData?.IncludesRomanization) {
+        PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+      } else {
+        PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+      }
+
+      HideLoaderContainer();
+      Defaults.CurrentLyricsType = lyricsData.Type;
+      PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+      PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+      PageView.AppendViewControls(true);
+      return [lyricsData, 200];
+    }
+  }
+
+  // Check for user-loaded TTML (persistent, second priority)
   if (UserTTMLStore && songKey) {
     try {
       const userTTML = await UserTTMLStore.GetItem(songKey);
