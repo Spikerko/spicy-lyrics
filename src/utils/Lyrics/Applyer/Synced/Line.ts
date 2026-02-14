@@ -1,6 +1,7 @@
 import Defaults from "../../../../components/Global/Defaults.ts";
 import { PageContainer } from "../../../../components/Pages/PageView.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
+import { convertToFurigana, initFurigana } from "../../FuriganaConverter.ts";
 import {
   ClearScrollSimplebar,
   MountScrollSimplebar,
@@ -44,9 +45,18 @@ interface LyricsData {
   styles?: Record<string, string>;
 }
 
-export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false): void {
+export async function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false): Promise<void> {
   if (!Defaults.LyricsContainerExists) return;
   EmitNotApplyed();
+
+  // Initialize furigana if enabled
+  if (Defaults.EnableFurigana && !UseRomanized) {
+    try {
+      await initFurigana();
+    } catch (error) {
+      console.error("SpicyLyrics: Failed to initialize furigana, falling back to regular text");
+    }
+  }
 
   DestroyAllLyricsContainers();
 
@@ -160,10 +170,25 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
     LyricsContainer.appendChild(musicalLine);
   }
 
-  data.Content.forEach((line, index, arr) => {
+  for (let index = 0; index < data.Content.length; index++) {
+    const line = data.Content[index];
+    const arr = data.Content;
     const lineElem = document.createElement("div");
-    lineElem.textContent =
-      UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
+    
+    const textToDisplay = UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
+    
+    // Apply furigana if enabled and not using romanized text
+    if (Defaults.EnableFurigana && !UseRomanized) {
+      try {
+        const furiganaHtml = await convertToFurigana(textToDisplay);
+        lineElem.innerHTML = furiganaHtml;
+      } catch (error) {
+        lineElem.textContent = textToDisplay;
+      }
+    } else {
+      lineElem.textContent = textToDisplay;
+    }
+    
     lineElem.classList.add("line");
 
     if (isRtl(line.Text) && !lineElem.classList.contains("rtl")) {
@@ -276,7 +301,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
       musicalLine.appendChild(dotGroup);
       LyricsContainer.appendChild(musicalLine);
     }
-  });
+  }
 
   ApplyLyricsCredits(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);

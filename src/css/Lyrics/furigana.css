@@ -1,0 +1,140 @@
+/* Furigana (Ruby) Styling for Japanese Lyrics */
+
+/* Basic ruby styling */
+#SpicyLyricsPage .LyricsContainer ruby {
+  ruby-position: over;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: baseline;
+}
+
+/* Ruby text (furigana) styling */
+#SpicyLyricsPage .LyricsContainer ruby rt {
+  font-size: 0.5em;
+  line-height: 1.2;
+  font-weight: 500;
+  text-align: center;
+  display: block;
+  margin-bottom: 0.15em;
+  letter-spacing: 0.05em;
+  
+  /* Inherit gradient and highlighting from parent */
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-image: inherit;
+  text-shadow: inherit;
+  opacity: inherit;
+}
+
+/* Base text styling */
+#SpicyLyricsPage .LyricsContainer ruby rb {
+  display: inline-block;
+}
+
+/* Ensure proper spacing between ruby elements in a line */
+#SpicyLyricsPage .LyricsContainer .line ruby + ruby {
+  margin-left: 0.1em;
+}
+
+/* Adjust for words with furigana */
+#SpicyLyricsPage .LyricsContainer .word ruby {
+  display: inline-flex;
+}
+
+/* Ensure animations work with furigana */
+#SpicyLyricsPage .LyricsContainer .word ruby,
+#SpicyLyricsPage .LyricsContainer .word ruby * {
+  transition: inherit;
+  transform: inherit;
+}
+
+/* Support for emphasis mode with furigana */
+#SpicyLyricsPage .LyricsContainer .emphasis ruby rt,
+#SpicyLyricsPage .LyricsContainer .letterGroup ruby rt {
+  font-size: 0.45em;
+}
+
+/* Letter-by-letter animation support */
+#SpicyLyricsPage .LyricsContainer .letter ruby rt {
+  font-size: 0.4em;
+  background-image: inherit;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+/* Adjust for RTL languages if needed */
+#SpicyLyricsPage .LyricsContainer .line.rtl ruby {
+  direction: rtl;
+}
+
+/* Compact mode adjustments */
+#SpicyLyricsPage.CompactMode .LyricsContainer ruby rt {
+  font-size: 0.45em;
+  margin-bottom: 0.1em;
+}
+
+/* Simple lyrics mode adjustments */
+#SpicyLyricsPage .LyricsContainer[data-lyrics-type="Line"] ruby rt,
+#SpicyLyricsPage .LyricsContainer[data-lyrics-type="Static"] ruby rt {
+  font-size: 0.5em;
+}
+
+/* Syllable mode - slightly smaller furigana to not interfere with animations */
+#SpicyLyricsPage .LyricsContainer[data-lyrics-type="Syllable"] ruby rt {
+  font-size: 0.4em;
+  margin-bottom: 0.05em;
+  opacity: 0.8;
+}
+
+/* Ensure gradient effects work with furigana */
+#SpicyLyricsPage .LyricsContainer .word ruby,
+#SpicyLyricsPage .LyricsContainer .line ruby {
+  background-image: inherit;
+  background: inherit;
+}
+
+/* Make sure Active state highlights furigana */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .word ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .letter ruby rt {
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-image: inherit;
+  text-shadow: inherit;
+}
+
+/* NotSung and Sung states for furigana */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung ruby rt {
+  background-image: inherit;
+  text-shadow: inherit;
+}
+
+/* Hover state for furigana */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung:hover ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung:hover ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:hover .word ruby rt {
+  background-image: inherit;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
+/* Musical line dots should not have furigana styling */
+#SpicyLyricsPage .LyricsContainer .musical-line ruby rt {
+  display: none;
+}
+
+/* Background vocals with furigana */
+#SpicyLyricsPage .LyricsContainer .bg-line ruby rt,
+#SpicyLyricsPage .LyricsContainer .bg-word ruby rt {
+  font-size: 0.45em;
+  background-image: inherit;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+}

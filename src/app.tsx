@@ -7,6 +7,7 @@ import "./css/ContentBox.css";
 import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
+import "./css/Lyrics/furigana.css";
 import "./css/Loaders/LoaderContainer.css";
 import "./css/font-pack/font-pack.css";
 import "./css/ttml-profile/profile.css";
@@ -192,6 +193,14 @@ async function main() {
 
   if (storage.get("hide_npv_bg")) {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
+  }
+
+  if (!storage.get("enableFurigana")) {
+    storage.set("enableFurigana", "false");
+  }
+
+  if (storage.get("enableFurigana")) {
+    Defaults.EnableFurigana = storage.get("enableFurigana") === "true";
   }
 
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;

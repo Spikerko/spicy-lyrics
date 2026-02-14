@@ -1,6 +1,7 @@
 import Defaults from "../../../components/Global/Defaults.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { type StyleProperties, applyStyles, removeAllStyles } from "../../CSS/Styles.ts";
+import { convertToFurigana, initFurigana } from "../FuriganaConverter.ts";
 import {
   ClearScrollSimplebar,
   MountScrollSimplebar,
@@ -40,10 +41,19 @@ export interface StaticLyricsData {
  * Apply static lyrics to the lyrics container
  * @param data - Static lyrics data
  */
-export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean = false): void {
+export async function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean = false): Promise<void> {
   if (!Defaults.LyricsContainerExists) return;
 
   EmitNotApplyed();
+
+  // Initialize furigana if enabled
+  if (Defaults.EnableFurigana && !UseRomanized) {
+    try {
+      await initFurigana();
+    } catch (error) {
+      console.error("SpicyLyrics: Failed to initialize furigana, falling back to regular text");
+    }
+  }
 
   DestroyAllLyricsContainers();
 
@@ -64,11 +74,22 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   ClearScrollSimplebar();
   ClearLyricsPageContainer();
 
-  data.Lines.forEach((line) => {
+  for (const line of data.Lines) {
     const lineElem = document.createElement("div");
 
-    lineElem.textContent =
-      UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
+    const textToDisplay = UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
+
+    // Apply furigana if enabled and not using romanized text
+    if (Defaults.EnableFurigana && !UseRomanized) {
+      try {
+        const furiganaHtml = await convertToFurigana(textToDisplay);
+        lineElem.innerHTML = furiganaHtml;
+      } catch (error) {
+        lineElem.textContent = textToDisplay;
+      }
+    } else {
+      lineElem.textContent = textToDisplay;
+    }
 
     if (isRtl(line.Text) && !lineElem.classList.contains("rtl")) {
       lineElem.classList.add("rtl");
@@ -84,7 +105,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
 
     LyricsObject.Types.Static.Lines.push(staticLine);
     LyricsContainer.appendChild(lineElem);
-  });
+  }
 
   ApplyLyricsCredits(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);
