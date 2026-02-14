@@ -170,7 +170,9 @@ export async function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = 
     LyricsContainer.appendChild(musicalLine);
   }
 
-  data.Content.forEach(async (line, index, arr) => {
+  for (let index = 0; index < data.Content.length; index++) {
+    const line = data.Content[index];
+    const arr = data.Content;
     const lineElem = document.createElement("div");
     
     const textToDisplay = UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
@@ -299,7 +301,7 @@ export async function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = 
       musicalLine.appendChild(dotGroup);
       LyricsContainer.appendChild(musicalLine);
     }
-  });
+  }
 
   ApplyLyricsCredits(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);

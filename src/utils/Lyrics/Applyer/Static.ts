@@ -74,7 +74,7 @@ export async function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: bo
   ClearScrollSimplebar();
   ClearLyricsPageContainer();
 
-  data.Lines.forEach(async (line) => {
+  for (const line of data.Lines) {
     const lineElem = document.createElement("div");
 
     const textToDisplay = UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
@@ -105,7 +105,7 @@ export async function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: bo
 
     LyricsObject.Types.Static.Lines.push(staticLine);
     LyricsContainer.appendChild(lineElem);
-  });
+  }
 
   ApplyLyricsCredits(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);

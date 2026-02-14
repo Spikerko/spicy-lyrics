@@ -16,9 +16,16 @@
   font-weight: 500;
   text-align: center;
   display: block;
-  opacity: 0.85;
   margin-bottom: 0.15em;
   letter-spacing: 0.05em;
+  
+  /* Inherit gradient and highlighting from parent */
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-image: inherit;
+  text-shadow: inherit;
+  opacity: inherit;
 }
 
 /* Base text styling */
@@ -44,8 +51,18 @@
 }
 
 /* Support for emphasis mode with furigana */
-#SpicyLyricsPage .LyricsContainer .emphasis ruby rt {
+#SpicyLyricsPage .LyricsContainer .emphasis ruby rt,
+#SpicyLyricsPage .LyricsContainer .letterGroup ruby rt {
   font-size: 0.45em;
+}
+
+/* Letter-by-letter animation support */
+#SpicyLyricsPage .LyricsContainer .letter ruby rt {
+  font-size: 0.4em;
+  background-image: inherit;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
 }
 
 /* Adjust for RTL languages if needed */
@@ -73,11 +90,38 @@
 }
 
 /* Ensure gradient effects work with furigana */
-#SpicyLyricsPage .LyricsContainer .word ruby {
+#SpicyLyricsPage .LyricsContainer .word ruby,
+#SpicyLyricsPage .LyricsContainer .line ruby {
+  background-image: inherit;
   background: inherit;
-  -webkit-background-clip: inherit;
-  background-clip: inherit;
-  -webkit-text-fill-color: inherit;
+}
+
+/* Make sure Active state highlights furigana */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .word ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .letter ruby rt {
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-image: inherit;
+  text-shadow: inherit;
+}
+
+/* NotSung and Sung states for furigana */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung ruby rt {
+  background-image: inherit;
+  text-shadow: inherit;
+}
+
+/* Hover state for furigana */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung:hover ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung:hover ruby rt,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:hover .word ruby rt {
+  background-image: inherit;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
 }
 
 /* Musical line dots should not have furigana styling */
@@ -86,7 +130,11 @@
 }
 
 /* Background vocals with furigana */
-#SpicyLyricsPage .LyricsContainer .bg-line ruby rt {
+#SpicyLyricsPage .LyricsContainer .bg-line ruby rt,
+#SpicyLyricsPage .LyricsContainer .bg-word ruby rt {
   font-size: 0.45em;
-  opacity: 0.75;
+  background-image: inherit;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
 }
