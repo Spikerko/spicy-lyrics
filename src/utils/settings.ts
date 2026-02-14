@@ -202,6 +202,16 @@ function generalSettings(SettingsSection: any) {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
+  settings.addToggle(
+    "enable-furigana",
+    "Enable Furigana (Japanese reading annotations for Kanji)",
+    Defaults.EnableFurigana,
+    () => {
+      storage.set("enableFurigana", settings.getFieldValue("enable-furigana") as string);
+      window.location.reload();
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",

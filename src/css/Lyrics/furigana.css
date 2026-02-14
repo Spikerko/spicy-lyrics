@@ -1,0 +1,92 @@
+/* Furigana (Ruby) Styling for Japanese Lyrics */
+
+/* Basic ruby styling */
+#SpicyLyricsPage .LyricsContainer ruby {
+  ruby-position: over;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: baseline;
+}
+
+/* Ruby text (furigana) styling */
+#SpicyLyricsPage .LyricsContainer ruby rt {
+  font-size: 0.5em;
+  line-height: 1.2;
+  font-weight: 500;
+  text-align: center;
+  display: block;
+  opacity: 0.85;
+  margin-bottom: 0.15em;
+  letter-spacing: 0.05em;
+}
+
+/* Base text styling */
+#SpicyLyricsPage .LyricsContainer ruby rb {
+  display: inline-block;
+}
+
+/* Ensure proper spacing between ruby elements in a line */
+#SpicyLyricsPage .LyricsContainer .line ruby + ruby {
+  margin-left: 0.1em;
+}
+
+/* Adjust for words with furigana */
+#SpicyLyricsPage .LyricsContainer .word ruby {
+  display: inline-flex;
+}
+
+/* Ensure animations work with furigana */
+#SpicyLyricsPage .LyricsContainer .word ruby,
+#SpicyLyricsPage .LyricsContainer .word ruby * {
+  transition: inherit;
+  transform: inherit;
+}
+
+/* Support for emphasis mode with furigana */
+#SpicyLyricsPage .LyricsContainer .emphasis ruby rt {
+  font-size: 0.45em;
+}
+
+/* Adjust for RTL languages if needed */
+#SpicyLyricsPage .LyricsContainer .line.rtl ruby {
+  direction: rtl;
+}
+
+/* Compact mode adjustments */
+#SpicyLyricsPage.CompactMode .LyricsContainer ruby rt {
+  font-size: 0.45em;
+  margin-bottom: 0.1em;
+}
+
+/* Simple lyrics mode adjustments */
+#SpicyLyricsPage .LyricsContainer[data-lyrics-type="Line"] ruby rt,
+#SpicyLyricsPage .LyricsContainer[data-lyrics-type="Static"] ruby rt {
+  font-size: 0.5em;
+}
+
+/* Syllable mode - slightly smaller furigana to not interfere with animations */
+#SpicyLyricsPage .LyricsContainer[data-lyrics-type="Syllable"] ruby rt {
+  font-size: 0.4em;
+  margin-bottom: 0.05em;
+  opacity: 0.8;
+}
+
+/* Ensure gradient effects work with furigana */
+#SpicyLyricsPage .LyricsContainer .word ruby {
+  background: inherit;
+  -webkit-background-clip: inherit;
+  background-clip: inherit;
+  -webkit-text-fill-color: inherit;
+}
+
+/* Musical line dots should not have furigana styling */
+#SpicyLyricsPage .LyricsContainer .musical-line ruby rt {
+  display: none;
+}
+
+/* Background vocals with furigana */
+#SpicyLyricsPage .LyricsContainer .bg-line ruby rt {
+  font-size: 0.45em;
+  opacity: 0.75;
+}

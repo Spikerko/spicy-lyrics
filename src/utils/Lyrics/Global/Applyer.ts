@@ -199,11 +199,11 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
   const romanize = isRomanized;
 
   if (lyrics.Type === "Syllable") {
-    ApplySyllableLyrics(lyrics as any, romanize);
+    await ApplySyllableLyrics(lyrics as any, romanize);
   } else if (lyrics.Type === "Line") {
-    ApplyLineLyrics(lyrics as any, romanize);
+    await ApplyLineLyrics(lyrics as any, romanize);
   } else if (lyrics.Type === "Static") {
     // Type assertion to StaticLyricsData since we've verified the Type is "Static"
-    ApplyStaticLyrics(lyrics as StaticLyricsData, romanize);
+    await ApplyStaticLyrics(lyrics as StaticLyricsData, romanize);
   }
 }
