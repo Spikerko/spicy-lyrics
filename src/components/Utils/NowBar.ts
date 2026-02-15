@@ -455,10 +455,11 @@ function SetupInlineControls() {
   const showControls = inFullscreen && (setting === "Controls" || setting === "Both");
 
   const volumeSetting = Defaults.ShowVolumeSliderFullscreen;
-  const showVolumeSide = inFullscreen && volumeSetting === "Side";
-  const showVolumeUnder = inFullscreen && volumeSetting === "Under";
+  const showVolumeLeft = inFullscreen && volumeSetting === "Left Side";
+  const showVolumeRight = inFullscreen && volumeSetting === "Right Side";
+  const showVolumeBelow = inFullscreen && volumeSetting === "Below";
 
-  if (!showTimeline && !showControls && !showVolumeSide && !showVolumeUnder) return;
+  if (!showTimeline && !showControls && !showVolumeLeft && !showVolumeRight && !showVolumeBelow) return;
 
   // Timeline between cover art and song title
   if (showTimeline && timelineContainer) {
@@ -472,18 +473,19 @@ function SetupInlineControls() {
     InlinePlaybackControlsInstance?.Apply(controlsContainer);
   }
 
-  // Volume slider - Side: vertical to left of cover art
-  if (showVolumeSide) {
+  // Volume slider - Left/Right Side: vertical beside cover art
+  if (showVolumeLeft || showVolumeRight) {
     const volumeContainer = PageContainer?.querySelector<HTMLElement>(
       ".ContentBox .NowBar .Header .VolumeSlider"
     );
     if (volumeContainer) {
+      if (showVolumeRight) volumeContainer.classList.add("RightSide");
       SetupVolumeSlider(volumeContainer);
     }
   }
 
-  // Volume slider - Under: horizontal below playback controls
-  if (showVolumeUnder) {
+  // Volume slider - Below: horizontal below playback controls
+  if (showVolumeBelow) {
     const volumeUnderContainer = PageContainer?.querySelector<HTMLElement>(
       ".ContentBox .NowBar .Header .VolumeSliderUnder"
     );

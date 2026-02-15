@@ -182,6 +182,7 @@
   --TraveledColor: hsla(0, 0%, 100%, 0.9);
   --RemainingColor: hsla(0, 0%, 100%, 0.38);
   --SliderProgress: 0.5;
+
   background: linear-gradient(
     0deg,
     var(--TraveledColor) 0,
@@ -239,6 +240,12 @@
   color: #fff;
 }
 
+/* Right side positioning */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider.RightSide {
+  left: auto;
+  right: -6cqw;
+}
+
 /* VolumeSliderUnder - horizontal, below playback controls */
 #SpicyLyricsPage .ContentBox .NowBar .Header .VolumeSliderUnder {
   display: none;
@@ -257,6 +264,7 @@
   --TraveledColor: hsla(0, 0%, 100%, 0.9);
   --RemainingColor: hsla(0, 0%, 100%, 0.38);
   --SliderProgress: 0.5;
+
   background: linear-gradient(
     90deg,
     var(--TraveledColor) 0,
@@ -982,6 +990,7 @@
   --TraveledColor: hsla(0, 0%, 100%, 0.9);
   --RemainingColor: hsla(0, 0%, 100%, 0.38);
   --SliderProgress: 0.6;
+
   background: linear-gradient(
     90deg,
     var(--TraveledColor) 0,

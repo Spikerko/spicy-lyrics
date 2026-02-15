@@ -219,10 +219,13 @@ async function main() {
 
   if (storage.get("showVolumeSliderFullscreen")) {
     const val = storage.get("showVolumeSliderFullscreen").toString();
-    // Migrate old boolean values
-    if (val === "true") {
-      storage.set("showVolumeSliderFullscreen", "Side");
-      Defaults.ShowVolumeSliderFullscreen = "Side";
+    // Migrate old values
+    if (val === "true" || val === "Side") {
+      storage.set("showVolumeSliderFullscreen", "Left Side");
+      Defaults.ShowVolumeSliderFullscreen = "Left Side";
+    } else if (val === "Under") {
+      storage.set("showVolumeSliderFullscreen", "Below");
+      Defaults.ShowVolumeSliderFullscreen = "Below";
     } else if (val === "false") {
       storage.set("showVolumeSliderFullscreen", "Off");
       Defaults.ShowVolumeSliderFullscreen = "Off";

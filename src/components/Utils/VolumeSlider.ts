@@ -48,6 +48,7 @@ export function SetupVolumeSlider(container: HTMLElement, horizontal?: boolean) 
   }
 
   let isDragging = false;
+  let prevUserSelect = "";
 
   const updateFromVolume = () => {
     if (isDragging) return;
@@ -79,6 +80,7 @@ export function SetupVolumeSlider(container: HTMLElement, horizontal?: boolean) 
 
   const handleDragStart = (event: MouseEvent | TouchEvent) => {
     isDragging = true;
+    prevUserSelect = document.body.style.userSelect;
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", handleDragMove);
     document.addEventListener("touchmove", handleDragMove);
@@ -98,7 +100,7 @@ export function SetupVolumeSlider(container: HTMLElement, horizontal?: boolean) 
   const handleDragEnd = (event: MouseEvent | TouchEvent) => {
     if (!isDragging) return;
     isDragging = false;
-    document.body.style.userSelect = "";
+    document.body.style.userSelect = prevUserSelect;
     document.removeEventListener("mousemove", handleDragMove);
     document.removeEventListener("touchmove", handleDragMove);
     document.removeEventListener("mouseup", handleDragEnd);
@@ -122,6 +124,7 @@ export function SetupVolumeSlider(container: HTMLElement, horizontal?: boolean) 
     document.removeEventListener("touchend", handleDragEnd);
     container.innerHTML = "";
     container.classList.remove("Horizontal");
+    container.classList.remove("RightSide");
   };
 }
 

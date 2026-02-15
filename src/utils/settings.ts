@@ -172,8 +172,8 @@ function generalSettings(SettingsSection: any) {
   settings.addDropDown(
     "show-volume-slider-fullscreen",
     "Volume Slider in Fullscreen/Cinema",
-    ["Off", "Side", "Under"],
-    Defaults.ShowVolumeSliderFullscreen === "Under" ? 2 : Defaults.ShowVolumeSliderFullscreen === "Side" ? 1 : 0,
+    ["Off", "Left Side", "Right Side", "Below"],
+    Defaults.ShowVolumeSliderFullscreen === "Below" ? 3 : Defaults.ShowVolumeSliderFullscreen === "Right Side" ? 2 : Defaults.ShowVolumeSliderFullscreen === "Left Side" ? 1 : 0,
     () => {
       const value = settings.getFieldValue("show-volume-slider-fullscreen") as string;
       storage.set("showVolumeSliderFullscreen", value);
