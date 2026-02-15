@@ -356,14 +356,16 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
-  settings.addButton(
-    "build-channel",
-    `Build Channel (Current: ${Defaults.BuildChannel})`,
-    "Manage",
-    () => {
-      (window as any)._spicy_lyrics_channels?.showSwitcher?.();
-    }
-  );
+  if ((window as any)._spicy_lyrics_channels?.showSwitcher) {
+    settings.addButton(
+      "build-channel",
+      `Build Channel (Current: ${Defaults.BuildChannel})`,
+      "Manage",
+      () => {
+        (window as any)._spicy_lyrics_channels?.showSwitcher?.();
+      }
+    );
+  }
 
   settings.pushSettings();
 }
