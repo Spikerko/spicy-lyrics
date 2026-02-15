@@ -40,6 +40,7 @@ function uploadTTML(mode: TTMLMode) {
           const amlData = { SourceTTML: ttml, Type: "Syllable", id: SpotifyPlayer.GetId() };
           if (mode === "persist") await UserTTMLStore.SetItem(songKey, amlData);
           else if (mode === "session") SessionTTMLStore.set(songKey, amlData);
+          if (mode === "temp") SessionTTMLStore.delete(songKey);
         }
 
         ShowNotification(labels[mode].done, "success", 5000);
@@ -60,6 +61,7 @@ function uploadTTML(mode: TTMLMode) {
       if (songKey) {
         if (mode === "persist") await UserTTMLStore.SetItem(songKey, data);
         else if (mode === "session") SessionTTMLStore.set(songKey, data);
+        if (mode === "temp") SessionTTMLStore.delete(songKey);
       }
 
       storage.set("currentLyricsData", JSON.stringify(data));

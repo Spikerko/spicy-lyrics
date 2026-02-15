@@ -1,1 +1,1 @@
-import("https://cdn.jsdelivr.net/gh/Spikerko/spicy-lyrics@main/builds/v1.2/entrypoint.mjs");
+import("https://cdn.jsdelivr.net/gh/Spikerko/spicy-lyrics@main/builds/v2.0/entrypoint.mjs");
