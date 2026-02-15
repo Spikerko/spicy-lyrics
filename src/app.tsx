@@ -218,6 +218,14 @@ async function main() {
     Defaults.EscapeKeyFunction = storage.get("escapeKeyFunction").toString() as string;
   }
 
+  if (!storage.get("buildChannel")) {
+    storage.set("buildChannel", "Stable");
+  }
+
+  if (storage.get("buildChannel")) {
+    Defaults.BuildChannel = storage.get("buildChannel").toString() as string;
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
 
   /* if (storage.get("lyrics_spacing")) {

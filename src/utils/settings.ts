@@ -243,30 +243,6 @@ function generalSettings(SettingsSection: any) {
   );
 
   settings.addButton(
-    "clear-ttml-db",
-    "Clear the local TTML Database (user-uploaded TTMLs)",
-    "Clear Database",
-    async () => {
-      try {
-        await UserTTMLStore.Destroy();
-        SessionTTMLStore.clear();
-        ShowNotification("TTML database cleared", "success");
-
-        if (PageView.IsOpened) {
-          const uri = SpotifyPlayer.GetUri();
-          if (uri) {
-            const result = await fetchLyrics(uri);
-            ApplyLyrics(result);
-          }
-        }
-      } catch (error) {
-        ShowNotification("Error clearing TTML database", "error");
-        console.error("SpicyLyrics:", error);
-      }
-    }
-  );
-
-  settings.addButton(
     "remove-current-lyrics-all-caches",
     "Clear Lyrics for the current song from all caches",
     "Clear Current Song",
@@ -287,13 +263,6 @@ function generalSettings(SettingsSection: any) {
     () => RemoveCurrentLyrics_StateCache(true)
   );
 
-  settings.addButton(
-    "explore-ttml-db",
-    "Explore local TTML Database",
-    "Open",
-    () => (globalThis as any)._spicy_lyrics?.execute?.("explore-ttml-db")
-  );
-
   // --- Advanced ---
   settings.addGroup("Advanced");
 
@@ -312,6 +281,77 @@ function generalSettings(SettingsSection: any) {
             : "Spicy";
       storage.set("lyricsRenderer", processedValue);
       Defaults.LyricsRenderer = processedValue;
+    }
+  );
+
+  settings.addButton(
+    "explore-ttml-db",
+    "Explore local TTML Database",
+    "Open",
+    () => (globalThis as any)._spicy_lyrics?.execute?.("explore-ttml-db")
+  );
+
+  settings.addButton(
+    "clear-ttml-db",
+    "Clear the local TTML Database (user-uploaded TTMLs)",
+    "Clear Database",
+    () => {
+      const div = document.createElement("div");
+      div.style.cssText = "text-align:center;padding:16px 0;";
+      div.innerHTML = `
+        <p style="margin:0 0 8px;font-size:0.875rem;">Are you sure you want to clear the entire TTML database?</p>
+        <p style="margin:0 0 20px;font-size:0.8rem;color:rgba(255,255,255,0.5);">This will remove all user-uploaded TTMLs. This action cannot be undone.</p>
+      `;
+      const btnRow = document.createElement("div");
+      btnRow.style.cssText = "display:flex;gap:8px;justify-content:center;";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.style.cssText = "padding:8px 24px;border-radius:500px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;font-weight:700;cursor:pointer;font-size:0.875rem;";
+      cancelBtn.addEventListener("click", () => Spicetify.PopupModal.hide());
+      btnRow.appendChild(cancelBtn);
+
+      const confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.textContent = "Clear Database";
+      confirmBtn.style.cssText = "padding:8px 24px;border-radius:500px;border:1px solid rgba(231,76,60,0.5);background:transparent;color:#e74c3c;font-weight:700;cursor:pointer;font-size:0.875rem;";
+      confirmBtn.addEventListener("click", async () => {
+        Spicetify.PopupModal.hide();
+        try {
+          await UserTTMLStore.Destroy();
+          SessionTTMLStore.clear();
+          ShowNotification("TTML database cleared", "success");
+
+          if (PageView.IsOpened) {
+            const uri = SpotifyPlayer.GetUri();
+            if (uri) {
+              const result = await fetchLyrics(uri);
+              ApplyLyrics(result);
+            }
+          }
+        } catch (error) {
+          ShowNotification("Error clearing TTML database", "error");
+          console.error("SpicyLyrics:", error);
+        }
+      });
+      btnRow.appendChild(confirmBtn);
+      div.appendChild(btnRow);
+
+      Spicetify.PopupModal.display({
+        title: "Confirm Clear Database",
+        content: div,
+        isLarge: false,
+      });
+    }
+  );
+
+  settings.addButton(
+    "build-channel",
+    `Build Channel (Current: ${Defaults.BuildChannel})`,
+    "Manage",
+    () => {
+      (window as any)._spicy_lyrics_channels?.showSwitcher?.();
     }
   );
 
