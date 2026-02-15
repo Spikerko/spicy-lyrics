@@ -1,3 +1,6 @@
+// Signal to entrypoint that the plugin loaded directly (dev build)
+(window as any)._spicy_lyrics_loaded = true;
+
 // CSS Imports
 import "./css/default.css";
 import "./css/default.scss";
@@ -208,6 +211,24 @@ async function main() {
 
   if (storage.get("hide_npv_bg")) {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
+  }
+
+  if (!storage.get("showVolumeSliderFullscreen")) {
+    storage.set("showVolumeSliderFullscreen", "Off");
+  }
+
+  if (storage.get("showVolumeSliderFullscreen")) {
+    const val = storage.get("showVolumeSliderFullscreen").toString();
+    // Migrate old boolean values
+    if (val === "true") {
+      storage.set("showVolumeSliderFullscreen", "Side");
+      Defaults.ShowVolumeSliderFullscreen = "Side";
+    } else if (val === "false") {
+      storage.set("showVolumeSliderFullscreen", "Off");
+      Defaults.ShowVolumeSliderFullscreen = "Off";
+    } else {
+      Defaults.ShowVolumeSliderFullscreen = val;
+    }
   }
 
   if (!storage.get("escapeKeyFunction")) {

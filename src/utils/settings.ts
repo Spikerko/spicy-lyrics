@@ -169,6 +169,18 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addDropDown(
+    "show-volume-slider-fullscreen",
+    "Volume Slider in Fullscreen/Cinema",
+    ["Off", "Side", "Under"],
+    Defaults.ShowVolumeSliderFullscreen === "Under" ? 2 : Defaults.ShowVolumeSliderFullscreen === "Side" ? 1 : 0,
+    () => {
+      const value = settings.getFieldValue("show-volume-slider-fullscreen") as string;
+      storage.set("showVolumeSliderFullscreen", value);
+      Defaults.ShowVolumeSliderFullscreen = value;
+    }
+  );
+
   settings.addToggle(
     "disable-popup-lyrics",
     "Disable Popup Lyrics",

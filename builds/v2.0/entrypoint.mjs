@@ -498,6 +498,30 @@ const load = async () => {
     }, 10);
   });
 
+  // Check if the plugin loaded directly (e.g. dev build).
+  // The dev build writes spicy-lyrics.mjs which loads via WebSocket — if that script
+  // exists alongside the entrypoint, wait for it to set the loaded flag.
+  if (window._spicy_lyrics_loaded) {
+    console.log("[Spicy Lyrics] [Entry] Plugin already loaded (dev build detected), skipping entrypoint.");
+    return;
+  }
+
+  const devExtensionExists = document.querySelector('script[src*="spicy-lyrics.mjs"]:not([src*="entrypoint"])');
+  if (devExtensionExists) {
+    const devDetected = await new Promise((resolve) => {
+      let checks = 0;
+      const iv = setInterval(() => {
+        if (window._spicy_lyrics_loaded) { clearInterval(iv); resolve(true); }
+        else if (++checks >= 300) { clearInterval(iv); resolve(false); } // 3s max
+      }, 10);
+    });
+
+    if (devDetected) {
+      console.log("[Spicy Lyrics] [Entry] Plugin already loaded (dev build detected), skipping entrypoint.");
+      return;
+    }
+  }
+
   // Register channel settings in the settings page (works even if plugin fails)
   registerChannelSettings();
 

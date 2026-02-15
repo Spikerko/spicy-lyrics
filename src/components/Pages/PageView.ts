@@ -154,11 +154,14 @@ async function OpenPage(
             <div class="NowBar">
                 <div class="CenteredView">
                     <div class="Header">
+                        <div class="VolumeSlider"></div>
                         <div class="MediaBox">
                             <div class="MediaContent"></div>
                             <div class="MediaImage"></div>
                         </div>
                         <div class="InlineTimeline"></div>
+                        <div class="InlinePlaybackControls"></div>
+                        <div class="VolumeSliderUnder"></div>
                         <div class="Metadata">
                             <div class="SongName">
                                 <span></span>
@@ -167,7 +170,6 @@ async function OpenPage(
                                 <span></span>
                             </div>
                         </div>
-                        <div class="InlinePlaybackControls"></div>
                     </div>
                 </div>
             </div>

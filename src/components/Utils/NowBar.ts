@@ -15,6 +15,7 @@ import { Icons } from "../Styling/Icons.ts";
 import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
 import { isSpicySidebarMode } from "./SidebarLyrics.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { SetupVolumeSlider, CleanUpVolumeSlider } from "./VolumeSlider.ts";
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
@@ -453,7 +454,11 @@ function SetupInlineControls() {
     (inFullscreen && (setting === "Time" || setting === "Both"));
   const showControls = inFullscreen && (setting === "Controls" || setting === "Both");
 
-  if (!showTimeline && !showControls) return;
+  const volumeSetting = Defaults.ShowVolumeSliderFullscreen;
+  const showVolumeSide = inFullscreen && volumeSetting === "Side";
+  const showVolumeUnder = inFullscreen && volumeSetting === "Under";
+
+  if (!showTimeline && !showControls && !showVolumeSide && !showVolumeUnder) return;
 
   // Timeline between cover art and song title
   if (showTimeline && timelineContainer) {
@@ -465,6 +470,26 @@ function SetupInlineControls() {
   if (showControls && controlsContainer) {
     InlinePlaybackControlsInstance = SetupPlaybackControls();
     InlinePlaybackControlsInstance?.Apply(controlsContainer);
+  }
+
+  // Volume slider - Side: vertical to left of cover art
+  if (showVolumeSide) {
+    const volumeContainer = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .VolumeSlider"
+    );
+    if (volumeContainer) {
+      SetupVolumeSlider(volumeContainer);
+    }
+  }
+
+  // Volume slider - Under: horizontal below playback controls
+  if (showVolumeUnder) {
+    const volumeUnderContainer = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .VolumeSliderUnder"
+    );
+    if (volumeUnderContainer) {
+      SetupVolumeSlider(volumeUnderContainer, true);
+    }
   }
 }
 
@@ -478,6 +503,7 @@ function CleanUpInlineControls() {
     InlineSongProgressBarInstance = null;
   }
   InlineSongProgressBarInstance_Map = new Map<string, any>();
+  CleanUpVolumeSlider();
 }
 
 let NowBarFullscreenMaid: Maid | null = null;
