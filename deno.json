@@ -1,6 +1,7 @@
 {
   "tasks": {
     "dev": "deno run -A ./tasks/dev.ts",
+    "build": "deno run -A ./tasks/build.ts",
     "release": "deno run -A ./tasks/release.ts",
     "check": "deno run -A npm:@biomejs/biome check"
   },

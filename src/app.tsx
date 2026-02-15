@@ -1,3 +1,6 @@
+// Signal to entrypoint that the plugin loaded directly (dev build)
+(window as any)._spicy_lyrics_loaded = true;
+
 // CSS Imports
 import "./css/default.css";
 import "./css/default.scss";
@@ -186,12 +189,65 @@ async function main() {
     Defaults.MinimalLyricsMode = storage.get("minimalLyricsMode") === "true";
   }
 
+  if (!storage.get("replaceSpotifyPlaybar")) {
+    storage.set("replaceSpotifyPlaybar", "false");
+  }
+
+  if (storage.get("replaceSpotifyPlaybar")) {
+    Defaults.ReplaceSpotifyPlaybar = storage.get("replaceSpotifyPlaybar") === "true";
+  }
+
+  if (!storage.get("alwaysShowInFullscreen")) {
+    storage.set("alwaysShowInFullscreen", "None");
+  }
+
+  if (storage.get("alwaysShowInFullscreen")) {
+    Defaults.AlwaysShowInFullscreen = storage.get("alwaysShowInFullscreen").toString() as string;
+  }
+
   if (!storage.get("hide_npv_bg")) {
     storage.set("hide_npv_bg", "false");
   }
 
   if (storage.get("hide_npv_bg")) {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
+  }
+
+  if (!storage.get("showVolumeSliderFullscreen")) {
+    storage.set("showVolumeSliderFullscreen", "Off");
+  }
+
+  if (storage.get("showVolumeSliderFullscreen")) {
+    const val = storage.get("showVolumeSliderFullscreen").toString();
+    // Migrate old values
+    if (val === "true" || val === "Side") {
+      storage.set("showVolumeSliderFullscreen", "Left Side");
+      Defaults.ShowVolumeSliderFullscreen = "Left Side";
+    } else if (val === "Under") {
+      storage.set("showVolumeSliderFullscreen", "Below");
+      Defaults.ShowVolumeSliderFullscreen = "Below";
+    } else if (val === "false") {
+      storage.set("showVolumeSliderFullscreen", "Off");
+      Defaults.ShowVolumeSliderFullscreen = "Off";
+    } else {
+      Defaults.ShowVolumeSliderFullscreen = val;
+    }
+  }
+
+  if (!storage.get("escapeKeyFunction")) {
+    storage.set("escapeKeyFunction", "Exit to Cinema");
+  }
+
+  if (storage.get("escapeKeyFunction")) {
+    Defaults.EscapeKeyFunction = storage.get("escapeKeyFunction").toString() as string;
+  }
+
+  if (!storage.get("buildChannel")) {
+    storage.set("buildChannel", "Stable");
+  }
+
+  if (storage.get("buildChannel")) {
+    Defaults.BuildChannel = storage.get("buildChannel").toString() as string;
   }
 
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
@@ -683,7 +739,11 @@ async function main() {
     });
 
     new IntervalManager(1, async () => {
-      await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      try {
+        await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      } catch (err) {
+        console.debug("Skipping NowPlayingBar dynamic BG update:", err);
+      }
     }).Start();
 
     async function onSongChange(event: any) {
@@ -704,7 +764,12 @@ async function main() {
         Fullscreen.IsOpen ? UpdateNowBar(true) : UpdateNowBar();
       }
 
-      fetchLyrics(event?.data?.item?.uri).then(ApplyLyrics);
+      const songUri = event?.data?.item?.uri;
+      if (songUri) {
+        fetchLyrics(songUri).then(ApplyLyrics).catch((err) => {
+          console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+        });
+      }
 
       if (
         Defaults.StaticBackground &&
@@ -722,15 +787,28 @@ async function main() {
         }
       }
 
-      await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      try {
+        await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      } catch (err) {
+        console.error("Error applying dynamic BG to NowPlayingBar:", err);
+      }
 
       const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
       if (!contentBox || (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color")) return;
-      ApplyDynamicBackground(contentBox);
+      try {
+        await ApplyDynamicBackground(contentBox);
+      } catch (err) {
+        console.error("Error applying dynamic background:", err);
+      }
     }
     Global.Event.listen("playback:songchange", onSongChange);
 
-    fetchLyrics(SpotifyPlayer.GetUri() ?? "").then(ApplyLyrics);
+    const initUri = SpotifyPlayer.GetUri();
+    if (initUri) {
+      fetchLyrics(initUri).then(ApplyLyrics).catch((err) => {
+        console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+      });
+    }
 
     if (
       Defaults.StaticBackground &&
@@ -753,7 +831,12 @@ async function main() {
 
       Component.GetRootComponent("lCache").RemoveCurrentLyrics_StateCache(false);
       
-      fetchLyrics(Spicetify.Player.data?.item?.uri).then(ApplyLyrics);
+      const onlineUri = Spicetify.Player.data?.item?.uri;
+      if (onlineUri) {
+        fetchLyrics(onlineUri).then(ApplyLyrics).catch((err) => {
+          console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+        });
+      }
     });
 
     new IntervalManager(ScrollingIntervalTime, () => {
@@ -954,7 +1037,12 @@ async function main() {
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics.toString());
             if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
-              fetchLyrics(SpotifyPlayer.GetUri() ?? "").then(ApplyLyrics);
+              const refetchUri = SpotifyPlayer.GetUri();
+              if (refetchUri) {
+                fetchLyrics(refetchUri).then(ApplyLyrics).catch((err) => {
+                  console.error("SpicyLyrics: Error fetching/applying lyrics:", err);
+                });
+              }
             }
           }
         }, 1000);
