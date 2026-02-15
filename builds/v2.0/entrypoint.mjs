@@ -104,7 +104,11 @@ const showChannelSwitcher = () => {
   const updateInfo = () => {
     const hosts = map[select.value];
     if (hosts) {
-      info.innerHTML = `<strong>${hosts[0]}</strong> / <strong>${hosts[1]}</strong>${hosts[2] ? ` &middot; fixed: ${hosts[2]}` : ""}`;
+      info.textContent = "";
+      const h0 = document.createElement("strong"); h0.textContent = hosts[0];
+      const h1 = document.createElement("strong"); h1.textContent = hosts[1];
+      info.append(h0, " / ", h1);
+      if (hosts[2]) { const fx = document.createElement("strong"); fx.textContent = hosts[2]; info.append(" \u00b7 fixed: ", fx); }
     }
   };
   updateInfo();
@@ -290,12 +294,15 @@ const showRemoveCustomChannel = () => {
   for (const name of names) {
     const row = document.createElement("div");
     row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:6px;background:rgba(255,255,255,0.04);";
-    row.innerHTML = `
-      <div>
-        <div style="font-weight:600;font-size:0.875rem;">${name}</div>
-        <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:2px;">${channels[name][0]} / ${channels[name][1]}${channels[name][2] ? ` \u00b7 fixed: ${channels[name][2]}` : ""}</div>
-      </div>
-    `;
+    const rowInfo = document.createElement("div");
+    const nameDiv = document.createElement("div");
+    nameDiv.style.cssText = "font-weight:600;font-size:0.875rem;";
+    nameDiv.textContent = name;
+    const hostDiv = document.createElement("div");
+    hostDiv.style.cssText = "font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:2px;";
+    hostDiv.textContent = `${channels[name][0]} / ${channels[name][1]}${channels[name][2] ? ` \u00b7 fixed: ${channels[name][2]}` : ""}`;
+    rowInfo.append(nameDiv, hostDiv);
+    row.appendChild(rowInfo);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = "Remove";
@@ -409,7 +416,7 @@ const getVersionFromHost = (host) =>
 
 const loadExtension = async (storageHost, version) => {
   window._spicy_lyrics_metadata = { LoadedVersion: version };
-  return await import(`https://${storageHost}/spicy-lyrics${encodeURIComponent(`@${version}.mjs`)}`);
+  return await import(`https://${storageHost}/spicy-lyrics@${encodeURIComponent(version)}.mjs`);
 };
 
 const makeErrorContent = (title, description) => {

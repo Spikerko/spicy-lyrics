@@ -30,10 +30,16 @@ function uploadTTML(mode: TTMLMode) {
     reader.onload = async (e) => {
       const ttml = e.target?.result as string;
 
-      if (Defaults.LyricsRenderer === "aml-lyrics") {
-        ShowNotification(labels[mode].loading, "info", 5000);
-        const lyricsLines = await parseTTML(ttml);
-        currentLyricsPlayer?.setLyricLines(lyricsLines.lines);
+       if (Defaults.LyricsRenderer === "aml-lyrics") {
+        try {
+          ShowNotification(labels[mode].loading, "info", 5000);
+          const lyricsLines = await parseTTML(ttml);
+          currentLyricsPlayer?.setLyricLines(lyricsLines.lines);
+        } catch (err) {
+          console.error("Error parsing TTML (AML):", err);
+          ShowNotification("Error parsing TTML", "error", 5000);
+          return;
+        }
 
         const songKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
         if (songKey) {

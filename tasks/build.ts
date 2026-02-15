@@ -1,5 +1,5 @@
 import { resolve, join } from "https://deno.land/std/path/mod.ts";
-import { ensureDir } from "https://deno.land/std/fs/mod.ts";
+import { ensureDirSync } from "https://deno.land/std/fs/mod.ts";
 
 import { Bundle } from "@spicetify/bundler/cli";
 import { ProjectName } from "./config.ts";
@@ -17,15 +17,15 @@ const outputFile = `${ProjectName}@${version}.mjs`;
 // ReleaseBundle calls Deno.exit(0) when done and isn't properly awaited,
 // so we intercept the exit to write the version file and optionally copy output.
 const originalExit = Deno.exit;
-Deno.exit = (async (code?: number) => {
+Deno.exit = ((code?: number) => {
   try {
-    await Deno.writeTextFile(join(defaultDist, "version"), version);
+    Deno.writeTextFileSync(join(defaultDist, "version"), version);
 
     if (targetDir) {
       const dest = resolve(targetDir);
-      await ensureDir(dest);
-      await Deno.copyFile(join(defaultDist, outputFile), join(dest, outputFile));
-      await Deno.writeTextFile(join(dest, "version"), version);
+      ensureDirSync(dest);
+      Deno.copyFileSync(join(defaultDist, outputFile), join(dest, outputFile));
+      Deno.writeTextFileSync(join(dest, "version"), version);
       console.log(`Copied build to ${dest}`);
     }
   } catch (err) {

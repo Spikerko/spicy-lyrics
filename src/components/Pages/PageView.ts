@@ -264,7 +264,9 @@ async function OpenPage(
   {
     const currentUri = Spicetify?.Player?.data?.item?.uri;
     if (currentUri) {
-      fetchLyrics(currentUri).then(ApplyLyrics);
+      fetchLyrics(currentUri).then(ApplyLyrics).catch((err) => {
+        console.error("Error fetching/applying lyrics on page open:", err);
+      });
     }
   }
 
