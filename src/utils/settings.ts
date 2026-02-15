@@ -284,10 +284,15 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addToggle("developer-mode", "Developer Mode", Defaults.DeveloperMode, () => {
+    storage.set("developerMode", settings.getFieldValue("developer-mode") as string);
+    window.location.reload();
+  });
+
   settings.addButton(
     "explore-ttml-db",
     "Explore local TTML Database",
-    "Open",
+    "Open Database",
     () => (globalThis as any)._spicy_lyrics?.execute?.("explore-ttml-db")
   );
 
@@ -297,11 +302,16 @@ function generalSettings(SettingsSection: any) {
     "Clear Database",
     () => {
       const div = document.createElement("div");
-      div.style.cssText = "text-align:center;padding:16px 0;";
-      div.innerHTML = `
-        <p style="margin:0 0 8px;font-size:0.875rem;">Are you sure you want to clear the entire TTML database?</p>
-        <p style="margin:0 0 20px;font-size:0.8rem;color:rgba(255,255,255,0.5);">This will remove all user-uploaded TTMLs. This action cannot be undone.</p>
+      div.style.cssText = "display:flex;flex-direction:column;gap:16px;padding:8px 0;";
+
+      const textBlock = document.createElement("div");
+      textBlock.style.cssText = "text-align:center;";
+      textBlock.innerHTML = `
+        <p style="margin:0 0 6px;font-size:0.875rem;color:#fff;font-weight:600;">Are you sure?</p>
+        <p style="margin:0;font-size:0.8rem;color:rgba(255,255,255,0.45);line-height:1.4;">This will remove all user-uploaded TTMLs. This action cannot be undone.</p>
       `;
+      div.appendChild(textBlock);
+
       const btnRow = document.createElement("div");
       btnRow.style.cssText = "display:flex;gap:8px;justify-content:center;";
 
@@ -339,7 +349,7 @@ function generalSettings(SettingsSection: any) {
       div.appendChild(btnRow);
 
       Spicetify.PopupModal.display({
-        title: "Confirm Clear Database",
+        title: "Clear TTML Database",
         content: div,
         isLarge: false,
       });
@@ -354,11 +364,6 @@ function generalSettings(SettingsSection: any) {
       (window as any)._spicy_lyrics_channels?.showSwitcher?.();
     }
   );
-
-  settings.addToggle("developer-mode", "Developer Mode", Defaults.DeveloperMode, () => {
-    storage.set("developerMode", settings.getFieldValue("developer-mode") as string);
-    window.location.reload();
-  });
 
   settings.pushSettings();
 }
