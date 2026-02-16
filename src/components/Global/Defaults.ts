@@ -36,6 +36,7 @@ const Defaults = {
   EscapeKeyFunction: "Exit to Cinema" as string,
   ShowVolumeSliderFullscreen: "Off" as string,
   SyllableRendering: "Default" as string,
+  RightAlignLyrics: false,
   BuildChannel: "Stable" as string,
 };
 

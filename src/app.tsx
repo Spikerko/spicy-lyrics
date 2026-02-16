@@ -242,6 +242,11 @@ async function main() {
     Defaults.SyllableRendering = storage.get("syllableRendering").toString();
   }
 
+  if (storage.get("rightAlignLyrics")) {
+    const val = storage.get("rightAlignLyrics").toString();
+    Defaults.RightAlignLyrics = val === "true" || val === true;
+  }
+
   if (!storage.get("escapeKeyFunction")) {
     storage.set("escapeKeyFunction", "Exit to Cinema");
   }
