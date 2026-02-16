@@ -35,6 +35,7 @@ const Defaults = {
   ReplaceSpotifyPlaybar: false,
   EscapeKeyFunction: "Exit to Cinema" as string,
   ShowVolumeSliderFullscreen: "Off" as string,
+  SyllableRendering: "Default" as string,
   BuildChannel: "Stable" as string,
 };
 

@@ -234,6 +234,14 @@ async function main() {
     }
   }
 
+  if (!storage.get("syllableRendering")) {
+    storage.set("syllableRendering", "Default");
+  }
+
+  if (storage.get("syllableRendering")) {
+    Defaults.SyllableRendering = storage.get("syllableRendering").toString();
+  }
+
   if (!storage.get("escapeKeyFunction")) {
     storage.set("escapeKeyFunction", "Exit to Cinema");
   }

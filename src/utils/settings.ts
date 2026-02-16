@@ -71,6 +71,18 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addDropDown(
+    "syllable-rendering",
+    "Syllable Rendering",
+    ["Default", "Merge Words", "Merge Short"],
+    Defaults.SyllableRendering === "Merge Short" ? 2 : Defaults.SyllableRendering === "Merge Words" ? 1 : 0,
+    () => {
+      const value = settings.getFieldValue("syllable-rendering") as string;
+      storage.set("syllableRendering", value);
+      Defaults.SyllableRendering = value;
+    }
+  );
+
   settings.addToggle(
     "minimal-lyrics-mode",
     "Minimal Lyrics Mode (Only in Fullscreen/Cinema View)",
