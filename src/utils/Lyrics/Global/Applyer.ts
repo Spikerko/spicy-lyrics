@@ -107,6 +107,10 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
       noticeContent = `We currently don't have support for video podcast episode lyrics`
       break;
     }
+    case "local-track": {
+      noticeContent = `Lyrics aren't available for local files`
+      break;
+    }
     default:
       break;
   }
@@ -139,7 +143,7 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     currentNoticeElement.classList.add("LyricsNotice");
     lyricsContainer.appendChild(currentNoticeElement);
 
-    if (!IsCompactMode() && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && descriptor === "lyrics-not-found") {
+    if (!IsCompactMode() && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && (descriptor === "lyrics-not-found" || descriptor === "local-track")) {
       PageContainer?.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.add("Hidden");
       PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.add("LyricsHidden");
     }
