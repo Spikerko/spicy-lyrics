@@ -97,7 +97,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   if (songKey && SessionTTMLStore.has(songKey)) {
     const sessionData = SessionTTMLStore.get(songKey);
     if (sessionData) {
-      const lyricsData = { ...sessionData, id: trackId, fromCache: true };
+      const lyricsData = { ...sessionData, id: trackId, fromCache: true, userUploaded: true };
       storage.set("currentLyricsData", JSON.stringify(lyricsData));
       storage.set("currentlyFetching", "false");
 
@@ -121,7 +121,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     try {
       const userTTML = await UserTTMLStore.GetItem(songKey);
       if (userTTML) {
-        const lyricsData = { ...userTTML, id: trackId, fromCache: true };
+        const lyricsData = { ...userTTML, id: trackId, fromCache: true, userUploaded: true };
         storage.set("currentLyricsData", JSON.stringify(lyricsData));
         storage.set("currentlyFetching", "false");
 

@@ -278,7 +278,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     let currentWordGroup: HTMLSpanElement | null = null;
 
-    const processedLeadSyllables = reduceSyllables(line.Lead.Syllables, Defaults.SyllableRendering);
+    const syllableMode = (data as any).userUploaded || (data as any).SourceTTML ? "Default" : Defaults.SyllableRendering;
+    const processedLeadSyllables = reduceSyllables(line.Lead.Syllables, syllableMode);
 
     processedLeadSyllables.forEach((lead, iL, aL) => {
       let word = document.createElement("span");
@@ -389,7 +390,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
 
-        const processedBGSyllables = reduceSyllables(bg.Syllables, Defaults.SyllableRendering);
+        const processedBGSyllables = reduceSyllables(bg.Syllables, syllableMode);
 
         processedBGSyllables.forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");

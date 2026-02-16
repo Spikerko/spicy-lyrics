@@ -60,7 +60,7 @@ function uploadTTML(mode: TTMLMode) {
         return;
       }
 
-      const data = { ...result.Result, id: SpotifyPlayer.GetId() };
+      const data = { ...result.Result, id: SpotifyPlayer.GetId(), userUploaded: true };
       await ProcessLyrics(data);
 
       const songKey = getSongKey(SpotifyPlayer.GetUri() ?? "");
