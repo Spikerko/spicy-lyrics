@@ -103,7 +103,8 @@ function reduceSyllables(syllables: SyllableData[], mode: string): SyllableData[
       const current = { ...syllables[i] };
       const duration = current.EndTime - current.StartTime;
       // Only merge short syllables within the same word (IsPartOfWord must be true)
-      if (duration < 0.2 && i < syllables.length - 1 && current.IsPartOfWord) {
+      // Never merge syllables that end with a dash — they are intentionally split (e.g. "Woah-" "oh")
+      if (duration < 0.2 && i < syllables.length - 1 && current.IsPartOfWord && !current.Text.endsWith("-")) {
         const next = syllables[i + 1];
         current.Text += next.Text;
         if (current.RomanizedText !== undefined || next.RomanizedText !== undefined) {
@@ -119,8 +120,8 @@ function reduceSyllables(syllables: SyllableData[], mode: string): SyllableData[
       }
       result.push(current);
     }
-    // Recurse if there are still short within-word syllables to merge
-    const hasShort = result.some((s, idx) => (s.EndTime - s.StartTime) < 0.2 && s.IsPartOfWord && idx < result.length - 1);
+    // Recurse if there are still short within-word syllables to merge (exclude dashed syllables)
+    const hasShort = result.some((s, idx) => (s.EndTime - s.StartTime) < 0.2 && s.IsPartOfWord && !s.Text.endsWith("-") && idx < result.length - 1);
     if (hasShort && result.length < syllables.length) {
       return reduceSyllables(result, mode);
     }
