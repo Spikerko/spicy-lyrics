@@ -296,26 +296,8 @@ function generalSettings(SettingsSection: any) {
   // --- Advanced ---
   settings.addGroup("Advanced");
 
-  settings.addDropDown(
-    "lyrics-renderer",
-    "Lyrics Renderer (Deprecated - will not work)",
-    ["Spicy Lyrics (Default) (Stable)", "AML Lyrics (Experimental) (Unstable)"],
-    Defaults.LyricsRenderer_Default,
-    () => {
-      const value = settings.getFieldValue("lyrics-renderer") as string;
-      const processedValue =
-        value === "Spicy Lyrics (Default) (Stable)"
-          ? "Spicy"
-          : value === "AML Lyrics (Experimental) (Unstable)"
-            ? "aml-lyrics"
-            : "Spicy";
-      storage.set("lyricsRenderer", processedValue);
-      Defaults.LyricsRenderer = processedValue;
-    }
-  );
-
-  settings.addToggle("developer-mode", "Developer Mode", Defaults.DeveloperMode, () => {
-    storage.set("developerMode", settings.getFieldValue("developer-mode") as string);
+settings.addToggle("display-latency", "Display Latency to Server (Performance Heavy)", Defaults.DeveloperMode, () => {
+    storage.set("displayLatency", settings.getFieldValue("display-latency") as string);
     window.location.reload();
   });
 

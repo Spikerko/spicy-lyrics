@@ -39,10 +39,10 @@ export const DynamicBackgroundConfig: DynamicBackgroundOptions = {
 export let currentBgInstance: DynamicBackground | null = null;
 
 // Add a document visibilitychange event to refocus the dynamic background when the tab regains focus
-document.addEventListener("visibilitychange", () => {
+document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && currentBgInstance) {
     try {
-      currentBgInstance.Update({
+      await currentBgInstance.Update({
         image: SpotifyPlayer.GetCover("large") ?? "",
       });
     } catch (err) {

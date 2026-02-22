@@ -22,12 +22,12 @@ const LOG_PREFIX = "[Spicy Lyrics] [Socket.IO]";
 
 const log = {
   info: (...args: unknown[]) => {
-    if (storage.get("developerMode") === "true") {
+    if (storage.get("displayLatency") === "true") {
       console.log(LOG_PREFIX, ...args);
     }
   },
   warn: (...args: unknown[]) => {
-    if (storage.get("developerMode") === "true") {
+    if (storage.get("displayLatency") === "true") {
       console.warn(LOG_PREFIX, ...args);
     }
   },

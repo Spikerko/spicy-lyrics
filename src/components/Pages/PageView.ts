@@ -6,7 +6,6 @@ import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
   cleanupApplyLyricsAbortController,
-  resetLyricsPlayer,
 } from "../../utils/Lyrics/Global/Applyer.ts";
 import {
   addLinesEvListener,
@@ -125,9 +124,7 @@ async function OpenPage(
   const elem = document.createElement("div");
   elem.id = "SpicyLyricsPage";
 
-  if (Defaults.LyricsRenderer === "Spicy") {
-    elem.classList.add("SpicyRenderer");
-  }
+  elem.classList.add("SpicyRenderer");
 
   if (isSidebarMode) {
     elem.classList.add("SidebarMode");
@@ -362,8 +359,6 @@ function DestroyPage() {
   if (Fullscreen.IsOpen) Fullscreen.Close();
   if (!PageContainer) return;
 
-  resetLyricsPlayer();
-
   CleanupDynamicBGLets();
   ResetLastLine();
   CleanupScrollEvents();
@@ -445,15 +440,11 @@ function AppendViewControls(ReAppend: boolean = false) {
               }</button>`
             : ""
         }
-        ${
-          Defaults.LyricsRenderer === "Spicy"
-            ? `<button id="RomanizationToggle" class="ViewControl">${
-                isRomanized
-                  ? Icons.DisableRomanization
-                  : Icons.EnableRomanization
-              }</button>`
-            : ""
-        }
+        <button id="RomanizationToggle" class="ViewControl">${
+          isRomanized
+            ? Icons.DisableRomanization
+            : Icons.EnableRomanization
+        }</button>
         ${
           !Fullscreen.IsOpen &&
           !Fullscreen.CinemaViewOpen &&

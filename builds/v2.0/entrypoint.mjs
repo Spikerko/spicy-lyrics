@@ -362,7 +362,9 @@ const renderChannelSettings = () => {
   if (Spicetify.Platform.History.location.pathname !== "/preferences") return;
   if (pluginLoadedVersion && isVersionAtLeast(pluginLoadedVersion, PLUGIN_HANDLES_SETTINGS)) return;
 
+  let _tryInjectAttempts = 0;
   const tryInject = setInterval(() => {
+    if (++_tryInjectAttempts > 100) { clearInterval(tryInject); return; }
     const sentinel = document.getElementById("desktop.settings.selectLanguage");
     if (!sentinel) return;
     clearInterval(tryInject);

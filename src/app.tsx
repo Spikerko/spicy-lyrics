@@ -126,15 +126,7 @@ async function main() {
     Defaults.PopupLyricsAllowed = storage.get("disablePopupLyrics") !== "true";
   }
 
-  if (!storage.get("lyricsRenderer")) {
-    storage.set("lyricsRenderer", "Spicy");
-  }
-
-  if (storage.get("lyricsRenderer")) {
-    Defaults.LyricsRenderer = storage.get("lyricsRenderer").toString() as string;
-  }
-
-  if (!storage.get("simpleLyricsModeRenderingType")) {
+if (!storage.get("simpleLyricsModeRenderingType")) {
     storage.set("simpleLyricsModeRenderingType", "calculate");
   }
 
@@ -242,9 +234,13 @@ async function main() {
     Defaults.SyllableRendering = storage.get("syllableRendering").toString();
   }
 
+  if (!storage.get("rightAlignLyrics")) {
+    storage.set("rightAlignLyrics", "false");
+  }
+
   if (storage.get("rightAlignLyrics")) {
     const val = storage.get("rightAlignLyrics").toString();
-    Defaults.RightAlignLyrics = val === "true" || val === true;
+    Defaults.RightAlignLyrics = val === "true";
   }
 
   if (!storage.get("escapeKeyFunction")) {
@@ -1135,6 +1131,6 @@ async function main() {
 
 main();
 
-if (storage.get("developerMode") === "true") {
+if (storage.get("displayLatency") === "true") {
   connectionIndicatorInit();
 }

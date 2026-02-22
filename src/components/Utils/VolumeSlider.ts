@@ -122,6 +122,10 @@ export function SetupVolumeSlider(container: HTMLElement, horizontal?: boolean) 
     document.removeEventListener("touchmove", handleDragMove);
     document.removeEventListener("mouseup", handleDragEnd);
     document.removeEventListener("touchend", handleDragEnd);
+    if (isDragging) {
+      isDragging = false;
+      document.body.style.userSelect = prevUserSelect;
+    }
     container.innerHTML = "";
     container.classList.remove("Horizontal");
     container.classList.remove("RightSide");

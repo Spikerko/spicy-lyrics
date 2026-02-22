@@ -8,9 +8,9 @@ let ShownUpdateNotice = false;
 
 export async function CheckForUpdates(force: boolean = false) {
   if (isDev) return;
+  if (!force && ShownUpdateNotice) return;
   const IsOutdated = await Session.SpicyLyrics.IsOutdated();
   if (!IsOutdated) return;
-  if (!force && ShownUpdateNotice) return;
 
   const currentVersion = Session.SpicyLyrics.GetCurrentVersion();
   const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
@@ -28,7 +28,7 @@ export async function CheckForUpdates(force: boolean = false) {
       </div>
       <button
         onClick={() =>
-          window._spicy_lyrics_session.Navigate({ pathname: "/SpicyLyrics/Update" })
+          Session.Navigate({ pathname: "/SpicyLyrics/Update" })
         }
         className="btn-release"
         data-encore-id="buttonSecondary"

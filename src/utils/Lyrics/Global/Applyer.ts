@@ -1,8 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { LyricPlayer } from "@applemusic-like-lyrics/core";
 import Defaults from "../../../components/Global/Defaults.ts";
-import { parseTTML } from "../../../edited_packages/applemusic-like-lyrics-lyric/parser.ts";
 import { SetWaitingForHeight } from "../../Scrolling/ScrollToActiveLine.ts";
 import { ClearScrollSimplebar } from "../../Scrolling/Simplebar/ScrollSimplebar.ts";
 import { setBlurringLastLine } from "../Animator/Lyrics/LyricsAnimator.ts";
@@ -27,13 +25,6 @@ import { _local_hashes, Component } from "@spicetify/bundler";
 export type LyricsData = {
   Type: "Syllable" | "Line" | "Static" | string;
   [key: string]: any;
-};
-
-export let currentLyricsPlayer: LyricPlayer | null = null;
-
-export const resetLyricsPlayer = () => {
-  currentLyricsPlayer?.dispose();
-  currentLyricsPlayer = null;
 };
 
 let currentAbortController: AbortController | null = null;
@@ -168,37 +159,6 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
   }
 
   const lyrics = descriptor as LyricsData;
-
-  if (Defaults.LyricsRenderer === "aml-lyrics") {
-    if (lyrics.AMLLContent) {
-      const lrcs = lyrics.AMLLContent;
-      const lyricsContainer = PageContainer.querySelector<HTMLElement>(
-        ".LyricsContainer .LyricsContent"
-      );
-      if (!lyricsContainer) return;
-      if (!currentLyricsPlayer) currentLyricsPlayer = new LyricPlayer();
-      lyricsContainer.appendChild(currentLyricsPlayer.getElement());
-      currentLyricsPlayer.setLyricLines(lrcs.lines);
-
-      EmitApply(lyrics.Type, lyrics.Content);
-      SetWaitingForHeight(false);
-    } else {
-      const ttml = lyrics.SourceTTML;
-      const lyricsContainer = PageContainer.querySelector<HTMLElement>(
-        ".LyricsContainer .LyricsContent"
-      );
-      if (!lyricsContainer) return;
-      if (!currentLyricsPlayer) currentLyricsPlayer = new LyricPlayer();
-      const parsedTTML = await parseTTML(ttml);
-      lyricsContainer.appendChild(currentLyricsPlayer.getElement());
-      currentLyricsPlayer.setLyricLines(parsedTTML.lines);
-    }
-
-    EmitApply(lyrics.Type, lyrics.Content);
-    SetWaitingForHeight(false);
-
-    return;
-  }
 
   const romanize = isRomanized;
 
