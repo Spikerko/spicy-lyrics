@@ -6,7 +6,6 @@ import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
   cleanupApplyLyricsAbortController,
-  resetLyricsPlayer,
 } from "../../utils/Lyrics/Global/Applyer.ts";
 import {
   addLinesEvListener,
@@ -44,6 +43,8 @@ import {
   Session_OpenNowBar,
   ToggleNowBar,
   OpenNowBar,
+  HideSpotifyPlaybackBar,
+  RestoreSpotifyPlaybackBar,
 } from "../Utils/NowBar.ts";
 import {
   CloseSidebarLyrics,
@@ -66,14 +67,14 @@ export const Tooltips: {
   FullscreenToggle: TippyInstance | null;
   CinemaView: TippyInstance | null;
   NowBarSideToggle: TippyInstance | null;
-  DevTools: TippyInstance | null;
+  LoadTTML: TippyInstance | null;
 } = {
   Close: null,
   NowBarToggle: null,
   FullscreenToggle: null,
   CinemaView: null,
   NowBarSideToggle: null,
-  DevTools: null,
+  LoadTTML: null,
 };
 
 const PageView = {
@@ -123,9 +124,7 @@ async function OpenPage(
   const elem = document.createElement("div");
   elem.id = "SpicyLyricsPage";
 
-  if (Defaults.LyricsRenderer === "Spicy") {
-    elem.classList.add("SpicyRenderer");
-  }
+  elem.classList.add("SpicyRenderer");
 
   if (isSidebarMode) {
     elem.classList.add("SidebarMode");
@@ -152,10 +151,14 @@ async function OpenPage(
             <div class="NowBar">
                 <div class="CenteredView">
                     <div class="Header">
+                        <div class="VolumeSlider"></div>
                         <div class="MediaBox">
                             <div class="MediaContent"></div>
                             <div class="MediaImage"></div>
                         </div>
+                        <div class="InlineTimeline"></div>
+                        <div class="InlinePlaybackControls"></div>
+                        <div class="VolumeSliderUnder"></div>
                         <div class="Metadata">
                             <div class="SongName">
                                 <span></span>
@@ -221,6 +224,10 @@ async function OpenPage(
     */
   PageContainer = elem;
 
+  if (Defaults.ReplaceSpotifyPlaybar) {
+    HideSpotifyPlaybackBar();
+  }
+
   const SkipSpicyFont = storage.get("skip-spicy-font");
   if (SkipSpicyFont !== "true") {
     elem.classList.add("UseSpicyFont");
@@ -244,16 +251,22 @@ async function OpenPage(
     ".ContentBox"
   );
   if (contentBox) {
-    ApplyDynamicBackground(contentBox);
+    try {
+      await ApplyDynamicBackground(contentBox);
+    } catch (err) {
+      console.error("Error applying dynamic background:", err);
+    }
   }
 
   addLinesEvListener();
 
   {
-    if (!Spicetify.Player.data?.item?.uri) return; // Exit if `uri` is not available
-    const currentUri = Spicetify.Player.data.item.uri;
-
-    fetchLyrics(currentUri).then(ApplyLyrics);
+    const currentUri = Spicetify?.Player?.data?.item?.uri;
+    if (currentUri) {
+      fetchLyrics(currentUri).then(ApplyLyrics).catch((err) => {
+        console.error("Error fetching/applying lyrics on page open:", err);
+      });
+    }
   }
 
   Session_OpenNowBar();
@@ -333,6 +346,10 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 function DestroyPage() {
   if (!PageView.IsOpened) return;
 
+  if (Defaults.ReplaceSpotifyPlaybar) {
+    RestoreSpotifyPlaybackBar();
+  }
+
   cleanupApplyLyricsAbortController();
 
   if (isSpicySidebarMode) {
@@ -341,8 +358,6 @@ function DestroyPage() {
 
   if (Fullscreen.IsOpen) Fullscreen.Close();
   if (!PageContainer) return;
-
-  resetLyricsPlayer();
 
   CleanupDynamicBGLets();
   ResetLastLine();
@@ -410,7 +425,6 @@ function AppendViewControls(ReAppend: boolean = false) {
   const isNoLyrics =
     storage.get("currentLyricsData")?.toString() ===
     `NO_LYRICS:${SpotifyPlayer.GetId()}`;
-  const isDevMode = storage.get("devMode") === "true";
   elem.innerHTML = `
         ${
           Fullscreen.IsOpen || Fullscreen.CinemaViewOpen
@@ -426,15 +440,11 @@ function AppendViewControls(ReAppend: boolean = false) {
               }</button>`
             : ""
         }
-        ${
-          Defaults.LyricsRenderer === "Spicy"
-            ? `<button id="RomanizationToggle" class="ViewControl">${
-                isRomanized
-                  ? Icons.DisableRomanization
-                  : Icons.EnableRomanization
-              }</button>`
-            : ""
-        }
+        <button id="RomanizationToggle" class="ViewControl">${
+          isRomanized
+            ? Icons.DisableRomanization
+            : Icons.EnableRomanization
+        }</button>
         ${
           !Fullscreen.IsOpen &&
           !Fullscreen.CinemaViewOpen &&
@@ -466,11 +476,7 @@ function AppendViewControls(ReAppend: boolean = false) {
               }</button>`
             : ""
         }
-        ${
-          isDevMode
-            ? `<button id="DevTools" class="ViewControl">${Icons.DevTools}</button>`
-            : ""
-        }
+        <button id="LoadTTML" class="ViewControl">${Icons.LoadTTML}</button>
         <button id="Close" class="ViewControl">${Icons.Close}</button>
     `;
 
@@ -752,35 +758,54 @@ function AppendViewControls(ReAppend: boolean = false) {
       }
     }
 
-    const devToolsButton = elem.querySelector("#DevTools");
-    if (devToolsButton && isDevMode) {
+    const loadTTMLButton = elem.querySelector("#LoadTTML");
+    if (loadTTMLButton) {
       try {
         if (!isPip) {
-          Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
+          Tooltips.LoadTTML = Spicetify.Tippy(loadTTMLButton, {
             ...Spicetify.TippyProps,
-            content: `DevTools`,
+            content: `Load TTML`,
           });
         }
-        devToolsButton.addEventListener("click", () => {
+        loadTTMLButton.addEventListener("click", () => {
           if (IsPIP) {
             globalThis.focus();
           }
 
           Spicetify.PopupModal.display({
-            title: "Spicy Lyrics DevTools",
+            title: "Load TTML",
             isLarge: true,
             content: `
+                            <style>.SpicyLyricsDevToolsContainer .SettingValue button { min-width: 140px; box-sizing: border-box; text-align: center; }</style>
                             <div class="SpicyLyricsDevToolsContainer">
                                 <div class="Setting">
-                                    <div class="SettingName"><span>Load TTML (for the current song)</span></div>
+                                    <div class="SettingName"><span>Temporarily load TTML for the current song</span></div>
                                     <div class="SettingValue">
-                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load TTML</button>
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml-temp')">Load Temporary</button>
                                     </div>
                                 </div>
                                 <div class="Setting">
-                                    <div class="SettingName"><span>Reset TTML (for the current song)</span></div>
+                                    <div class="SettingName"><span>Load TTML for the current session (persists until restart)</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml-session')">Load Session</button>
+                                    </div>
+                                </div>
+                                <div class="Setting">
+                                    <div class="SettingName"><span>Load TTML for the current song (persistent)</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load Persistent</button>
+                                    </div>
+                                </div>
+                                <div class="Setting">
+                                    <div class="SettingName"><span>Reset TTML for the current song</span></div>
                                     <div class="SettingValue">
                                         <button onclick="window._spicy_lyrics.execute('reset-ttml')">Reset TTML</button>
+                                    </div>
+                                </div>
+                                <div class="Setting" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                                    <div class="SettingName"><span>Need help creating TTML files?</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
                                     </div>
                                 </div>
                             </div>
@@ -788,7 +813,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           });
         });
       } catch (err) {
-        console.warn("Failed to setup DevTools tooltip:", err);
+        console.warn("Failed to setup LoadTTML tooltip:", err);
       }
     }
   }

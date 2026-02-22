@@ -152,6 +152,168 @@
   left: calc(100% - var(--NowBarWidth) - var(--NowBarLeftSpacing));
 }
 
+/* Volume Slider - hidden by default, shown in fullscreen */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .CenteredView .Header {
+  position: relative;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .VolumeSlider {
+  display: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5cqw;
+  position: absolute;
+  left: -6cqw;
+  top: 0;
+  height: 100cqw; /* match MediaBox height */
+  width: 3cqw;
+  z-index: 11;
+  box-sizing: border-box;
+  justify-content: flex-end; /* icon at bottom, slider fills upward */
+  padding-top: 0.5cqw;
+  padding-bottom: 0.5cqw;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .SliderBar {
+  --TraveledColor: hsla(0, 0%, 100%, 0.9);
+  --RemainingColor: hsla(0, 0%, 100%, 0.38);
+  --SliderProgress: 0.5;
+
+  background: linear-gradient(
+    0deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor)
+  );
+  border-radius: 100cqw;
+  width: 1.3cqw; /* match timeline bar thickness */
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+  container-type: size;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .SliderBar .Handle {
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 100cqw;
+  display: block;
+  width: 185cqw; /* match timeline handle proportions */
+  position: absolute;
+  left: 50%;
+  bottom: calc(100cqh * var(--SliderProgress));
+  transform: translate(-50%, 50%);
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIconSpacer {
+  width: 3cqw;
+  height: 3cqw;
+  min-width: 16px;
+  min-height: 16px;
+  flex-shrink: 0;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIcon {
+  width: 3cqw;
+  height: 3cqw;
+  min-width: 16px;
+  min-height: 16px;
+  color: hsla(0, 0%, 100%, 0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIcon:hover {
+  color: #fff;
+}
+
+/* Right side positioning */
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider.RightSide {
+  left: auto;
+  right: -6cqw;
+}
+
+/* VolumeSliderUnder - horizontal, below playback controls */
+#SpicyLyricsPage .ContentBox .NowBar .Header .VolumeSliderUnder {
+  display: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder:has(> *) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5cqw;
+  width: 50%;
+  margin: 3cqw auto 0;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .SliderBar {
+  --TraveledColor: hsla(0, 0%, 100%, 0.9);
+  --RemainingColor: hsla(0, 0%, 100%, 0.38);
+  --SliderProgress: 0.5;
+
+  background: linear-gradient(
+    90deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor)
+  );
+  border-radius: 100cqw;
+  height: 1.3cqw;
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+  container-type: size;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .SliderBar .Handle {
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 100cqw;
+  display: block;
+  height: 185cqh;
+  position: absolute;
+  left: calc(100cqw * var(--SliderProgress));
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .VolumeIcon {
+  width: 3cqw;
+  height: 3cqw;
+  min-width: 16px;
+  min-height: 16px;
+  color: hsla(0, 0%, 100%, 0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .VolumeIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .VolumeIcon:hover {
+  color: #fff;
+}
+
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox {
   --ArtworkBrightness: 1;
   --ControlsOpacity: 0;
@@ -531,6 +693,19 @@
   container-type: size;
 }
 
+/* Move playback controls to bottom when timeline is shown inline instead of in overlay */
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent:not(:has(.Timeline))
+  .PlaybackControls {
+  bottom: 0;
+  padding-bottom: 5cqh;
+}
+
 #SpicyLyricsPage.Fullscreen
   .ContentBox
   .NowBar
@@ -713,7 +888,7 @@
   .PlaybackControls
   .PlaybackControl.Pressed {
   transform: scale(var(--ShrinkScale));
-  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1), transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
 }
 
 #SpicyLyricsPage.Fullscreen
@@ -815,6 +990,7 @@
   --TraveledColor: hsla(0, 0%, 100%, 0.9);
   --RemainingColor: hsla(0, 0%, 100%, 0.38);
   --SliderProgress: 0.6;
+
   background: linear-gradient(
     90deg,
     var(--TraveledColor) 0,
@@ -834,6 +1010,17 @@
 
 #SpicyLyricsPage .Timeline .Time {
   font-size: var(--default-font-size) !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 5ch;
+  flex-shrink: 0;
+}
+
+#SpicyLyricsPage .Timeline .Time.Position {
+  text-align: right;
+}
+
+#SpicyLyricsPage .Timeline .Time.Duration {
+  text-align: left;
 }
 
 #SpicyLyricsPage .Timeline .SliderBar .Handle {
@@ -1671,4 +1858,122 @@
   .MediaImage {
   border-radius: 9cqh !important;
   --BorderRadius: 9cqh !important;
+}
+
+/* InlineTimeline - between MediaBox and Metadata */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 1cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline:has(> *) {
+  display: flex;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline .Timeline {
+  position: relative;
+  bottom: auto;
+  padding: 1cqw 0;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline .Timeline .SliderBar {
+  height: 1.3cqw;
+}
+
+/* Reduce Metadata top margin when inline elements are populated above it */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline:has(> *) ~ .Metadata,
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls:has(> *) ~ .Metadata,
+#SpicyLyricsPage .ContentBox .NowBar .Header .VolumeSliderUnder:has(> *) ~ .Metadata {
+  margin-top: 3cqw;
+}
+
+/* InlinePlaybackControls - between progress bar and title */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 3cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls:has(> *) {
+  display: flex;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6cqw;
+  width: 100%;
+  height: 4.5cqw;
+  padding: 0;
+  container-type: size;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl {
+  aspect-ratio: 1;
+  display: flex;
+  fill: #fff;
+  align-items: center;
+  cursor: pointer;
+  justify-content: center;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1),
+    filter 0.175s ease-out !important;
+  --ShrinkScale: 0.9;
+  --ShrinkDelta: calc(1 - var(--ShrinkScale));
+  height: 100cqh;
+  width: 7.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.TrackSkip.PrevTrack {
+  rotate: 180deg;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.ShuffleToggle,
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.LoopToggle {
+  width: 4cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.PlayStateToggle {
+  width: 5.6cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl:not(.Pressed) {
+  animation: pressAnimation 0.6s;
+  animation-fill-mode: forwards;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.Pressed {
+  transform: scale(var(--ShrinkScale));
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1), transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls:hover .PlaybackControl:not(:hover) {
+  opacity: 0.5;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl:hover {
+  opacity: 1 !important;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.ShuffleToggle.Enabled,
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls .PlaybackControls .PlaybackControl.LoopToggle.Enabled {
+  filter: brightness(2.75);
+}
+
+/* Hide in compact mode (limited space) */
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .InlineTimeline,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .InlineTimeline,
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .InlinePlaybackControls,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .InlinePlaybackControls,
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .VolumeSlider,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .VolumeSlider,
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .VolumeSliderUnder,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .VolumeSliderUnder {
+  display: none !important;
 }

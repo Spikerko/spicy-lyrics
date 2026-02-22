@@ -66,6 +66,71 @@ interface LyricsData {
   styles?: Record<string, string>;
 }
 
+function reduceSyllables(syllables: SyllableData[], mode: string): SyllableData[] {
+  if (mode === "Default" || !mode) return syllables;
+
+  if (mode === "Merge Words") {
+    const result: SyllableData[] = [];
+    let i = 0;
+    while (i < syllables.length) {
+      const current = { ...syllables[i] };
+      // Collect consecutive IsPartOfWord syllables into one, but stop at dashes
+      while (i < syllables.length - 1 && syllables[i].IsPartOfWord) {
+        const next = syllables[i + 1];
+        // Don't merge across dashes
+        if (current.Text.endsWith("-") || next.Text.startsWith("-")) break;
+        current.Text += next.Text;
+        if (current.RomanizedText !== undefined || next.RomanizedText !== undefined) {
+          const currentRoman = current.RomanizedText ?? current.Text.slice(0, -next.Text.length);
+          const nextRoman = next.RomanizedText ?? next.Text;
+          current.RomanizedText = currentRoman + nextRoman;
+        }
+        current.EndTime = next.EndTime;
+        i++;
+      }
+      // Only clear IsPartOfWord if we fully merged; keep it if we stopped at a dash
+      if (!syllables[i].IsPartOfWord) current.IsPartOfWord = false;
+      result.push(current);
+      i++;
+    }
+    return result;
+  }
+
+  if (mode === "Merge Short") {
+    const result: SyllableData[] = [];
+    let i = 0;
+    while (i < syllables.length) {
+      const current = { ...syllables[i] };
+      const duration = current.EndTime - current.StartTime;
+      // Only merge short syllables within the same word (IsPartOfWord must be true)
+      // Never merge syllables that end with a dash — they are intentionally split (e.g. "Woah-" "oh")
+      if (duration < 0.2 && i < syllables.length - 1 && current.IsPartOfWord && !current.Text.endsWith("-")) {
+        const next = syllables[i + 1];
+        current.Text += next.Text;
+        if (current.RomanizedText !== undefined || next.RomanizedText !== undefined) {
+          const currentRoman = current.RomanizedText ?? current.Text.slice(0, -next.Text.length);
+          const nextRoman = next.RomanizedText ?? next.Text;
+          current.RomanizedText = currentRoman + nextRoman;
+        }
+        current.EndTime = next.EndTime;
+        current.IsPartOfWord = next.IsPartOfWord;
+        i += 2;
+      } else {
+        i++;
+      }
+      result.push(current);
+    }
+    // Recurse if there are still short within-word syllables to merge (exclude dashed syllables)
+    const hasShort = result.some((s, idx) => (s.EndTime - s.StartTime) < 0.2 && s.IsPartOfWord && !s.Text.endsWith("-") && idx < result.length - 1);
+    if (hasShort && result.length < syllables.length) {
+      return reduceSyllables(result, mode);
+    }
+    return result;
+  }
+
+  return syllables;
+}
+
 export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): void {
   if (!Defaults.LyricsContainerExists) return;
   EmitNotApplyed();
@@ -214,7 +279,10 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     let currentWordGroup: HTMLSpanElement | null = null;
 
-    line.Lead.Syllables.forEach((lead, iL, aL) => {
+    const syllableMode = (data as any).userUploaded || (data as any).SourceTTML ? "Default" : Defaults.SyllableRendering;
+    const processedLeadSyllables = reduceSyllables(line.Lead.Syllables, syllableMode);
+
+    processedLeadSyllables.forEach((lead, iL, aL) => {
       let word = document.createElement("span");
 
       if (isRtl(lead.Text) && !lineElem.classList.contains("rtl")) {
@@ -323,7 +391,9 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
 
-        bg.Syllables.forEach((bw, bI, bA) => {
+        const processedBGSyllables = reduceSyllables(bg.Syllables, syllableMode);
+
+        processedBGSyllables.forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
           if (isRtl(bw.Text) && !lineE.classList.contains("rtl")) {

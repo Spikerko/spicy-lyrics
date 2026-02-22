@@ -33,11 +33,17 @@ export interface ISettingsFieldToggle {
   events?: Partial<React.InputHTMLAttributes<HTMLInputElement>>;
 }
 
+export interface ISettingsFieldGroup {
+  type: "group";
+  description?: string;
+}
+
 export type ISettingsField =
   | ISettingsFieldHidden
   | ISettingsFieldDropdown
   | ISettingsFieldInput
   | ISettingsFieldButton
-  | ISettingsFieldToggle;
+  | ISettingsFieldToggle
+  | ISettingsFieldGroup;
 
 export type NewValueTypes = boolean | string;

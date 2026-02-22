@@ -6,6 +6,7 @@ import type {
   ISettingsField,
   ISettingsFieldButton,
   ISettingsFieldDropdown,
+  ISettingsFieldGroup,
   ISettingsFieldInput,
   ISettingsFieldToggle,
 } from "./types/settings-field.ts";
@@ -25,7 +26,7 @@ class SettingsSection {
 
   pushSettings = async () => {
     Object.entries(this.settingsFields).forEach(([nameId, field]) => {
-      if (field.type !== "button" && this.getFieldValue(nameId) === undefined) {
+      if (field.type !== "button" && field.type !== "group" && this.getFieldValue(nameId) === undefined) {
         this.setFieldValue(nameId, field.defaultValue);
       }
     });
@@ -161,6 +162,14 @@ class SettingsSection {
     };
   };
 
+  addGroup = (name: string) => {
+    const groupId = `__group_${Object.keys(this.settingsFields).length}`;
+    this.settingsFields[groupId] = {
+      type: "group",
+      description: name,
+    };
+  };
+
   getFieldValue = <Type,>(nameId: string): Type => {
     return JSON.parse(Spicetify.LocalStorage.get(`${this.settingsId}.${nameId}`) || "{}")?.value;
   };
@@ -198,6 +207,14 @@ class SettingsSection {
 
     if (props.field.type === "hidden") {
       return null;
+    }
+
+    if (props.field.type === "group") {
+      return (
+        <h3 className="spicy-settings-group-header">
+          {props.field.description}
+        </h3>
+      );
     }
 
     const [value, setValueState] = useState(defaultStateValue);

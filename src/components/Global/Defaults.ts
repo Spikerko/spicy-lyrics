@@ -24,13 +24,18 @@ const Defaults = {
   MinimalLyricsMode: false,
   hide_npv_bg: false,
   CompactMode_LockedMediaBox: false,
-  LyricsRenderer: "Spicy",
-  LyricsRenderer_Default: 0,
-  CanvasBackground: false,
+CanvasBackground: false,
   PopupLyricsAllowed: true,
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
   DeveloperMode: false,
+  AlwaysShowInFullscreen: "None" as string,
+  ReplaceSpotifyPlaybar: false,
+  EscapeKeyFunction: "Exit to Cinema" as string,
+  ShowVolumeSliderFullscreen: "Off" as string,
+  SyllableRendering: "Default" as string,
+  RightAlignLyrics: false,
+  BuildChannel: "Stable" as string,
 };
 
 export default Defaults;

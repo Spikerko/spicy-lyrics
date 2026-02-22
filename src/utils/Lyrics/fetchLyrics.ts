@@ -15,9 +15,28 @@ export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
   Duration: 3,
 }, isDev as true);
 
-export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
-  const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
+export const UserTTMLStore = GetExpireStore<any>("SpicyLyrics_UserTTMLStore", 1, {
+  Unit: "Days",
+  Duration: 36500,
+}, isDev as true);
 
+export const SessionTTMLStore = new Map<string, any>();
+
+export function getSongKey(uri: string): string {
+  if (!uri || !uri.trim() || !uri.startsWith("spotify:")) {
+    return "";
+  }
+  if (uri.startsWith("spotify:local:")) {
+    return uri;
+  }
+  const parts = uri.split(":");
+  if (parts.length < 3 || !parts[2]) {
+    return "";
+  }
+  return parts[2];
+}
+
+export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
   //if (!PageContainer) return;
   const LyricsContent =
     PageContainer?.querySelector(".LyricsContainer .LyricsContent") ?? undefined;
@@ -56,6 +75,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return ["unknown-track", 400];
   }
 
+
   const currFetching = storage.get("currentlyFetching");
   if (currFetching === "true") {
     storage.set("currentlyFetching", "false");
@@ -69,6 +89,57 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   }
 
   const trackId = uri.split(":")[2];
+  const songKey = getSongKey(uri);
+
+  // Check for session TTML first (highest priority, cleared on restart)
+  if (songKey && SessionTTMLStore.has(songKey)) {
+    const sessionData = SessionTTMLStore.get(songKey);
+    if (sessionData) {
+      const lyricsData = { ...sessionData, id: trackId, fromCache: true, userUploaded: true };
+      storage.set("currentLyricsData", JSON.stringify(lyricsData));
+      storage.set("currentlyFetching", "false");
+
+      if (lyricsData?.IncludesRomanization) {
+        PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+      } else {
+        PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+      }
+
+      HideLoaderContainer();
+      Defaults.CurrentLyricsType = lyricsData.Type;
+      PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+      PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+      PageView.AppendViewControls(true);
+      return [lyricsData, 200];
+    }
+  }
+
+  // Check for user-loaded TTML (persistent, second priority)
+  if (UserTTMLStore && songKey) {
+    try {
+      const userTTML = await UserTTMLStore.GetItem(songKey);
+      if (userTTML) {
+        const lyricsData = { ...userTTML, id: trackId, fromCache: true, userUploaded: true };
+        storage.set("currentLyricsData", JSON.stringify(lyricsData));
+        storage.set("currentlyFetching", "false");
+
+        if (lyricsData?.IncludesRomanization) {
+          PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+        } else {
+          PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+        }
+
+        HideLoaderContainer();
+        Defaults.CurrentLyricsType = lyricsData.Type;
+        PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+        PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+        PageView.AppendViewControls(true);
+        return [lyricsData, 200];
+      }
+    } catch (error) {
+      console.error("Error reading user TTML store:", error);
+    }
+  }
 
   // Check if there's already data in localStorage
   const savedLyricsData = storage.get("currentLyricsData")?.toString();
@@ -143,6 +214,11 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   SetWaitingForHeight(false);
 
+  if (uri.startsWith("spotify:local:")) {
+    storage.set("currentlyFetching", "false");
+    return ["local-track", 400];
+  }
+
   if (!navigator.onLine) {
     storage.set("currentlyFetching", "false");
     return ["offline", 400];
@@ -216,7 +292,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     // const providerLyrics = JSON.parse(lyricsText);
     const lyrics = JSON.parse(lyricsText);
 
-    IsSpicyRenderer ? await ProcessLyrics(lyrics) : null;
+    await ProcessLyrics(lyrics);
 
     storage.set("currentLyricsData", JSON.stringify(lyrics));
     storage.set("currentlyFetching", "false");

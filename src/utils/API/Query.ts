@@ -25,12 +25,12 @@ export interface QueryResultGetter {
 
 const log = {
   info: (...args: unknown[]) => {
-    if (storage.get("developerMode") === "true") {
+    if (storage.get("displayLatency") === "true") {
       console.log("[Spicy Lyrics] [Query]", ...args);
     }
   },
   warn: (...args: unknown[]) => {
-    if (storage.get("developerMode") === "true") {
+    if (storage.get("displayLatency") === "true") {
       console.warn("[Spicy Lyrics] [Query]", ...args);
     }
   },

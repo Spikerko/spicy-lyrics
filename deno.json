@@ -1,12 +1,12 @@
 {
   "tasks": {
     "dev": "deno run -A ./tasks/dev.ts",
+    "build": "deno run -A ./tasks/build.ts",
     "release": "deno run -A ./tasks/release.ts",
     "check": "deno run -A npm:@biomejs/biome check"
   },
   "imports": {
-    "@applemusic-like-lyrics/core": "npm:@applemusic-like-lyrics/core@^0.1.3",
-    "@socali/modules": "jsr:@socali/modules@^4.4.1",
+"@socali/modules": "jsr:@socali/modules@^4.4.1",
     "@spicetify/bundler": "jsr:@spicetify/bundler@^1.3.0",
     "@spikerko/tools": "jsr:@spikerko/tools@^1.6.0",
     "@spikerko/web-modules": "jsr:@spikerko/web-modules@^1.0.5",
