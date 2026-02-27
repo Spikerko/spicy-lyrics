@@ -7,6 +7,7 @@ import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/Cr
 import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
+import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
@@ -44,6 +45,14 @@ let ActiveHeartMaid: Maid | null = null;
 export const NowBarObj = {
   Open: false,
 };
+
+export function HideSpotifyPlaybackBar() {
+  document.body.classList.add("SpicyLyrics__PlaybackBarHidden");
+}
+
+export function RestoreSpotifyPlaybackBar() {
+  document.body.classList.remove("SpicyLyrics__PlaybackBarHidden");
+}
 
 /* const ActiveMarquees = new Map();
 
@@ -99,6 +108,109 @@ function ApplyMarquee(baseWidth, elementWidth, name) {
 
 let NowBarFullscreenMaid: Maid | null = null;
 
+let InlinePlaybarTimelineUpdateFn: ((pos?: number) => void) | null = null;
+let InlinePlaybarCleanupFn: (() => void) | null = null;
+
+function SetupNowBarPlaybar() {
+  CleanupNowBarPlaybar();
+  if (!Defaults.ReplaceSpotifyPlaybar || Fullscreen.IsOpen) return;
+  const container = PageContainer?.querySelector<HTMLElement>(
+    ".ContentBox .NowBar .Header .InlinePlaybar"
+  );
+  if (!container) return;
+
+  const songProgressBar = new SongProgressBar();
+  songProgressBar.Update({ duration: SpotifyPlayer.GetDuration() ?? 0, position: SpotifyPlayer.GetPosition() ?? 0 });
+
+  const TimelineElem = document.createElement("div");
+  TimelineElem.classList.add("Timeline");
+  TimelineElem.innerHTML = `
+    <span class="Time Position">${songProgressBar.GetFormattedPosition() ?? "0:00"}</span>
+    <div class="SliderBar" style="--SliderProgress: ${songProgressBar.GetProgressPercentage() ?? 0}">
+      <div class="Handle"></div>
+    </div>
+    <span class="Time Duration">${songProgressBar.GetFormattedDuration() ?? "0:00"}</span>
+  `;
+
+  const SliderBar = TimelineElem.querySelector<HTMLElement>(".SliderBar")!;
+  let isDragging = false;
+  let dragPositionMs: number | null = null;
+
+  const updateTimeline = (pos?: number) => {
+    const posElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
+    const durElem = TimelineElem.querySelector<HTMLElement>(".Time.Duration");
+    const positionToShow = isDragging && dragPositionMs !== null ? dragPositionMs : (pos ?? SpotifyPlayer.GetPosition() ?? 0);
+    songProgressBar.Update({ duration: SpotifyPlayer.GetDuration() ?? 0, position: positionToShow });
+    if (!isDragging) SliderBar.style.setProperty("--SliderProgress", songProgressBar.GetProgressPercentage().toString());
+    if (durElem) durElem.textContent = songProgressBar.GetFormattedDuration();
+    if (posElem) posElem.textContent = songProgressBar.GetFormattedPosition();
+  };
+  updateTimeline();
+  InlinePlaybarTimelineUpdateFn = updateTimeline;
+
+  const onDragMove = (event: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    const clientX = "touches" in event ? event.touches[0].clientX : (event as MouseEvent).clientX;
+    const rect = SliderBar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    SliderBar.style.setProperty("--SliderProgress", pct.toString());
+    dragPositionMs = Math.floor(pct * (SpotifyPlayer.GetDuration() ?? 0));
+    songProgressBar.Update({ duration: SpotifyPlayer.GetDuration() ?? 0, position: dragPositionMs });
+    Global.Event.evoke("nowbar:timeline:dragging", { isDragging: true, percentage: pct, positionMs: dragPositionMs });
+    const posElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
+    if (posElem) posElem.textContent = songProgressBar.GetFormattedPosition();
+  };
+
+  const onDragEnd = (event: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.style.userSelect = "";
+    document.removeEventListener("mousemove", onDragMove);
+    document.removeEventListener("touchmove", onDragMove);
+    document.removeEventListener("mouseup", onDragEnd);
+    document.removeEventListener("touchend", onDragEnd);
+    const clientX = "changedTouches" in event ? event.changedTouches[0].clientX : (event as MouseEvent).clientX;
+    const rect = SliderBar.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const positionMs = Math.floor(pct * (SpotifyPlayer.GetDuration() ?? 0));
+    dragPositionMs = null;
+    Global.Event.evoke("nowbar:timeline:dragging", { isDragging: false, percentage: pct, positionMs, finalPosition: true });
+    if (SpotifyPlayer.Seek) SpotifyPlayer.Seek(positionMs);
+    updateTimeline();
+  };
+
+  const onDragStart = (event: MouseEvent | TouchEvent) => {
+    isDragging = true;
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onDragMove);
+    document.addEventListener("touchmove", onDragMove);
+    document.addEventListener("mouseup", onDragEnd);
+    document.addEventListener("touchend", onDragEnd);
+    Global.Event.evoke("nowbar:timeline:dragging", { isDragging: true });
+    onDragMove(event);
+  };
+
+  SliderBar.addEventListener("mousedown", onDragStart);
+  SliderBar.addEventListener("touchstart", onDragStart);
+
+  container.appendChild(TimelineElem);
+
+  InlinePlaybarCleanupFn = () => {
+    document.removeEventListener("mousemove", onDragMove);
+    document.removeEventListener("touchmove", onDragMove);
+    document.removeEventListener("mouseup", onDragEnd);
+    document.removeEventListener("touchend", onDragEnd);
+    songProgressBar.Destroy();
+    container.innerHTML = "";
+    InlinePlaybarTimelineUpdateFn = null;
+    InlinePlaybarCleanupFn = null;
+  };
+}
+
+function CleanupNowBarPlaybar() {
+  if (InlinePlaybarCleanupFn) InlinePlaybarCleanupFn();
+}
+
 function OpenNowBar(skipSaving: boolean = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
@@ -108,6 +220,7 @@ function OpenNowBar(skipSaving: boolean = false) {
     spicyLyricsPage?.classList.remove("NowBarStatus__Open");
     return;
   }
+  if (Defaults.ReplaceSpotifyPlaybar) HideSpotifyPlaybackBar();
   UpdateNowBar(true);
   NowBar.classList.add("Active");
 
@@ -815,6 +928,7 @@ function OpenNowBar(skipSaving: boolean = false) {
     } */
   NowBarObj.Open = true;
   PageView.AppendViewControls(true);
+  SetupNowBarPlaybar();
 }
 
 function CleanUpActiveComponents() {
@@ -867,7 +981,9 @@ function CloseNowBar() {
   if (!NowBar) return;
   NowBar.classList.remove("Active");
   storage.set("IsNowBarOpen", "false");
+  if (Defaults.ReplaceSpotifyPlaybar) RestoreSpotifyPlaybackBar();
   CleanUpActiveComponents();
+  CleanupNowBarPlaybar();
 
   const spicyLyricsPage = PageContainer;
   if (spicyLyricsPage) {
@@ -1261,11 +1377,13 @@ Global.Event.listen("playback:position", (e: number) => {
       // console.log("Timeline Updated!");
     }
   }
+  if (InlinePlaybarTimelineUpdateFn) InlinePlaybarTimelineUpdateFn(e);
 });
 
 Global.Event.listen("fullscreen:exit", () => {
   CleanUpActiveComponents();
   CleanupMediaBox();
+  if (NowBarObj.Open) setTimeout(() => SetupNowBarPlaybar(), 100);
 });
 
 Global.Event.listen("page:destroy", () => {

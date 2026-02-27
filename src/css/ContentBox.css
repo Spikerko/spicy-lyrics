@@ -713,7 +713,7 @@
   .PlaybackControls
   .PlaybackControl.Pressed {
   transform: scale(var(--ShrinkScale));
-  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1), transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
 }
 
 #SpicyLyricsPage.Fullscreen
@@ -834,6 +834,17 @@
 
 #SpicyLyricsPage .Timeline .Time {
   font-size: var(--default-font-size) !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 5ch;
+  flex-shrink: 0;
+}
+
+#SpicyLyricsPage .Timeline .Time.Position {
+  text-align: right;
+}
+
+#SpicyLyricsPage .Timeline .Time.Duration {
+  text-align: left;
 }
 
 #SpicyLyricsPage .Timeline .SliderBar .Handle {
@@ -1671,4 +1682,39 @@
   .MediaImage {
   border-radius: 9cqh !important;
   --BorderRadius: 9cqh !important;
+}
+
+/* InlinePlaybar - shown in NowBar view when Replace Spotify Playbar is enabled */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybar {
+  width: 100%;
+  padding: 0 2cqw;
+  margin-top: 3cqw;
+  container-type: inline-size;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybar:empty {
+  display: none;
+  margin-top: 0;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybar .Timeline {
+  position: relative;
+  bottom: auto;
+  padding: 0;
+  width: 100%;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybar .Timeline .SliderBar {
+  height: 1.3cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybar:not(:empty) + .Metadata {
+  margin-top: 1.5cqw;
+}
+
+/* Hide in compact modes and fullscreen */
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .InlinePlaybar,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .InlinePlaybar,
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .InlinePlaybar {
+  display: none !important;
 }

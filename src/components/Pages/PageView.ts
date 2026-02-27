@@ -156,6 +156,7 @@ async function OpenPage(
                             <div class="MediaContent"></div>
                             <div class="MediaImage"></div>
                         </div>
+                        <div class="InlinePlaybar"></div>
                         <div class="Metadata">
                             <div class="SongName">
                                 <span></span>

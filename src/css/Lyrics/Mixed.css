@@ -213,6 +213,21 @@
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.OppositeAligned {
   justify-content: flex-end;
+  text-align: end;
+  column-gap: 0.3ch;
+}
+
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line.OppositeAligned
+  .word:not(.PartOfWord, .dot, .LastWordInLine)::after,
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line.OppositeAligned
+  .letterGroup:not(.PartOfWord, .dot, .LastWordInLine)::after {
+  margin-right: 0;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Sung {
