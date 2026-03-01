@@ -758,7 +758,7 @@ function AppendViewControls(ReAppend: boolean = false) {
         if (!isPip) {
           Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
             ...Spicetify.TippyProps,
-            content: `DevTools`,
+            content: `TTML Maker Tools`,
           });
         }
         devToolsButton.addEventListener("click", () => {
@@ -767,7 +767,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           }
 
           Spicetify.PopupModal.display({
-            title: "Spicy Lyrics DevTools",
+            title: "Spicy Lyrics TTML Maker Tools (DevTools)",
             isLarge: true,
             content: `
                             <div class="SpicyLyricsDevToolsContainer">
@@ -788,7 +788,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           });
         });
       } catch (err) {
-        console.warn("Failed to setup DevTools tooltip:", err);
+        console.warn("Failed to setup TTML Maker Tools tooltip:", err);
       }
     }
   }
