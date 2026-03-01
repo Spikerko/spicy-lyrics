@@ -6,7 +6,6 @@ import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import storage from "../storage.ts";
 import { Lyrics } from "./Animator/Main.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
-import { convertToStaticLyrics } from "./tools.ts";
 
 export const ScrollingIntervalTime = Infinity;
 

@@ -8,7 +8,6 @@ import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Loaders/LoaderContainer.css";
-import "./css/customizer.scss";
 import "./css/font-pack/font-pack.css";
 import "./css/ttml-profile/profile.css";
 
@@ -63,6 +62,7 @@ import { PopupModal } from "./components/Modal.ts";
 import { actions } from "./actions.ts";
 import { connectionIndicatorInit } from "./utils/connectionIndicatorTool.ts";
 import "./utils/Socket/main.ts";
+import { ProjectVersion } from "../tasks/config.ts";
 
 export const reactQueryClient = new QueryClient();
 
@@ -194,7 +194,7 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
-  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? "5.18.62";
+  Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {

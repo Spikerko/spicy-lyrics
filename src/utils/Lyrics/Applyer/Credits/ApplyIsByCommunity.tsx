@@ -106,29 +106,73 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
   const songInfoElement = document.createElement("div");
   songInfoElement.classList.add("SongInfo");
 
-  songInfoElement.innerHTML = `
-    <span style="opacity: 0.5;">
-      These lyrics have been provided by our community
-    </span>
-    ${
-      data.TTMLUploadMetadata?.Maker?.username && data.TTMLUploadMetadata?.Maker?.avatar
-        ? `
-        <span class="Maker">
-          <span><span style="opacity: 0.5;">Made by </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Maker.username} <span>${data.TTMLUploadMetadata.Maker.avatar ? `<img src="${data.TTMLUploadMetadata.Maker.avatar}" alt="${data.TTMLUploadMetadata.Maker.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
-        </span>
-        `.trim()
-        : ""
+  // Static copy – safe to set as text
+  const providedByCommunitySpan = document.createElement("span");
+  providedByCommunitySpan.style.opacity = "0.5";
+  providedByCommunitySpan.textContent =
+    "These lyrics have been provided by our community";
+  songInfoElement.appendChild(providedByCommunitySpan);
+
+  const makerUsername = data.TTMLUploadMetadata?.Maker?.username;
+  const makerAvatar = data.TTMLUploadMetadata?.Maker?.avatar;
+  const uploaderUsername = data.TTMLUploadMetadata?.Uploader?.username;
+  const uploaderAvatar = data.TTMLUploadMetadata?.Uploader?.avatar;
+
+  // Helper for creating a profile section (Maker / Uploader) safely
+  const createProfileSection = (
+    type: "Maker" | "Uploader",
+    labelText: string,
+    username: string,
+    avatarUrl?: string
+  ) => {
+    const wrapperSpan = document.createElement("span");
+    wrapperSpan.classList.add(type);
+
+    const innerSpan = document.createElement("span");
+
+    const labelSpan = document.createElement("span");
+    labelSpan.style.opacity = "0.5";
+    labelSpan.textContent = `${labelText} `;
+
+    const profileSectionSpan = document.createElement("span");
+    profileSectionSpan.classList.add("song-info-profile-section");
+
+    // "@username"
+    const atText = document.createTextNode("@");
+    profileSectionSpan.appendChild(atText);
+
+    const usernameSpan = document.createElement("span");
+    usernameSpan.textContent = username;
+    profileSectionSpan.appendChild(usernameSpan);
+
+    // Optional avatar image
+    if (avatarUrl) {
+      const avatarWrapper = document.createElement("span");
+      const img = document.createElement("img");
+      img.src = avatarUrl;
+      img.alt = `${username}'s avatar`;
+      img.onerror = () => {
+        img.style.display = "none";
+      };
+      avatarWrapper.appendChild(img);
+      profileSectionSpan.appendChild(avatarWrapper);
     }
-    ${
-      data.TTMLUploadMetadata?.Uploader?.username && data.TTMLUploadMetadata?.Uploader?.avatar
-        ? `
-        <span class="Uploader">
-          <span><span style="opacity: 0.5;">${!data.TTMLUploadMetadata.Maker?.username ? "Made by" : "Uploaded by"} </span><span class="song-info-profile-section">@${data.TTMLUploadMetadata.Uploader.username} <span>${data.TTMLUploadMetadata.Uploader.avatar ? `<img src="${data.TTMLUploadMetadata.Uploader.avatar}" alt="${data.TTMLUploadMetadata.Uploader.username}'s avatar" onerror="this.style.display='none';" />` : ""}</span></span></span>
-        </span>
-        `.trim()
-        : ""
-    }
-  `;
+
+    innerSpan.appendChild(labelSpan);
+    innerSpan.appendChild(profileSectionSpan);
+    wrapperSpan.appendChild(innerSpan);
+
+    songInfoElement.appendChild(wrapperSpan);
+  };
+
+  if (makerUsername) {
+    createProfileSection("Maker", "Made by", makerUsername, makerAvatar);
+  }
+
+  if (uploaderUsername) {
+    const labelText = makerUsername ? "Uploaded by" : "Made by";
+    createProfileSection("Uploader", labelText, uploaderUsername, uploaderAvatar);
+  }
   LyricsContainer.appendChild(songInfoElement);
 
   const uploaderSpan = songInfoElement.querySelector(".Uploader .song-info-profile-section");

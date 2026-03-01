@@ -216,7 +216,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
         );
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
-        // SetRSBListeners();
+        SetupQueueButtonListener();
       }
     );
   } else {
@@ -234,7 +234,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
         );
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
-        // SetRSBListeners();
+        SetupQueueButtonListener();
       }
     );
   }
@@ -260,7 +260,7 @@ export function CloseSidebarLyrics(auto: boolean = false) {
   // console.log("[Spicy Lyrics Debug] PageView.Destroy()");
   PageView.Destroy();
   appendClosed();
-  //CleanupRSBListeners();
+  CleanupQueueButtonListener();
   isSpicySidebarMode = false;
   storage.set("sidebar-status", "closed");
 
@@ -298,78 +298,40 @@ export function CloseSidebarLyrics(auto: boolean = false) {
 
   onOpen_wasThingOpen = undefined;
 }
-/* 
-let RSBAbortControllers: Array<AbortController | undefined> = [undefined, undefined, undefined];
 
-export function SetRSBListeners() {
-  const npv = getNowPlayingViewPlaybarButton();
-  const queue = getQueuePlaybarButton();
-  const devices = getDevicesPlaybarButton();
+let QBClickELController: AbortController | undefined = undefined;
 
-  if (!npv) return;
-  if (!queue) return;
-  if (!devices) return;
+export function SetupQueueButtonListener() {
+  const button = getQueuePlaybarButton();
 
-  [npv, queue, devices].forEach((button, i) => {
-    const abortController = new AbortController();
-    RSBAbortControllers[i] = abortController;
-    button.addEventListener(
-      "click",
-      () => {
-        if (!isSpicySidebarMode) return;
-        currentNPVWhentil?.Cancel();
-        currentNPVWhentil = null;
-        // cleanup observer on destroy
-        if (spicyLyricsPageObserver) {
-          try { spicyLyricsPageObserver.disconnect(); } catch(_e){}
-          spicyLyricsPageObserver = null;
-        }
-        PageView.Destroy();
-        appendClosed();
-        isSpicySidebarMode = false;
-        // console.log(i)
-        if (i === 1) {
-          queue.click();
-        }
-      },
-      { signal: abortController.signal }
-    );
-  });
+  if (!button) return;
+
+  const abortController = new AbortController();
+  QBClickELController = abortController;
+  button.addEventListener(
+    "click",
+    () => {
+      if (!isSpicySidebarMode) return;
+      currentNPVWhentil?.Cancel();
+      currentNPVWhentil = null;
+      if (spicyLyricsPageObserver) {
+        try { spicyLyricsPageObserver.disconnect(); } catch(_e){}
+        spicyLyricsPageObserver = null;
+      }
+      PageView.Destroy();
+      appendClosed();
+      isSpicySidebarMode = false;
+      button.click();
+    },
+    { signal: abortController.signal }
+  );
 }
 
-export function CleanupSpecificRSBListener(type: "npv" | "queue" | "devices") {
-  if (RSBAbortControllers.length <= 0) return;
-  let mappedType: number | undefined;
-  switch (type) {
-    case "npv":
-      mappedType = 0;
-      break;
-    case "queue":
-      mappedType = 1;
-      break;
-    case "devices":
-      mappedType = 2;
-      break;
-    default:
-      mappedType = undefined;
-      break;
-  }
-
-  if (mappedType) {
-    RSBAbortControllers[mappedType]?.abort();
-    RSBAbortControllers[mappedType] = undefined;
-  }
+export function CleanupQueueButtonListener() {
+  if (!QBClickELController) return;
+  QBClickELController?.abort();
+  QBClickELController = undefined;
 }
-
-export function CleanupRSBListeners() {
-  if (RSBAbortControllers.length <= 0) return;
-  RSBAbortControllers.forEach((abortController, i, arr) => {
-    abortController?.abort();
-    if (i === arr.length - 1) {
-      RSBAbortControllers = [undefined, undefined, undefined];
-    }
-  });
-} */
 
 Spicetify.Player.addEventListener("songchange", (e: any) => {
   if (e.data === null) {
