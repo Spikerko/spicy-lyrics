@@ -3,8 +3,6 @@ import React from "react";
 import { Spicetify } from "@spicetify/bundler";
 import TTMLProfile from "../../../../components/ReactComponents/TTMLProfile/ttml-profile.tsx";
 import ReactDOM from "react-dom/client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { reactQueryClient } from "../../../../app.tsx";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 import { PopupModal } from "../../../../components/Modal.ts";
 import { actions } from "../../../../actions.ts";
@@ -58,9 +56,7 @@ function showProfileModal(userId: string | undefined, hasProfileBanner: boolean)
 
     // Render React content
     ttmlProfileReactRoot.render(
-      <QueryClientProvider client={reactQueryClient}>
-        <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
-      </QueryClientProvider>
+      <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
     );
   };
 

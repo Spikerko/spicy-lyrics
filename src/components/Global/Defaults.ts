@@ -24,8 +24,6 @@ const Defaults = {
   MinimalLyricsMode: false,
   hide_npv_bg: false,
   CompactMode_LockedMediaBox: false,
-  LyricsRenderer: "Spicy",
-  LyricsRenderer_Default: 0,
   CanvasBackground: false,
   PopupLyricsAllowed: true,
   ViewControlsPosition: "Top",

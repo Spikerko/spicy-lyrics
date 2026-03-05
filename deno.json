@@ -1,11 +1,11 @@
 {
   "tasks": {
     "dev": "deno run -A ./tasks/dev.ts",
+    "build": "deno run -A ./tasks/build.ts",
     "release": "deno run -A ./tasks/release.ts",
     "check": "deno run -A npm:@biomejs/biome check"
   },
   "imports": {
-    "@applemusic-like-lyrics/core": "npm:@applemusic-like-lyrics/core@^0.1.3",
     "@socali/modules": "jsr:@socali/modules@^4.4.1",
     "@spicetify/bundler": "jsr:@spicetify/bundler@^1.3.0",
     "@spikerko/tools": "jsr:@spikerko/tools@^1.6.0",
@@ -15,8 +15,8 @@
     "fast-xml-parser": "npm:fast-xml-parser@^5.2.5",
     "react": "npm:react@^19.1.1",
     "react-dom": "npm:react-dom@^19.1.1",
-    "semver": "npm:semver@^7.7.3",
-    "socket.io-client": "npm:socket.io-client@^4.8.3"
+    "socket.io-client": "npm:socket.io-client@^4.8.3",
+    "caniuse-lite": "npm:caniuse-lite@latest"
   },
   "compilerOptions": {
     "lib": ["deno.window", "dom", "es2020"],

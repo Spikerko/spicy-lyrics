@@ -123,14 +123,6 @@ async function main() {
     Defaults.PopupLyricsAllowed = storage.get("disablePopupLyrics") !== "true";
   }
 
-  if (!storage.get("lyricsRenderer")) {
-    storage.set("lyricsRenderer", "Spicy");
-  }
-
-  if (storage.get("lyricsRenderer")) {
-    Defaults.LyricsRenderer = storage.get("lyricsRenderer").toString() as string;
-  }
-
   if (!storage.get("simpleLyricsModeRenderingType")) {
     storage.set("simpleLyricsModeRenderingType", "calculate");
   }
