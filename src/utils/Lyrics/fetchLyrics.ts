@@ -56,6 +56,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return ["unknown-track", 400];
   }
 
+
   const currFetching = storage.get("currentlyFetching");
   if (currFetching === "true") {
     storage.set("currentlyFetching", "false");
@@ -142,6 +143,11 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   }
 
   SetWaitingForHeight(false);
+
+  if (uri.startsWith("spotify:local:")) {
+    storage.set("currentlyFetching", "false");
+    return ["local-track", 400];
+  }
 
   if (!navigator.onLine) {
     storage.set("currentlyFetching", "false");
