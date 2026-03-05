@@ -1672,3 +1672,175 @@
   border-radius: 9cqh !important;
   --BorderRadius: 9cqh !important;
 }
+
+/* ── Volume Slider ─────────────────────────────────────────────────────────── */
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .CenteredView .Header {
+  position: relative;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .VolumeSlider {
+  display: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5cqw;
+  position: absolute;
+  left: -6cqw;
+  top: 0;
+  height: 100cqw;
+  width: 3cqw;
+  z-index: 11;
+  box-sizing: border-box;
+  justify-content: flex-end;
+  padding-top: 0.5cqw;
+  padding-bottom: 0.5cqw;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .SliderBar {
+  --TraveledColor: hsla(0, 0%, 100%, 0.9);
+  --RemainingColor: hsla(0, 0%, 100%, 0.38);
+  --SliderProgress: 0.5;
+  background: linear-gradient(
+    0deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor)
+  );
+  border-radius: 100cqw;
+  width: 1.3cqw;
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+  container-type: size;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .SliderBar .Handle {
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 100cqw;
+  display: block;
+  width: 185cqw;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100cqh * var(--SliderProgress));
+  transform: translate(-50%, 50%);
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIconSpacer {
+  width: 3cqw;
+  height: 3cqw;
+  min-width: 16px;
+  min-height: 16px;
+  flex-shrink: 0;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIcon {
+  width: 3cqw;
+  height: 3cqw;
+  min-width: 16px;
+  min-height: 16px;
+  color: hsla(0, 0%, 100%, 0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider .VolumeIcon:hover {
+  color: #fff;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSlider.RightSide {
+  left: auto;
+  right: -6cqw;
+}
+
+/* VolumeSliderUnder – horizontal, below media box */
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .VolumeSliderUnder {
+  display: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder:has(> *) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5cqw;
+  width: 50%;
+  margin: 3cqw auto 0;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .SliderBar {
+  --TraveledColor: hsla(0, 0%, 100%, 0.9);
+  --RemainingColor: hsla(0, 0%, 100%, 0.38);
+  --SliderProgress: 0.5;
+  background: linear-gradient(
+    90deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor) calc(100% * var(--SliderProgress)),
+    var(--RemainingColor)
+  );
+  border-radius: 100cqw;
+  height: 1.3cqw;
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+  container-type: size;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .SliderBar .Handle {
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 100cqw;
+  display: block;
+  height: 185cqh;
+  position: absolute;
+  left: calc(100cqw * var(--SliderProgress));
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .VolumeIcon {
+  width: 3cqw;
+  height: 3cqw;
+  min-width: 16px;
+  min-height: 16px;
+  color: hsla(0, 0%, 100%, 0.7);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .VolumeIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder .VolumeIcon:hover {
+  color: #fff;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .VolumeSliderUnder:has(> *) ~ .Metadata {
+  margin-top: 3cqw;
+}
+
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .VolumeSlider,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .VolumeSlider,
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .VolumeSliderUnder,
+#SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .VolumeSliderUnder {
+  display: none !important;
+}
