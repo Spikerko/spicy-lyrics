@@ -35,6 +35,7 @@ const Defaults = {
   RightAlignLyrics: false,
   ShowVolumeSliderFullscreen: "Off" as string,
   SyllableRendering: "Default" as string,
+  BuildChannel: "Stable" as string,
 };
 
 export default Defaults;

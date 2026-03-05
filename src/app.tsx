@@ -194,6 +194,14 @@ async function main() {
     Defaults.MinimalLyricsMode = storage.get("minimalLyricsMode") === "true";
   }
 
+  if (!storage.get("buildChannel")) {
+    storage.set("buildChannel", "Stable");
+  }
+
+  if (storage.get("buildChannel")) {
+    Defaults.BuildChannel = storage.get("buildChannel").toString() as string;
+  }
+
   if (!storage.get("hide_npv_bg")) {
     storage.set("hide_npv_bg", "false");
   }
