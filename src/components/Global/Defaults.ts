@@ -33,6 +33,7 @@ const Defaults = {
   DeveloperMode: false,
   EscapeKeyFunction: "Default" as string,
   RightAlignLyrics: false,
+  ShowVolumeSliderFullscreen: "Off" as string,
 };
 
 export default Defaults;

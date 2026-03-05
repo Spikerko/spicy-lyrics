@@ -8,12 +8,14 @@ import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
 import Global from "../Global/Global.ts";
+import Defaults from "../Global/Defaults.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
 import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
 import { isSpicySidebarMode } from "./SidebarLyrics.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { SetupVolumeSlider, CleanUpVolumeSlider } from "./VolumeSlider.ts";
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
@@ -840,6 +842,8 @@ function CleanUpActiveComponents() {
     // // console.log("Cleared SongProgressBar instance map");
   }
 
+  CleanUpVolumeSlider();
+
   // Also remove any leftover elements
   const MediaBox = PageContainer.querySelector(
     ".ContentBox .NowBar .Header .MediaBox .MediaContent"
@@ -1259,6 +1263,28 @@ Global.Event.listen("playback:position", (e: number) => {
       );
       updateTimelineState(e);
       // console.log("Timeline Updated!");
+    }
+  }
+});
+
+Global.Event.listen("fullscreen:open", () => {
+  const setting = Defaults.ShowVolumeSliderFullscreen;
+  if (setting === "Off") return;
+
+  if (setting === "Left Side" || setting === "Right Side") {
+    const container = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .VolumeSlider"
+    );
+    if (container) {
+      if (setting === "Right Side") container.classList.add("RightSide");
+      SetupVolumeSlider(container);
+    }
+  } else if (setting === "Below") {
+    const container = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .VolumeSliderUnder"
+    );
+    if (container) {
+      SetupVolumeSlider(container, true);
     }
   }
 });

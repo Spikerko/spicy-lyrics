@@ -220,6 +220,21 @@ function generalSettings(SettingsSection: any) {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
+  settings.addDropDown(
+    "show-volume-slider-fullscreen",
+    "Volume Slider in Fullscreen/Cinema",
+    ["Off", "Left Side", "Right Side", "Below"],
+    Defaults.ShowVolumeSliderFullscreen === "Below" ? 3
+      : Defaults.ShowVolumeSliderFullscreen === "Right Side" ? 2
+      : Defaults.ShowVolumeSliderFullscreen === "Left Side" ? 1
+      : 0,
+    () => {
+      const value = settings.getFieldValue("show-volume-slider-fullscreen") as string;
+      storage.set("showVolumeSliderFullscreen", value);
+      Defaults.ShowVolumeSliderFullscreen = value;
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",

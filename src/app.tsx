@@ -123,6 +123,14 @@ async function main() {
     Defaults.PopupLyricsAllowed = storage.get("disablePopupLyrics") !== "true";
   }
 
+  if (!storage.get("showVolumeSliderFullscreen")) {
+    storage.set("showVolumeSliderFullscreen", "Off");
+  }
+
+  if (storage.get("showVolumeSliderFullscreen")) {
+    Defaults.ShowVolumeSliderFullscreen = storage.get("showVolumeSliderFullscreen").toString();
+  }
+
   if (!storage.get("lyricsRenderer")) {
     storage.set("lyricsRenderer", "Spicy");
   }
