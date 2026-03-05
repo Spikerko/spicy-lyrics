@@ -85,17 +85,32 @@ const Session = {
       const data = versionJob.data;
       return Session.SpicyLyrics.ParseVersion(data);
     },
-    IsOutdated: async (): Promise<boolean> => {
+    /**
+     * Compares two parsed versions.
+     * Returns 1 if a > b, -1 if a < b, 0 if equal.
+     */
+    CompareVersions: (a: NonNullable<VersionParsedData>, b: NonNullable<VersionParsedData>): number => {
+      if (a.Major !== b.Major) return a.Major > b.Major ? 1 : -1;
+      if (a.Minor !== b.Minor) return a.Minor > b.Minor ? 1 : -1;
+      if (a.Patch !== b.Patch) return a.Patch > b.Patch ? 1 : -1;
+      return 0;
+    },
+    /**
+     * Returns "outdated" if current < latest, "downgraded" if current > latest, or "current" if equal.
+     */
+    GetVersionStatus: async (): Promise<"outdated" | "downgraded" | "current"> => {
       const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
       const currentVersion = Session.SpicyLyrics.GetCurrentVersion();
 
-      if (latestVersion === undefined || currentVersion === undefined) return false;
+      if (latestVersion === undefined || currentVersion === undefined) return "current";
 
-      return (
-        latestVersion.Major > currentVersion.Major ||
-        latestVersion.Minor > currentVersion.Minor ||
-        latestVersion.Patch > currentVersion.Patch
-      );
+      const cmp = Session.SpicyLyrics.CompareVersions(latestVersion, currentVersion);
+      if (cmp > 0) return "outdated";
+      if (cmp < 0) return "downgraded";
+      return "current";
+    },
+    IsOutdated: async (): Promise<boolean> => {
+      return (await Session.SpicyLyrics.GetVersionStatus()) === "outdated";
     },
   },
 };
