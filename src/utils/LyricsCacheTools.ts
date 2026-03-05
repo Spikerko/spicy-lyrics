@@ -1,5 +1,5 @@
 import { SpotifyPlayer } from "../components/Global/SpotifyPlayer.ts";
-import PageView, { ShowNotification } from "../components/Pages/PageView.ts";
+import PageView, { PageContainer, ShowNotification } from "../components/Pages/PageView.ts";
 import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import storage from "./storage.ts";
@@ -95,5 +95,33 @@ export const RemoveCurrentLyrics_StateCache = (ui: boolean = false) => {
         )
       : null;
     console.error("SpicyLyrics:", error);
+  }
+};
+
+export const ReloadCurrentLyrics = () => {
+  if (!PageView.IsOpened) return;
+  const uri = SpotifyPlayer.GetUri();
+  if (!uri) return;
+
+  const container = PageContainer?.querySelector<HTMLElement>(".LyricsContainer");
+
+  const doReload = () => {
+    storage.set("currentLyricsData", null);
+    fetchLyrics(uri).then((lyrics) => {
+      ApplyLyrics(lyrics).then(() => {
+        if (container) {
+          container.style.opacity = "1";
+          setTimeout(() => { container.style.transition = ""; }, 250);
+        }
+      });
+    });
+  };
+
+  if (container) {
+    container.style.transition = "opacity 0.2s ease";
+    container.style.opacity = "0";
+    setTimeout(doReload, 200);
+  } else {
+    doReload();
   }
 };
