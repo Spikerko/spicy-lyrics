@@ -1,4 +1,3 @@
-import semver from "semver";
 import type { Brand } from "../../types/Brand.d.ts";
 import "./styles.scss";
 import { Spicetify } from "@spicetify/bundler";
@@ -33,11 +32,18 @@ const getRootContainer = () =>
 const getSpinnerIcon = (size: number) =>
   Icons.Spinner.replaceAll("{SIZE}", String(size));
 
+function versionAtLeast(versionStr: string, major: number, minor: number, patch: number): boolean {
+  const m = versionStr?.match(/(\d+)\.(\d+)\.(\d+)/);
+  if (!m) return false;
+  const [mj, mn, pt] = [+m[1], +m[2], +m[3]];
+  return mj !== major ? mj > major : mn !== minor ? mn > minor : pt >= patch;
+}
+
 const isAvailable = async (): Promise<boolean> => {
   try {
     const response = await fetch(`${SOCKET_HOST}/httpapi/cstate`);
     const data = await response.json();
-    return semver.satisfies(data.versions.client, ">=2.0.0");
+    return versionAtLeast(data.versions.client, 2, 0, 0);
   } catch {
     return true;
   }

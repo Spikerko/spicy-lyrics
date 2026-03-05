@@ -139,13 +139,6 @@ async function main() {
     Defaults.AlwaysShowInFullscreen = storage.get("alwaysShowInFullscreen").toString() as string;
   }
 
-  if (!storage.get("lyricsRenderer")) {
-    storage.set("lyricsRenderer", "Spicy");
-  }
-
-  if (storage.get("lyricsRenderer")) {
-    Defaults.LyricsRenderer = storage.get("lyricsRenderer").toString() as string;
-  }
 
   if (!storage.get("simpleLyricsModeRenderingType")) {
     storage.set("simpleLyricsModeRenderingType", "calculate");

@@ -31,8 +31,6 @@ export function getSongKey(uri: string): string {
 }
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
-  const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
-
   //if (!PageContainer) return;
   const LyricsContent =
     PageContainer?.querySelector(".LyricsContainer .LyricsContent") ?? undefined;
@@ -288,7 +286,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     // const providerLyrics = JSON.parse(lyricsText);
     const lyrics = JSON.parse(lyricsText);
 
-    IsSpicyRenderer ? await ProcessLyrics(lyrics) : null;
+    await ProcessLyrics(lyrics);
 
     storage.set("currentLyricsData", JSON.stringify(lyrics));
     storage.set("currentlyFetching", "false");

@@ -5,7 +5,6 @@ import Defaults from "../../../../components/Global/Defaults.ts";
 import { SpotifyPlayer } from "../../../../components/Global/SpotifyPlayer.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import storage from "../../../storage.ts";
-import { currentLyricsPlayer } from "../../Global/Applyer.ts";
 import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig } from "../../lyrics.ts";
 import { BlurMultiplier, SidebarBlurMultiplier, timeOffset } from "../Shared.ts";
 
@@ -487,33 +486,6 @@ let clpStatus: "playing" | "paused" | null = null;
 
 export function Animate(position: number): void {
   const ProcessedPosition = position + timeOffset - (Defaults.SimpleLyricsMode ? 33.5 : 0);
-
-  if (Defaults.LyricsRenderer === "aml-lyrics") {
-    if (clpStatus === null) {
-      if (!currentLyricsPlayer) return;
-      if (SpotifyPlayer.IsPlaying) {
-        currentLyricsPlayer.resume();
-        clpStatus = "playing";
-      } else {
-        currentLyricsPlayer.pause();
-        clpStatus = "paused";
-      }
-    }
-    if (SpotifyPlayer.IsPlaying && clpStatus === "playing") {
-      if (!currentLyricsPlayer) return;
-      currentLyricsPlayer.pause();
-      clpStatus = "paused";
-    } else if (!SpotifyPlayer.IsPlaying && clpStatus === "paused") {
-      if (!currentLyricsPlayer) return;
-      currentLyricsPlayer.resume();
-      clpStatus = "playing";
-    }
-    if (currentLyricsPlayer) {
-      currentLyricsPlayer.setCurrentTime(ProcessedPosition);
-      currentLyricsPlayer.update(ProcessedPosition);
-    }
-    return;
-  }
 
   const now = performance.now();
 
