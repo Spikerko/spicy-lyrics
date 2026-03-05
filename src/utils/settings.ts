@@ -107,6 +107,12 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addToggle("right-align-lyrics", "Right Align Lyrics", Defaults.RightAlignLyrics, () => {
+    const value = settings.getFieldValue("right-align-lyrics") as string;
+    storage.set("rightAlignLyrics", value);
+    Defaults.RightAlignLyrics = value === "true" || value === true;
+  });
+
   settings.addToggle(
     "minimal-lyrics-mode",
     "Minimal Lyrics Mode (Only in Fullscreen/Cinema View)",

@@ -202,6 +202,11 @@ async function main() {
     Defaults.EscapeKeyFunction = storage.get("escapeKeyFunction").toString() as string;
   }
 
+  if (storage.get("rightAlignLyrics")) {
+    const val = storage.get("rightAlignLyrics").toString();
+    Defaults.RightAlignLyrics = val === "true" || val === true;
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
 
   /* if (storage.get("lyrics_spacing")) {

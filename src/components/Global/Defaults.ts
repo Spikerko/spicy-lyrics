@@ -32,6 +32,7 @@ const Defaults = {
   SettingsOnTop: true,
   DeveloperMode: false,
   EscapeKeyFunction: "Default" as string,
+  RightAlignLyrics: false,
 };
 
 export default Defaults;
