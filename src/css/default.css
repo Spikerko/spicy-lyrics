@@ -2,6 +2,10 @@
   --bg-rotation-degree: 258deg;
 }
 
+body.SpicyLyrics__PlaybackBarHidden .playback-bar {
+  display: none !important;
+}
+
 .main-nowPlayingView-contextItemInfo::before {
   display: none;
 }

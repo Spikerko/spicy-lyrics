@@ -37,6 +37,7 @@ const Defaults = {
   SyllableRendering: "Default" as string,
   BuildChannel: "Stable" as string,
   AlwaysShowInFullscreen: "None" as string,
+  ReplaceSpotifyPlaybar: false,
 };
 
 export default Defaults;
