@@ -35,6 +35,7 @@ Global.SetScope("execute", (command: string) => {
                 const dataToSave = {
                   ...result?.Result,
                   id: SpotifyPlayer.GetId(),
+                  userUploaded: true,
                 };
 
                 await ProcessLyrics(dataToSave);
