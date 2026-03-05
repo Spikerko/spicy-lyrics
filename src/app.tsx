@@ -50,7 +50,7 @@ import { ScrollingIntervalTime } from "./utils/Lyrics/lyrics.ts";
 import { ScrollToActiveLine } from "./utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts";
 // Unused import removed: import sleep from "./utils/sleep";
-import { setSettingsMenu } from "./utils/settings.ts";
+import "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
@@ -263,9 +263,6 @@ async function main() {
   if (Defaults.SettingsOnTop) {
     document.body.classList.add("sl_settings_top");
   }
-
-  // Lets set out the Settings Menu
-  setSettingsMenu();
 
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {

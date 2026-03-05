@@ -53,6 +53,7 @@ import {
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
+import { showSettingsPanel } from "../../utils/settings.ts";
 
 interface TippyInstance {
   destroy: () => void;
@@ -66,6 +67,7 @@ export const Tooltips: {
   CinemaView: TippyInstance | null;
   NowBarSideToggle: TippyInstance | null;
   LoadTTML: TippyInstance | null;
+  Settings: TippyInstance | null;
 } = {
   Close: null,
   NowBarToggle: null,
@@ -73,6 +75,7 @@ export const Tooltips: {
   CinemaView: null,
   NowBarSideToggle: null,
   LoadTTML: null,
+  Settings: null,
 };
 
 const PageView = {
@@ -466,6 +469,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             : ""
         }
         <button id="LoadTTML" class="ViewControl">${Icons.LoadTTML}</button>
+        <button id="Settings" class="ViewControl">${Icons.Settings}</button>
         <button id="Close" class="ViewControl">${Icons.Close}</button>
     `;
 
@@ -799,6 +803,12 @@ function AppendViewControls(ReAppend: boolean = false) {
                                         <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
                                     </div>
                                 </div>
+                                <div class="Setting" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                                    <div class="SettingName"><span>Need help creating TTML files?</span></div>
+                                    <div class="SettingValue">
+                                        <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
+                                    </div>
+                                </div>
                             </div>
                         `,
           });
@@ -811,6 +821,26 @@ function AppendViewControls(ReAppend: boolean = false) {
         });
       } catch (err) {
         console.warn("Failed to setup LoadTTML tooltip:", err);
+      }
+    }
+
+    const settingsButton = elem.querySelector("#Settings");
+    if (settingsButton) {
+      try {
+        if (!isPip) {
+          Tooltips.Settings = Spicetify.Tippy(settingsButton, {
+            ...Spicetify.TippyProps,
+            content: `Settings`,
+          });
+        }
+        settingsButton.addEventListener("click", () => {
+          if (IsPIP) {
+            globalThis.focus();
+          }
+          showSettingsPanel();
+        });
+      } catch (err) {
+        console.warn("Failed to setup Settings tooltip:", err);
       }
     }
   }

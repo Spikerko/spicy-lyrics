@@ -1,19 +1,7 @@
-import { Component, Spicetify } from "@spicetify/bundler";
+import { Component } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
-import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
-
-export async function setSettingsMenu() {
-  while (!Spicetify.React || !Spicetify.ReactDOM) {
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-
-  const { SettingsSection } = await import("../edited_packages/spcr-settings/settingsSection.tsx");
-
-  generalSettings(SettingsSection);
-  devSettings(SettingsSection);
-  //infos(SettingsSection);
-}
+import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache, ReloadCurrentLyrics } from "./LyricsCacheTools.ts";
 
 Component.AddRootComponent("lCache", {
   RemoveCurrentLyrics_AllCaches,
@@ -21,268 +9,268 @@ Component.AddRootComponent("lCache", {
   RemoveCurrentLyrics_StateCache,
 })
 
-function devSettings(SettingsSection: any) {
-  const settings = new SettingsSection(
-    "Spicy Lyrics - Developer Settings",
-    "spicy-lyrics-dev-settings"
-  );
+export function showSettingsPanel() {
+  if (document.querySelector(".SpicyLyricsSettingsOverlay")) return;
 
-  settings.addButton(
-    "remove-current-lyrics-all-caches",
-    "Clear Lyrics for the current song from all caches",
-    "Clear",
-    async () => await RemoveCurrentLyrics_AllCaches(true)
-  );
+  const page = document.querySelector("#SpicyLyricsPage");
+  if (!page) return;
 
-  settings.addButton(
-    "remove-cached-lyrics",
-    "Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)",
-    "Clear Cached Lyrics",
-    async () => await RemoveLyricsCache(true)
-  );
+  const rect = page.getBoundingClientRect();
+  const margin = 80;
 
-  settings.addButton(
-    "remove-current-song-lyrics-from-localStorage",
-    "Clear Current Song Lyrics from internal state",
-    "Clear Current Lyrics",
-    () => RemoveCurrentLyrics_StateCache(true)
-  );
+  const backdrop = document.createElement("div");
+  backdrop.className = "SpicyLyricsSettingsOverlay";
+  backdrop.addEventListener("click", () => backdrop.remove());
 
-  settings.addToggle("dev-mode", "TTML Maker mode (previously Dev Mode)", Defaults.DevMode, () => {
-    storage.set("devMode", settings.getFieldValue("dev-mode") as string);
-    window.location.reload();
+  const container = document.createElement("div");
+  container.className = "SpicyLyricsSettingsContainer";
+  container.style.left   = `${rect.left   + margin}px`;
+  container.style.right  = `${window.innerWidth  - rect.right  + margin}px`;
+  container.style.top    = `${rect.top    + margin}px`;
+  container.style.bottom = `${window.innerHeight - rect.bottom + margin}px`;
+  container.addEventListener("click", (e) => e.stopPropagation());
+
+  const header = document.createElement("div");
+  header.className = "SpicyLyricsSettingsHeader";
+  const title = document.createElement("span");
+  title.textContent = "Spicy Lyrics Settings";
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "SpicyLyricsSettingsHeaderClose";
+  closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  closeBtn.addEventListener("click", () => backdrop.remove());
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+
+  const scroll = document.createElement("div");
+  scroll.className = "SpicyLyricsSettingsScroll";
+
+  function group(name: string) {
+    const h = document.createElement("h3");
+    h.className = "sl-settings-group";
+    h.textContent = name;
+    scroll.appendChild(h);
+  }
+
+  function makeRow(label: string, control: HTMLElement) {
+    const div = document.createElement("div");
+    div.className = "sl-settings-row";
+    const lbl = document.createElement("span");
+    lbl.className = "sl-settings-label";
+    lbl.textContent = label;
+    div.appendChild(lbl);
+    div.appendChild(control);
+    scroll.appendChild(div);
+  }
+
+  function toggle(label: string, value: boolean, onChange: (v: boolean) => void) {
+    const wrap = document.createElement("label");
+    wrap.className = "sl-toggle";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = value;
+    input.addEventListener("change", () => onChange(input.checked));
+    const knob = document.createElement("span");
+    wrap.appendChild(input);
+    wrap.appendChild(knob);
+    makeRow(label, wrap);
+  }
+
+  function dropdown(label: string, options: string[], selectedIndex: number, onChange: (v: string) => void) {
+    const sel = document.createElement("select");
+    sel.className = "sl-select";
+    options.forEach((opt, i) => {
+      const o = document.createElement("option");
+      o.value = opt;
+      o.textContent = opt;
+      if (i === selectedIndex) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", () => onChange(sel.value));
+    makeRow(label, sel);
+  }
+
+  function button(label: string, btnText: string, onClick: () => void | Promise<void>) {
+    const btn = document.createElement("button");
+    btn.className = "sl-btn";
+    btn.textContent = btnText;
+    btn.addEventListener("click", () => onClick());
+    makeRow(label, btn);
+  }
+
+  // --- Appearance ---
+  group("Appearance");
+
+  toggle("Skip Spicy Font*", Defaults.SkipSpicyFont, (v) => {
+    storage.set("skip-spicy-font", v.toString());
+    Defaults.SkipSpicyFont = v;
   });
 
-  settings.addToggle("developer-mode", "Developer Mode", Defaults.DeveloperMode, () => {
-    storage.set("developerMode", settings.getFieldValue("developer-mode") as string);
-    window.location.reload();
+  toggle("Old Style Font (Overridden by previous option)", Defaults.OldStyleFont, (v) => {
+    storage.set("old-style-font", v.toString());
+    Defaults.OldStyleFont = v;
   });
 
-  settings.pushSettings();
-}
-
-function generalSettings(SettingsSection: any) {
-  const settings = new SettingsSection("Spicy Lyrics", "spicy-lyrics-settings");
-
-  settings.addToggle(
-    "static-background",
-    "Static Background",
-    Defaults.StaticBackground_Preset,
-    () => {
-      storage.set("staticBackground", settings.getFieldValue("static-background") as string);
-    }
-  );
-
-  settings.addDropDown(
-    "static-background-type",
-    "Static Background Type (Only works when Static Background is Enabled)",
-    ["Auto", "Artist Header Visual", "Cover Art", "Color"],
-    Defaults.StaticBackgroundType_Preset,
-    () => {
-      storage.set(
-        "staticBackgroundType",
-        settings.getFieldValue("static-background-type") as string
-      );
-    }
-  );
-
-  settings.addToggle("simple-lyrics-mode", "Simple Lyrics Mode", Defaults.SimpleLyricsMode, () => {
-    storage.set("simpleLyricsMode", settings.getFieldValue("simple-lyrics-mode") as string);
+  toggle("Simple Lyrics Mode", Defaults.SimpleLyricsMode, (v) => {
+    storage.set("simpleLyricsMode", v.toString());
+    Defaults.SimpleLyricsMode = v;
+    ReloadCurrentLyrics();
   });
 
-  settings.addDropDown(
-    "simple-lyrics-mode-rendering-type",
+  dropdown(
     "Simple Lyrics Mode - Rendering Type",
     ["Calculate (More performant)", "Animate (Legacy, More laggier)"],
     Defaults.SimpleLyricsMode_RenderingType_Default,
-    () => {
-      const value = settings.getFieldValue("simple-lyrics-mode-rendering-type") as string;
-      const processedValue =
-        value === "Calculate (More performant)"
-          ? "calculate"
-          : value === "Animate (Legacy, More laggier)"
-            ? "animate"
-            : "calculate";
-      storage.set("simpleLyricsModeRenderingType", processedValue);
+    (v) => {
+      const processed = v === "Animate (Legacy, More laggier)" ? "animate" : "calculate";
+      storage.set("simpleLyricsModeRenderingType", processed);
+      Defaults.SimpleLyricsMode_RenderingType = processed;
+      ReloadCurrentLyrics();
     }
   );
 
-  settings.addToggle("right-align-lyrics", "Right Align Lyrics", Defaults.RightAlignLyrics, () => {
-    const value = settings.getFieldValue("right-align-lyrics") as string;
-    storage.set("rightAlignLyrics", value);
-    Defaults.RightAlignLyrics = value === "true" || value === true;
+  toggle("Right Align Lyrics", Defaults.RightAlignLyrics, (v) => {
+    storage.set("rightAlignLyrics", v.toString());
+    Defaults.RightAlignLyrics = v;
   });
 
-  settings.addDropDown(
-    "syllable-rendering",
+  dropdown(
     "Syllable Rendering",
     ["Default", "Merge Words", "Reduce Splits"],
     Defaults.SyllableRendering === "Reduce Splits" ? 2 : Defaults.SyllableRendering === "Merge Words" ? 1 : 0,
-    () => {
-      const value = settings.getFieldValue("syllable-rendering") as string;
-      storage.set("syllableRendering", value);
-      Defaults.SyllableRendering = value;
+    (v) => {
+      storage.set("syllableRendering", v);
+      Defaults.SyllableRendering = v;
     }
   );
 
-  settings.addToggle(
-    "minimal-lyrics-mode",
-    "Minimal Lyrics Mode (Only in Fullscreen/Cinema View)",
-    Defaults.MinimalLyricsMode,
-    () => {
-      storage.set("minimalLyricsMode", settings.getFieldValue("minimal-lyrics-mode") as string);
-    }
-  );
-
-  settings.addToggle("skip-spicy-font", "Skip Spicy Font*", Defaults.SkipSpicyFont, () => {
-    storage.set("skip-spicy-font", settings.getFieldValue("skip-spicy-font") as string);
+  toggle("Minimal Lyrics Mode (Only in Fullscreen/Cinema View)", Defaults.MinimalLyricsMode, (v) => {
+    storage.set("minimalLyricsMode", v.toString());
+    Defaults.MinimalLyricsMode = v;
+    ReloadCurrentLyrics();
   });
 
-  settings.addToggle(
-    "old-style-font",
-    "Old Style Font (Gets Overriden by the previous option)",
-    Defaults.OldStyleFont,
-    () => {
-      storage.set("old-style-font", settings.getFieldValue("old-style-font") as string);
+  // --- Background ---
+  group("Background");
+
+  toggle("Static Background", Defaults.StaticBackground_Preset, (v) => {
+    storage.set("staticBackground", v.toString());
+    Defaults.StaticBackground = v;
+  });
+
+  dropdown(
+    "Static Background Type (Only works when Static Background is Enabled)",
+    ["Auto", "Artist Header Visual", "Cover Art", "Color"],
+    Defaults.StaticBackgroundType_Preset,
+    (v) => {
+      storage.set("staticBackgroundType", v);
+      Defaults.StaticBackgroundType = v;
     }
   );
 
-  settings.addToggle(
-    "show_topbar_notifications",
-    "Show Topbar Notifications",
-    Defaults.show_topbar_notifications,
-    () => {
-      storage.set(
-        "show_topbar_notifications",
-        settings.getFieldValue("show_topbar_notifications") as string
-      );
-    }
-  );
+  toggle("Hide Now Playing View Dynamic Background", Defaults.hide_npv_bg, (v) => {
+    storage.set("hide_npv_bg", v.toString());
+    Defaults.hide_npv_bg = v;
+  });
 
-  settings.addToggle(
-    "hide_npv_bg",
-    "Hide Now Playing View Dynamic Background",
-    Defaults.hide_npv_bg,
-    () => {
-      storage.set("hide_npv_bg", settings.getFieldValue("hide_npv_bg") as string);
-    }
-  );
+  // --- Playback & Controls ---
+  group("Playback & Controls");
 
-  settings.addToggle(
-    "lock_mediabox",
-    "Lock the MediaBox size while in Forced Compact Mode",
-    Defaults.CompactMode_LockedMediaBox,
-    () => {
-      storage.set("lockedMediaBox", settings.getFieldValue("lock_mediabox") as string);
-    }
-  );
-
-  settings.addToggle(
-    "disable-popup-lyrics",
-    "Disable Popup Lyrics",
-    !Defaults.PopupLyricsAllowed,
-    () => {
-      storage.set("disablePopupLyrics", settings.getFieldValue("disable-popup-lyrics") as string);
-    }
-  );
-
-  settings.addDropDown(
-    "viewcontrols-position",
+  dropdown(
     "View Controls Position",
     ["Top", "Bottom"],
-    Defaults.ViewControlsPosition,
-    () => {
-      storage.set(
-        "viewControlsPosition",
-        settings.getFieldValue("viewcontrols-position") as string
-      );
+    Defaults.ViewControlsPosition === "Bottom" ? 1 : 0,
+    (v) => {
+      storage.set("viewControlsPosition", v);
+      Defaults.ViewControlsPosition = v;
     }
   );
 
-  settings.addDropDown(
-    "escape-key-function",
+  toggle("Disable Popup Lyrics", !Defaults.PopupLyricsAllowed, (v) => {
+    storage.set("disablePopupLyrics", v.toString());
+    Defaults.PopupLyricsAllowed = !v;
+    window.location.reload();
+  });
+
+  toggle("Show Topbar Notifications", Defaults.show_topbar_notifications, (v) => {
+    storage.set("show_topbar_notifications", v.toString());
+    Defaults.show_topbar_notifications = v;
+  });
+
+  dropdown(
     "Escape Key Function",
     ["Default", "Exit Fullscreen", "Exit Fully"],
     Defaults.EscapeKeyFunction === "Exit Fully" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
-    () => {
-      const value = settings.getFieldValue("escape-key-function") as string;
-      storage.set("escapeKeyFunction", value);
-      Defaults.EscapeKeyFunction = value;
+    (v) => {
+      storage.set("escapeKeyFunction", v);
+      Defaults.EscapeKeyFunction = v;
     }
   );
 
-  settings.addDropDown(
-    "always-show-in-fullscreen",
+  dropdown(
     "Always show in Fullscreen/Cinema",
     ["None", "Time", "Controls", "Both"],
     Defaults.AlwaysShowInFullscreen === "Both" ? 3 : Defaults.AlwaysShowInFullscreen === "Controls" ? 2 : Defaults.AlwaysShowInFullscreen === "Time" ? 1 : 0,
-    () => {
-      const value = settings.getFieldValue("always-show-in-fullscreen") as string;
-      storage.set("alwaysShowInFullscreen", value);
-      Defaults.AlwaysShowInFullscreen = value;
+    (v) => {
+      storage.set("alwaysShowInFullscreen", v);
+      Defaults.AlwaysShowInFullscreen = v;
     }
   );
 
-  settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
-    storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
-  });
-
-  settings.addDropDown(
-    "show-volume-slider-fullscreen",
+  dropdown(
     "Volume Slider in Fullscreen/Cinema",
     ["Off", "Left Side", "Right Side", "Below"],
     Defaults.ShowVolumeSliderFullscreen === "Below" ? 3
       : Defaults.ShowVolumeSliderFullscreen === "Right Side" ? 2
       : Defaults.ShowVolumeSliderFullscreen === "Left Side" ? 1
       : 0,
-    () => {
-      const value = settings.getFieldValue("show-volume-slider-fullscreen") as string;
-      storage.set("showVolumeSliderFullscreen", value);
-      Defaults.ShowVolumeSliderFullscreen = value;
+    (v) => {
+      storage.set("showVolumeSliderFullscreen", v);
+      Defaults.ShowVolumeSliderFullscreen = v;
     }
   );
 
-  settings.addButton(
-    "build-channel",
-    `Build Channel (Current: ${Defaults.BuildChannel})`,
-    "Manage",
-    () => {
-      (window as any)._spicy_lyrics_channels?.showSwitcher?.();
-    }
-  );
+  toggle("Replace Spotify Playbar with NowBar (performance gain workaround)", Defaults.ReplaceSpotifyPlaybar, (v) => {
+    storage.set("replaceSpotifyPlaybar", v.toString());
+    Defaults.ReplaceSpotifyPlaybar = v;
+  });
 
-  settings.addToggle(
-    "replace-spotify-playbar",
-    "Replace Spotify Playbar with NowBar (performance gain workaround)",
-    Defaults.ReplaceSpotifyPlaybar,
-    () => {
-      const value = settings.getFieldValue("replace-spotify-playbar") as string;
-      storage.set("replaceSpotifyPlaybar", value);
-      Defaults.ReplaceSpotifyPlaybar = value === "true" || value === true;
-    }
-  );
+  button(`Build Channel (Current: ${Defaults.BuildChannel})`, "Manage", () => {
+    (window as any)._spicy_lyrics_channels?.showSwitcher?.();
+  });
 
-  settings.addButton(
-    "save-n-reload",
-    "Save your current settings and reload.",
-    "Save & Reload",
-    () => {
-      window.location.reload();
-    }
-  );
+  // --- Layout ---
+  group("Layout");
 
-  settings.pushSettings();
+  toggle("Lock the MediaBox size while in Forced Compact Mode", Defaults.CompactMode_LockedMediaBox, (v) => {
+    storage.set("lockedMediaBox", v.toString());
+    Defaults.CompactMode_LockedMediaBox = v;
+  });
+
+  // --- Cache ---
+  group("Cache");
+
+  button("Clear Lyrics for the current song from all caches", "Clear Current Song", async () => {
+    await RemoveCurrentLyrics_AllCaches(true);
+  });
+
+  button("Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)", "Clear Cached Lyrics", async () => {
+    await RemoveLyricsCache(true);
+  });
+
+  button("Clear Current Song Lyrics from internal state", "Clear Current Lyrics", () => {
+    RemoveCurrentLyrics_StateCache(true);
+  });
+
+  // --- Advanced ---
+  group("Advanced");
+
+  toggle("Developer Mode", Defaults.DeveloperMode, (v) => {
+    storage.set("developerMode", v.toString());
+    window.location.reload();
+  });
+
+  container.appendChild(header);
+  container.appendChild(scroll);
+  backdrop.appendChild(container);
+  document.body.appendChild(backdrop);
 }
-
-/* function infos(SettingsSection: any) {
-  const settings = new SettingsSection("Spicy Lyrics - Info", "spicy-lyrics-settings-info");
-
-  settings.addButton(
-    "more-info",
-    "*If you're using a custom font modification, turn that on",
-    "",
-    () => {}
-  );
-
-  settings.pushSettings();
-} */
