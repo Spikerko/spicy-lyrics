@@ -215,6 +215,14 @@ async function main() {
     Defaults.RightAlignLyrics = val === "true" || val === true;
   }
 
+  if (!storage.get("syllableRendering")) {
+    storage.set("syllableRendering", "Default");
+  }
+
+  if (storage.get("syllableRendering")) {
+    Defaults.SyllableRendering = storage.get("syllableRendering").toString();
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
 
   /* if (storage.get("lyrics_spacing")) {

@@ -34,6 +34,7 @@ const Defaults = {
   EscapeKeyFunction: "Default" as string,
   RightAlignLyrics: false,
   ShowVolumeSliderFullscreen: "Off" as string,
+  SyllableRendering: "Default" as string,
 };
 
 export default Defaults;
