@@ -713,7 +713,7 @@
   .PlaybackControls
   .PlaybackControl.Pressed {
   transform: scale(var(--ShrinkScale));
-  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1), transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
 }
 
 #SpicyLyricsPage.Fullscreen
@@ -834,6 +834,17 @@
 
 #SpicyLyricsPage .Timeline .Time {
   font-size: var(--default-font-size) !important;
+  font-variant-numeric: tabular-nums;
+  min-width: 5ch;
+  flex-shrink: 0;
+}
+
+#SpicyLyricsPage .Timeline .Time.Position {
+  text-align: right;
+}
+
+#SpicyLyricsPage .Timeline .Time.Duration {
+  text-align: left;
 }
 
 #SpicyLyricsPage .Timeline .SliderBar .Handle {
