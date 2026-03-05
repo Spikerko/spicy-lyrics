@@ -131,6 +131,14 @@ async function main() {
     Defaults.ShowVolumeSliderFullscreen = storage.get("showVolumeSliderFullscreen").toString();
   }
 
+  if (!storage.get("alwaysShowInFullscreen")) {
+    storage.set("alwaysShowInFullscreen", "None");
+  }
+
+  if (storage.get("alwaysShowInFullscreen")) {
+    Defaults.AlwaysShowInFullscreen = storage.get("alwaysShowInFullscreen").toString() as string;
+  }
+
   if (!storage.get("lyricsRenderer")) {
     storage.set("lyricsRenderer", "Spicy");
   }

@@ -36,6 +36,7 @@ const Defaults = {
   ShowVolumeSliderFullscreen: "Off" as string,
   SyllableRendering: "Default" as string,
   BuildChannel: "Stable" as string,
+  AlwaysShowInFullscreen: "None" as string,
 };
 
 export default Defaults;

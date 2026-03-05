@@ -158,6 +158,7 @@ async function OpenPage(
                             <div class="MediaImage"></div>
                         </div>
                         <div class="VolumeSliderUnder"></div>
+                        <div class="InlineTimeline"></div>
                         <div class="Metadata">
                             <div class="SongName">
                                 <span></span>
@@ -166,6 +167,7 @@ async function OpenPage(
                                 <span></span>
                             </div>
                         </div>
+                        <div class="InlinePlaybackControls"></div>
                     </div>
                 </div>
             </div>
