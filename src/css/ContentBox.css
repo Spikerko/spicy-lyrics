@@ -569,7 +569,7 @@
 }
 
 #SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .InlineTimeline:not(:empty) + .Metadata {
-  margin-top: 3cqw;
+  margin-top: 1.5cqw;
 }
 
 /* Inline playback controls — shown below song title/artists in fullscreen */
