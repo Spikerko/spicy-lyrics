@@ -12,11 +12,8 @@ Component.AddRootComponent("lCache", {
 export function showSettingsPanel() {
   if (document.querySelector(".SpicyLyricsSettingsOverlay")) return;
 
-  const page = document.querySelector("#SpicyLyricsPage");
-  if (!page) return;
-
-  const rect = page.getBoundingClientRect();
   const margin = 80;
+  const page = document.querySelector("#SpicyLyricsPage");
 
   const backdrop = document.createElement("div");
   backdrop.className = "SpicyLyricsSettingsOverlay";
@@ -24,10 +21,18 @@ export function showSettingsPanel() {
 
   const container = document.createElement("div");
   container.className = "SpicyLyricsSettingsContainer";
-  container.style.left   = `${rect.left   + margin}px`;
-  container.style.right  = `${window.innerWidth  - rect.right  + margin}px`;
-  container.style.top    = `${rect.top    + margin}px`;
-  container.style.bottom = `${window.innerHeight - rect.bottom + margin}px`;
+  if (page) {
+    const rect = page.getBoundingClientRect();
+    container.style.left   = `${rect.left   + margin}px`;
+    container.style.right  = `${window.innerWidth  - rect.right  + margin}px`;
+    container.style.top    = `${rect.top    + margin}px`;
+    container.style.bottom = `${window.innerHeight - rect.bottom + margin}px`;
+  } else {
+    container.style.left   = `${margin}px`;
+    container.style.right  = `${margin}px`;
+    container.style.top    = `${margin}px`;
+    container.style.bottom = `${margin}px`;
+  }
   container.addEventListener("click", (e) => e.stopPropagation());
 
   const header = document.createElement("div");
