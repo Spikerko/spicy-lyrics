@@ -50,7 +50,7 @@ import { ScrollingIntervalTime } from "./utils/Lyrics/lyrics.ts";
 import { ScrollToActiveLine } from "./utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts";
 // Unused import removed: import sleep from "./utils/sleep";
-import "./utils/settings.ts";
+import { setSettingsMenu } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
@@ -264,6 +264,8 @@ async function main() {
     document.body.classList.add("sl_settings_top");
   }
 
+  setSettingsMenu();
+
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {
     LoadFonts();
@@ -411,6 +413,14 @@ async function main() {
   document.head.appendChild(skeletonStyle);
 
   App.SetReady();
+
+  // Deregister buttons from any previous dev hot-reload
+  if ((window as any).__spicyLyricsButtonList) {
+    for (const btn of (window as any).__spicyLyricsButtonList) {
+      try { btn.Button?.deregister?.(); } catch {}
+    }
+    (window as any).__spicyLyricsButtonList = null;
+  }
 
   let ButtonList: any;
   if (SpotifyPlayer.Playbar?.Button) {
@@ -618,6 +628,7 @@ async function main() {
   let button: any;
   if (ButtonList) {
     button = ButtonList[0];
+    (window as any).__spicyLyricsButtonList = ButtonList;
   }
 
   const Hometinue = async () => {

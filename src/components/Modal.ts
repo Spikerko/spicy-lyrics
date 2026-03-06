@@ -94,5 +94,7 @@ class _HTMLGenericModal extends HTMLElement {
         }, 50);
 	}
 }
-customElements.define("sl-generic-modal", _HTMLGenericModal);
-export const PopupModal = new _HTMLGenericModal();
+if (!customElements.get("sl-generic-modal")) {
+  customElements.define("sl-generic-modal", _HTMLGenericModal);
+}
+export const PopupModal = document.createElement("sl-generic-modal") as _HTMLGenericModal;

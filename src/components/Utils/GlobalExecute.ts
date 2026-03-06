@@ -263,6 +263,7 @@ Global.SetScope("execute", (command: string) => {
           }
         })();
       } else if (command === "clear-ttml-db") {
+        if (!confirm("Clear the entire local TTML database? This cannot be undone.")) break;
         (async () => {
           try {
             await caches.delete("SpicyLyrics_UserTTMLStore");
@@ -300,6 +301,7 @@ Global.SetScope("execute", (command: string) => {
   })();
 };
 (window as any).__spicy_ttml_clear_db         = () => {
+  if (!confirm("Clear the entire local TTML database? This cannot be undone.")) return;
   (async () => {
     try {
       await caches.delete("SpicyLyrics_UserTTMLStore");

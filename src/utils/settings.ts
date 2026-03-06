@@ -1,4 +1,4 @@
-import { Component } from "@spicetify/bundler";
+import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache, ReloadCurrentLyrics } from "./LyricsCacheTools.ts";
@@ -12,11 +12,8 @@ Component.AddRootComponent("lCache", {
 export function showSettingsPanel() {
   if (document.querySelector(".SpicyLyricsSettingsOverlay")) return;
 
-  const page = document.querySelector("#SpicyLyricsPage");
-  if (!page) return;
-
-  const rect = page.getBoundingClientRect();
   const margin = 80;
+  const page = document.querySelector("#SpicyLyricsPage");
 
   const backdrop = document.createElement("div");
   backdrop.className = "SpicyLyricsSettingsOverlay";
@@ -24,10 +21,18 @@ export function showSettingsPanel() {
 
   const container = document.createElement("div");
   container.className = "SpicyLyricsSettingsContainer";
-  container.style.left   = `${rect.left   + margin}px`;
-  container.style.right  = `${window.innerWidth  - rect.right  + margin}px`;
-  container.style.top    = `${rect.top    + margin}px`;
-  container.style.bottom = `${window.innerHeight - rect.bottom + margin}px`;
+  if (page) {
+    const rect = page.getBoundingClientRect();
+    container.style.left   = `${rect.left   + margin}px`;
+    container.style.right  = `${window.innerWidth  - rect.right  + margin}px`;
+    container.style.top    = `${rect.top    + margin}px`;
+    container.style.bottom = `${window.innerHeight - rect.bottom + margin}px`;
+  } else {
+    container.style.left   = `${margin}px`;
+    container.style.right  = `${margin}px`;
+    container.style.top    = `${margin}px`;
+    container.style.bottom = `${margin}px`;
+  }
   container.addEventListener("click", (e) => e.stopPropagation());
 
   const header = document.createElement("div");
@@ -234,10 +239,6 @@ export function showSettingsPanel() {
     Defaults.ReplaceSpotifyPlaybar = v;
   });
 
-  button(`Build Channel (Current: ${Defaults.BuildChannel})`, "Manage", () => {
-    (window as any)._spicy_lyrics_channels?.showSwitcher?.();
-  });
-
   // --- Layout ---
   group("Layout");
 
@@ -250,14 +251,17 @@ export function showSettingsPanel() {
   group("Cache");
 
   button("Clear Lyrics for the current song from all caches", "Clear Current Song", async () => {
+    if (!confirm("Clear all cached data for the current song?")) return;
     await RemoveCurrentLyrics_AllCaches(true);
   });
 
   button("Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)", "Clear Cached Lyrics", async () => {
+    if (!confirm("Clear all cached lyrics? This cannot be undone.")) return;
     await RemoveLyricsCache(true);
   });
 
   button("Clear Current Song Lyrics from internal state", "Clear Current Lyrics", () => {
+    if (!confirm("Clear the current song's lyrics from internal state?")) return;
     RemoveCurrentLyrics_StateCache(true);
   });
 
@@ -269,8 +273,37 @@ export function showSettingsPanel() {
     window.location.reload();
   });
 
+  {
+    const [maj, min] = Defaults.SpicyLyricsVersion.split(".").map(Number);
+    const isLegacyBuild = !isNaN(maj) && (maj < 5 || (maj === 5 && min <= 20));
+    const isDevChannel = !isNaN(maj) && maj >= 100;
+    if (isLegacyBuild || isDevChannel) {
+      button(`Build Channel (Current: ${Defaults.BuildChannel})`, "Manage", () => {
+        (window as any)._spicy_lyrics_channels?.showSwitcher?.();
+      });
+    }
+  }
+
   container.appendChild(header);
   container.appendChild(scroll);
   backdrop.appendChild(container);
   document.body.appendChild(backdrop);
+}
+
+export async function setSettingsMenu() {
+  while (!Spicetify.React || !Spicetify.ReactDOM) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  const { SettingsSection } = await import("../edited_packages/spcr-settings/settingsSection.tsx");
+  const settings = new SettingsSection("Spicy Lyrics", "spicy-lyrics-settings");
+
+  settings.addButton(
+    "open-spicy-settings",
+    "Open the Spicy Lyrics settings panel",
+    "Open Settings",
+    () => showSettingsPanel()
+  );
+
+  settings.pushSettings();
 }

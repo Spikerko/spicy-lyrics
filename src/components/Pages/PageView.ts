@@ -53,7 +53,6 @@ import {
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
-import { showSettingsPanel } from "../../utils/settings.ts";
 
 interface TippyInstance {
   destroy: () => void;
@@ -803,12 +802,6 @@ function AppendViewControls(ReAppend: boolean = false) {
                                         <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
                                     </div>
                                 </div>
-                                <div class="Setting" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-                                    <div class="SettingName"><span>Need help creating TTML files?</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
-                                    </div>
-                                </div>
                             </div>
                         `,
           });
@@ -833,10 +826,11 @@ function AppendViewControls(ReAppend: boolean = false) {
             content: `Settings`,
           });
         }
-        settingsButton.addEventListener("click", () => {
+        settingsButton.addEventListener("click", async () => {
           if (IsPIP) {
             globalThis.focus();
           }
+          const { showSettingsPanel } = await import("../../utils/settings.ts");
           showSettingsPanel();
         });
       } catch (err) {

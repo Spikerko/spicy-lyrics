@@ -1,30 +1,128 @@
 # Spicy Lyrics
 
-### Check out our *[Sitee](https://yoursit.ee/lyrics)*
-#### Make your own at -> [https://yoursit.ee](https://yoursit.ee)
+### Check out the *[Spicy Lyrics Site](https://yoursit.ee/lyrics)*
 
-# How to install Spicy Lyrics
+Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, immersive experience — synced syllable by syllable where supported.
 
-## 1. Using the Spicetify Marketplace (recommended)
-1. Search `Spicy Lyrics` under the "Extensions" tab
-2. Click the Install button on the Spicy Lyrics extension
-3. All done!
-
-## 2. Externally (not recommended)
-1. Make sure you have [Spicetify](https://spicetify.app) installed
-2. Download the [spicy-lyrics.mjs](./builds/spicy-lyrics.mjs) file
-3. Put the file inside the Spicetify Extensions directory. Find the correct directory here: [https://spicetify.app/docs/customization/extensions#manual-installation](https://spicetify.app/docs/customization/extensions#manual-installation)
-4. Then, run ```spicetify config extensions spicy-lyrics.mjs```
-5. Then apply Spicetify by running ```spicetify apply```
-6. All done!
-
-[![Github Version](https://img.shields.io/github/v/release/spikerko/spicy-lyrics)](https://github.com/spikerko/spicy-lyrics/) [![Github Stars badge](https://img.shields.io/github/stars/spikerko/spicy-lyrics?style=social)](https://github.com/spikerko/spicy-lyrics/) [![Discord Badge](https://dcbadge.limes.pink/api/server/uqgXU5wh8j?style=flat)](https://discord.com/invite/uqgXU5wh8j)
-
-Hi, I'm Spikerko (the person who made this repo). I've been really passionate about this project, and I'm really happy for this project.
-
-I've seen a problem with the Spotify Lyrics. They're plain, just static colors. So I wanted to build my own version. And here it is: **Spicy Lyrics**. Hope you like it!
+[![Github Version](https://img.shields.io/github/v/release/spikerko/spicy-lyrics)](https://github.com/spikerko/spicy-lyrics/) [![Github Stars](https://img.shields.io/github/stars/spikerko/spicy-lyrics?style=social)](https://github.com/spikerko/spicy-lyrics/) [![Discord](https://dcbadge.limes.pink/api/server/uqgXU5wh8j?style=flat)](https://discord.com/invite/uqgXU5wh8j)
 
 ![Extension Example](./previews/page.gif)
 
+---
 
-*Inspired by [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics)*
+## How to Install
+
+### Option 1 — Spicetify Marketplace *(recommended)*
+
+1. Open the Spicetify Marketplace in Spotify
+2. Go to the **Extensions** tab and search for `Spicy Lyrics`
+3. Click **Install** — done
+
+### Option 2 — Manual
+
+1. Make sure [Spicetify](https://spicetify.app) is installed
+2. Download [spicy-lyrics.mjs](./builds/spicy-lyrics.mjs)
+3. Place the file in your Spicetify Extensions directory — [find the path here](https://spicetify.app/docs/customization/extensions#manual-installation)
+4. Run:
+   ```
+   spicetify config extensions spicy-lyrics.mjs
+   spicetify apply
+   ```
+
+---
+
+*Made with care by [Spikerko](https://github.com/spikerko). Inspired by [Beautiful Lyrics](https://github.com/surfbryce/beautiful-lyrics).*
+
+---
+
+---
+
+# iPixel Dev Channel
+
+> **This is an unofficial development build of Spicy Lyrics**, maintained by iPixelGalaxy.
+> It runs alongside the official version and gives you access to features before they ship to stable.
+
+---
+
+## What's New
+
+### v100.10.6 — Latest
+
+- **Open Settings button in Spotify's settings page** — a dedicated "Open Settings" button now appears under the Spicy Lyrics section in Spotify's native settings, so you no longer have to navigate to the Spicy Lyrics page first
+
+---
+
+### Initial Release
+
+- **Settings page redesign** — most settings apply instantly, no save or reload required
+- **Replace Spotify Playbar with NowBar** — option to automatically hide the Spotify playbar when entering lyrics mode with NowBar enabled
+- **Always-visible Playbar in Fullscreen / Cinema** — configure Time and Controls visibility independently
+- **TTML persistence** — load local TTML files temporarily (once), for the session (until Spotify restarts), or permanently to the local database
+- **Local TTML Database browser** — browse and manage persisted TTML files from within settings, with an option to jump to the matching Spotify track *(currently displays the track ID rather than the title)*
+- **Load TTML** — formerly "Dev Tools / TTML Maker Mode", now enabled by default and renamed, with a link to the usage guide
+- **Escape key behavior** — configurable: Default, Exit Fullscreen only, or Exit Fully
+- **Volume slider in Cinema / Fullscreen** — choose between Left side, Right side, or Below the cover art
+- **Syllable Rendering options** — Default, Merge Words, or Reduce Splits
+- **Right Align Lyrics** — toggle to mirror the lyrics layout
+- **Build Channel selector** — choose Stable, Beta, Dev, or enter a custom server URL
+- **Dev entrypoint standdown** — the plugin cleanly defers when a locally-built dev version (`deno run dev`) is detected
+- **Clear All Cache button**
+- **Clear Database button** for local persistent TTMLs
+- **Updated error message on local files**
+- **Fixed** lyrics view locking up when no media is playing
+- **Fixed** duet vocals not being properly right-aligned
+- **Fixed** Spicy Lyrics progress bar scaling incorrectly based on surrounding text length
+
+---
+
+## Installation
+
+### Step 1 — Remove Spicy Lyrics from the Marketplace
+
+> Skip this step if you haven't installed Spicy Lyrics before.
+
+If you have Spicy Lyrics installed from the **Spicetify Marketplace**, uninstall it first — running both at the same time will cause conflicts.
+
+1. Open Spicetify Marketplace
+2. Go to the **Extensions** tab and find Spicy Lyrics
+3. Click **Uninstall**, then run `spicetify apply` in your terminal
+
+---
+
+### Step 2 — Install this build manually
+
+1. Make sure [Spicetify](https://spicetify.app) is installed
+2. Download the extension file: **[spicy-lyrics-pixel.mjs](https://ipixelgalaxy.com/TempFiles/spicy-lyrics-pixel.mjs)**
+3. Move the file into your Spicetify Extensions directory
+   - Find the correct path here: [spicetify.app — Manual Installation](https://spicetify.app/docs/customization/extensions#manual-installation)
+4. Run the following commands in your terminal:
+   ```
+   spicetify config extensions spicy-lyrics-pixel.mjs
+   spicetify apply
+   ```
+
+---
+
+### Step 3 — Connect to the iPixel Dev build channel
+
+Once the plugin is loaded, you need to point it at the dev server:
+
+1. In Spotify, go to **Settings** (the cog icon in the top-right)
+2. Scroll down until you see the **Spicy Lyrics** section
+3. Click **Open Settings**
+4. Scroll to the bottom and find **Build Channel** under the **Advanced** section, then click **Manage**
+5. Enter `ipixelgalaxy.com` as the server URL
+6. Check the **"Use the same host for both API and Storage"** box
+7. Name the branch something like **`iPixel Dev`**
+8. Click **Save Channel**
+9. Click **Apply & Reload** — Spicy Lyrics will restart on the dev channel
+
+---
+
+## Staying on the Official Version
+
+This build is designed to **coexist with the official Spicy Lyrics release**. If you run into a serious bug or just want to fall back, you can switch back to the Stable channel from within the Build Channel settings at any time — no reinstall needed.
+
+---
+
+> Built on the `dev` branch. Features here may be unstable, incomplete, or subject to change before reaching the official release.
