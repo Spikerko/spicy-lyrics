@@ -1,4 +1,4 @@
-import { Component } from "@spicetify/bundler";
+import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache, ReloadCurrentLyrics } from "./LyricsCacheTools.ts";
@@ -207,11 +207,6 @@ export function showSettingsPanel() {
     RemoveCurrentLyrics_StateCache(true);
   });
 
-  button("Open Spicetify Settings Page", "Open", () => {
-    backdrop.remove();
-    (window as any).Spicetify?.Platform?.History?.push?.({ pathname: "/preferences" });
-  });
-
   // --- Advanced ---
   group("Advanced");
 
@@ -236,4 +231,22 @@ export function showSettingsPanel() {
   container.appendChild(scroll);
   backdrop.appendChild(container);
   document.body.appendChild(backdrop);
+}
+
+export async function setSettingsMenu() {
+  while (!Spicetify.React || !Spicetify.ReactDOM) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  const { SettingsSection } = await import("../edited_packages/spcr-settings/settingsSection.tsx");
+  const settings = new SettingsSection("Spicy Lyrics", "spicy-lyrics-settings");
+
+  settings.addButton(
+    "open-spicy-settings",
+    "Open the Spicy Lyrics settings panel",
+    "Open Settings",
+    () => showSettingsPanel()
+  );
+
+  settings.pushSettings();
 }
