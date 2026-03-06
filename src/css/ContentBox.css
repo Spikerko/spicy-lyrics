@@ -544,6 +544,178 @@
   padding-bottom: 5cqh;
 }
 
+/* Inline timeline — shown between album art and song title in fullscreen */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline {
+  display: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .InlineTimeline {
+  display: flex;
+  width: 100%;
+  position: relative;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .InlineTimeline .Timeline {
+  position: relative;
+  bottom: auto;
+}
+
+/* Inline playback controls — shown below song title/artists in fullscreen */
+#SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls {
+  display: none;
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .Header .InlinePlaybackControls {
+  display: flex;
+  width: 100%;
+  height: 10cqw;
+  container-type: size;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100cqw;
+  height: 100cqh;
+  padding: 0 5cqw;
+  container-type: size;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.TrackSkip.PrevTrack {
+  rotate: 180deg;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl {
+  aspect-ratio: 1;
+  display: flex;
+  fill: #fff;
+  align-items: center;
+  cursor: pointer;
+  justify-content: center;
+  transition: opacity 0.175s cubic-bezier(0.37, 0, 0.63, 1),
+    filter 0.175s ease-out !important;
+  --ShrinkScale: 0.9;
+  --ShrinkDelta: calc(1 - var(--ShrinkScale));
+  height: 100cqh;
+  width: 12cqw;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl
+  svg {
+  transition: filter 0.175s ease-out !important;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.ShuffleToggle,
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.LoopToggle {
+  width: 7cqw;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.PlayStateToggle {
+  width: 9.25cqw;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl:not(.Pressed) {
+  animation: pressAnimation 0.6s;
+  animation-fill-mode: forwards;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.Pressed {
+  transform: scale(var(--ShrinkScale));
+  transition: opacity transform 0.175s cubic-bezier(0.37, 0, 0.63, 1) !important;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls:hover
+  .PlaybackControl:not(:hover) {
+  opacity: 0.5;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl:hover {
+  opacity: 1 !important;
+}
+
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.ShuffleToggle.Enabled,
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .Header
+  .InlinePlaybackControls
+  .PlaybackControls
+  .PlaybackControl.LoopToggle.Enabled {
+  filter: brightness(2.75);
+}
+
 #SpicyLyricsPage.Fullscreen
   .ContentBox
   .NowBar
