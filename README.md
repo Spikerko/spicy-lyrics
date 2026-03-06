@@ -39,7 +39,7 @@ Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, imme
 
 # iPixel Dev Channel
 
-> **This is an unofficial development build of Spicy Lyrics**, maintained by iPixelGalaxy.
+> **This is an unofficial development build of Spicy Lyrics**, maintained by iPixelGalaxy (but imma be so fr, this is claude code doing all the heavy lifting, I'm just a guy with too many ideas).
 > It runs alongside the official version and gives you access to features before they ship to stable.
 
 ---
@@ -48,7 +48,7 @@ Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, imme
 
 ### v100.10.6 — Latest
 
-- **Open Settings button in Spotify's settings page** — a dedicated "Open Settings" button now appears under the Spicy Lyrics section in Spotify's native settings, so you no longer have to navigate to the Spicy Lyrics page first
+- **Settings Gear :O** — a dedicated "Open Settings" button now appears under the Spicy Lyrics section in Spotify's native settings, and all the Spicy Lyrics settings can be accessed through a settings gear in the lyric view.
 
 ---
 
@@ -85,7 +85,7 @@ If you have Spicy Lyrics installed from the **Spicetify Marketplace**, uninstall
 
 1. Open Spicetify Marketplace
 2. Go to the **Extensions** tab and find Spicy Lyrics
-3. Click **Uninstall**, then run `spicetify apply` in your terminal
+3. Click **Uninstall**
 
 ---
 
@@ -95,6 +95,7 @@ If you have Spicy Lyrics installed from the **Spicetify Marketplace**, uninstall
 2. Download the extension file: **[spicy-lyrics-pixel.mjs](https://ipixelgalaxy.com/TempFiles/spicy-lyrics-pixel.mjs)**
 3. Move the file into your Spicetify Extensions directory
    - Find the correct path here: [spicetify.app — Manual Installation](https://spicetify.app/docs/customization/extensions#manual-installation)
+   - Or run `spicetify config-dir` to open the path
 4. Run the following commands in your terminal:
    ```
    spicetify config extensions spicy-lyrics-pixel.mjs
@@ -125,4 +126,4 @@ This build is designed to **coexist with the official Spicy Lyrics release**. If
 
 ---
 
-> Built on the `dev` branch. Features here may be unstable, incomplete, or subject to change before reaching the official release.
+> Built on the `dev` branch. Features here may be unstable, incomplete, or subject to change before reaching the official release (if ever 💀, lowkey, this is just my playground).
