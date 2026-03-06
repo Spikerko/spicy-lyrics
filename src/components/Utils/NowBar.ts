@@ -1340,6 +1340,8 @@ Global.Event.listen("page:destroy", () => {
   CleanupMediaBox();
   CleanUpActiveComponents();
   CleanUpInlineControls();
+  CleanupNowBarPlaybar();
+  RestoreSpotifyPlaybackBar();
 });
 
 Global.Event.listen("nowbar:timeline:dragging", () => {
