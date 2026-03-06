@@ -1290,6 +1290,8 @@ Global.Event.listen("playback:position", (e: number) => {
     );
     if (updateTimelineState) updateTimelineState(e);
   }
+  // Update NowBar playbar replacement timeline
+  if (InlinePlaybarTimelineUpdateFn) InlinePlaybarTimelineUpdateFn(e);
 });
 
 Global.Event.listen("fullscreen:open", () => {
@@ -1312,7 +1314,6 @@ Global.Event.listen("fullscreen:open", () => {
       SetupVolumeSlider(container, true);
     }
   }
-  if (InlinePlaybarTimelineUpdateFn) InlinePlaybarTimelineUpdateFn(e);
 });
 
 Global.Event.listen("fullscreen:exit", () => {
