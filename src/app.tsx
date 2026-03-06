@@ -1107,6 +1107,9 @@ async function main() {
   }
 }
 
+// Signal to entrypoints that a locally-built dev version is active — they should stand down
+(window as any).__spicy_lyrics_dev_local = true;
+
 main();
 
 if (storage.get("developerMode") === "true") {

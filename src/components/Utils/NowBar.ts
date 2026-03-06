@@ -9,7 +9,6 @@ import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToA
 import storage from "../../utils/storage.ts";
 import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
-import Defaults from "../Global/Defaults.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";

@@ -16,6 +16,10 @@ const getVersionFromHost = (host) =>
   });
 
 const tryApiHosts = (hosts, idx = 0) => {
+  if (window.__spicy_lyrics_dev_local) {
+    console.log("[Spicy Lyrics] [Entry] Local dev build detected — standing down.");
+    return;
+  }
   if (idx >= hosts.length) {
     setTimeout(() => tryApiHosts(hosts), 2000);
     return;
@@ -26,6 +30,10 @@ const tryApiHosts = (hosts, idx = 0) => {
 };
 
 const tryPublicStorageUrls = (urls, version, idx = 0) => {
+  if (window.__spicy_lyrics_dev_local) {
+    console.log("[Spicy Lyrics] [Entry] Local dev build detected — standing down.");
+    return;
+  }
   if (idx >= urls.length) {
     setTimeout(() => tryPublicStorageUrls(urls, version), 2000);
     return;

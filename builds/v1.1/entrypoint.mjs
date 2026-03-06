@@ -78,6 +78,11 @@ const load = async (apiHost) => {
     }, 10);
   });
 
+  if (window.__spicy_lyrics_dev_local) {
+    console.log("[Spicy Lyrics] [Entry] Local dev build detected — standing down.");
+    return;
+  }
+
   let version;
   let lastError;
 
