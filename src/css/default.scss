@@ -309,6 +309,7 @@ body.sl_settings_top {
   }
 
   .sl-select {
+    appearance: none;
     background: rgba(255, 255, 255, 0.07);
     color: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -318,6 +319,11 @@ body.sl_settings_top {
     cursor: pointer;
     flex-shrink: 0;
     max-width: 220px;
+
+    option {
+      background: #1a1a1a;
+      color: rgba(255, 255, 255, 0.85);
+    }
 
     &:focus {
       outline: none;

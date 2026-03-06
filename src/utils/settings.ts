@@ -193,15 +193,23 @@ export function showSettingsPanel() {
   group("Cache");
 
   button("Clear Lyrics for the current song from all caches", "Clear Current Song", async () => {
+    if (!confirm("Clear all cached data for the current song?")) return;
     await RemoveCurrentLyrics_AllCaches(true);
   });
 
   button("Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)", "Clear Cached Lyrics", async () => {
+    if (!confirm("Clear all cached lyrics? This cannot be undone.")) return;
     await RemoveLyricsCache(true);
   });
 
   button("Clear Current Song Lyrics from internal state", "Clear Current Lyrics", () => {
+    if (!confirm("Clear the current song's lyrics from internal state?")) return;
     RemoveCurrentLyrics_StateCache(true);
+  });
+
+  button("Open Spicetify Settings Page", "Open", () => {
+    backdrop.remove();
+    (window as any).Spicetify?.Platform?.History?.push?.({ pathname: "/preferences" });
   });
 
   // --- Advanced ---
