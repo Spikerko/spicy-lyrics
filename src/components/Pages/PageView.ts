@@ -54,7 +54,6 @@ import {
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
-import { showSettingsPanel } from "../../utils/settings.ts";
 
 interface TippyInstance {
   destroy: () => void;
@@ -806,10 +805,11 @@ function AppendViewControls(ReAppend: boolean = false) {
             content: `Settings`,
           });
         }
-        settingsButton.addEventListener("click", () => {
+        settingsButton.addEventListener("click", async () => {
           if (IsPIP) {
             globalThis.focus();
           }
+          const { showSettingsPanel } = await import("../../utils/settings.ts");
           showSettingsPanel();
         });
       } catch (err) {
