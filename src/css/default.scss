@@ -351,3 +351,11 @@ body.sl_settings_top {
     }
   }
 }
+
+#SpicyLyricsPage:not(.UseSpicyFont) {
+  font-family: var(--spicy-custom-font), SpicyLyrics, sans-serif !important;
+
+  * {
+    font-family: inherit !important;
+  }
+}
