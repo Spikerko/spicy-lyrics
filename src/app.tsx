@@ -218,11 +218,14 @@ async function main() {
     document.body.classList.add("sl_settings_top");
   }
 
-  const OldStyleFont = storage.get("old-style-font");
-  if (OldStyleFont !== "true") {
-    LoadFonts();
-    ApplyFontPixel();
+  if (storage.get("customFont")) {
+    Defaults.CustomFont = storage.get("customFont").toString();
+    document.documentElement.style.setProperty("--spicy-custom-font", Defaults.CustomFont);
   }
+
+  LoadFonts();
+  ApplyFontPixel();
+  (window as any).__spicy_load_fonts = () => { LoadFonts(); ApplyFontPixel(); };
 
   const skeletonStyle = document.createElement("style");
   skeletonStyle.innerHTML = `

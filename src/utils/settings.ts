@@ -105,15 +105,35 @@ export function showSettingsPanel() {
   // --- Appearance ---
   group("Appearance");
 
-  toggle("Skip Spicy Font*", Defaults.SkipSpicyFont, (v) => {
-    storage.set("skip-spicy-font", v.toString());
-    Defaults.SkipSpicyFont = v;
-  });
-
-  toggle("Old Style Font (Overridden by previous option)", Defaults.OldStyleFont, (v) => {
-    storage.set("old-style-font", v.toString());
-    Defaults.OldStyleFont = v;
-  });
+  {
+    const row = document.createElement("div");
+    row.className = "sl-settings-row";
+    const lbl = document.createElement("span");
+    lbl.className = "sl-settings-label";
+    lbl.textContent = "Custom Font";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sl-input";
+    input.placeholder = "Spotify Mix";
+    input.value = Defaults.CustomFont;
+    input.addEventListener("input", () => {
+      const val = input.value.trim();
+      storage.set("customFont", val);
+      Defaults.CustomFont = val;
+      const page = document.querySelector<HTMLElement>("#SpicyLyricsPage");
+      if (val) {
+        document.documentElement.style.setProperty("--spicy-custom-font", val);
+        page?.classList.remove("UseSpicyFont");
+      } else {
+        document.documentElement.style.removeProperty("--spicy-custom-font");
+        page?.classList.add("UseSpicyFont");
+        (window as any).__spicy_load_fonts?.();
+      }
+    });
+    row.appendChild(lbl);
+    row.appendChild(input);
+    scroll.appendChild(row);
+  }
 
   toggle("Simple Lyrics Mode", Defaults.SimpleLyricsMode, (v) => {
     storage.set("simpleLyricsMode", v.toString());
