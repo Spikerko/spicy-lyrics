@@ -223,7 +223,7 @@ async function OpenPage(
     */
   PageContainer = elem;
 
-  if (!storage.get("customFont")) {
+  if (storage.get("customFontEnabled") !== "true") {
     elem.classList.add("UseSpicyFont");
   }
 

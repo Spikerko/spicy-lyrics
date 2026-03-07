@@ -218,8 +218,15 @@ async function main() {
     document.body.classList.add("sl_settings_top");
   }
 
+  if (storage.get("customFontEnabled") === "true") {
+    Defaults.CustomFontEnabled = true;
+  }
+
   if (storage.get("customFont")) {
     Defaults.CustomFont = storage.get("customFont").toString();
+  }
+
+  if (Defaults.CustomFontEnabled && Defaults.CustomFont) {
     document.documentElement.style.setProperty("--spicy-custom-font", Defaults.CustomFont);
   }
 

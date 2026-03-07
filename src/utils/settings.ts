@@ -105,12 +105,33 @@ export function showSettingsPanel() {
   // --- Appearance ---
   group("Appearance");
 
+  let customFontRow: HTMLElement | null = null;
+
+  toggle("Custom Font", Defaults.CustomFontEnabled, (v) => {
+    storage.set("customFontEnabled", v.toString());
+    Defaults.CustomFontEnabled = v;
+    const page = document.querySelector<HTMLElement>("#SpicyLyricsPage");
+    if (v) {
+      if (customFontRow) customFontRow.style.display = "";
+      if (Defaults.CustomFont) {
+        document.documentElement.style.setProperty("--spicy-custom-font", Defaults.CustomFont);
+      }
+      page?.classList.remove("UseSpicyFont");
+    } else {
+      if (customFontRow) customFontRow.style.display = "none";
+      document.documentElement.style.removeProperty("--spicy-custom-font");
+      page?.classList.add("UseSpicyFont");
+      (window as any).__spicy_load_fonts?.();
+    }
+  });
+
   {
     const row = document.createElement("div");
     row.className = "sl-settings-row";
+    row.style.display = Defaults.CustomFontEnabled ? "" : "none";
     const lbl = document.createElement("span");
     lbl.className = "sl-settings-label";
-    lbl.textContent = "Custom Font";
+    lbl.textContent = "Font Name";
     const input = document.createElement("input");
     input.type = "text";
     input.className = "sl-input";
@@ -120,19 +141,16 @@ export function showSettingsPanel() {
       const val = input.value.trim();
       storage.set("customFont", val);
       Defaults.CustomFont = val;
-      const page = document.querySelector<HTMLElement>("#SpicyLyricsPage");
       if (val) {
         document.documentElement.style.setProperty("--spicy-custom-font", val);
-        page?.classList.remove("UseSpicyFont");
       } else {
         document.documentElement.style.removeProperty("--spicy-custom-font");
-        page?.classList.add("UseSpicyFont");
-        (window as any).__spicy_load_fonts?.();
       }
     });
     row.appendChild(lbl);
     row.appendChild(input);
     scroll.appendChild(row);
+    customFontRow = row;
   }
 
   toggle("Simple Lyrics Mode", Defaults.SimpleLyricsMode, (v) => {
