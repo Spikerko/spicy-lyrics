@@ -6,6 +6,8 @@ import ReactDOM from "react-dom/client";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 import { PopupModal } from "../../../../components/Modal.ts";
 import { actions } from "../../../../actions.ts";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { reactQueryClient } from "../../../../app.tsx";
 
 
 let isByCommunityAbortController: AbortController | null = null;
@@ -56,7 +58,9 @@ function showProfileModal(userId: string | undefined, hasProfileBanner: boolean)
 
     // Render React content
     ttmlProfileReactRoot.render(
-      <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
+      <QueryClientProvider client={reactQueryClient}>
+        <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
+      </QueryClientProvider>
     );
   };
 
