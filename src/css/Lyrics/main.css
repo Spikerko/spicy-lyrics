@@ -4,8 +4,7 @@
   align-items: center;
   flex-direction: column;
   justify-content: center;
-  overflow: clip;
-  overflow-clip-margin: 0.25em;
+  overflow: visible;
   width: 100%;
   z-index: 4;
 }
@@ -25,7 +24,7 @@
   --vertical-gap: 0px;
 
   overflow-x: clip !important;
-  overflow-clip-margin: 0.25em;
+  overflow-clip-margin: 200px;
   overflow-y: auto !important;
   height: calc(100% - var(--vertical-gap));
   width: 100%;
