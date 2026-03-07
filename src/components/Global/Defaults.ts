@@ -9,8 +9,6 @@ const Defaults = {
   CurrentLyricsType: "None",
   LyricsContainerExists: false,
   SpicyLyricsVersion: "0.0.0",
-  CustomFontEnabled: false,
-  CustomFont: "",
   show_topbar_notifications: true,
   PrefersReducedMotion: false,
   StaticBackground_Preset: false,
