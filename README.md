@@ -50,7 +50,6 @@ Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, imme
 
 - **TTML Profile redesign** — clicking a maker or uploader's name now opens a fully redesigned profile modal: two-column layout with a left info panel and a scrollable track list on the right
 - **Profile banner** — user banners display at the top of the modal with a gradient fade into the profile background
-- **Connections** — social links (Genius, Spotify, Twitter/X, YouTube) shown as icon buttons in the profile panel
 - **Makes / Uploads tabs** — side-by-side tab switcher shows the track count for each; slides the track list between views
 - **View stats panel** — shows total makes views and uploads views separately
 - **Song deduplication** — duplicate tracks (remasters, remixes, alternate titles) are merged with their view counts combined, then re-sorted by total views
