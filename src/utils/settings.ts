@@ -194,17 +194,20 @@ export function showSettingsPanel() {
 
   let customFontRow: HTMLElement | null = null;
 
-  toggle("Skip Spicy Font*", Defaults.SkipSpicyFont, (v) => {
-    storage.set("skip-spicy-font", v.toString());
-    Defaults.SkipSpicyFont = v;
-    const page = document.querySelector("#SpicyLyricsPage");
+  toggle("Custom Font", Defaults.CustomFontEnabled, (v) => {
+    storage.set("customFontEnabled", v.toString());
+    Defaults.CustomFontEnabled = v;
+    const page = document.querySelector<HTMLElement>("#SpicyLyricsPage");
     if (v) {
-      page?.classList.remove("UseSpicyFont");
       if (customFontRow) customFontRow.style.display = "";
+      if (Defaults.CustomFont) {
+        document.documentElement.style.setProperty("--spicy-custom-font", Defaults.CustomFont);
+      }
+      page?.classList.remove("UseSpicyFont");
     } else {
-      page?.classList.add("UseSpicyFont");
       if (customFontRow) customFontRow.style.display = "none";
       document.documentElement.style.removeProperty("--spicy-custom-font");
+      page?.classList.add("UseSpicyFont");
       (window as any).__spicy_load_fonts?.();
     }
   });
@@ -212,14 +215,14 @@ export function showSettingsPanel() {
   {
     const row = document.createElement("div");
     row.className = "sl-settings-row";
-    row.style.display = Defaults.SkipSpicyFont ? "" : "none";
+    row.style.display = Defaults.CustomFontEnabled ? "" : "none";
     const lbl = document.createElement("span");
     lbl.className = "sl-settings-label";
-    lbl.textContent = "Custom Font";
+    lbl.textContent = "Font Name";
     const input = document.createElement("input");
     input.type = "text";
     input.className = "sl-input";
-    input.placeholder = "Spotify font (default)";
+    input.placeholder = "Spotify Mix";
     input.value = Defaults.CustomFont;
     input.addEventListener("input", () => {
       const val = input.value.trim();
@@ -236,11 +239,6 @@ export function showSettingsPanel() {
     scroll.appendChild(row);
     customFontRow = row;
   }
-
-  toggle("Old Style Font (Overridden by previous option)", Defaults.OldStyleFont, (v) => {
-    storage.set("old-style-font", v.toString());
-    Defaults.OldStyleFont = v;
-  });
 
   toggle("Right Align Lyrics", Defaults.RightAlignLyrics, (v) => {
     storage.set("rightAlignLyrics", v.toString());

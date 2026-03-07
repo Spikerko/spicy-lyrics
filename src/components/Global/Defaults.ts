@@ -8,8 +8,6 @@ const Defaults = {
   },
   CurrentLyricsType: "None",
   LyricsContainerExists: false,
-  SkipSpicyFont: false,
-  OldStyleFont: false,
   SpicyLyricsVersion: "0.0.0",
   show_topbar_notifications: true,
   PrefersReducedMotion: false,
@@ -37,6 +35,7 @@ const Defaults = {
   AlwaysShowInFullscreen: "None" as string,
   ReplaceSpotifyPlaybar: false,
   ShowLatencyIndicator: false,
+  CustomFontEnabled: false,
   CustomFont: "",
 };
 

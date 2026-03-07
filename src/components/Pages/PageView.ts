@@ -225,8 +225,7 @@ async function OpenPage(
     */
   PageContainer = elem;
 
-  const SkipSpicyFont = storage.get("skip-spicy-font");
-  if (SkipSpicyFont !== "true") {
+  if (storage.get("customFontEnabled") !== "true") {
     elem.classList.add("UseSpicyFont");
   }
 

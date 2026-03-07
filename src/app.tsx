@@ -274,24 +274,20 @@ async function main() {
 
   setSettingsMenu();
 
-  if (storage.get("skip-spicy-font") === "true") {
-    Defaults.SkipSpicyFont = true;
+  if (storage.get("customFontEnabled") === "true") {
+    Defaults.CustomFontEnabled = true;
   }
 
   if (storage.get("customFont")) {
     Defaults.CustomFont = storage.get("customFont").toString();
   }
 
-  if (Defaults.SkipSpicyFont && Defaults.CustomFont) {
+  if (Defaults.CustomFontEnabled && Defaults.CustomFont) {
     document.documentElement.style.setProperty("--spicy-custom-font", Defaults.CustomFont);
   }
 
-  const OldStyleFont = storage.get("old-style-font");
-  if (OldStyleFont !== "true") {
-    LoadFonts();
-    ApplyFontPixel();
-  }
-
+  LoadFonts();
+  ApplyFontPixel();
   (window as any).__spicy_load_fonts = () => { LoadFonts(); ApplyFontPixel(); };
 
   const skeletonStyle = document.createElement("style");

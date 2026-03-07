@@ -46,7 +46,15 @@ Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, imme
 
 ## What's New
 
-### v100.10.8 — Latest
+### v100.10.9 — Latest
+
+- **Custom Font** — Appearance settings now has a toggle that reveals a font name field; enter any font installed on your system (placeholder shows `Spotify Mix` as the default)
+- **Fixed** slanted/italic fonts being clipped at the edges during lyrics animation
+- **Removed** the Old Style Font toggle (was no longer functional)
+
+---
+
+### v100.10.8
 
 - **Settings panel reorganized** — options grouped more logically across sections; unused options removed
 - **Settings apply instantly** — font, right-align, syllable rendering, simple and minimal lyrics modes all update without reloading Spotify
