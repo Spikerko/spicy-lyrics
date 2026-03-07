@@ -12,17 +12,6 @@ const LS_PREFIX = "SpicyLyrics-";
 const lsGet = (key) => Spicetify.LocalStorage.get(`${LS_PREFIX}${key}`);
 const lsSet = (key, value) => Spicetify.LocalStorage.set(`${LS_PREFIX}${key}`, value);
 
-// ─── Styles (Spotify-like design language) ───
-
-const INPUT_STYLE = "padding:8px 12px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:inherit;font-size:0.875rem;width:100%;box-sizing:border-box;color-scheme:dark;";
-const SELECT_STYLE = "padding:8px 12px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:#282828;color:#fff;font-size:0.875rem;width:100%;box-sizing:border-box;";
-const OPTION_STYLE = "background:#282828;color:#fff;";
-const BTN_PRIMARY = "padding:8px 24px;border-radius:500px;border:none;background:#fff;color:#000;font-weight:700;cursor:pointer;font-size:0.875rem;";
-const BTN_SECONDARY = "padding:8px 24px;border-radius:500px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;font-weight:700;cursor:pointer;font-size:0.875rem;";
-const BTN_DANGER = "padding:8px 24px;border-radius:500px;border:1px solid rgba(231,76,60,0.5);background:transparent;color:#e74c3c;font-weight:700;cursor:pointer;font-size:0.875rem;";
-const BTN_DANGER_SMALL = "padding:6px 16px;border-radius:500px;border:1px solid rgba(231,76,60,0.5);background:transparent;color:#e74c3c;font-weight:600;cursor:pointer;font-size:0.8rem;";
-const CHECKBOX_STYLE = "width:16px;height:16px;cursor:pointer;accent-color:#1db954;";
-
 // ─── Version Helpers ───
 
 const parseVersion = (str) => {
@@ -71,6 +60,59 @@ const getCurrentChannel = () => lsGet("buildChannel") ?? "Stable";
 
 const setCurrentChannel = (name) => lsSet("buildChannel", name);
 
+// ─── UI helpers ───
+
+const makeRow = (labelText, control) => {
+  const row = document.createElement("div");
+  row.className = "sl-settings-row";
+  const lbl = document.createElement("span");
+  lbl.className = "sl-settings-label";
+  lbl.textContent = labelText;
+  row.appendChild(lbl);
+  row.appendChild(control);
+  return row;
+};
+
+const makeToggle = () => {
+  const wrap = document.createElement("label");
+  wrap.className = "sl-toggle";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  const knob = document.createElement("span");
+  wrap.appendChild(input);
+  wrap.appendChild(knob);
+  return { wrap, input };
+};
+
+const makeInput = (placeholder) => {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "sl-input";
+  input.placeholder = placeholder;
+  return input;
+};
+
+const makeBtn = (text, modifiers = "") => {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "sl-btn" + (modifiers ? " " + modifiers : "");
+  btn.textContent = text;
+  return btn;
+};
+
+const makeGroup = (text) => {
+  const h = document.createElement("h3");
+  h.className = "sl-settings-group";
+  h.textContent = text;
+  return h;
+};
+
+const makeBtnRow = () => {
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px;justify-content:flex-end;padding:8px 6px 2px;";
+  return row;
+};
+
 // ─── Channel Management UI ───
 
 const showChannelSwitcher = () => {
@@ -78,204 +120,130 @@ const showChannelSwitcher = () => {
   const allNames = Object.keys(map);
   const current = getCurrentChannel();
 
-  const div = document.createElement("div");
-  div.style.cssText = "display:flex;flex-direction:column;gap:16px;padding:8px 0;";
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "padding:4px 0 2px;";
 
-  // Channel select
-  const selectLabel = document.createElement("label");
-  selectLabel.style.cssText = "display:flex;flex-direction:column;gap:6px;";
-  selectLabel.innerHTML = `<span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.6);">Build Channel</span>`;
+  // Channel select row
   const select = document.createElement("select");
-  select.style.cssText = SELECT_STYLE;
+  select.className = "sl-select";
   for (const name of allNames) {
     const opt = document.createElement("option");
     opt.value = name;
     opt.textContent = name;
     opt.selected = name === current;
-    opt.style.cssText = OPTION_STYLE;
     select.appendChild(opt);
   }
-  selectLabel.appendChild(select);
-  div.appendChild(selectLabel);
+  wrap.appendChild(makeRow("Build Channel", select));
 
-  // Channel info (updates on selection change)
+  // Host info
   const info = document.createElement("p");
-  info.style.cssText = "margin:0;font-size:0.75rem;color:rgba(255,255,255,0.4);line-height:1.4;";
+  info.style.cssText = "margin:2px 8px 10px;font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:1.5;";
   const updateInfo = () => {
     const hosts = map[select.value];
-    if (hosts) {
-      info.textContent = "";
-      const h0 = document.createElement("strong"); h0.textContent = hosts[0];
-      const h1 = document.createElement("strong"); h1.textContent = hosts[1];
-      info.append(h0, " / ", h1);
-      if (hosts[2]) { const fx = document.createElement("strong"); fx.textContent = hosts[2]; info.append(" \u00b7 fixed: ", fx); }
+    if (!hosts) return (info.textContent = "");
+    info.innerHTML = "";
+    const h0 = document.createElement("strong"); h0.textContent = hosts[0];
+    const h1 = document.createElement("strong"); h1.textContent = hosts[1];
+    info.append(h0, " / ", h1);
+    if (hosts[2]) {
+      const fx = document.createElement("strong"); fx.textContent = hosts[2];
+      info.append(" \u00b7 fixed: ", fx);
     }
   };
   updateInfo();
   select.addEventListener("change", updateInfo);
-  div.appendChild(info);
+  wrap.appendChild(info);
 
-  // Buttons row
-  const btnRow = document.createElement("div");
-  btnRow.style.cssText = "display:flex;gap:8px;justify-content:flex-end;";
+  // Buttons
+  const btnRow = makeBtnRow();
 
-  const addBtn = document.createElement("button");
-  addBtn.type = "button";
-  addBtn.textContent = "Add Custom";
-  addBtn.style.cssText = BTN_SECONDARY;
-  addBtn.addEventListener("click", () => {
-    Spicetify.PopupModal.hide();
-    setTimeout(showAddCustomChannel, 100);
-  });
+  const addBtn = makeBtn("Add Custom");
+  addBtn.addEventListener("click", () => { Spicetify.PopupModal.hide(); setTimeout(showAddCustomChannel, 100); });
   btnRow.appendChild(addBtn);
 
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.textContent = "Remove Custom";
-  removeBtn.style.cssText = BTN_DANGER;
-  removeBtn.addEventListener("click", () => {
-    Spicetify.PopupModal.hide();
-    setTimeout(showRemoveCustomChannel, 100);
-  });
+  const removeBtn = makeBtn("Remove Custom", "sl-btn-danger");
+  removeBtn.addEventListener("click", () => { Spicetify.PopupModal.hide(); setTimeout(showRemoveCustomChannel, 100); });
   btnRow.appendChild(removeBtn);
 
-  const applyBtn = document.createElement("button");
-  applyBtn.type = "button";
-  applyBtn.textContent = "Apply & Reload";
-  applyBtn.style.cssText = BTN_PRIMARY;
-  applyBtn.addEventListener("click", () => {
-    setCurrentChannel(select.value);
-    Spicetify.PopupModal.hide();
-    window.location.reload();
-  });
+  const applyBtn = makeBtn("Apply & Reload", "sl-btn-primary");
+  applyBtn.addEventListener("click", () => { setCurrentChannel(select.value); Spicetify.PopupModal.hide(); window.location.reload(); });
   btnRow.appendChild(applyBtn);
 
-  div.appendChild(btnRow);
+  wrap.appendChild(btnRow);
 
-  Spicetify.PopupModal.display({
-    title: "Build Channel",
-    content: div,
-    isLarge: true,
-  });
+  Spicetify.PopupModal.display({ title: "Build Channel", content: wrap, isLarge: true });
 };
 
 const showAddCustomChannel = () => {
-  const div = document.createElement("div");
-  div.style.cssText = "display:flex;flex-direction:column;gap:14px;padding:8px 0;";
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "padding:4px 0 2px;";
 
-  const labelStyle = "display:flex;flex-direction:column;gap:4px;";
-  const spanStyle = "font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.6);";
+  wrap.appendChild(makeGroup("Channel Details"));
 
-  div.innerHTML = `
-    <label style="${labelStyle}">
-      <span style="${spanStyle}">Channel Name</span>
-      <input id="sl-cc-name" type="text" placeholder="e.g. My-Test-Server" style="${INPUT_STYLE}" />
-    </label>
-    <label style="${labelStyle}">
-      <span style="${spanStyle}">API Host</span>
-      <input id="sl-cc-api" type="text" placeholder="Default: ${DEFAULT_API_HOST}" style="${INPUT_STYLE}" />
-    </label>
-    <label id="sl-cc-storage-label" style="${labelStyle}">
-      <span style="${spanStyle}">Storage Host</span>
-      <input id="sl-cc-storage" type="text" placeholder="Default: ${DEFAULT_STORAGE_HOST}" style="${INPUT_STYLE}" />
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-      <input id="sl-cc-same-host" type="checkbox" style="${CHECKBOX_STYLE}" />
-      <span style="font-size:0.875rem;">Use the same host for both API and Storage</span>
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-      <input id="sl-cc-fixed-version-toggle" type="checkbox" style="${CHECKBOX_STYLE}" />
-      <span style="font-size:0.875rem;">Use a fixed version instead of fetching from /version</span>
-    </label>
-    <label id="sl-cc-fixed-version-label" style="display:none;flex-direction:column;gap:4px;">
-      <span style="${spanStyle}">Fixed Version</span>
-      <input id="sl-cc-fixed-version" type="text" placeholder="e.g. 5.19.11" style="${INPUT_STYLE}" />
-    </label>
-    <p style="margin:0;font-size:0.7rem;color:rgba(255,255,255,0.35);line-height:1.5;">
-      Leave API Host and Storage Host empty to use the defaults.
-      To pull an older version, just set a channel name, enable fixed version, and enter the version number.
-      <br/><br/>
-      Custom hosts: the API host must serve <strong>/version</strong> as plain text (not required with fixed version).
-      The Storage host must serve the bundle at <strong>/spicy-lyrics@{version}.mjs</strong> with CORS and <strong>application/javascript</strong> content type.
-    </p>
-  `;
+  const nameInput = makeInput("e.g. My-Test-Server");
+  wrap.appendChild(makeRow("Channel Name", nameInput));
 
-  const btnRow = document.createElement("div");
-  btnRow.style.cssText = "display:flex;gap:8px;justify-content:flex-end;padding-top:4px;";
+  const apiInput = makeInput(`Default: ${DEFAULT_API_HOST}`);
+  wrap.appendChild(makeRow("API Host", apiInput));
 
-  const cancelBtn = document.createElement("button");
-  cancelBtn.type = "button";
-  cancelBtn.textContent = "Cancel";
-  cancelBtn.style.cssText = BTN_SECONDARY;
-  cancelBtn.addEventListener("click", () => {
-    Spicetify.PopupModal.hide();
-    setTimeout(showChannelSwitcher, 100);
+  const storageInput = makeInput(`Default: ${DEFAULT_STORAGE_HOST}`);
+  const storageRow = makeRow("Storage Host", storageInput);
+  wrap.appendChild(storageRow);
+
+  const { wrap: sameWrap, input: sameCb } = makeToggle();
+  wrap.appendChild(makeRow("Use the same host for both API and Storage", sameWrap));
+  sameCb.addEventListener("change", () => {
+    storageRow.style.display = sameCb.checked ? "none" : "";
   });
+
+  const { wrap: fixedToggleWrap, input: fixedCb } = makeToggle();
+  wrap.appendChild(makeRow("Use a fixed version instead of fetching from /version", fixedToggleWrap));
+
+  const fixedInput = makeInput("e.g. 5.19.11");
+  const fixedRow = makeRow("Fixed Version", fixedInput);
+  fixedRow.style.display = "none";
+  wrap.appendChild(fixedRow);
+  fixedCb.addEventListener("change", () => {
+    fixedRow.style.display = fixedCb.checked ? "" : "none";
+  });
+
+  const note = document.createElement("p");
+  note.style.cssText = "margin:4px 8px 10px;font-size:0.7rem;color:rgba(255,255,255,0.35);line-height:1.5;";
+  note.innerHTML = `Leave API Host and Storage Host empty to use the defaults. To pull an older version, set a channel name, enable fixed version, and enter the version number.<br><br>The API host must serve <strong>/version</strong> as plain text. The Storage host must serve the bundle at <strong>/spicy-lyrics@{version}.mjs</strong> with CORS and <code>application/javascript</code>.`;
+  wrap.appendChild(note);
+
+  const btnRow = makeBtnRow();
+
+  const cancelBtn = makeBtn("Cancel");
+  cancelBtn.addEventListener("click", () => { Spicetify.PopupModal.hide(); setTimeout(showChannelSwitcher, 100); });
   btnRow.appendChild(cancelBtn);
 
-  const saveBtn = document.createElement("button");
-  saveBtn.type = "button";
-  saveBtn.textContent = "Save Channel";
-  saveBtn.style.cssText = BTN_PRIMARY;
-  btnRow.appendChild(saveBtn);
-
-  div.appendChild(btnRow);
-
-  Spicetify.PopupModal.display({
-    title: "Add Channel",
-    content: div,
-    isLarge: true,
-  });
-
-  const sameHostCb = div.querySelector("#sl-cc-same-host");
-  const storageLabel = div.querySelector("#sl-cc-storage-label");
-  sameHostCb.addEventListener("change", () => {
-    storageLabel.style.display = sameHostCb.checked ? "none" : "flex";
-  });
-
-  const fixedCb = div.querySelector("#sl-cc-fixed-version-toggle");
-  const fixedLabel = div.querySelector("#sl-cc-fixed-version-label");
-  fixedCb.addEventListener("change", () => {
-    fixedLabel.style.display = fixedCb.checked ? "flex" : "none";
-  });
-
+  const saveBtn = makeBtn("Save Channel", "sl-btn-primary");
   saveBtn.addEventListener("click", () => {
-    const name = div.querySelector("#sl-cc-name").value.trim();
-    const apiHostRaw = div.querySelector("#sl-cc-api").value.trim();
-    const storageHostRaw = sameHostCb.checked
-      ? apiHostRaw
-      : div.querySelector("#sl-cc-storage").value.trim();
-    const fixedVersion = fixedCb.checked
-      ? div.querySelector("#sl-cc-fixed-version").value.trim()
-      : "";
-
-    // Default empty hosts to built-in values
+    const name = nameInput.value.trim();
+    const apiHostRaw = apiInput.value.trim();
+    const storageHostRaw = sameCb.checked ? apiHostRaw : storageInput.value.trim();
+    const fixedVersion = fixedCb.checked ? fixedInput.value.trim() : "";
     const apiHost = apiHostRaw || DEFAULT_API_HOST;
     const storageHost = storageHostRaw || DEFAULT_STORAGE_HOST;
 
-    if (!name) {
-      Spicetify.showNotification("Channel name is required", true);
-      return;
-    }
-    if (fixedCb.checked && !fixedVersion) {
-      Spicetify.showNotification("Fixed version is required when enabled", true);
-      return;
-    }
-    if (BUILT_IN_CHANNELS.includes(name)) {
-      Spicetify.showNotification("Cannot override built-in channels", true);
-      return;
-    }
+    if (!name) { Spicetify.showNotification("Channel name is required", true); return; }
+    if (fixedCb.checked && !fixedVersion) { Spicetify.showNotification("Fixed version is required when enabled", true); return; }
+    if (BUILT_IN_CHANNELS.includes(name)) { Spicetify.showNotification("Cannot override built-in channels", true); return; }
 
     const channels = getCustomChannels();
-    channels[name] = fixedVersion
-      ? [apiHost, storageHost, fixedVersion]
-      : [apiHost, storageHost];
+    channels[name] = fixedVersion ? [apiHost, storageHost, fixedVersion] : [apiHost, storageHost];
     saveCustomChannels(channels);
 
     Spicetify.PopupModal.hide();
     Spicetify.showNotification(`Channel "${name}" added`);
     setTimeout(showChannelSwitcher, 100);
   });
+  btnRow.appendChild(saveBtn);
+
+  wrap.appendChild(btnRow);
+
+  Spicetify.PopupModal.display({ title: "Add Channel", content: wrap, isLarge: true });
 };
 
 const showRemoveCustomChannel = () => {
@@ -288,57 +256,47 @@ const showRemoveCustomChannel = () => {
     return;
   }
 
-  const div = document.createElement("div");
-  div.style.cssText = "display:flex;flex-direction:column;gap:8px;padding:8px 0;";
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "padding:4px 0 2px;";
+
+  wrap.appendChild(makeGroup("Custom Channels"));
 
   for (const name of names) {
     const row = document.createElement("div");
-    row.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:6px;background:rgba(255,255,255,0.04);";
-    const rowInfo = document.createElement("div");
-    const nameDiv = document.createElement("div");
-    nameDiv.style.cssText = "font-weight:600;font-size:0.875rem;";
-    nameDiv.textContent = name;
-    const hostDiv = document.createElement("div");
-    hostDiv.style.cssText = "font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:2px;";
-    hostDiv.textContent = `${channels[name][0]} / ${channels[name][1]}${channels[name][2] ? ` \u00b7 fixed: ${channels[name][2]}` : ""}`;
-    rowInfo.append(nameDiv, hostDiv);
-    row.appendChild(rowInfo);
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = "Remove";
-    btn.style.cssText = BTN_DANGER_SMALL;
-    btn.addEventListener("click", () => {
+    row.className = "sl-settings-row";
+
+    const info = document.createElement("div");
+    const nameEl = document.createElement("div");
+    nameEl.style.cssText = "font-weight:600;font-size:0.875rem;";
+    nameEl.textContent = name;
+    const hostEl = document.createElement("div");
+    hostEl.style.cssText = "font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:2px;";
+    hostEl.textContent = `${channels[name][0]} / ${channels[name][1]}${channels[name][2] ? ` \u00b7 fixed: ${channels[name][2]}` : ""}`;
+    info.appendChild(nameEl);
+    info.appendChild(hostEl);
+
+    const removeBtn = makeBtn("Remove", "sl-btn-danger");
+    removeBtn.addEventListener("click", () => {
       delete channels[name];
       saveCustomChannels(channels);
-      if (getCurrentChannel() === name) {
-        setCurrentChannel("Stable");
-      }
+      if (getCurrentChannel() === name) setCurrentChannel("Stable");
       Spicetify.PopupModal.hide();
       Spicetify.showNotification(`Channel "${name}" removed`);
       setTimeout(showChannelSwitcher, 100);
     });
-    row.appendChild(btn);
-    div.appendChild(row);
+
+    row.appendChild(info);
+    row.appendChild(removeBtn);
+    wrap.appendChild(row);
   }
 
-  const btnRow = document.createElement("div");
-  btnRow.style.cssText = "display:flex;justify-content:flex-end;padding-top:8px;";
-  const backBtn = document.createElement("button");
-  backBtn.type = "button";
-  backBtn.textContent = "Back";
-  backBtn.style.cssText = BTN_SECONDARY;
-  backBtn.addEventListener("click", () => {
-    Spicetify.PopupModal.hide();
-    setTimeout(showChannelSwitcher, 100);
-  });
+  const btnRow = makeBtnRow();
+  const backBtn = makeBtn("Back");
+  backBtn.addEventListener("click", () => { Spicetify.PopupModal.hide(); setTimeout(showChannelSwitcher, 100); });
   btnRow.appendChild(backBtn);
-  div.appendChild(btnRow);
+  wrap.appendChild(btnRow);
 
-  Spicetify.PopupModal.display({
-    title: "Remove Channel",
-    content: div,
-    isLarge: false,
-  });
+  Spicetify.PopupModal.display({ title: "Manage Channels", content: wrap, isLarge: false });
 };
 
 // ─── Expose channel manager globally for the plugin to use ───
@@ -383,11 +341,7 @@ const renderChannelSettings = () => {
           <label class="x-settings-label" style="font-size:0.875rem;">Build Channel (Current: ${getCurrentChannel()})</label>
         </div>
         <div class="x-settings-secondColumn">
-          <button id="sl-entry-manage-btn" type="button" class="x-settings-button"
-            data-encore-id="buttonSecondary"
-            style="padding:6px 16px;border-radius:500px;border:1px solid rgba(255,255,255,0.3);background:transparent;color:#fff;font-weight:700;cursor:pointer;font-size:0.8rem;">
-            Manage
-          </button>
+          <button id="sl-entry-manage-btn" type="button" class="sl-btn">Manage</button>
         </div>
       </div>
     `;
@@ -436,14 +390,8 @@ const makeErrorContent = (title, description) => {
   `;
   const btnRow = document.createElement("div");
   btnRow.style.cssText = "display:flex;justify-content:center;padding-top:20px;";
-  const switchBtn = document.createElement("button");
-  switchBtn.type = "button";
-  switchBtn.textContent = "Switch Build Channel";
-  switchBtn.style.cssText = BTN_SECONDARY;
-  switchBtn.addEventListener("click", () => {
-    Spicetify.PopupModal.hide();
-    setTimeout(showChannelSwitcher, 100);
-  });
+  const switchBtn = makeBtn("Switch Build Channel");
+  switchBtn.addEventListener("click", () => { Spicetify.PopupModal.hide(); setTimeout(showChannelSwitcher, 100); });
   btnRow.appendChild(switchBtn);
   div.appendChild(btnRow);
   return div;
