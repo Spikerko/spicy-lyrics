@@ -240,6 +240,14 @@ async function main() {
     Defaults.SyllableRendering = storage.get("syllableRendering").toString();
   }
 
+  if (!storage.get("showLatencyIndicator")) {
+    storage.set("showLatencyIndicator", "false");
+  }
+
+  if (storage.get("showLatencyIndicator")) {
+    Defaults.ShowLatencyIndicator = storage.get("showLatencyIndicator") === "true";
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
 
   /* if (storage.get("lyrics_spacing")) {
@@ -266,11 +274,25 @@ async function main() {
 
   setSettingsMenu();
 
+  if (storage.get("skip-spicy-font") === "true") {
+    Defaults.SkipSpicyFont = true;
+  }
+
+  if (storage.get("customFont")) {
+    Defaults.CustomFont = storage.get("customFont").toString();
+  }
+
+  if (Defaults.SkipSpicyFont && Defaults.CustomFont) {
+    document.documentElement.style.setProperty("--spicy-custom-font", Defaults.CustomFont);
+  }
+
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {
     LoadFonts();
     ApplyFontPixel();
   }
+
+  (window as any).__spicy_load_fonts = () => { LoadFonts(); ApplyFontPixel(); };
 
   const skeletonStyle = document.createElement("style");
   skeletonStyle.innerHTML = `
@@ -630,6 +652,20 @@ async function main() {
     button = ButtonList[0];
     (window as any).__spicyLyricsButtonList = ButtonList;
   }
+
+  (window as any).__spicy_set_popup_lyrics_allowed = (allowed: boolean) => {
+    const entry = (window as any).__spicyLyricsButtonList?.[2];
+    const btn = entry?.Button;
+    const nativePip = document.querySelector<HTMLElement>('[data-testid="pip-toggle-button"]');
+    if (!allowed) {
+      if (btn && entry.Registered) { btn.deregister?.(); entry.Registered = false; }
+      if (nativePip) nativePip.style.display = "";
+    } else {
+      if (btn) { btn.register?.(); entry.Registered = true; }
+      else { window.location.reload(); return; }
+      if (nativePip) nativePip.style.display = "none";
+    }
+  };
 
   const Hometinue = async () => {
     Whentil.When(
@@ -1112,6 +1148,6 @@ async function main() {
 
 main();
 
-if (storage.get("developerMode") === "true") {
+if (storage.get("showLatencyIndicator") === "true") {
   connectionIndicatorInit();
 }

@@ -36,6 +36,8 @@ const Defaults = {
   BuildChannel: "Stable" as string,
   AlwaysShowInFullscreen: "None" as string,
   ReplaceSpotifyPlaybar: false,
+  ShowLatencyIndicator: false,
+  CustomFont: "",
 };
 
 export default Defaults;

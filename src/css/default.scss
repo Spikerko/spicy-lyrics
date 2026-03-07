@@ -131,6 +131,14 @@
   }
 }
 
+#SpicyLyricsPage:not(.UseSpicyFont) {
+  font-family: var(--spicy-custom-font, inherit) !important;
+
+  * {
+    font-family: inherit !important;
+  }
+}
+
 body.sl_settings_top {
   .x-settings-headerContainer {
     order: -4;
@@ -328,6 +336,27 @@ body:has(.SpicyLyricsSettingsOverlay) .GenericModal__overlay {
 
     &:focus {
       outline: none;
+      border-color: var(--spice-button);
+    }
+  }
+
+  .sl-input {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    width: 200px;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    &:focus {
       border-color: var(--spice-button);
     }
   }

@@ -9,6 +9,78 @@ Component.AddRootComponent("lCache", {
   RemoveCurrentLyrics_StateCache,
 })
 
+function isDevModeEnabled(): boolean {
+  return storage.get("developerMode") === "true";
+}
+
+function isDevEnvironment(): boolean {
+  if ((window as any).__spicy_lyrics_dev_local) return true;
+  if ((Spicetify as any).Config?.enableDevTools) return true;
+  if ((Spicetify as any).Config?.devtools) return true;
+  return false;
+}
+
+function attachDevModeGesture() {
+  let rightClickCount = 0;
+  let leftClickCount = 0;
+  let clickTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  const setupHeading = () => {
+    const container = document.getElementById("spicy-lyrics-settings");
+    if (!container) return;
+    const heading = container.querySelector<HTMLElement>("h2");
+    if (!heading || (heading as any).__spicy_devmode_gesture) return;
+    (heading as any).__spicy_devmode_gesture = true;
+
+    heading.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      rightClickCount++;
+      leftClickCount = 0;
+      if (clickTimeout) clearTimeout(clickTimeout);
+      clickTimeout = setTimeout(() => { rightClickCount = 0; leftClickCount = 0; }, 3000);
+      if (rightClickCount >= 7) {
+        rightClickCount = 0;
+        storage.set("developerMode", "true");
+        Spicetify.showNotification("Developer Mode enabled");
+      }
+    });
+
+    heading.addEventListener("click", (e) => {
+      if ((e as MouseEvent).button !== 0) return;
+      rightClickCount = 0;
+      leftClickCount++;
+      if (clickTimeout) clearTimeout(clickTimeout);
+      clickTimeout = setTimeout(() => { rightClickCount = 0; leftClickCount = 0; }, 3000);
+      if (leftClickCount >= 6) {
+        leftClickCount = 0;
+        storage.set("developerMode", "false");
+        Spicetify.showNotification("Developer Mode disabled");
+      }
+    });
+  };
+
+  const waitAndSetup = () => {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (document.getElementById("spicy-lyrics-settings")) {
+        setupHeading();
+        clearInterval(interval);
+      } else if (attempts > 100) {
+        clearInterval(interval);
+      }
+    }, 50);
+  };
+
+  Spicetify.Platform.History.listen((e: any) => {
+    if (e.pathname === "/preferences") waitAndSetup();
+  });
+
+  if (Spicetify.Platform.History.location.pathname === "/preferences") {
+    waitAndSetup();
+  }
+}
+
 export function showSettingsPanel() {
   if (document.querySelector(".SpicyLyricsSettingsOverlay")) return;
 
@@ -120,19 +192,78 @@ export function showSettingsPanel() {
   // --- Appearance ---
   group("Appearance");
 
+  let customFontRow: HTMLElement | null = null;
+
   toggle("Skip Spicy Font*", Defaults.SkipSpicyFont, (v) => {
     storage.set("skip-spicy-font", v.toString());
     Defaults.SkipSpicyFont = v;
+    const page = document.querySelector("#SpicyLyricsPage");
+    if (v) {
+      page?.classList.remove("UseSpicyFont");
+      if (customFontRow) customFontRow.style.display = "";
+    } else {
+      page?.classList.add("UseSpicyFont");
+      if (customFontRow) customFontRow.style.display = "none";
+      document.documentElement.style.removeProperty("--spicy-custom-font");
+      (window as any).__spicy_load_fonts?.();
+    }
   });
+
+  {
+    const row = document.createElement("div");
+    row.className = "sl-settings-row";
+    row.style.display = Defaults.SkipSpicyFont ? "" : "none";
+    const lbl = document.createElement("span");
+    lbl.className = "sl-settings-label";
+    lbl.textContent = "Custom Font";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "sl-input";
+    input.placeholder = "Spotify font (default)";
+    input.value = Defaults.CustomFont;
+    input.addEventListener("input", () => {
+      const val = input.value.trim();
+      storage.set("customFont", val);
+      Defaults.CustomFont = val;
+      if (val) {
+        document.documentElement.style.setProperty("--spicy-custom-font", val);
+      } else {
+        document.documentElement.style.removeProperty("--spicy-custom-font");
+      }
+    });
+    row.appendChild(lbl);
+    row.appendChild(input);
+    scroll.appendChild(row);
+    customFontRow = row;
+  }
 
   toggle("Old Style Font (Overridden by previous option)", Defaults.OldStyleFont, (v) => {
     storage.set("old-style-font", v.toString());
     Defaults.OldStyleFont = v;
   });
 
+  toggle("Right Align Lyrics", Defaults.RightAlignLyrics, (v) => {
+    storage.set("rightAlignLyrics", v.toString());
+    Defaults.RightAlignLyrics = v;
+    ReloadCurrentLyrics();
+  });
+
+  toggle("Lock the MediaBox size while in Forced Compact Mode", Defaults.CompactMode_LockedMediaBox, (v) => {
+    storage.set("lockedMediaBox", v.toString());
+    Defaults.CompactMode_LockedMediaBox = v;
+  });
+
+  toggle("Minimal Lyrics Mode (Only in Fullscreen/Cinema View)", Defaults.MinimalLyricsMode, (v) => {
+    storage.set("minimalLyricsMode", v.toString());
+    Defaults.MinimalLyricsMode = v;
+    document.querySelector("#SpicyLyricsPage")?.classList.toggle("MinimalLyricsMode", v);
+    ReloadCurrentLyrics();
+  });
+
   toggle("Simple Lyrics Mode", Defaults.SimpleLyricsMode, (v) => {
     storage.set("simpleLyricsMode", v.toString());
     Defaults.SimpleLyricsMode = v;
+    document.querySelector("#SpicyLyricsPage")?.classList.toggle("SimpleLyricsMode", v);
     ReloadCurrentLyrics();
   });
 
@@ -148,11 +279,6 @@ export function showSettingsPanel() {
     }
   );
 
-  toggle("Right Align Lyrics", Defaults.RightAlignLyrics, (v) => {
-    storage.set("rightAlignLyrics", v.toString());
-    Defaults.RightAlignLyrics = v;
-  });
-
   dropdown(
     "Syllable Rendering",
     ["Default", "Merge Words", "Reduce Splits"],
@@ -160,17 +286,17 @@ export function showSettingsPanel() {
     (v) => {
       storage.set("syllableRendering", v);
       Defaults.SyllableRendering = v;
+      ReloadCurrentLyrics();
     }
   );
 
-  toggle("Minimal Lyrics Mode (Only in Fullscreen/Cinema View)", Defaults.MinimalLyricsMode, (v) => {
-    storage.set("minimalLyricsMode", v.toString());
-    Defaults.MinimalLyricsMode = v;
-    ReloadCurrentLyrics();
-  });
-
   // --- Background ---
   group("Background");
+
+  toggle("Hide Now Playing View Dynamic Background", Defaults.hide_npv_bg, (v) => {
+    storage.set("hide_npv_bg", v.toString());
+    Defaults.hide_npv_bg = v;
+  });
 
   toggle("Static Background", Defaults.StaticBackground_Preset, (v) => {
     storage.set("staticBackground", v.toString());
@@ -187,13 +313,19 @@ export function showSettingsPanel() {
     }
   );
 
-  toggle("Hide Now Playing View Dynamic Background", Defaults.hide_npv_bg, (v) => {
-    storage.set("hide_npv_bg", v.toString());
-    Defaults.hide_npv_bg = v;
-  });
-
   // --- Playback & Controls ---
   group("Playback & Controls");
+
+  toggle("Replace Spotify Playbar with NowBar (performance gain workaround)", Defaults.ReplaceSpotifyPlaybar, (v) => {
+    storage.set("replaceSpotifyPlaybar", v.toString());
+    Defaults.ReplaceSpotifyPlaybar = v;
+  });
+
+  toggle("Disable Popup Lyrics", !Defaults.PopupLyricsAllowed, (v) => {
+    storage.set("disablePopupLyrics", v.toString());
+    Defaults.PopupLyricsAllowed = !v;
+    (window as any).__spicy_set_popup_lyrics_allowed?.(!v);
+  });
 
   dropdown(
     "View Controls Position",
@@ -202,27 +334,6 @@ export function showSettingsPanel() {
     (v) => {
       storage.set("viewControlsPosition", v);
       Defaults.ViewControlsPosition = v;
-    }
-  );
-
-  toggle("Disable Popup Lyrics", !Defaults.PopupLyricsAllowed, (v) => {
-    storage.set("disablePopupLyrics", v.toString());
-    Defaults.PopupLyricsAllowed = !v;
-    window.location.reload();
-  });
-
-  toggle("Show Topbar Notifications", Defaults.show_topbar_notifications, (v) => {
-    storage.set("show_topbar_notifications", v.toString());
-    Defaults.show_topbar_notifications = v;
-  });
-
-  dropdown(
-    "Escape Key Function",
-    ["Default", "Exit Fullscreen", "Exit Fully"],
-    Defaults.EscapeKeyFunction === "Exit Fully" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
-    (v) => {
-      storage.set("escapeKeyFunction", v);
-      Defaults.EscapeKeyFunction = v;
     }
   );
 
@@ -249,18 +360,15 @@ export function showSettingsPanel() {
     }
   );
 
-  toggle("Replace Spotify Playbar with NowBar (performance gain workaround)", Defaults.ReplaceSpotifyPlaybar, (v) => {
-    storage.set("replaceSpotifyPlaybar", v.toString());
-    Defaults.ReplaceSpotifyPlaybar = v;
-  });
-
-  // --- Layout ---
-  group("Layout");
-
-  toggle("Lock the MediaBox size while in Forced Compact Mode", Defaults.CompactMode_LockedMediaBox, (v) => {
-    storage.set("lockedMediaBox", v.toString());
-    Defaults.CompactMode_LockedMediaBox = v;
-  });
+  dropdown(
+    "Escape Key Function",
+    ["Default", "Exit Fullscreen", "Exit Fully"],
+    Defaults.EscapeKeyFunction === "Exit Fully" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
+    (v) => {
+      storage.set("escapeKeyFunction", v);
+      Defaults.EscapeKeyFunction = v;
+    }
+  );
 
   // --- Cache ---
   group("Cache");
@@ -286,15 +394,6 @@ export function showSettingsPanel() {
   // --- Advanced ---
   group("Advanced");
 
-  button("Browse Local TTML Database", "Browse", () => {
-    (window as any).__spicy_ttml_explore_db?.();
-  });
-
-  toggle("Developer Mode", Defaults.DeveloperMode, (v) => {
-    storage.set("developerMode", v.toString());
-    window.location.reload();
-  });
-
   {
     const [maj, min] = Defaults.SpicyLyricsVersion.split(".").map(Number);
     const isLegacyBuild = !isNaN(maj) && (maj < 5 || (maj === 5 && min <= 20));
@@ -304,6 +403,26 @@ export function showSettingsPanel() {
         (window as any)._spicy_lyrics_channels?.showSwitcher?.();
       });
     }
+  }
+
+  button("Browse Local TTML Database", "Browse", () => {
+    (window as any).__spicy_ttml_explore_db?.();
+  });
+
+  toggle("Latency to Server (Performance Heavy)", Defaults.ShowLatencyIndicator, (v) => {
+    storage.set("showLatencyIndicator", v.toString());
+    window.location.reload();
+  });
+
+  if (isDevModeEnabled()) {
+    toggle("Developer Mode", true, (v) => {
+      storage.set("developerMode", v.toString());
+      if (!v) {
+        devModeRow?.remove();
+        Spicetify.showNotification("Developer Mode disabled");
+      }
+    });
+    const devModeRow = scroll.lastElementChild as HTMLElement;
   }
 
   container.appendChild(header);
@@ -328,4 +447,6 @@ export async function setSettingsMenu() {
   );
 
   settings.pushSettings();
+
+  attachDevModeGesture();
 }

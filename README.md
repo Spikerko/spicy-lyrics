@@ -46,7 +46,15 @@ Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, imme
 
 ## What's New
 
-### v100.10.7 — Latest
+### v100.10.8 — Latest
+
+- **Settings panel reorganized** — options grouped more logically across sections; unused options removed
+- **Settings apply instantly** — font, right-align, syllable rendering, simple and minimal lyrics modes all update without reloading Spotify
+- **Fixed** the Replace Spotify Playbar workaround incorrectly hiding Spotify's progress bar while Popup Lyrics was open
+
+---
+
+### v100.10.7
 
 - **Brought back the Clear All Cache button**
 - **Fixed the pop-out player** — inline controls and timeline no longer show in the mini player
