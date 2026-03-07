@@ -131,14 +131,6 @@
   }
 }
 
-#SpicyLyricsPage:not(.UseSpicyFont) {
-  font-family: var(--spicy-custom-font, inherit) !important;
-
-  * {
-    font-family: inherit !important;
-  }
-}
-
 body.sl_settings_top {
   .x-settings-headerContainer {
     order: -4;
@@ -376,5 +368,13 @@ body:has(.SpicyLyricsSettingsOverlay) .GenericModal__overlay {
       background: rgba(255, 255, 255, 0.13);
       border-color: rgba(255, 255, 255, 0.25);
     }
+  }
+}
+
+#SpicyLyricsPage:not(.UseSpicyFont) {
+  font-family: var(--spicy-custom-font), SpicyLyrics, sans-serif !important;
+
+  * {
+    font-family: inherit !important;
   }
 }
