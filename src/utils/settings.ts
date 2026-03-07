@@ -12,7 +12,7 @@ Component.AddRootComponent("lCache", {
 export function showSettingsPanel() {
   if (document.querySelector(".SpicyLyricsSettingsOverlay")) return;
 
-  const margin = 80;
+  const maxWidth = 1000;
   const page = document.querySelector("#SpicyLyricsPage");
 
   const backdrop = document.createElement("div");
@@ -21,18 +21,33 @@ export function showSettingsPanel() {
 
   const container = document.createElement("div");
   container.className = "SpicyLyricsSettingsContainer";
-  if (page) {
-    const rect = page.getBoundingClientRect();
-    container.style.left   = `${rect.left   + margin}px`;
-    container.style.right  = `${window.innerWidth  - rect.right  + margin}px`;
-    container.style.top    = `${rect.top    + margin}px`;
-    container.style.bottom = `${window.innerHeight - rect.bottom + margin}px`;
-  } else {
-    container.style.left   = `${margin}px`;
-    container.style.right  = `${margin}px`;
-    container.style.top    = `${margin}px`;
-    container.style.bottom = `${margin}px`;
+
+  function updatePosition() {
+    const ref = page ?? document.documentElement;
+    const rect = ref.getBoundingClientRect();
+    const availW = page ? rect.width : window.innerWidth;
+    const availH = page ? rect.height : window.innerHeight;
+    const originX = page ? rect.left : 0;
+    const originY = page ? rect.top : 0;
+    const panelWidth = Math.min(maxWidth, availW - 80);
+    const panelHeight = availH * 0.7;
+    container.style.width  = `${panelWidth}px`;
+    container.style.height = `${panelHeight}px`;
+    container.style.left   = `${originX + (availW - panelWidth) / 2}px`;
+    container.style.top    = `${originY + (availH - panelHeight) / 2}px`;
   }
+
+  updatePosition();
+  window.addEventListener("resize", updatePosition);
+
+  const removalObserver = new MutationObserver(() => {
+    if (!document.contains(backdrop)) {
+      window.removeEventListener("resize", updatePosition);
+      removalObserver.disconnect();
+    }
+  });
+  removalObserver.observe(document.body, { childList: true });
+
   container.addEventListener("click", (e) => e.stopPropagation());
 
   const header = document.createElement("div");
@@ -250,23 +265,30 @@ export function showSettingsPanel() {
   // --- Cache ---
   group("Cache");
 
+  button("Clear All Cache", "Clear All Cache", async () => {
+    await RemoveCurrentLyrics_AllCaches(false);
+    await RemoveLyricsCache(false);
+    RemoveCurrentLyrics_StateCache(true);
+  });
+
   button("Clear Lyrics for the current song from all caches", "Clear Current Song", async () => {
-    if (!confirm("Clear all cached data for the current song?")) return;
     await RemoveCurrentLyrics_AllCaches(true);
   });
 
   button("Clear Cached Lyrics (Lyrics Stay in Cache for 3 days)", "Clear Cached Lyrics", async () => {
-    if (!confirm("Clear all cached lyrics? This cannot be undone.")) return;
     await RemoveLyricsCache(true);
   });
 
   button("Clear Current Song Lyrics from internal state", "Clear Current Lyrics", () => {
-    if (!confirm("Clear the current song's lyrics from internal state?")) return;
     RemoveCurrentLyrics_StateCache(true);
   });
 
   // --- Advanced ---
   group("Advanced");
+
+  button("Browse Local TTML Database", "Browse", () => {
+    (window as any).__spicy_ttml_explore_db?.();
+  });
 
   toggle("Developer Mode", Defaults.DeveloperMode, (v) => {
     storage.set("developerMode", v.toString());

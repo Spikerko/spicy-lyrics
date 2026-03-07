@@ -760,51 +760,92 @@ function AppendViewControls(ReAppend: boolean = false) {
           });
         }
         const showLoadTTMLModal = () => {
-          Spicetify.PopupModal.display({
-            title: "Load TTML",
-            isLarge: true,
-            content: `
-                            <style>.SpicyLyricsDevToolsContainer .SettingValue button { min-width: 140px; box-sizing: border-box; text-align: center; }</style>
-                            <div class="SpicyLyricsDevToolsContainer">
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Temporarily load TTML for the current song</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.__spicy_ttml_upload_temp?.()">Load Temporary</button>
-                                    </div>
-                                </div>
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Load TTML for the current session (persists until restart)</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.__spicy_ttml_upload_session?.()">Load Session</button>
-                                    </div>
-                                </div>
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Load TTML for the current song (saved permanently)</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.__spicy_ttml_upload_persistent?.()">Load Persistent</button>
-                                    </div>
-                                </div>
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Reset TTML for the current song</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.__spicy_ttml_reset?.()">Reset TTML</button>
-                                    </div>
-                                </div>
-                                <div class="Setting" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
-                                    <div class="SettingName"><span>Browse and manage saved TTML entries</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.__spicy_ttml_explore_db?.()">Browse Database</button>
-                                    </div>
-                                </div>
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Need help creating TTML files?</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window.open('https://lyrprep.spicylyrics.org/guide', '_blank')">Open Guide</button>
-                                    </div>
-                                </div>
-                            </div>
-                        `,
+          document.querySelector(".SpicyLyricsTTMLModalOverlay")?.remove();
+
+          const overlay = document.createElement("div");
+          overlay.className = "SpicyLyricsSettingsOverlay SpicyLyricsTTMLModalOverlay";
+          overlay.addEventListener("click", () => overlay.remove());
+
+          const container = document.createElement("div");
+          container.className = "SpicyLyricsSettingsContainer";
+          container.addEventListener("click", (e) => e.stopPropagation());
+
+          function updateTTMLPosition() {
+            const page = document.querySelector("#SpicyLyricsPage");
+            const maxWidth = 680;
+            const availW = page ? page.getBoundingClientRect().width : window.innerWidth;
+            const availH = page ? page.getBoundingClientRect().height : window.innerHeight;
+            const originX = page ? page.getBoundingClientRect().left : 0;
+            const originY = page ? page.getBoundingClientRect().top : 0;
+            const panelWidth = Math.min(maxWidth, availW - 80);
+            container.style.width = `${panelWidth}px`;
+            container.style.left = `${originX + (availW - panelWidth) / 2}px`;
+            container.style.top = `${originY + availH / 2}px`;
+            container.style.transform = "translateY(-50%)";
+          }
+
+          updateTTMLPosition();
+          window.addEventListener("resize", updateTTMLPosition);
+
+          const removalObserver = new MutationObserver(() => {
+            if (!document.contains(overlay)) {
+              window.removeEventListener("resize", updateTTMLPosition);
+              removalObserver.disconnect();
+            }
           });
+          removalObserver.observe(document.body, { childList: true });
+
+          const header = document.createElement("div");
+          header.className = "SpicyLyricsSettingsHeader";
+          const title = document.createElement("span");
+          title.textContent = "Load TTML";
+          const closeBtn = document.createElement("button");
+          closeBtn.className = "SpicyLyricsSettingsHeaderClose";
+          closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+          closeBtn.addEventListener("click", () => overlay.remove());
+          header.appendChild(title);
+          header.appendChild(closeBtn);
+
+          const scroll = document.createElement("div");
+          scroll.className = "SpicyLyricsSettingsScroll";
+          scroll.style.overflowY = "visible";
+
+          function makeRow(label: string, btnText: string, onClick: () => void) {
+            const row = document.createElement("div");
+            row.className = "sl-settings-row";
+            const lbl = document.createElement("span");
+            lbl.className = "sl-settings-label";
+            lbl.textContent = label;
+            const btn = document.createElement("button");
+            btn.className = "sl-btn";
+            btn.textContent = btnText;
+            btn.addEventListener("click", onClick);
+            row.appendChild(lbl);
+            row.appendChild(btn);
+            scroll.appendChild(row);
+          }
+
+          function makeGroup(name: string) {
+            const h = document.createElement("h3");
+            h.className = "sl-settings-group";
+            h.textContent = name;
+            scroll.appendChild(h);
+          }
+
+          makeGroup("Load");
+          makeRow("Temporarily load TTML for the current song", "Load Temporary", () => (window as any).__spicy_ttml_upload_temp?.());
+          makeRow("Load TTML for the current session (persists until restart)", "Load Session", () => (window as any).__spicy_ttml_upload_session?.());
+          makeRow("Load TTML for the current song (saved permanently)", "Load Persistent", () => (window as any).__spicy_ttml_upload_persistent?.());
+          makeRow("Reset TTML for the current song", "Reset TTML", () => (window as any).__spicy_ttml_reset?.());
+          makeGroup("Database");
+          makeRow("Browse and manage saved TTML entries", "Browse Database", () => (window as any).__spicy_ttml_explore_db?.());
+          makeGroup("Help");
+          makeRow("Need help creating TTML files?", "Open Guide", () => window.open("https://lyrprep.spicylyrics.org/guide", "_blank"));
+
+          container.appendChild(header);
+          container.appendChild(scroll);
+          overlay.appendChild(container);
+          document.body.appendChild(overlay);
         };
         loadTTMLButton.addEventListener("click", () => {
           if (IsPIP) {

@@ -572,6 +572,12 @@
   margin-top: 1.5cqw;
 }
 
+/* Hide inline timeline and controls in PIP/popup mode */
+.spicy-pip-wrapper #SpicyLyricsPage .ContentBox .NowBar .Header .InlineTimeline,
+.spicy-pip-wrapper #SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls {
+  display: none !important;
+}
+
 /* Inline playback controls — shown below song title/artists in fullscreen */
 #SpicyLyricsPage .ContentBox .NowBar .Header .InlinePlaybackControls {
   display: none;

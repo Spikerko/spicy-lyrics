@@ -46,7 +46,18 @@ Spicy Lyrics replaces Spotify's plain, static lyrics with a fully animated, imme
 
 ## What's New
 
-### v100.10.6 — Latest
+### v100.10.7 — Latest
+
+- **Brought back the Clear All Cache button**
+- **Fixed the pop-out player** — inline controls and timeline no longer show in the mini player
+- **Removed confirmation prompts from cache buttons** — cache clears now fire immediately; the TTML database clear uses a styled in-app dialog instead of the browser prompt
+- **Settings panel slightly shrunk** — more compact and centered so controls are easier to reach
+- **Browse Local TTML Database** button added to the Advanced section in settings
+- **UI unification** — Load TTML and Browse Database overlays now match the settings panel design
+
+---
+
+### v100.10.6
 
 - **Settings Gear :O** — a dedicated "Open Settings" button now appears under the Spicy Lyrics section in Spotify's native settings, and all the Spicy Lyrics settings can be accessed through a settings gear in the lyric view.
 

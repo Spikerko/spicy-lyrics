@@ -87,48 +87,115 @@ function uploadTTML(mode: TTMLMode) {
   fileInput.click();
 }
 
-function showDatabaseOverlay(contentHtml: string, title: string) {
-  document.querySelector(".SpicyLyricsTTMLDatabaseOverlay")?.remove();
+function showConfirm(message: string, onConfirm: () => void) {
+  const page = document.querySelector("#SpicyLyricsPage");
+  const rect = page?.getBoundingClientRect();
 
   const overlay = document.createElement("div");
-  overlay.className = "SpicyLyricsTTMLDatabaseOverlay";
   overlay.style.cssText = [
     "position:fixed",
-    "inset:0",
-    "z-index:9999",
-    "display:flex",
-    "align-items:center",
-    "justify-content:center",
-    "background:rgba(0,0,0,0.6)",
+    `left:${rect ? rect.left : 0}px`,
+    `top:${rect ? rect.top : 0}px`,
+    `width:${rect ? rect.width : window.innerWidth}px`,
+    `height:${rect ? rect.height : window.innerHeight}px`,
+    "z-index:10000",
+    "display:flex", "align-items:center", "justify-content:center",
+    "background:rgba(0,0,0,0.5)",
   ].join(";");
 
   const panel = document.createElement("div");
   panel.style.cssText = [
-    "background:var(--spice-main,#121212)",
-    "border-radius:8px",
-    "padding:24px",
-    "max-width:620px",
-    "width:90%",
-    "max-height:75vh",
-    "overflow-y:auto",
-    "position:relative",
-    "box-shadow:0 8px 32px rgba(0,0,0,0.6)",
+    "background:#0e0e0e",
+    "border:1px solid rgba(255,255,255,0.14)",
+    "border-radius:10px", "padding:20px 24px",
+    "width:min(360px,calc(100% - 80px))",
+    "box-shadow:0 8px 32px rgba(0,0,0,0.7)",
+    "display:flex", "flex-direction:column", "gap:16px",
   ].join(";");
 
-  panel.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <span style="font-weight:700;font-size:1.1em;">${title}</span>
-      <button class="SpicyLyricsTTMLDBClose" style="background:none;border:none;cursor:pointer;opacity:0.7;font-size:1.2em;color:inherit;padding:4px 8px;">✕</button>
-    </div>
-    <style>.SpicyLyricsDevToolsContainer .SettingValue button{min-width:100px;box-sizing:border-box;text-align:center;}</style>
-    <div class="SpicyLyricsDevToolsContainer">${contentHtml}</div>
-  `;
+  const msg = document.createElement("p");
+  msg.style.cssText = "margin:0;font-size:0.875rem;color:rgba(255,255,255,0.85);line-height:1.5;";
+  msg.textContent = message;
+
+  const buttons = document.createElement("div");
+  buttons.style.cssText = "display:flex;justify-content:flex-end;gap:8px;";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.style.cssText = "background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:6px 16px;font-size:0.8rem;cursor:pointer;";
+  cancelBtn.textContent = "Cancel";
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.style.cssText = "background:rgba(200,40,40,0.85);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:0.8rem;cursor:pointer;";
+  confirmBtn.textContent = "Clear";
 
   const close = () => overlay.remove();
-  panel.querySelector(".SpicyLyricsTTMLDBClose")!.addEventListener("click", close);
+  cancelBtn.addEventListener("click", close);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  confirmBtn.addEventListener("click", () => { close(); onConfirm(); });
 
+  buttons.appendChild(cancelBtn);
+  buttons.appendChild(confirmBtn);
+  panel.appendChild(msg);
+  panel.appendChild(buttons);
   overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+}
+
+function showDatabaseOverlay(title: string, buildContent: (scroll: HTMLElement) => void) {
+  document.querySelector(".SpicyLyricsTTMLDatabaseOverlay")?.remove();
+
+  const overlay = document.createElement("div");
+  overlay.className = "SpicyLyricsSettingsOverlay SpicyLyricsTTMLDatabaseOverlay";
+  overlay.addEventListener("click", () => overlay.remove());
+
+  const container = document.createElement("div");
+  container.className = "SpicyLyricsSettingsContainer";
+  container.addEventListener("click", (e) => e.stopPropagation());
+
+  function updatePosition() {
+    const page = document.querySelector("#SpicyLyricsPage");
+    const maxWidth = 560;
+    const availW = page ? page.getBoundingClientRect().width : window.innerWidth;
+    const availH = page ? page.getBoundingClientRect().height : window.innerHeight;
+    const originX = page ? page.getBoundingClientRect().left : 0;
+    const originY = page ? page.getBoundingClientRect().top : 0;
+    const panelWidth = Math.min(maxWidth, availW - 80);
+    container.style.width = `${panelWidth}px`;
+    container.style.maxHeight = `${availH * 0.7}px`;
+    container.style.left = `${originX + (availW - panelWidth) / 2}px`;
+    container.style.top = `${originY + availH / 2}px`;
+    container.style.transform = "translateY(-50%)";
+  }
+
+  updatePosition();
+  window.addEventListener("resize", updatePosition);
+
+  const removalObserver = new MutationObserver(() => {
+    if (!document.contains(overlay)) {
+      window.removeEventListener("resize", updatePosition);
+      removalObserver.disconnect();
+    }
+  });
+  removalObserver.observe(document.body, { childList: true });
+
+  const header = document.createElement("div");
+  header.className = "SpicyLyricsSettingsHeader";
+  const titleEl = document.createElement("span");
+  titleEl.textContent = title;
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "SpicyLyricsSettingsHeaderClose";
+  closeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  closeBtn.addEventListener("click", () => overlay.remove());
+  header.appendChild(titleEl);
+  header.appendChild(closeBtn);
+
+  const scroll = document.createElement("div");
+  scroll.className = "SpicyLyricsSettingsScroll";
+  buildContent(scroll);
+
+  container.appendChild(header);
+  container.appendChild(scroll);
+  overlay.appendChild(container);
   document.body.appendChild(overlay);
 }
 
@@ -139,15 +206,17 @@ function exploreTTMLDatabase() {
       const keys = await cache.keys();
 
       if (keys.length === 0) {
-        showDatabaseOverlay(
-          `<div class="Setting"><div class="SettingName"><span>No TTML entries found in the local database.</span></div></div>`,
-          "Local TTML Database"
-        );
+        showDatabaseOverlay("Local TTML Database", (scroll) => {
+          const row = document.createElement("div");
+          row.className = "sl-settings-row";
+          const lbl = document.createElement("span");
+          lbl.className = "sl-settings-label";
+          lbl.textContent = "No TTML entries found in the local database.";
+          row.appendChild(lbl);
+          scroll.appendChild(row);
+        });
         return;
       }
-
-      const escHtml = (s: string) =>
-        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
       const entries: { itemKey: string; trackId: string; lyricsType: string; isLocal: boolean }[] = [];
       const nonLocalIds: string[] = [];
@@ -183,40 +252,82 @@ function exploreTTMLDatabase() {
         }
       }
 
-      let entriesHtml = "";
-      for (const entry of entries) {
-        let displayName: string;
-        let tags = "";
+      showDatabaseOverlay(`Local TTML Database (${keys.length} entries)`, (scroll) => {
+        const group = document.createElement("h3");
+        group.className = "sl-settings-group";
+        group.textContent = "Saved Entries";
+        scroll.appendChild(group);
 
-        if (entry.isLocal) {
-          displayName = escHtml(entry.trackId);
-          tags = `<span style="background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;font-size:0.75em;margin-left:6px;">Local File</span>`;
-        } else if (trackMeta[entry.trackId]) {
-          const meta = trackMeta[entry.trackId];
-          displayName = escHtml(`${meta.name} - ${meta.artists}`);
-        } else {
-          displayName = escHtml(entry.trackId);
+        for (const entry of entries) {
+          const row = document.createElement("div");
+          row.className = "sl-settings-row";
+
+          const labelWrap = document.createElement("span");
+          labelWrap.className = "sl-settings-label";
+
+          const name = document.createElement("span");
+          if (entry.isLocal) {
+            name.textContent = entry.trackId;
+          } else if (trackMeta[entry.trackId]) {
+            const meta = trackMeta[entry.trackId];
+            name.textContent = `${meta.name} — ${meta.artists}`;
+          } else {
+            name.textContent = entry.trackId;
+          }
+          labelWrap.appendChild(name);
+
+          if (entry.isLocal) {
+            const tag = document.createElement("span");
+            tag.textContent = "Local File";
+            tag.style.cssText = "background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;font-size:0.75em;margin-left:6px;";
+            labelWrap.appendChild(tag);
+          }
+
+          const type = document.createElement("span");
+          type.textContent = entry.lyricsType;
+          type.style.cssText = "opacity:0.5;font-size:0.8em;margin-left:8px;";
+          labelWrap.appendChild(type);
+
+          const actions = document.createElement("div");
+          actions.style.cssText = "display:flex;gap:6px;flex-shrink:0;";
+
+          if (!entry.isLocal) {
+            const playBtn = document.createElement("button");
+            playBtn.className = "sl-btn";
+            playBtn.textContent = "Play Now";
+            playBtn.addEventListener("click", () => (window as any).__spicy_ttml_play_entry?.(entry.itemKey));
+            actions.appendChild(playBtn);
+          }
+
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "sl-btn";
+          removeBtn.textContent = "Remove";
+          removeBtn.addEventListener("click", () => (window as any).__spicy_ttml_remove_entry?.(entry.itemKey));
+          actions.appendChild(removeBtn);
+
+          row.appendChild(labelWrap);
+          row.appendChild(actions);
+          scroll.appendChild(row);
         }
 
-        entriesHtml += `
-          <div class="Setting" style="border-bottom:1px solid rgba(255,255,255,0.08);padding:6px 0;">
-            <div class="SettingName" style="flex:1;">
-              <span style="font-weight:600;">${displayName}</span>${tags}
-              <span style="opacity:0.6;font-size:0.85em;margin-left:8px;">${escHtml(entry.lyricsType)}</span>
-            </div>
-            <div class="SettingValue" style="display:flex;gap:6px;">
-              ${!entry.isLocal ? `<button onclick="window.__spicy_ttml_play_entry?.(${JSON.stringify(entry.itemKey)})">Play Now</button>` : ""}
-              <button onclick="window.__spicy_ttml_remove_entry?.(${JSON.stringify(entry.itemKey)})">Remove</button>
-            </div>
-          </div>`;
-      }
+        const clearGroup = document.createElement("h3");
+        clearGroup.className = "sl-settings-group";
+        clearGroup.textContent = "Manage";
+        scroll.appendChild(clearGroup);
 
-      const clearBtn = `<div class="Setting" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;">
-        <div class="SettingName"><span>Remove all persistent TTML entries</span></div>
-        <div class="SettingValue"><button onclick="window.__spicy_ttml_clear_db?.()">Clear Database</button></div>
-      </div>`;
-
-      showDatabaseOverlay(`${entriesHtml}${clearBtn}`, `Local TTML Database (${keys.length} entries)`);
+        const clearRow = document.createElement("div");
+        clearRow.className = "sl-settings-row";
+        const clearLabel = document.createElement("span");
+        clearLabel.className = "sl-settings-label";
+        clearLabel.textContent = "Remove all persistent TTML entries";
+        const clearBtn = document.createElement("button");
+        clearBtn.className = "sl-btn";
+        clearBtn.textContent = "Clear Database";
+        clearBtn.addEventListener("click", () => (window as any).__spicy_ttml_clear_db?.());
+        clearRow.appendChild(clearLabel);
+        clearRow.appendChild(clearBtn);
+        scroll.appendChild(clearRow);
+      });
     } catch (err) {
       console.error("Error exploring TTML database:", err);
       ShowNotification("Error reading TTML database", "error", 5000);
@@ -263,16 +374,17 @@ Global.SetScope("execute", (command: string) => {
           }
         })();
       } else if (command === "clear-ttml-db") {
-        if (!confirm("Clear the entire local TTML database? This cannot be undone.")) break;
-        (async () => {
-          try {
-            await caches.delete("SpicyLyrics_UserTTMLStore");
-            ShowNotification("TTML database cleared.", "info", 5000);
-          } catch (err) {
-            ShowNotification("Error clearing database", "error", 5000);
-            console.error("Error clearing TTML database:", err);
-          }
-        })();
+        showConfirm("Clear the entire local TTML database? This cannot be undone.", () => {
+          (async () => {
+            try {
+              await caches.delete("SpicyLyrics_UserTTMLStore");
+              ShowNotification("TTML database cleared.", "info", 5000);
+            } catch (err) {
+              ShowNotification("Error clearing database", "error", 5000);
+              console.error("Error clearing TTML database:", err);
+            }
+          })();
+        });
       }
       break;
   }
@@ -301,15 +413,14 @@ Global.SetScope("execute", (command: string) => {
   })();
 };
 (window as any).__spicy_ttml_clear_db         = () => {
-  if (!confirm("Clear the entire local TTML database? This cannot be undone.")) return;
-  (async () => {
+  showConfirm("Clear the entire local TTML database? This cannot be undone.", async () => {
     try {
       await caches.delete("SpicyLyrics_UserTTMLStore");
       ShowNotification("TTML database cleared.", "info", 5000);
     } catch (err) {
       ShowNotification("Error clearing database", "error", 5000);
     }
-  })();
+  });
 };
 
 async function ParseTTML(ttml: string): Promise<any | null> {

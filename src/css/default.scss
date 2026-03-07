@@ -149,13 +149,6 @@ body.sl_settings_top {
   }
 }
 
-#spicy-lyrics-settings,
-#spicy-lyrics-dev-settings,
-#spicy-lyrics-settings-info {
-  border: 2px var(--background-highlight) solid;
-  padding: 12px;
-  border-radius: 8px;
-}
 
 /* Elevate Spicetify's PopupModal above the settings overlay when both are open */
 body:has(.SpicyLyricsSettingsOverlay) .GenericModal__overlay {
