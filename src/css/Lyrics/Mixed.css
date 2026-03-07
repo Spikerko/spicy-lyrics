@@ -190,6 +190,12 @@
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letterGroup {
   --text-shadow-blur-radius: 4px;
   --text-shadow-opacity: 0%;
+  /* Extend compositing layer boundaries to cover italic/oblique glyph overhang.
+     GPU-composited layers are clipped to the element's layout box, which cuts off
+     slanted glyphs at the box edges — most visibly on the active (animated) line.
+     Padding extends the layer; negative margin cancels the layout impact. */
+  padding-inline: 0.3em;
+  margin-inline: -0.3em;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:not(.musical-line) .word,
