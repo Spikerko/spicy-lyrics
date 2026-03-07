@@ -196,6 +196,8 @@
      Padding extends the layer; negative margin cancels the layout impact. */
   padding-inline: 0.3em;
   margin-inline: -0.3em;
+  padding-block: 0.15em;
+  margin-block: -0.15em;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:not(.musical-line) .word,
