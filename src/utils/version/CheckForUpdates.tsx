@@ -28,7 +28,7 @@ export async function CheckForUpdates(force: boolean = false) {
         </div>
         <button
           onClick={() =>
-            window._spicy_lyrics_session.Navigate({ pathname: "/SpicyLyrics/Update" })
+            Session.Navigate({ pathname: "/SpicyLyrics/Update" })
           }
           className="btn-release"
           data-encore-id="buttonSecondary"

@@ -6,7 +6,6 @@ import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
   cleanupApplyLyricsAbortController,
-  resetLyricsPlayer,
 } from "../../utils/Lyrics/Global/Applyer.ts";
 import {
   addLinesEvListener,
@@ -341,8 +340,6 @@ function DestroyPage() {
 
   if (Fullscreen.IsOpen) Fullscreen.Close();
   if (!PageContainer) return;
-
-  resetLyricsPlayer();
 
   CleanupDynamicBGLets();
   ResetLastLine();
