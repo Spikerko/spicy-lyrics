@@ -163,3 +163,7 @@ src/packages/
 
 
 public-storage/
+
+# Claude Code
+.claude/
+CLAUDE.md
