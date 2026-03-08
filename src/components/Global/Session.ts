@@ -100,6 +100,4 @@ const Session = {
   },
 };
 
-window._spicy_lyrics_session = Session;
-
 export default Session;

@@ -1,16 +1,16 @@
 import React from "react";
 
 interface UpdateDialogProps {
-  previousVersion: string;
+  fromVersion: string;
   spicyLyricsVersion: string;
 }
 
-const UpdateDialog: React.FC<UpdateDialogProps> = ({ previousVersion, spicyLyricsVersion }) => {
+const UpdateDialog: React.FC<UpdateDialogProps> = ({ fromVersion, spicyLyricsVersion }) => {
   return (
     <div className="update-card-wrapper slm">
       <h2 className="header">Spicy Lyrics has been successfully updated!</h2>
       <div className="card version">
-        Version: {previousVersion ? `${previousVersion} → ` : ""}{spicyLyricsVersion || "Unknown"}
+        Version: {fromVersion ? `${fromVersion} → ` : ""}{spicyLyricsVersion || "Unknown"}
       </div>
       <button
         className="card btn btn-release"
