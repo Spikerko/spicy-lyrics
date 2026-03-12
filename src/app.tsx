@@ -198,6 +198,11 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
+  if (storage.get("rightAlignLyrics")) {
+    const val = storage.get("rightAlignLyrics").toString();
+    Defaults.RightAlignLyrics = val === "true" || val === true;
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
   window._spicy_lyrics_metadata = {}
 
