@@ -2,6 +2,20 @@
   --bg-rotation-degree: 258deg;
 }
 
+/* Change the way the progress bar and buttons are displayed, to get rid of forced reflow stutter. */
+.player-controls__buttons {
+  position: absolute;
+  bottom: 3ch;
+  display: -webkit-box;
+  width: 35%;
+}
+.playback-bar {
+  position: absolute;
+  bottom: 1.5ch;
+  display: -webkit-box;
+  width: 35%;
+}
+
 .main-nowPlayingView-contextItemInfo::before {
   display: none;
 }
