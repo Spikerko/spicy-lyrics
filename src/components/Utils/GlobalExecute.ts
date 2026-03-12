@@ -1,11 +1,8 @@
-// deno-lint-ignore-file no-case-declarations
-import { parseTTML } from "../../edited_packages/applemusic-like-lyrics-lyric/parser.ts";
 import { Query } from "../../utils/API/Query.ts";
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
-import ApplyLyrics, { currentLyricsPlayer } from "../../utils/Lyrics/Global/Applyer.ts";
+import ApplyLyrics from "../../utils/Lyrics/Global/Applyer.ts";
 import { ProcessLyrics } from "../../utils/Lyrics/ProcessLyrics.ts";
 import storage from "../../utils/storage.ts";
-import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { ShowNotification } from "../Pages/PageView.ts";
@@ -23,36 +20,28 @@ Global.SetScope("execute", (command: string) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
             const ttml = e.target?.result as string;
-            // console.log("TTML file loaded:", ttml);
-            if (Defaults.LyricsRenderer === "aml-lyrics") {
-              ShowNotification("Found TTML, Inserting...", "info", 5000);
-              const lyricsLines = await parseTTML(ttml);
-              currentLyricsPlayer?.setLyricLines(lyricsLines.lines);
-              ShowNotification("Lyrics Applied!", "success", 5000);
-            } else {
-              ShowNotification("Found TTML, Parsing...", "info", 5000);
-              ParseTTML(ttml).then(async (result) => {
-                const dataToSave = {
-                  ...result?.Result,
-                  id: SpotifyPlayer.GetId(),
-                };
+            ShowNotification("Found TTML, Parsing...", "info", 5000);
+            ParseTTML(ttml).then(async (result) => {
+              const dataToSave = {
+                ...result?.Result,
+                id: SpotifyPlayer.GetId(),
+              };
 
-                await ProcessLyrics(dataToSave);
+              await ProcessLyrics(dataToSave);
 
-                storage.set("currentLyricsData", JSON.stringify(dataToSave));
-                setTimeout(() => {
-                  fetchLyrics(SpotifyPlayer.GetUri() ?? "")
-                    .then((lyrics) => {
-                      ApplyLyrics(lyrics);
-                      ShowNotification("Lyrics Parsed and Applied!", "success", 5000);
-                    })
-                    .catch((err) => {
-                      ShowNotification("Error applying lyrics", "error", 5000);
-                      console.error("Error applying lyrics:", err);
-                    });
-                }, 25);
-              });
-            }
+              storage.set("currentLyricsData", JSON.stringify(dataToSave));
+              setTimeout(() => {
+                fetchLyrics(SpotifyPlayer.GetUri() ?? "")
+                  .then((lyrics) => {
+                    ApplyLyrics(lyrics);
+                    ShowNotification("Lyrics Parsed and Applied!", "success", 5000);
+                  })
+                  .catch((err) => {
+                    ShowNotification("Error applying lyrics", "error", 5000);
+                    console.error("Error applying lyrics:", err);
+                  });
+              }, 25);
+            });
           };
           reader.onerror = (e) => {
             console.error("Error reading file:", e.target?.error);
