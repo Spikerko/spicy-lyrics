@@ -91,6 +91,10 @@ async function main() {
     storage.set("show_topbar_notifications", "true");
   }
 
+  if (storage.get("previous-version")) {
+    storage.set("previous-version", "")
+  }
+
   if (!storage.get("viewControlsPosition")) {
     storage.set("viewControlsPosition", "Top");
   }
@@ -249,6 +253,7 @@ async function main() {
   }
 
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
+  window._spicy_lyrics_metadata = {}
 
   /* if (storage.get("lyrics_spacing")) {
     if (storage.get("lyrics_spacing") === "None") {
@@ -671,12 +676,12 @@ async function main() {
       }
     );
 
-    const previousVersion = storage.get("previous-version");
-    if (previousVersion !== Defaults.SpicyLyricsVersion) {
+    const fromVersion = storage.get("fromVersion");
+    if (fromVersion !== Defaults.SpicyLyricsVersion) {
       const div = document.createElement("div");
       const reactRoot = ReactDOM.createRoot(div);
       reactRoot.render(
-        <UpdateDialog previousVersion={previousVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />
+        <UpdateDialog fromVersion={fromVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />
       );
       
       PopupModal.display({
@@ -689,7 +694,7 @@ async function main() {
       });
     }
 
-    storage.set("previous-version", Defaults.SpicyLyricsVersion);
+    storage.set("fromVersion", Defaults.SpicyLyricsVersion);
 
     // Lets set out Dynamic Background (spicy-dynamic-bg) to the now playing bar
     let lastImgUrl: string | null;
@@ -1095,7 +1100,7 @@ async function main() {
 
       Global.Event.listen("session:navigation", (data: Location) => {
         if (data.pathname === "/SpicyLyrics/Update") {
-          storage.set("previous-version", Defaults.SpicyLyricsVersion);
+          storage.set("fromVersion", Defaults.SpicyLyricsVersion);
           window._spicy_lyrics_metadata = {};
           Session.GoBack();
           window.location.reload();
