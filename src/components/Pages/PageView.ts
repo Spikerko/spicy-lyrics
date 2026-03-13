@@ -151,10 +151,12 @@ async function OpenPage(
             <div class="NowBar">
                 <div class="CenteredView">
                     <div class="Header">
+                        <div class="VolumeSlider"></div>
                         <div class="MediaBox">
                             <div class="MediaContent"></div>
                             <div class="MediaImage"></div>
                         </div>
+                        <div class="VolumeSliderUnder"></div>
                         <div class="Metadata">
                             <div class="SongName">
                                 <span></span>
