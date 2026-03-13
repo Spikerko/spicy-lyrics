@@ -190,6 +190,14 @@ async function main() {
     Defaults.MinimalLyricsMode = storage.get("minimalLyricsMode") === "true";
   }
 
+  if (!storage.get("replaceSpotifyPlaybar")) {
+    storage.set("replaceSpotifyPlaybar", "false");
+  }
+
+  if (storage.get("replaceSpotifyPlaybar")) {
+    Defaults.ReplaceSpotifyPlaybar = storage.get("replaceSpotifyPlaybar") === "true";
+  }
+
   if (!storage.get("hide_npv_bg")) {
     storage.set("hide_npv_bg", "false");
   }
