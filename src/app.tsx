@@ -127,6 +127,14 @@ async function main() {
     Defaults.PopupLyricsAllowed = storage.get("disablePopupLyrics") !== "true";
   }
 
+  if (!storage.get("alwaysShowInFullscreen")) {
+    storage.set("alwaysShowInFullscreen", "None");
+  }
+
+  if (storage.get("alwaysShowInFullscreen")) {
+    Defaults.AlwaysShowInFullscreen = storage.get("alwaysShowInFullscreen").toString() as string;
+  }
+
   if (!storage.get("lyricsRenderer")) {
     storage.set("lyricsRenderer", "Spicy");
   }
