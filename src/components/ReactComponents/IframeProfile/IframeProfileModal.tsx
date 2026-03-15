@@ -55,7 +55,7 @@ function IframeProfileModal({ userId, onClose }: IframeProfileModalProps) {
     for (const event of (e.data?.data?.events ?? [])) {
       if (event.action === "PATCH_PLAYBACK") {
         const uri = event.patches?.[0]?.playback_uri;
-        if (typeof uri === "string") {
+        if (typeof uri === "string" && /^spotify:[a-z]+:[A-Za-z0-9]+$/.test(uri)) {
           onClose();
           Spicetify.Player.playUri(uri);
         }
@@ -100,8 +100,8 @@ function IframeProfileModal({ userId, onClose }: IframeProfileModalProps) {
           boxShadow: "0 16px 60px rgba(0,0,0,0.8)",
           display: "flex",
           flexDirection: "column",
-          width: "min(900px, calc(100% - 40px))",
-          height: "min(85%, calc(100% - 40px))",
+          width: "min(1100px, calc(100% - 48px))",
+          height: "min(72%, calc(100% - 48px))",
         }}
       >
         <button
@@ -165,8 +165,13 @@ let _profileRoot: ReturnType<typeof ReactDOM.createRoot> | null = null;
 let _profileContainer: HTMLElement | null = null;
 let _profileHost: HTMLElement | null = null;
 let _profileHostPrevPosition: string = "";
+let _resizeHandler: (() => void) | null = null;
 
 export function closeIframeProfileModal() {
+  if (_resizeHandler) {
+    window.removeEventListener("resize", _resizeHandler);
+    _resizeHandler = null;
+  }
   _profileRoot?.unmount();
   _profileRoot = null;
   _profileContainer?.remove();
@@ -187,9 +192,11 @@ export function showIframeProfileModal(userId: string | undefined) {
 
   closeIframeProfileModal();
 
-  // Append inside #SpicyLyricsPage with position:absolute.
-  // position:fixed is broken in Spotify's rendering context (returns 0x0 rect).
-  const host = document.querySelector<HTMLElement>("#SpicyLyricsPage") ?? document.body;
+  // Use document.documentElement (<html>) as host — body's CSS layout height is 0
+  // in Spotify's rendering context (all children are absolutely/fixed positioned),
+  // so absolutely-positioned children of body end up with 0×0 rects even with
+  // explicit pixel dimensions. The html element retains real layout dimensions.
+  const host = document.documentElement;
 
   // Ensure the host is a positioning context for our absolute overlay
   _profileHost = host;
@@ -199,9 +206,17 @@ export function showIframeProfileModal(userId: string | undefined) {
   }
 
   const container = document.createElement("div");
-  container.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0;z-index:9999;";
+  const setContainerSize = () => {
+    const rect = host.getBoundingClientRect();
+    devLog("setContainerSize — host rect:", JSON.stringify(rect));
+    container.style.cssText = `position:absolute;top:0;left:0;width:${rect.width}px;height:${rect.height}px;z-index:9999;`;
+  };
+  setContainerSize();
   host.appendChild(container);
   _profileContainer = container;
+
+  _resizeHandler = setContainerSize;
+  window.addEventListener("resize", _resizeHandler);
   devLog("container appended to", host.id || host.tagName);
 
   try {
@@ -211,6 +226,7 @@ export function showIframeProfileModal(userId: string | undefined) {
     devLog("React root created and rendered");
 
     setTimeout(() => {
+      devLog("container cssText at t+500ms:", container.style.cssText);
       devLog("host rect:", JSON.stringify(host.getBoundingClientRect()));
       devLog("container rect:", JSON.stringify(container.getBoundingClientRect()));
       const overlay = container.firstElementChild as HTMLElement | null;
