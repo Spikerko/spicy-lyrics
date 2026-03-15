@@ -201,14 +201,14 @@ export function showIframeProfileModal(userId: string | undefined) {
   const container = document.createElement("div");
   container.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0;z-index:9999;";
   host.appendChild(container);
+  _profileContainer = container;
   devLog("container appended to", host.id || host.tagName);
 
   try {
     const root = ReactDOM.createRoot(container);
+    _profileRoot = root;
     root.render(React.createElement(IframeProfileModal, { userId, onClose: closeIframeProfileModal }));
     devLog("React root created and rendered");
-    _profileContainer = container;
-    _profileRoot = root;
 
     setTimeout(() => {
       devLog("host rect:", JSON.stringify(host.getBoundingClientRect()));
@@ -224,6 +224,6 @@ export function showIframeProfileModal(userId: string | undefined) {
     }, 500);
   } catch (err) {
     devLog("ReactDOM.createRoot/render threw:", err);
-    container.remove();
+    closeIframeProfileModal();
   }
 }

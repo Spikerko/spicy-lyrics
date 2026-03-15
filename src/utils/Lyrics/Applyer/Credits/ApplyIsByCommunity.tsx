@@ -16,6 +16,7 @@ let isByCommunityAbortController: AbortController | null = null;
 let madeTippys = new Set<any>();
 
 export function CleanUpIsByCommunity() {
+  closeIframeProfileModal();
   if (isByCommunityAbortController) {
     isByCommunityAbortController.abort();
     isByCommunityAbortController = null;
