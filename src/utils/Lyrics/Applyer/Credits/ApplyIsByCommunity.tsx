@@ -72,6 +72,20 @@ async function showProfileModal(userId: string | undefined) {
   position();
   window.addEventListener("resize", position);
 
+  // Clean up resize + message listeners whenever the overlay is removed from the DOM.
+  // Registered immediately so early-return paths (fetch abort, username lookup failure)
+  // don't leak the resize listener. The overlay is always a direct child of <body>, so
+  // childList: true (subtree: false) is sufficient and intentional.
+  let onMessage: ((e: MessageEvent) => void) | null = null;
+  const observer = new MutationObserver(() => {
+    if (!document.body.contains(overlay)) {
+      window.removeEventListener("resize", position);
+      if (onMessage) window.removeEventListener("message", onMessage);
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: false });
+
   // Close button
   const closeBtn = document.createElement("button");
   closeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M31.098 29.794L16.955 15.65 31.097 1.51 29.683.093 15.54 14.237 1.4.094-.016 1.508 14.126 15.65-.016 29.795l1.414 1.414L15.54 17.065l14.144 14.143" fill="currentColor" fill-rule="evenodd"/></svg>`;
@@ -123,10 +137,19 @@ async function showProfileModal(userId: string | undefined) {
   iframe.src = `https://spicylyrics.org/embed/${encodeURIComponent(username)}`;
   iframe.style.cssText = "flex:1;width:100%;border:none;display:block;min-height:0;";
   iframe.allow = "clipboard-write";
+  iframe.sandbox.add(
+    "allow-scripts",
+    // allow-same-origin is intentionally paired with allow-scripts here only because
+    // the iframe origin (https://spicylyrics.org) differs from Spicetify's parent origin,
+    // so the documented sandbox-escape (same-origin script removes sandbox attr) does NOT apply.
+    // If the embed URL ever becomes same-origin with the parent, this MUST be removed.
+    "allow-same-origin",  // needed so postMessage e.origin === IFRAME_ORIGIN and session cookies work
+    "allow-popups",       // remove if the embed page doesn't open links in new tabs
+  );
   panel.appendChild(iframe);
 
   // Listen for events from the iframe
-  const onMessage = (e: MessageEvent) => {
+  onMessage = (e: MessageEvent) => {
     if (e.origin !== IFRAME_ORIGIN) return;
     if (e.data?.type !== "events") return;
     for (const event of (e.data?.data?.events ?? [])) {
@@ -145,16 +168,6 @@ async function showProfileModal(userId: string | undefined) {
     }
   };
   window.addEventListener("message", onMessage);
-
-  // Clean up resize + message listeners when overlay is removed
-  const observer = new MutationObserver(() => {
-    if (!document.body.contains(overlay)) {
-      window.removeEventListener("resize", position);
-      window.removeEventListener("message", onMessage);
-      observer.disconnect();
-    }
-  });
-  observer.observe(document.body, { childList: true });
 }
 
 
