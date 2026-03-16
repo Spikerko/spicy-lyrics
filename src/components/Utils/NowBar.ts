@@ -8,6 +8,7 @@ import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
 import Global from "../Global/Global.ts";
+import Defaults from "../Global/Defaults.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
@@ -1018,12 +1019,15 @@ async function getAVCStreamUrl(manifestUrl: string) {
     }
 } */
 
+let _yearFetchId = 0;
+let _yearCache: { albumUri: string; year: string } | null = null;
+
 function UpdateNowBar(force = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
-  //const ArtistsDiv = NowBar.querySelector(".Header .Metadata .Artists");
-  const ArtistsSpan = NowBar.querySelector(".Header .Metadata .Artists span");
+  const ArtistsDiv = NowBar.querySelector<HTMLElement>(".Header .Metadata .ArtistsRow");
+  const ArtistsSpan = NowBar.querySelector<HTMLElement>(".Header .Metadata .ArtistsRow .Artists span");
   const MediaImage = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImage");
   const SongNameSpan = NowBar.querySelector(".Header .Metadata .SongName span");
   //const MediaBox = NowBar.querySelector(".Header .MediaBox");
@@ -1053,13 +1057,76 @@ function UpdateNowBar(force = false) {
 
   if (contentType === "episode") {
     const showName = SpotifyPlayer.GetShowName();
-    ArtistsSpan.textContent = showName ?? "";
+    if (ArtistsSpan) ArtistsSpan.textContent = showName ?? "";
+    ArtistsDiv?.querySelector(".ArtistYear")?.remove();
   }
 
   const artists = SpotifyPlayer.GetArtists();
-  if (artists && ArtistsSpan && contentType !== "episode") {
-    const processedArtists = artists.map((artist) => artist.name)?.join(", ");
-    ArtistsSpan.textContent = processedArtists ?? "";
+  if (artists && ArtistsDiv && ArtistsSpan && contentType !== "episode") {
+    const processedArtists = artists.map((artist) => artist.name)?.join(", ") ?? "";
+    ArtistsSpan.textContent = processedArtists;
+    const yearPos = Defaults.ReleaseYearPosition;
+    const currentAlbumUri = SpotifyPlayer.GetAlbumUri();
+
+    const applyYear = (year: string, fetchId: number) => {
+      if (_yearFetchId !== fetchId || !ArtistsDiv) return;
+      ArtistsDiv.querySelector(".ArtistYear")?.remove();
+      if (!year || yearPos === "Off") return;
+      const yearSpan = document.createElement("span");
+      yearSpan.className = `ArtistYear ${yearPos === "Before Artist" ? "before" : "after"}`;
+      yearSpan.textContent = yearPos === "Before Artist" ? `${year} ·` : `· ${year}`;
+      const artistsEl = ArtistsDiv.querySelector(".Artists");
+      if (yearPos === "Before Artist") {
+        ArtistsDiv.insertBefore(yearSpan, artistsEl);
+      } else {
+        ArtistsDiv.appendChild(yearSpan);
+      }
+    };
+
+    ArtistsDiv.querySelector(".ArtistYear")?.remove();
+
+    if (yearPos !== "Off") {
+      const fetchId = ++_yearFetchId;
+      if (_yearCache && _yearCache.albumUri === currentAlbumUri) {
+        applyYear(_yearCache.year, fetchId);
+      } else {
+        SpotifyPlayer.GetAlbumReleaseYear().then((year) => {
+          if (!year) return;
+          if (currentAlbumUri) _yearCache = { albumUri: currentAlbumUri, year };
+          applyYear(year, fetchId);
+        });
+      }
+    }
+    const currentAlbumUri = SpotifyPlayer.GetAlbumUri();
+
+    const applyYear = (year: string) => {
+      if (_yearFetchId !== fetchId || !ArtistsDiv) return;
+      ArtistsDiv.querySelector(".ArtistYear")?.remove();
+      if (!year || yearPos === "Off") return;
+      const yearSpan = document.createElement("span");
+      yearSpan.className = `ArtistYear ${yearPos === "Before Artist" ? "before" : "after"}`;
+      yearSpan.textContent = yearPos === "Before Artist" ? `${year} ·` : `· ${year}`;
+      const artistsEl = ArtistsDiv.querySelector(".Artists");
+      if (yearPos === "Before Artist") {
+        ArtistsDiv.insertBefore(yearSpan, artistsEl);
+      } else {
+        ArtistsDiv.appendChild(yearSpan);
+      }
+    };
+
+    ArtistsDiv.querySelector(".ArtistYear")?.remove();
+
+    if (yearPos !== "Off") {
+      if (_yearCache && _yearCache.albumUri === currentAlbumUri) {
+        applyYear(_yearCache.year);
+      } else {
+        SpotifyPlayer.GetAlbumReleaseYear().then((year) => {
+          if (!year) return;
+          if (currentAlbumUri) _yearCache = { albumUri: currentAlbumUri, year };
+          applyYear(year);
+        });
+      }
+    }
   }
 }
 

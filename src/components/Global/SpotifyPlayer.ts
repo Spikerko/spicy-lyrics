@@ -184,6 +184,14 @@ export const SpotifyPlayer = {
   GetAlbumName: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.metadata?.album_title;
   },
+  GetAlbumUri: (): string | undefined => {
+      const isoString: string | undefined = result?.data?.albumUnion?.date?.isoString;
+      if (!isoString) return undefined;
+      const year = isoString.slice(0, 4);
+      return /^\d{4}$/.test(year) ? year : undefined;
+      return undefined;
+    }
+  },
   GetId: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.uri?.split(":")[2];
   },
