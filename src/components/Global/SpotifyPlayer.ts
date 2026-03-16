@@ -185,15 +185,68 @@ export const SpotifyPlayer = {
     return Spicetify?.Player?.data?.item?.metadata?.album_title;
   },
   GetAlbumUri: (): string | undefined => {
+    return Spicetify?.Player?.data?.item?.metadata?.album_uri;
+  },
+  GetAlbumReleaseYearSync: (): string | undefined => {
+    const item: any = Spicetify?.Player?.data?.item;
+    if (!item) return undefined;
+
+    const metadata: any = item?.metadata;
+    const yearCandidate =
+      metadata?.album_year ??
+      metadata?.albumYear ??
+      metadata?.album_release_year ??
+      metadata?.albumReleaseYear ??
+      metadata?.release_year ??
+      metadata?.releaseYear ??
+      metadata?.year;
+    if (typeof yearCandidate === "string" && /^\d{4}$/.test(yearCandidate)) {
+      return yearCandidate;
+    }
+
+    const dateCandidate =
+      item?.album?.release_date ??
+      metadata?.album_date ??
+      metadata?.albumDate ??
+      metadata?.album_release_date ??
+      metadata?.albumReleaseDate ??
+      metadata?.release_date ??
+      metadata?.releaseDate;
+
+    if (typeof dateCandidate !== "string") return undefined;
+    const year = dateCandidate.slice(0, 4);
+    return /^\d{4}$/.test(year) ? year : undefined;
+  },
+  GetAlbumReleaseYear: async (albumUri?: string): Promise<string | undefined> => {
+    try {
+      const resolvedAlbumUri = albumUri ?? SpotifyPlayer.GetAlbumUri();
+      if (!resolvedAlbumUri) return undefined;
+      const result = await (Spicetify as any).GraphQL.Request(
+        (Spicetify as any).GraphQL.Definitions.getAlbum,
+        { uri: resolvedAlbumUri, locale: "", offset: 0, limit: 1 }
+      );
       const isoString: string | undefined = result?.data?.albumUnion?.date?.isoString;
       if (!isoString) return undefined;
       const year = isoString.slice(0, 4);
       return /^\d{4}$/.test(year) ? year : undefined;
+    } catch {
       return undefined;
     }
   },
   GetId: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.uri?.split(":")[2];
+  },
+  GetReleaseYear: async (trackId: string): Promise<string | undefined> => {
+    try {
+      const resp = await (Spicetify as any).CosmosAsync.get(
+        `https://api.spotify.com/v1/tracks/${trackId}`
+      );
+      const releaseDate: string | undefined = resp?.album?.release_date;
+      const year = releaseDate ? releaseDate.slice(0, 4) : undefined;
+      return year && /^\d{4}$/.test(year) ? year : undefined;
+    } catch {
+      return undefined;
+    }
   },
   GetArtists: (): Artist[] | undefined => {
     return Spicetify?.Player?.data?.item?.artists as Artist[];
