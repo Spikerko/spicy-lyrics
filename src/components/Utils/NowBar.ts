@@ -1048,13 +1048,13 @@ function EnsureNowBarYearFetch(albumUri?: string, trackId?: string): void {
     });
   }
 
-  if (trackId && !_yearCache.has(albumUri) && !_yearInflight.has(albumUri) && !_yearTrackInflight.has(trackId)) {
-    const getReleaseYear = (SpotifyPlayer as any).GetReleaseYear as
-      | ((id: string) => Promise<string | undefined>)
-      | undefined;
-    if (typeof getReleaseYear !== "function") return;
-
-    const inflight = getReleaseYear(trackId);
+  if (
+    trackId &&
+    !_yearCache.has(albumUri) &&
+    !_yearInflight.has(albumUri) &&
+    !_yearTrackInflight.has(trackId)
+  ) {
+    const inflight = SpotifyPlayer.GetReleaseYear(trackId);
     _yearTrackInflight.set(trackId, inflight);
     inflight.finally(() => {
       if (_yearTrackInflight.get(trackId) === inflight) _yearTrackInflight.delete(trackId);
@@ -1134,6 +1134,8 @@ function UpdateNowBar(force = false) {
         episodeArtistsEl.classList.toggle("sl-marquee", shouldMarquee);
       });
     }
+
+    return;
   }
 
   const artists = SpotifyPlayer.GetArtists();
@@ -1165,8 +1167,6 @@ function UpdateNowBar(force = false) {
       artistsEl.classList.toggle("sl-marquee", shouldMarquee);
     };
 
-    requestAnimationFrame(updateArtistsMarquee);
-
     const clearYear = () => {
       ArtistsDiv.querySelector(".ArtistYear")?.remove();
       ArtistsDiv.removeAttribute("data-sl-year");
@@ -1177,6 +1177,8 @@ function UpdateNowBar(force = false) {
       if (artistsEl) {
         artistsEl.classList.remove("has-year-before", "has-year-after");
       }
+      // Re-measure marquee after the year DOM changes.
+      requestAnimationFrame(updateArtistsMarquee);
     };
 
     const renderYear = (year: string, pos: string, albumUri: string, pending = false) => {

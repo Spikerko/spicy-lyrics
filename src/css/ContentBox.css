@@ -269,6 +269,7 @@
   display: flex;
   align-items: center;
   max-width: 80cqw;
+  overflow: hidden;
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow span.ArtistYear {
