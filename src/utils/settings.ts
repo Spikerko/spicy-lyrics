@@ -198,6 +198,18 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addDropDown(
+    "escape-key-function",
+    "Escape Key Function",
+    ["Default", "Exit Fullscreen", "Exit Fully"],
+    Defaults.EscapeKeyFunction === "Exit Fully" ? 2 : Defaults.EscapeKeyFunction === "Exit Fullscreen" ? 1 : 0,
+    () => {
+      const value = settings.getFieldValue("escape-key-function") as string;
+      storage.set("escapeKeyFunction", value);
+      Defaults.EscapeKeyFunction = value;
+    }
+  );
+
   settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
