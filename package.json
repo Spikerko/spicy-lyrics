@@ -1,6 +1,6 @@
 {
   "name": "spicy-lyrics",
-  "version": "5.19.12",
+  "author": "Spikerko",
   "scripts": {
     "sc": "spicetify-creator",
     "dev": "spicetify-creator dev",

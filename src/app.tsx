@@ -584,26 +584,49 @@ async function main() {
       }
   
       hideUnwantedButtons(controlsContainer);
-  
-      observer = new MutationObserver((mutations, obs) => {
-        const hasNewChildren = mutations.some(mutation => mutation.addedNodes.length > 0);
-        
-        if (hasNewChildren) {
-          const hasFullscreen = !!controlsContainer.querySelector('[data-testid="fullscreen-mode-button"]');
-          const needsPip = Defaults.PopupLyricsAllowed;
-          const hasPip = !!controlsContainer.querySelector('[data-testid="pip-toggle-button"]');
-  
-          const isReady = hasFullscreen && (!needsPip || hasPip);
-  
-          if (isReady) {
-            hideUnwantedButtons(controlsContainer);
-            
-            obs.disconnect();
+
+      const MAX_MUTATION_BATCHES = 100;
+      const MAX_OBSERVE_MS = 60_000;
+      let mutationBatches = 0;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+      const stopObserving = (obs: MutationObserver, _reason: "ready" | "timeout" | "max_mutations") => {
+        try {
+          obs.disconnect();
+        } finally {
+          if (timeoutId !== undefined) {
+            clearTimeout(timeoutId);
+            timeoutId = undefined;
           }
+          if (observer === obs) observer = null;
         }
+      };
+
+      observer = new MutationObserver((mutations, obs) => {
+        mutationBatches += 1;
+        if (mutationBatches >= MAX_MUTATION_BATCHES) {
+          stopObserving(obs, "max_mutations");
+          return;
+        }
+
+        const hasNewChildren = mutations.some((mutation) => mutation.addedNodes.length > 0);
+        if (!hasNewChildren) return;
+
+        const hasFullscreen = !!controlsContainer.querySelector('[data-testid="fullscreen-mode-button"]');
+        const needsPip = Defaults.PopupLyricsAllowed;
+        const hasPip = !!controlsContainer.querySelector('[data-testid="pip-toggle-button"]');
+
+        const isReady = hasFullscreen && (!needsPip || hasPip);
+        if (!isReady) return;
+
+        hideUnwantedButtons(controlsContainer);
+        stopObserving(obs, "ready");
       });
-  
+
       observer.observe(controlsContainer, { childList: true });
+      timeoutId = setTimeout(() => {
+        if (observer) stopObserving(observer, "timeout");
+      }, MAX_OBSERVE_MS);
     };
   
     startObservingDOM();
