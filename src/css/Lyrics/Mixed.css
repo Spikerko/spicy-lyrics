@@ -208,7 +208,7 @@
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
-  .line {
+  .line:not(.musical-line) {
   padding-block: 0.15em;
 }
 
