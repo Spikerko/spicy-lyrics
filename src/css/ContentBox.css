@@ -171,7 +171,7 @@
     height: 30cqw;
 } */
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImage {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImageContainer {
   border-radius: 2cqh;
   --BorderRadius: 2cqh;
   width: 100cqw;
@@ -209,7 +209,7 @@
     text-align: center;
 } */
 
-/* #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox:hover .MediaImage {
+/* #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox:hover .MediaImageContainer {
     opacity: 1;
     scale: 1.01;
 } */
@@ -224,6 +224,8 @@
   container-type: size;
   height: 10cqh;
   width: 100%;
+  opacity: 1;
+  transition: opacity .325s ease-out;
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName {
@@ -346,7 +348,7 @@
   --BorderRadius: 1cqh;
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox.Skeletoned .MediaImage {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox.Skeletoned .MediaImageContainer {
   display: none;
 }
 
@@ -497,7 +499,7 @@
     opacity: .2;
 } */
 
-/* #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImage.Dragging {
+/* #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImageContainer.Dragging {
     opacity: .6;
 } */
 
@@ -1107,13 +1109,13 @@
   .NowBar
   .Header
   .MediaBox:hover
-  .MediaImage,
+  .MediaImageContainer,
 #SpicyLyricsPage.ForcedCompactMode
   .ContentBox
   .NowBar
   .Header
   .MediaBox:hover
-  .MediaImage {
+  .MediaImageContainer {
   opacity: 1;
 }
 
@@ -1568,13 +1570,13 @@
   height: calc(var(--Compact_NowBarHeight) + 15cqw);
 }
 
-#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .MediaBox .MediaImage,
+#SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .MediaBox .MediaImageContainer,
 #SpicyLyricsPage.ForcedCompactMode
   .ContentBox
   .NowBar
   .Header
   .MediaBox
-  .MediaImage {
+  .MediaImageContainer {
   border-radius: 3cqh;
   --BorderRadius: 3cqh;
 }
@@ -1669,7 +1671,7 @@
   .NowBar
   .Header
   .MediaBox
-  .MediaImage {
+  .MediaImageContainer {
   transition: border-radius 0.3s !important;
 }
 
@@ -1679,7 +1681,54 @@
   .NowBar
   .Header
   .MediaBox:not(:hover)
-  .MediaImage {
+  .MediaImageContainer {
   border-radius: 9cqh !important;
   --BorderRadius: 9cqh !important;
+}
+
+
+#SpicyLyricsPage .MediaImageContainer {
+  overflow: hidden;
+  position: relative;
+}
+
+#SpicyLyricsPage .MediaImageContainer .ib_ImageBox {
+  position: absolute;
+  width: 100cqw;
+  height: 100cqh;
+  background-size: cover;
+  background-repeat: no-repeat;
+  isolation: isolate;
+}
+
+#SpicyLyricsPage .MediaImageContainer .MB_anim_enter {
+  animation: MB_anim_enter .75s cubic-bezier(0.835, -0.008, 0.149, 0.866) forwards;
+}
+
+#SpicyLyricsPage .MediaImageContainer .MB_hidden {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .MediaImageContainer .ti_ToImage {
+  box-shadow: -20px 0px 21px 0px rgba(0,0,0,0.14);
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata.tr_VisuallyHidden {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .MediaImageContainer .fi_FromImage::before {
+  content: "";
+  position: absolute;
+  width: 100cqw;
+  height: 100cqh;
+  z-index: -1;
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  mask-image: linear-gradient(90deg, transparent, black 40%);
+  transition: opacity .85s;
+}
+
+#SpicyLyricsPage .MediaImageContainer .fi_FromImage.MB_anim_fimg::before {
+  opacity: 1;
 }

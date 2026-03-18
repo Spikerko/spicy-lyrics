@@ -1,4 +1,3 @@
-import { Spicetify } from "@spicetify/bundler";
 import Whentil, { type CancelableTask } from "@spikerko/tools/Whentil";
 import storage from "../../utils/storage.ts";
 import {

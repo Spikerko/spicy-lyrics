@@ -145,19 +145,14 @@ out
 
 
 dist/
-
-script_removefromcache.cmd
-testScript.js
+dist_legacy/
 
 src/utils/SpicyHasher.ts
 
 .github/
-setup_devmode.bat
 
 src/components/PopupModal/
 src/components/PopupModal/PopupModal.ts
-
-TODO.md
 
 src/packages/
 
@@ -165,3 +160,11 @@ src/packages/
 public-storage/
 
 API_TERMS.md
+
+
+# build files
+/dist
+
+# production
+/build
+.spicetify/

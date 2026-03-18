@@ -14,8 +14,7 @@ import "./css/ttml-profile/profile.css";
 import "./components/Utils/GlobalExecute.ts";
 
 import React from "react"
-import { Defer } from "@socali/modules/Scheduler";
-import { Spicetify, Component } from "@spicetify/bundler";
+import { Defer } from "@spikerko/web-modules/Scheduler";
 import { DynamicBackground } from "@spikerko/tools/DynamicBackground";
 import Whentil from "@spikerko/tools/Whentil";
 import ApplyDynamicBackground, {
@@ -56,15 +55,9 @@ import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import { QueryClient } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
-import { actions } from "./actions.ts";
-import { connectionIndicatorInit } from "./utils/connectionIndicatorTool.ts";
-import "./utils/Socket/main.ts";
 import { ProjectVersion } from "../tasks/config.ts";
-
-export const reactQueryClient = new QueryClient();
 
 async function main() {
   await Platform.OnSpotifyReady;
@@ -367,6 +360,15 @@ async function main() {
             opacity: 0;
           }
         }
+
+        @keyframes MB_anim_enter {
+          0% {
+            transform: translate(100%, 0);
+          }
+          100% {
+            transform: translate(0, 0);
+          }
+        }
   `;
 
   skeletonStyle.id = "spicyLyrics-additionalStyling";
@@ -450,18 +452,18 @@ async function main() {
         Button: (
           (('documentPictureInPicture' in window) && (Defaults.PopupLyricsAllowed))
             ? new SpotifyPlayer.Playbar.Button(
-                "Spicy Popup Lyrics",
-                Icons.PiPMode,
-                () => {
-                  if (IsPIP) {
-                    ClosePopupLyrics();
-                  } else {
-                    OpenPopupLyrics();
-                  }
-                },
-                false,
-                false
-              )
+              "Spicy Popup Lyrics",
+              Icons.PiPMode,
+              () => {
+                if (IsPIP) {
+                  ClosePopupLyrics();
+                } else {
+                  OpenPopupLyrics();
+                }
+              },
+              false,
+              false
+            )
             : undefined
         )
       }
@@ -537,44 +539,74 @@ async function main() {
 
   {
     if (!ButtonList) return;
+  
     const fullscreenButton = ButtonList[1].Button;
     fullscreenButton.element.style.order = "100001";
     fullscreenButton.element.id = "SpicyLyrics_FullscreenButton";
-
+  
     const popupLyricsButton = ButtonList[2].Button;
     if (popupLyricsButton) {
       popupLyricsButton.element.style.order = "100000";
       popupLyricsButton.element.id = "SpicyLyrics_PopupLyricsButton";
     }
-
-    const SearchDOMForFullscreenButtons = () => {
-      const controlsContainer = document.querySelector<HTMLButtonElement>(
-        ".main-nowPlayingBar-extraControls"
-      );
-      if (controlsContainer === null) {
-        Defer(SearchDOMForFullscreenButtons);
-      } else {
-        // @ts-expect-error 123
-        for (const element of controlsContainer.children) {
-          if (
-            (
-              element.attributes.getNamedItem("data-testid")?.value === "fullscreen-mode-button" ||
-              (Defaults.PopupLyricsAllowed && element.attributes.getNamedItem("data-testid")?.value === "pip-toggle-button") ||
-              (
-                element.classList.contains("control-button") &&
-                !element.classList.contains("volume-bar__icon-button") &&
-                !element.classList.contains("main-devicePicker-controlButton")
-              )
-            ) &&
-            element.id !== "SpicyLyrics_FullscreenButton" &&
-            element.id !== "SpicyLyrics_PopupLyricsButton"
-          ) {
-            (element as HTMLElement).style.display = "none";
-          }
+  
+    const hideUnwantedButtons = (container: Element) => {
+      for (const element of container.children) {
+        const testId = element.attributes.getNamedItem("data-testid")?.value;
+        
+        const isFullscreen = testId === "fullscreen-mode-button";
+        const isPip = Defaults.PopupLyricsAllowed && testId === "pip-toggle-button";
+        const isGenericControl = 
+          element.classList.contains("control-button") &&
+          !element.classList.contains("volume-bar__icon-button") &&
+          !element.classList.contains("main-devicePicker-controlButton");
+  
+        if (
+          (isFullscreen || isPip || isGenericControl) &&
+          element.id !== "SpicyLyrics_FullscreenButton" &&
+          element.id !== "SpicyLyrics_PopupLyricsButton"
+        ) {
+          (element as HTMLElement).style.display = "none";
         }
       }
     };
-    SearchDOMForFullscreenButtons();
+  
+    let observer: MutationObserver | null = null;
+  
+    const startObservingDOM = () => {
+      const controlsContainer = document.querySelector<HTMLElement>(
+        ".main-nowPlayingBar-extraControls"
+      );
+  
+      if (!controlsContainer) {
+        setTimeout(startObservingDOM, 100); 
+        return;
+      }
+  
+      hideUnwantedButtons(controlsContainer);
+  
+      observer = new MutationObserver((mutations, obs) => {
+        const hasNewChildren = mutations.some(mutation => mutation.addedNodes.length > 0);
+        
+        if (hasNewChildren) {
+          const hasFullscreen = !!controlsContainer.querySelector('[data-testid="fullscreen-mode-button"]');
+          const needsPip = Defaults.PopupLyricsAllowed;
+          const hasPip = !!controlsContainer.querySelector('[data-testid="pip-toggle-button"]');
+  
+          const isReady = hasFullscreen && (!needsPip || hasPip);
+  
+          if (isReady) {
+            hideUnwantedButtons(controlsContainer);
+            
+            obs.disconnect();
+          }
+        }
+      });
+  
+      observer.observe(controlsContainer, { childList: true });
+    };
+  
+    startObservingDOM();
   }
 
   let button: any;
@@ -590,14 +622,14 @@ async function main() {
       }
     );
 
-    const fromVersion = storage.get("fromVersion");
+    const fromVersion = storage.get("fromVersion") as string;
     if (fromVersion !== Defaults.SpicyLyricsVersion) {
       const div = document.createElement("div");
       const reactRoot = ReactDOM.createRoot(div);
       reactRoot.render(
         <UpdateDialog fromVersion={fromVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />
       );
-      
+
       PopupModal.display({
         title: "Spicy Lyrics Updated!",
         content: div,
@@ -774,8 +806,6 @@ async function main() {
     window.addEventListener("online", () => {
       storage.set("lastFetchedUri", null);
 
-      Component.GetRootComponent("lCache").RemoveCurrentLyrics_StateCache(false);
-      
       fetchLyrics(Spicetify.Player.data?.item?.uri).then(ApplyLyrics);
     });
 
@@ -1050,16 +1080,10 @@ async function main() {
 
   Hometinue();
 
-  { // Add `serverInvite` action
-    actions.push("serverInvite", () => {
-      // deno-lint-ignore no-window
-      return window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");
-    })
-  }
+  
+  /* if (storage.get("developerMode") === "true") {
+    connectionIndicatorInit();
+  } */
 }
 
 main();
-
-if (storage.get("developerMode") === "true") {
-  connectionIndicatorInit();
-}

@@ -1,7 +1,7 @@
-import cyrillicToLatin from "npm:cyrillic-romanization";
-import { franc } from "npm:franc-all";
-import Kuroshiro from "npm:kuroshiro";
-import langs from "npm:langs";
+import cyrillicToLatin from "cyrillic-romanization";
+import { franc } from "franc-all";
+import Kuroshiro from "kuroshiro";
+import langs from "langs";
 import { RetrievePackage } from "../ImportPackage.ts";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";

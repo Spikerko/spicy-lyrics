@@ -1,6 +1,5 @@
-import { Timeout } from "@socali/modules/Scheduler";
-import { Signal } from "@socali/modules/Signal";
-import { Spicetify } from "@spicetify/bundler";
+import { Timeout } from "@spikerko/web-modules/Scheduler";
+import { Signal } from "@spikerko/web-modules/Signal";
 import {
   //type CoverArtCache,
   DynamicBackground,

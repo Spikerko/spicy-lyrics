@@ -1,4 +1,3 @@
-import { Component, Spicetify } from "@spicetify/bundler";
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
@@ -14,12 +13,6 @@ export async function setSettingsMenu() {
   devSettings(SettingsSection);
   //infos(SettingsSection);
 }
-
-Component.AddRootComponent("lCache", {
-  RemoveCurrentLyrics_AllCaches,
-  RemoveLyricsCache,
-  RemoveCurrentLyrics_StateCache,
-})
 
 function devSettings(SettingsSection: any) {
   const settings = new SettingsSection(

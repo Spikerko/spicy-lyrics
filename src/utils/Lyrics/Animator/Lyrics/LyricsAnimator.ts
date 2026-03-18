@@ -1,8 +1,8 @@
-import Spline from "npm:cubic-spline";
-import { easeSinOut } from "npm:d3-ease";
-import Spring from "@socali/modules/Spring";
+// @ts-ignore pkg has no @types on npm
+import Spline from "cubic-spline";
+import { easeSinOut } from "d3-ease";
+import Spring from "@spikerko/web-modules/Spring";
 import Defaults from "../../../../components/Global/Defaults.ts";
-import { SpotifyPlayer } from "../../../../components/Global/SpotifyPlayer.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import storage from "../../../storage.ts";
 import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig } from "../../lyrics.ts";

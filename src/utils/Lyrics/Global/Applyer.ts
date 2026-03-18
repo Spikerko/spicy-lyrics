@@ -17,7 +17,6 @@ import { IsCompactMode } from "../../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../../components/Utils/Fullscreen.ts";
 import storage from "../../storage.ts";
 import { SpotifyPlayer } from "../../../components/Global/SpotifyPlayer.ts";
-import { _local_hashes, Component } from "@spicetify/bundler";
 
 /**
  * Union type for all lyrics data types
@@ -149,7 +148,7 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     const discordLink = currentNoticeElement.querySelector("a");
     if (discordLink) {
       discordLink.addEventListener("click", () => {
-        Component.GetRootComponent("enqueueAction")("serverInvite");
+        window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");
       }, { signal: currentAbortController.signal });
     }
 

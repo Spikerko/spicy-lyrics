@@ -1,4 +1,3 @@
-import { Spicetify } from "@spicetify/bundler";
 import { SpotifyPlayer } from "./../../components/Global/SpotifyPlayer.ts";
 
 interface SyncedPosition {

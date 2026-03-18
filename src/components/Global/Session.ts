@@ -1,4 +1,3 @@
-import { Spicetify } from "@spicetify/bundler";
 import { Query } from "../../utils/API/Query.ts";
 import Defaults from "./Defaults.ts";
 import Global from "./Global.ts";

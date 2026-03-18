@@ -156,6 +156,13 @@ const ScrollTo = (
 let scrolledToLastLine = false;
 let scrolledToFirstLine = false;
 
+// Throttle layout-dependent viewport checks to avoid forced sync layouts on every tick
+const VIEWPORT_CHECK_INTERVAL = 350; // milliseconds
+let lastViewportCheckTime = 0;
+let lastViewportLine: HTMLElement | null = null;
+let lastViewportContainer: HTMLElement | null = null;
+let lastIsLineInViewport = false;
+
 const GetScrollType = (): "Center" | "Top" => {
   return IsCompactMode() ? "Top" : "Center";
 };
@@ -335,20 +342,34 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
       if (!LineElem) return;
       const container = ScrollSimplebar?.getScrollElement() as HTMLElement;
       if (!container) return;
+      const now = performance.now();
+      const timeSinceLastScroll = now - lastUserScrollTime;
 
-      const timeSinceLastScroll = performance.now() - lastUserScrollTime;
+      // Throttled layout read for viewport visibility
+      const shouldRecalculateViewport =
+        now - lastViewportCheckTime > VIEWPORT_CHECK_INTERVAL ||
+        lastViewportLine !== LineElem ||
+        lastViewportContainer !== container;
 
-      // Check if the line is at least 5px visible in the viewport
-      const lineRect = LineElem.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
+      if (shouldRecalculateViewport) {
+        // Check if the line is at least 5px visible within the scroll container
+        const elementOffsetTop = LineElem.offsetTop;
+        const elementBottom = elementOffsetTop + LineElem.clientHeight;
+        const viewportTop = container.scrollTop;
+        const viewportBottom = viewportTop + container.clientHeight;
 
-      // Calculate the visible part of the line within the container
-      const visibleTop = Math.max(lineRect.top, containerRect.top);
-      const visibleBottom = Math.min(lineRect.bottom, containerRect.bottom);
-      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+        const visibleTop = Math.max(elementOffsetTop, viewportTop);
+        const visibleBottom = Math.min(elementBottom, viewportBottom);
+        const visibleHeight = Math.max(0, visibleBottom - visibleTop);
 
-      // Consider the line "in viewport" if at least 5px is visible
-      const isLineInViewport = visibleHeight >= 5;
+        // Consider the line "in viewport" if at least 5px is visible
+        lastIsLineInViewport = visibleHeight >= 5;
+        lastViewportCheckTime = now;
+        lastViewportLine = LineElem;
+        lastViewportContainer = container;
+      }
+
+      const isLineInViewport = lastIsLineInViewport;
 
       const isSameLine = lastLine === LineElem;
 
@@ -434,6 +455,10 @@ export function QueueSmoothForceScroll() {
 
 export function ResetLastLine() {
   lastLine = null;
+  lastViewportLine = null;
+  lastViewportContainer = null;
+  lastIsLineInViewport = false;
+  lastViewportCheckTime = 0;
   isUserScrolling = false;
   lastUserScrollTime = 0;
   lastPosition = 0;

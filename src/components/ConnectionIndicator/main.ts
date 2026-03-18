@@ -1,8 +1,6 @@
-import semver from "semver";
+/* import semver from "semver";
 import type { Brand } from "../../types/Brand.d.ts";
 import "./styles.scss";
-import { Spicetify } from "@spicetify/bundler";
-import { SOCKET_HOST } from "../../utils/Socket/main.ts";
 import { Icons } from "../Styling/Icons.ts";
 
 export type ConnectionIndicatorContainer = Brand<
@@ -212,3 +210,4 @@ export default {
   Update: updateData,
   SetState: setState,
 };
+ */

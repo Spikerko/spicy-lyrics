@@ -1,9 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
-import { Spicetify } from "@spicetify/bundler";
 import GetProgress, {
   _DEPRECATED___GetProgress,
 } from "../../utils/Gets/GetProgress.ts";
-import { SpotifyFetch } from "./SpotifyFetch.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 //type ArtworkSize = "s" | "l" | "xl" | "d";

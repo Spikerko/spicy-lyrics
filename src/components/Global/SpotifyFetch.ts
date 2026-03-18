@@ -1,5 +1,4 @@
 import Platform from "./Platform.ts";
-import { Spicetify } from "@spicetify/bundler"
 
 export const SpotifyFetch = (url: string): Promise<Response> => {
 	return (

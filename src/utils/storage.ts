@@ -1,5 +1,3 @@
-import { Component, Spicetify } from "@spicetify/bundler";
-
 const prefix = "SpicyLyrics-";
 
 let currentlyFetching = false;
@@ -29,7 +27,6 @@ function get(key: string) {
   return data;
 }
 
-Component.AddRootComponent("appStorage", { getItem: get, setItem: set })
 
 export default {
   set,
