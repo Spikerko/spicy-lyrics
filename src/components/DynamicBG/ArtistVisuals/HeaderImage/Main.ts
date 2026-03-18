@@ -1,4 +1,3 @@
-import { Spicetify } from "@spicetify/bundler";
 import Defaults from "../../../Global/Defaults.ts";
 import { SpotifyPlayer } from "../../../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "../Main.ts";

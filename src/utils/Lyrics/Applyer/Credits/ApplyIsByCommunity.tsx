@@ -1,13 +1,10 @@
-// deno-lint-ignore no-unused-vars
 import React from "react";
-import { Spicetify } from "@spicetify/bundler";
 import TTMLProfile from "../../../../components/ReactComponents/TTMLProfile/ttml-profile.tsx";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { reactQueryClient } from "../../../../app.tsx";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 import { PopupModal } from "../../../../components/Modal.ts";
-import { actions } from "../../../../actions.ts";
+import { reactQueryClient } from "../../../../constants/index.ts";
 
 
 let isByCommunityAbortController: AbortController | null = null;
@@ -76,11 +73,6 @@ function showProfileModal(userId: string | undefined, hasProfileBanner: boolean)
   // After modal DOM is ready, mount React inside it
   onModalDisplayed();
 }
-
-
-actions.push("lyricsProfile", (userId: string, hasProfileBanner: boolean) => {
-  showProfileModal(userId, hasProfileBanner);
-});
 
 export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): void {
   if (!data.source || !LyricsContainer) return;

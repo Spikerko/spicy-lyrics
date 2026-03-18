@@ -17,7 +17,6 @@ import { IsCompactMode } from "../../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../../components/Utils/Fullscreen.ts";
 import storage from "../../storage.ts";
 import { SpotifyPlayer } from "../../../components/Global/SpotifyPlayer.ts";
-import { _local_hashes, Component } from "@spicetify/bundler";
 
 /**
  * Union type for all lyrics data types
@@ -99,6 +98,10 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
       noticeContent = `We currently don't have support for video podcast episode lyrics`
       break;
     }
+    case "local-track": {
+      noticeContent = `Lyrics aren't available for local files`
+      break;
+    }
     default:
       break;
   }
@@ -131,7 +134,7 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     currentNoticeElement.classList.add("LyricsNotice");
     lyricsContainer.appendChild(currentNoticeElement);
 
-    if (!IsCompactMode() && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && descriptor === "lyrics-not-found") {
+    if (!IsCompactMode() && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && (descriptor === "lyrics-not-found" || descriptor === "local-track")) {
       PageContainer?.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.add("Hidden");
       PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.add("LyricsHidden");
     }
@@ -145,7 +148,7 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     const discordLink = currentNoticeElement.querySelector("a");
     if (discordLink) {
       discordLink.addEventListener("click", () => {
-        Component.GetRootComponent("enqueueAction")("serverInvite");
+        window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");
       }, { signal: currentAbortController.signal });
     }
 

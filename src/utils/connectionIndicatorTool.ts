@@ -1,4 +1,4 @@
-import ConnectionIndicator from "../components/ConnectionIndicator/main.ts";
+/* import ConnectionIndicator from "../components/ConnectionIndicator/main.ts";
 import { socket } from "./Socket/main.ts";
 
 const LATENCY_INTERVAL_MS = 5000;
@@ -68,4 +68,4 @@ const connectionIndicatorCleanup = (): void => {
   lastLatency = null;
 };
 
-export { connectionIndicatorInit, connectionIndicatorCleanup };
+export { connectionIndicatorInit, connectionIndicatorCleanup }; */

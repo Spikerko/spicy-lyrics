@@ -1,6 +1,5 @@
-import { Maid } from "@socali/modules/Maid";
-import { Interval } from "@socali/modules/Scheduler";
-import { Spicetify } from "@spicetify/bundler";
+import { Maid } from "@spikerko/web-modules/Maid";
+import { Interval } from "@spikerko/web-modules/Scheduler";
 import Whentil from "@spikerko/tools/Whentil";
 import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
@@ -729,7 +728,7 @@ function OpenNowBar(skipSaving: boolean = false) {
               "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaContent"
           )
         : document.querySelector(
-              "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImage"
+              "#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .MediaImageContainer"
           ); */
 
   /* {
@@ -945,7 +944,7 @@ async function getAVCStreamUrl(manifestUrl: string) {
 
     //const ArtistsDiv = NowBar.querySelector(".Header .Metadata .Artists");
     const ArtistsSpan = NowBar.querySelector(".Header .Metadata .Artists span");
-    const MediaImageContainer = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImage");
+    const MediaImageContainer = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImageContainer");
     const SongNameSpan = NowBar.querySelector(".Header .Metadata .SongName span");
     //const MediaBox = NowBar.querySelector(".Header .MediaBox");
     //const SongName = NowBar.querySelector(".Header .Metadata .SongName");
@@ -1022,10 +1021,32 @@ function UpdateNowBar(force = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
+  const waitForTransitionEnd = (
+    el: HTMLElement,
+    propertyName: string,
+    timeoutMs: number,
+  ) =>
+    new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        el.removeEventListener("transitionend", onEnd);
+        clearTimeout(t);
+        resolve();
+      };
+      const onEnd = (e: TransitionEvent) => {
+        if (e.target === el && e.propertyName === propertyName) finish();
+      };
+      const t = window.setTimeout(finish, timeoutMs);
+      el.addEventListener("transitionend", onEnd);
+    });
+
   //const ArtistsDiv = NowBar.querySelector(".Header .Metadata .Artists");
-  const ArtistsSpan = NowBar.querySelector(".Header .Metadata .Artists span");
-  const MediaImage = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImage");
-  const SongNameSpan = NowBar.querySelector(".Header .Metadata .SongName span");
+  const MetadataContainer = NowBar.querySelector(".Header .Metadata");
+  const ArtistsSpan = MetadataContainer.querySelector(".Artists span");
+  const MediaImageContainer = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImageContainer");
+  const SongNameSpan = MetadataContainer.querySelector(".SongName span");
   //const MediaBox = NowBar.querySelector(".Header .MediaBox");
   //const SongName = NowBar.querySelector(".Header .Metadata .SongName");
 
@@ -1033,50 +1054,132 @@ function UpdateNowBar(force = false) {
   if (IsNowBarOpen === "false" && !force) return;
 
   const coverArt = SpotifyPlayer.GetCover("xlarge");
-  if (MediaImage && coverArt && MediaImage.getAttribute("last-image") !== coverArt) {
-    const finalUrl = `https://i.scdn.co/image/${coverArt.replace("spotify:image:", "")}`;
+
+  // If we have no container or cover art, bail out early
+  if (!MediaImageContainer || !coverArt) {
+    return;
+  }
+
+  const previousCoverArt = MediaImageContainer.getAttribute("last-image");
+  const previousCoverArtUrl = MediaImageContainer.getAttribute("last-image-url");
+  const finalUrl = `https://i.scdn.co/image/${coverArt.replace("spotify:image:", "")}`;
+
+  // Avoid re-running if the artwork hasn't changed
+  if (previousCoverArt === coverArt) {
+    // DOM can temporarily lose its background/classes between rapid updates/remounts.
+    // If the cover is logically the same, restore the image without triggering animation.
+    const fromImage = MediaImageContainer.querySelector<HTMLDivElement>(".fi_FromImage");
+    const toImage = MediaImageContainer.querySelector<HTMLDivElement>(".ti_ToImage");
+    const restoredUrl = previousCoverArtUrl ?? finalUrl;
+
+    if (fromImage) {
+      const hasBg = !!fromImage.style.backgroundImage && fromImage.style.backgroundImage !== "none";
+      if (!fromImage.classList.contains("containsImage") || !hasBg) {
+        fromImage.style.backgroundImage = `url("${restoredUrl}")`;
+        fromImage.classList.add("containsImage");
+      }
+      fromImage.classList.remove("MB_anim_fimg");
+    }
+
+    if (toImage) {
+      toImage.classList.remove("MB_anim_enter");
+      toImage.classList.add("MB_hidden");
+    }
+  } else {
+    // Capture a token for this specific update so we can ignore stale async work
+    const updateToken = `${SpotifyPlayer.GetId() ?? ""}:${coverArt}`;
+    MediaImageContainer.setAttribute("data-update-token", updateToken);
+
     BlobURLMaker(finalUrl)
       .catch(() => null)
       .then((coverArtUrl) => {
-        // Only after the new image is fetched, swap it in
-        MediaImage.style.backgroundImage = `url("${coverArtUrl ?? coverArt}")`;
-        MediaImage.setAttribute("last-image", coverArt ?? "");
+        // If the container was removed or a newer update ran while we were loading, skip
+        if (!MediaImageContainer.isConnected) return;
+        const latestToken = MediaImageContainer.getAttribute("data-update-token");
+        if (latestToken !== updateToken) return;
+
+        MediaImageContainer.setAttribute("last-image", coverArt ?? "");
+        MediaImageContainer.setAttribute("last-image-url", coverArtUrl ?? finalUrl);
+
+        const fromImage = MediaImageContainer.querySelector<HTMLDivElement>(".fi_FromImage");
+        const toImage = MediaImageContainer.querySelector<HTMLDivElement>(".ti_ToImage");
+
+        // If we don't even have a target image element, bail completely
+        if (!toImage) return;
+
+        toImage.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`
+        toImage.classList.remove("MB_hidden");
+        toImage.classList.add("containsImage")
+
+        const canAnimate = !!fromImage && fromImage.classList.contains("containsImage");
+
+        // Only run the crossfade animation if fromImage already has an image
+        if (canAnimate) {
+          if (toImage.classList.contains("containsImage")) {
+            toImage.classList.add("MB_anim_enter");
+            fromImage?.classList.add("MB_anim_fimg");
+          }
+
+          setTimeout(async () => {
+            // If another track update happened during the timeout, skip applying stale state
+            const latestInnerToken = MediaImageContainer.getAttribute("data-update-token");
+            if (latestInnerToken !== updateToken) return;
+            fromImage!.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`
+            fromImage!.classList.add("containsImage");
+
+            // Ensure the fromImage blur overlay fades out (opacity -> 0) before we hide toImage.
+            // `MB_anim_fimg` toggles `fromImage::before { opacity }` with a CSS transition.
+            fromImage!.classList.remove("MB_anim_fimg");
+            await waitForTransitionEnd(fromImage!, "opacity", 950);
+
+            const latestAfterFadeToken = MediaImageContainer.getAttribute("data-update-token");
+            if (latestAfterFadeToken !== updateToken) return;
+            toImage.classList.add("MB_hidden");
+            toImage.classList.remove("MB_anim_enter");
+          }, 1100)
+        } else {
+          // No fromImage image yet: just set fromImage (or fall back to toImage) without animation
+          toImage.classList.remove("MB_anim_enter");
+          toImage.classList.add("MB_hidden");
+
+          if (fromImage) {
+            fromImage.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`;
+            fromImage.classList.add("containsImage");
+            fromImage.classList.remove("MB_anim_fimg");
+          } else {
+            toImage.classList.remove("MB_hidden");
+            toImage.classList.add("containsImage");
+          }
+        }
       });
   }
 
-  const songName = SpotifyPlayer.GetName();
-  if (SongNameSpan) {
-    SongNameSpan.textContent = songName ?? "";
-  }
 
-  const contentType = SpotifyPlayer.GetContentType();
+  MetadataContainer.classList.add("tr_VisuallyHidden");
 
-  if (contentType === "episode") {
-    const showName = SpotifyPlayer.GetShowName();
-    ArtistsSpan.textContent = showName ?? "";
-  }
-
-  const artists = SpotifyPlayer.GetArtists();
-  if (artists && ArtistsSpan && contentType !== "episode") {
-    const processedArtists = artists.map((artist) => artist.name)?.join(", ");
-    ArtistsSpan.textContent = processedArtists ?? "";
-  }
+  setTimeout(() => {
+    const songName = SpotifyPlayer.GetName();
+    if (SongNameSpan) {
+      SongNameSpan.textContent = songName ?? "";
+    }
+  
+    const contentType = SpotifyPlayer.GetContentType();
+  
+    if (contentType === "episode") {
+      const showName = SpotifyPlayer.GetShowName();
+      ArtistsSpan.textContent = showName ?? "";
+    }
+  
+    const artists = SpotifyPlayer.GetArtists();
+    if (artists && ArtistsSpan && contentType !== "episode") {
+      const processedArtists = artists.map((artist) => artist.name)?.join(", ");
+      ArtistsSpan.textContent = processedArtists ?? "";
+    }
+  
+    setTimeout(() => MetadataContainer.classList.remove("tr_VisuallyHidden"), 80);
+  }, 350);
 }
 
-Global.Event.listen("playback:songchange", () => {
-  setTimeout(() => {
-    UpdateNowBar(IsPIP);
-    setTimeout(() => {
-      UpdateNowBar(IsPIP);
-      setTimeout(() => {
-        UpdateNowBar(IsPIP);
-        setTimeout(() => {
-          UpdateNowBar(IsPIP);
-        }, 1000);
-      }, 1000);
-    }, 1000);
-  }, 2000);
-});
 
 function NowBar_SwapSides() {
   const NowBar = PageContainer.querySelector(".ContentBox .NowBar");

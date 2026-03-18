@@ -1,6 +1,6 @@
-import { Maid } from "@socali/modules/Maid";
-import { OnPreRender } from "@socali/modules/Scheduler";
-import Spring from "@socali/modules/Spring";
+import { Maid } from "@spikerko/web-modules/Maid";
+import { OnPreRender } from "@spikerko/web-modules/Scheduler";
+import Spring from "@spikerko/web-modules/Spring";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
@@ -245,11 +245,11 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
     const MediaBox = SpicyPage.querySelector<HTMLElement>(
       ".ContentBox .NowBar .Header .MediaBox"
     );
-    const MediaImage = SpicyPage.querySelector<HTMLElement>(
-      ".ContentBox .NowBar .Header .MediaBox .MediaImage"
+    const MediaImageContainer = SpicyPage.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .MediaBox .MediaImageContainer"
     );
 
-    if (MediaBox && MediaImage) {
+    if (MediaBox && MediaImageContainer) {
       // Create and store the AbortController
       EventAbortController = new AbortController();
       const signal = EventAbortController.signal;

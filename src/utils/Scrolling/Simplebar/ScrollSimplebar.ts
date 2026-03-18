@@ -1,4 +1,4 @@
-import SimpleBar from "npm:simplebar";
+import SimpleBar from "simplebar";
 import { IntervalManager } from "../../IntervalManager.ts";
 import {
   IsMouseInLyricsPage,

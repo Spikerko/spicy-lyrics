@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "jsxSingleQuote": false,
+  "trailingComma": "es5",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "endOfLine": "lf",
+  "insertFinalNewline": true,
+  "ignorePatterns": [
+    "node_modules/**",
+    "dist/**",
+    "dist_legacy/**",
+    "build/**",
+    ".spicetify/**",
+    "public-storage/**",
+
+    "src/utils/SpicyHasher.ts",
+
+    "src/utils/Lyrics/Aromanize.ts",
+    "src/utils/Lyrics/Kuromoji.js",
+    "src/utils/Lyrics/GreekRomanization.js"
+  ]
+}

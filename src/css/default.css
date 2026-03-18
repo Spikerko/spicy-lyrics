@@ -2,6 +2,21 @@
   --bg-rotation-degree: 258deg;
 }
 
+/* Take the elapsed time out of normal layout flow to avoid document-wide reflow
+ * when the text updates every second. The progress bar is offset manually to
+ * preserve spacing.
+ */
+body:has(#SpicyLyricsPage) .playback-bar {
+  position: relative;
+}
+body:has(#SpicyLyricsPage) .playback-bar > .playback-bar__progress-time-elapsed {
+  height: 100%;
+  position: absolute;
+}
+body:has(#SpicyLyricsPage) .playback-bar > .playback-progressbar-container {
+  margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
+}
+
 .main-nowPlayingView-contextItemInfo::before {
   display: none;
 }
@@ -240,7 +255,10 @@ body:not(.SpicyLyrics_StaticBackground)
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew
-  .CvxzmyND_aGd2RR8ZoSr {
+  .CvxzmyND_aGd2RR8ZoSr,
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .Uw4tcZdmh7s4BMdgCCuu {
   background-color: var(--background-tinted-base);
 }
 
@@ -311,7 +329,7 @@ body:not(:has(.Root__main-view-overlay .BeautifulLyricsPage:is(.Fullscreen)))
   opacity: 0.65 !important;
 }
 
-#SpicyLyricsPage .MediaImage,
+#SpicyLyricsPage .MediaImageContainer,
 #SpicyLyricsPage .MediaContent {
   user-select: none;
 }

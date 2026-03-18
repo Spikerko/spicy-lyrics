@@ -1,7 +1,6 @@
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
 import storage from "../../utils/storage.ts";
 import "../../css/Loaders/DotLoader.css";
-import { Spicetify } from "@spicetify/bundler";
 import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
@@ -153,7 +152,10 @@ async function OpenPage(
                     <div class="Header">
                         <div class="MediaBox">
                             <div class="MediaContent"></div>
-                            <div class="MediaImage"></div>
+                            <div class="MediaImageContainer">
+                              <div class="fi_FromImage ib_ImageBox"></div>
+                              <div class="ti_ToImage ib_ImageBox"></div>
+                            </div>
                         </div>
                         <div class="Metadata">
                             <div class="SongName">
@@ -243,16 +245,20 @@ async function OpenPage(
     ".ContentBox"
   );
   if (contentBox) {
-    ApplyDynamicBackground(contentBox);
+    try {
+      ApplyDynamicBackground(contentBox);
+    } catch (err) {
+      console.error("Error applying dynamic background:", err);
+    }
   }
 
   addLinesEvListener();
 
   {
-    if (!Spicetify.Player.data?.item?.uri) return; // Exit if `uri` is not available
-    const currentUri = Spicetify.Player.data.item.uri;
-
-    fetchLyrics(currentUri).then(ApplyLyrics);
+    const currentUri = Spicetify?.Player?.data?.item?.uri;
+    if (currentUri) {
+      fetchLyrics(currentUri).then(ApplyLyrics);
+    }
   }
 
   Session_OpenNowBar();

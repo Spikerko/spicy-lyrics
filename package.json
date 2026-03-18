@@ -1,0 +1,40 @@
+{
+  "name": "spicy-lyrics",
+  "author": "Spikerko",
+  "scripts": {
+    "sc": "spicetify-creator",
+    "dev": "spicetify-creator dev",
+    "build": "spicetify-creator build",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt"
+  },
+  "dependencies": {
+    "@spicemod/creator": "^0.0.32",
+    "@spikerko/tools": "npm:@jsr/spikerko__tools",
+    "@spikerko/web-modules": "npm:@jsr/spikerko__web-modules",
+    "@tanstack/react-query": "^5.91.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "cubic-spline": "^3.0.3",
+    "cyrillic-romanization": "^1.1.8",
+    "d3-ease": "^3.0.1",
+    "franc-all": "^7.2.0",
+    "kuroshiro": "^1.2.0",
+    "langs": "^2.0.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "semver": "^7.7.4",
+    "simplebar": "^6.3.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/d3-ease": "^3.0.2",
+    "@types/semver": "^7.7.1",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

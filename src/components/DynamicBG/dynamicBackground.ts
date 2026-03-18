@@ -1,6 +1,5 @@
-import { Timeout } from "@socali/modules/Scheduler";
-import { Signal } from "@socali/modules/Signal";
-import { Spicetify } from "@spicetify/bundler";
+import { Timeout } from "@spikerko/web-modules/Scheduler";
+import { Signal } from "@spikerko/web-modules/Signal";
 import {
   //type CoverArtCache,
   DynamicBackground,
@@ -41,10 +40,13 @@ export let currentBgInstance: DynamicBackground | null = null;
 // Add a document visibilitychange event to refocus the dynamic background when the tab regains focus
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && currentBgInstance) {
-    // Optionally, you could re-apply the current image or update the background
-    currentBgInstance.Update({
-      image: SpotifyPlayer.GetCover("large") ?? "",
-    });
+    try {
+      currentBgInstance.Update({
+        image: SpotifyPlayer.GetCover("large") ?? "",
+      });
+    } catch (err) {
+      console.error("Error updating dynamic background on visibility change:", err);
+    }
   }
 });
 

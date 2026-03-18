@@ -3,7 +3,6 @@ import Session from "../Global/Session.ts";
 import PageView from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
 import { isSpicySidebarMode, CloseSidebarLyrics } from "./SidebarLyrics.ts"
-import { Component } from "@spicetify/bundler"
 
 export let IsPIP = false;
 export let _IsPIP_after = false;
@@ -79,12 +78,33 @@ export const OpenPopupLyrics = async () => {
   });
 
   // Copy the main SpicyLyrics style element
-  const spicyLyricsStyleElement = Component.GetRootComponent("styleElement") ?? (globalThis as any)?._sB_devLoader?.[(globalThis as any)._sB_devLoader.name_hash_map?.["spicy-lyrics"]]?.styleElement;
+  // Find any <style> element in the DOM that includes '#SpicyLyricsPage' in its textContent
+  // Find all <style> elements in the DOM that include '#SpicyLyricsPage' in their textContent
+  const spicyLyricsStyleElement = document.querySelector("#slstyles");
+  let spicyLyricsStyleContent: string | null = null;
 
   if (spicyLyricsStyleElement) {
-    // console.log("SpicyLyricsStyleElement", spicyLyricsStyleElement)
+    if (spicyLyricsStyleElement.tagName.toLowerCase() === "link") {
+      // @ts-ignore
+      const href = spicyLyricsStyleElement.getAttribute("href");
+      if (href) {
+        try {
+          const res = await fetch(href);
+          if (res.ok) {
+            spicyLyricsStyleContent = await res.text();
+          }
+        } catch (e) {
+          spicyLyricsStyleContent = null;
+        }
+      }
+    } else if (spicyLyricsStyleElement.tagName.toLowerCase() === "style") {
+      spicyLyricsStyleContent = spicyLyricsStyleElement.textContent;
+    }
+  }
+
+  if (spicyLyricsStyleContent) {
     const newStyleElement = document.createElement("style");
-    newStyleElement.textContent = spicyLyricsStyleElement.textContent;
+    newStyleElement.textContent = spicyLyricsStyleContent;
     currentPipWindow.document.head.appendChild(newStyleElement);
   }
 
