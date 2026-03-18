@@ -1,19 +1,22 @@
-// deno-lint-ignore no-unused-vars
-import React from "react";
 import { Spicetify } from "@spicetify/bundler";
-import TTMLProfile from "../../../../components/ReactComponents/TTMLProfile/ttml-profile.tsx";
-import ReactDOM from "react-dom/client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { reactQueryClient } from "../../../../app.tsx";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
-import { PopupModal } from "../../../../components/Modal.ts";
 import { actions } from "../../../../actions.ts";
+import storage from "../../../../utils/storage.ts";
+import {
+  showIframeProfileModal,
+  closeIframeProfileModal,
+} from "../../../../components/ReactComponents/IframeProfile/IframeProfileModal.tsx";
+
+const devLog = (...args: any[]) => {
+  if (storage.get("developerMode") === "true") console.log("[IsByCommunity]", ...args);
+};
 
 
 let isByCommunityAbortController: AbortController | null = null;
 let madeTippys = new Set<any>();
 
 export function CleanUpIsByCommunity() {
+  closeIframeProfileModal();
   if (isByCommunityAbortController) {
     isByCommunityAbortController.abort();
     isByCommunityAbortController = null;
@@ -27,59 +30,11 @@ export function CleanUpIsByCommunity() {
   madeTippys.clear();
 }
 
+// Kept for any external callers that may still reference this export
+export const unmountTTMLProfileReactRoot = () => {};
 
-let ttmlProfileReactRoot: ReactDOM.Root | null = null;
-
-// Unmount the React root and clear reference
-export const unmountTTMLProfileReactRoot = () => {
-  if (ttmlProfileReactRoot) {
-    ttmlProfileReactRoot.unmount();
-    ttmlProfileReactRoot = null;
-  }
-};
-
-function showProfileModal(userId: string | undefined, hasProfileBanner: boolean) {
-  if (!userId) return;
-
-  // Set content to a placeholder div, React will mount into modal's <main> container instead
-  const placeholder = document.createElement("div");
-
-  // This function will mount React after the modal inserts its structure into DOM
-  const onModalDisplayed = () => {
-    // Find the modal's main element where content should go
-    const mainElement = PopupModal.querySelector("main.main-trackCreditsModal-originalCredits");
-    if (!mainElement) return;
-
-    // Clear any existing content in mainElement
-    mainElement.innerHTML = "";
-
-    // Create React root on the main element
-    ttmlProfileReactRoot = ReactDOM.createRoot(mainElement);
-
-    // Render React content
-    ttmlProfileReactRoot.render(
-      <QueryClientProvider client={reactQueryClient}>
-        <TTMLProfile userId={userId} hasProfileBanner={hasProfileBanner} />
-      </QueryClientProvider>
-    );
-  };
-
-  PopupModal.display({
-    title: "TTML Profile",
-    // Pass placeholder as content so modal builds structure,
-    // React rendering happens in onModalDisplayed callback
-    content: placeholder,
-    isLarge: true,
-    onClose: () => unmountTTMLProfileReactRoot(),
-  });
-
-  // After modal DOM is ready, mount React inside it
-  onModalDisplayed();
-}
-
-
-actions.push("lyricsProfile", (userId: string, hasProfileBanner: boolean) => {
-  showProfileModal(userId, hasProfileBanner);
+actions.push("lyricsProfile", (userId: string) => {
+  showIframeProfileModal(userId);
 });
 
 export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): void {
@@ -188,11 +143,8 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
     uploaderSpan.addEventListener(
       "click",
       () => {
-        const hasProfileBanner =
-          typeof data.TTMLUploadMetadata?.Uploader?.hasProfileBanner === "boolean"
-            ? data.TTMLUploadMetadata.Uploader.hasProfileBanner
-            : true;
-        showProfileModal(data.TTMLUploadMetadata?.Uploader?.id, hasProfileBanner);
+        devLog("uploader click, id:", data.TTMLUploadMetadata?.Uploader?.id);
+        showIframeProfileModal(data.TTMLUploadMetadata?.Uploader?.id);
         if (IsPIP) {
           globalThis.focus();
         }
@@ -214,11 +166,8 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
     makerSpan.addEventListener(
       "click",
       () => {
-        const hasProfileBanner =
-          typeof data.TTMLUploadMetadata?.Maker?.hasProfileBanner === "boolean"
-            ? data.TTMLUploadMetadata.Maker.hasProfileBanner
-            : true;
-        showProfileModal(data.TTMLUploadMetadata?.Maker?.id, hasProfileBanner);
+        devLog("maker click, id:", data.TTMLUploadMetadata?.Maker?.id);
+        showIframeProfileModal(data.TTMLUploadMetadata?.Maker?.id);
         if (IsPIP) {
           globalThis.focus();
         }
