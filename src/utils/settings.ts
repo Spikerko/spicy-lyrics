@@ -198,6 +198,18 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addDropDown(
+    "always-show-in-fullscreen",
+    "Always show in Fullscreen/Cinema",
+    ["None", "Time", "Controls", "Both"],
+    Defaults.AlwaysShowInFullscreen === "Both" ? 3 : Defaults.AlwaysShowInFullscreen === "Controls" ? 2 : Defaults.AlwaysShowInFullscreen === "Time" ? 1 : 0,
+    () => {
+      const value = settings.getFieldValue("always-show-in-fullscreen") as string;
+      storage.set("alwaysShowInFullscreen", value);
+      Defaults.AlwaysShowInFullscreen = value;
+    }
+  );
+
   settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
