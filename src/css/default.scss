@@ -162,8 +162,45 @@ body.sl_settings_top {
     width: min(34rem, calc(100vw - 48px));
     background: #0e0e0e;
     border: 1px solid rgba(255, 255, 255, 0.14);
+    border-bottom-color: transparent;
     border-radius: 12px;
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header {
+    background: transparent;
+    border-bottom: none;
+    justify-content: flex-end;
+    padding: 10px 10px 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
+  }
+
+  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header h1 {
+    display: none;
+  }
+
+  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-mainSection {
+    overflow: hidden;
+    padding-top: 0;
+  }
+
+  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    -ms-overflow-style: none;
+    overflow: hidden;
+    padding: 0;
+    scrollbar-width: none;
+  }
+
+  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits::-webkit-scrollbar {
+    display: none;
   }
 
   .update-card-wrapper {
@@ -171,7 +208,7 @@ body.sl_settings_top {
     flex-direction: column;
     gap: 14px;
     color: #fff;
-    padding: 4px 0 0;
+    padding: 4px 0 2px;
 
     .sl-update-hero {
       display: flex;
@@ -180,14 +217,17 @@ body.sl_settings_top {
     }
 
     .sl-update-status {
-      align-self: flex-start;
+      align-self: center;
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 999px;
       color: rgba(255, 255, 255, 0.82);
+      cursor: default;
       font-size: 0.72rem;
       font-weight: 700;
       letter-spacing: 0.1em;
       padding: 6px 10px;
+      pointer-events: none;
+      text-align: center;
       text-transform: uppercase;
 
       &.is-success {
@@ -243,14 +283,16 @@ body.sl_settings_top {
     }
 
     .sl-update-actions {
-      display: grid;
+      align-items: stretch;
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
 
     .sl-update-action {
       align-items: center;
       display: flex;
+      flex: 1 1 140px;
       justify-content: center;
       min-height: 38px;
       width: 100%;

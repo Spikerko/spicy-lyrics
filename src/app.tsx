@@ -662,7 +662,7 @@ async function main() {
       );
 
       PopupModal.display({
-        title: "Spicy Lyrics Updated!",
+        title: "",
         content: div,
         onClose: () => {
           reactRoot.unmount();

@@ -30,13 +30,7 @@ const compareVersions = (a, b) => {
   return av.Patch - bv.Patch;
 };
 
-const isVersionAtLeast = (version, minimum) => {
-  const v = parseVersion(version);
-  const m = parseVersion(minimum);
-  if (v.Major !== m.Major) return v.Major > m.Major;
-  if (v.Minor !== m.Minor) return v.Minor > m.Minor;
-  return v.Patch >= m.Patch;
-};
+const isVersionAtLeast = (version, minimum) => compareVersions(version, minimum) >= 0;
 
 // Plugin version that handles its own settings button placement
 const PLUGIN_HANDLES_SETTINGS = "5.20.0";
@@ -71,18 +65,16 @@ const getCurrentChannel = () => lsGet("buildChannel") ?? "Stable";
 
 const setCurrentChannel = (name) => lsSet("buildChannel", name);
 
-const ensureCustomChannelAccessInitialized = () => {
-  if (lsGet(CUSTOM_CHANNELS_ENABLED_KEY) != null) return;
-  lsSet(CUSTOM_CHANNELS_ENABLED_KEY, Object.keys(getCustomChannels()).length > 0 ? "true" : "false");
-};
+const getCustomChannelAccessEnabled = () => {
+  const saved = lsGet(CUSTOM_CHANNELS_ENABLED_KEY);
+  if (saved != null) return saved === "true";
 
-const isCustomChannelAccessEnabled = () => {
-  ensureCustomChannelAccessInitialized();
-  return lsGet(CUSTOM_CHANNELS_ENABLED_KEY) === "true";
+  const enabled = Object.keys(getCustomChannels()).length > 0;
+  lsSet(CUSTOM_CHANNELS_ENABLED_KEY, enabled ? "true" : "false");
+  return enabled;
 };
 
 const setCustomChannelAccessEnabled = (enabled) => {
-  ensureCustomChannelAccessInitialized();
   lsSet(CUSTOM_CHANNELS_ENABLED_KEY, enabled ? "true" : "false");
 
   if (!enabled && !BUILT_IN_CHANNELS.includes(getCurrentChannel())) {
@@ -92,10 +84,6 @@ const setCustomChannelAccessEnabled = (enabled) => {
 
   return { switchedToStable: false };
 };
-
-const getVisibleChannelMap = () => (
-  isCustomChannelAccessEnabled() ? getFullChannelMap() : CHANNEL_MAP
-);
 
 const showCustomChannelAccessNotification = (enabled, switchedToStable = false) => {
   const suffix = !enabled && switchedToStable ? " Switched back to Stable." : "";
@@ -228,10 +216,15 @@ const injectStyles = () => {
     .sl-btn.sl-btn-primary:hover{background:#fff;border-color:transparent;}
     .sl-btn.sl-btn-danger{color:rgba(220,80,60,.9);border-color:rgba(220,80,60,.3);}
     .sl-btn.sl-btn-danger:hover{background:rgba(220,80,60,.1);border-color:rgba(220,80,60,.5);}
-    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper){width:min(34rem,calc(100vw - 48px));background:#0e0e0e;border:1px solid rgba(255,255,255,.14);border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.7);}
-    .GenericModal__overlay .update-card-wrapper{display:flex;flex-direction:column;gap:14px;color:#fff;padding:4px 0 0;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper){width:min(34rem,calc(100vw - 48px));background:#0e0e0e;border:1px solid rgba(255,255,255,.14);border-bottom-color:transparent;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.7);overflow:hidden;position:relative;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header{background:transparent;border-bottom:none;justify-content:flex-end;padding:10px 10px 0;position:absolute;right:0;top:0;z-index:2;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header h1{display:none;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-mainSection{overflow:hidden;padding-top:0;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits{background:transparent;border:none;box-shadow:none;-ms-overflow-style:none;overflow:hidden;padding:0;scrollbar-width:none;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits::-webkit-scrollbar{display:none;}
+    .GenericModal__overlay .update-card-wrapper{display:flex;flex-direction:column;gap:14px;color:#fff;padding:4px 0 2px;}
     .GenericModal__overlay .update-card-wrapper .sl-update-hero{display:flex;flex-direction:column;gap:10px;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-status{align-self:flex-start;border:1px solid rgba(255,255,255,.2);border-radius:999px;color:rgba(255,255,255,.82);font-size:.72rem;font-weight:700;letter-spacing:.1em;padding:6px 10px;text-transform:uppercase;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-status{align-self:center;border:1px solid rgba(255,255,255,.2);border-radius:999px;color:rgba(255,255,255,.82);cursor:default;font-size:.72rem;font-weight:700;letter-spacing:.1em;padding:6px 10px;pointer-events:none;text-align:center;text-transform:uppercase;}
     .GenericModal__overlay .update-card-wrapper .sl-update-status.is-success{background:rgba(29,185,84,.14);border-color:rgba(29,185,84,.28);color:#74e39d;}
     .GenericModal__overlay .update-card-wrapper .sl-update-status.is-warning{background:rgba(237,190,78,.14);border-color:rgba(237,190,78,.28);color:#f1d47b;}
     .GenericModal__overlay .update-card-wrapper .sl-update-title{color:#fff;font-size:1.15rem;font-weight:700;line-height:1.3;}
@@ -239,8 +232,10 @@ const injectStyles = () => {
     .GenericModal__overlay .update-card-wrapper .sl-update-section{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);border-radius:10px;display:flex;flex-direction:column;gap:8px;padding:14px 16px;}
     .GenericModal__overlay .update-card-wrapper .sl-update-section-label{color:rgba(255,255,255,.42);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
     .GenericModal__overlay .update-card-wrapper .sl-update-version{color:rgba(255,255,255,.9);font-size:1rem;font-weight:600;line-height:1.4;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-actions{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));}
-    .GenericModal__overlay .update-card-wrapper .sl-update-action{align-items:center;display:flex;justify-content:center;min-height:38px;width:100%;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-actions{align-items:stretch;display:flex;flex-wrap:wrap;gap:10px;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-action{align-items:center;display:flex;flex:1 1 140px;justify-content:center;min-height:38px;width:100%;}
+    .GenericModal:has(.slm),.GenericModal:has(.slm) .main-trackCreditsModal-container{border-radius:16px;}
+    .main-trackCreditsModal-mainSection:has(.slm.scroll-x-hidden){overflow-x:hidden;}
   `;
   document.head.appendChild(style);
 };
@@ -370,11 +365,16 @@ const makeBtnRow = () => {
   return row;
 };
 
+const reopenPanel = (close, next) => {
+  close();
+  setTimeout(next, 100);
+};
+
 // ─── Channel Management UI ───
 
 const showChannelSwitcher = () => {
   showPanel("Build Channel", (scroll, close) => {
-    const map = getVisibleChannelMap();
+    const map = getCustomChannelAccessEnabled() ? getFullChannelMap() : CHANNEL_MAP;
     const allNames = Object.keys(map);
     const current = getCurrentChannel();
 
@@ -388,20 +388,11 @@ const showChannelSwitcher = () => {
       select.appendChild(opt);
     }
 
-    const buildChannelRow = document.createElement("div");
-    buildChannelRow.className = "sl-settings-row";
-
-    const buildChannelLabel = document.createElement("span");
-    buildChannelLabel.className = "sl-settings-label";
-    buildChannelLabel.textContent = "Build Channel";
-    buildChannelRow.appendChild(buildChannelLabel);
-    buildChannelRow.appendChild(select);
+    const buildChannelRow = makeRow("Build Channel", select);
+    const buildChannelLabel = buildChannelRow.querySelector(".sl-settings-label");
     scroll.appendChild(buildChannelRow);
 
-    attachSecretToggleGesture(buildChannelLabel, () => {
-      close();
-      setTimeout(showChannelSwitcher, 100);
-    });
+    attachSecretToggleGesture(buildChannelLabel, () => reopenPanel(close, showChannelSwitcher));
 
     const info = document.createElement("p");
     info.style.cssText = "margin:2px 8px 10px;font-size:0.72rem;color:rgba(255,255,255,0.35);line-height:1.5;";
@@ -423,13 +414,13 @@ const showChannelSwitcher = () => {
 
     const btnRow = makeBtnRow();
 
-    if (isCustomChannelAccessEnabled()) {
+    if (getCustomChannelAccessEnabled()) {
       const addBtn = makeBtn("Add Custom");
-      addBtn.addEventListener("click", () => { close(); setTimeout(showAddCustomChannel, 100); });
+      addBtn.addEventListener("click", () => reopenPanel(close, showAddCustomChannel));
       btnRow.appendChild(addBtn);
 
       const removeBtn = makeBtn("Remove Custom", "sl-btn-danger");
-      removeBtn.addEventListener("click", () => { close(); setTimeout(showRemoveCustomChannel, 100); });
+      removeBtn.addEventListener("click", () => reopenPanel(close, showRemoveCustomChannel));
       btnRow.appendChild(removeBtn);
     }
 
@@ -480,7 +471,7 @@ const showAddCustomChannel = () => {
     const btnRow = makeBtnRow();
 
     const cancelBtn = makeBtn("Cancel");
-    cancelBtn.addEventListener("click", () => { close(); setTimeout(showChannelSwitcher, 100); });
+    cancelBtn.addEventListener("click", () => reopenPanel(close, showChannelSwitcher));
     btnRow.appendChild(cancelBtn);
 
     const saveBtn = makeBtn("Save Channel", "sl-btn-primary");
@@ -554,7 +545,7 @@ const showRemoveCustomChannel = () => {
 
     const btnRow = makeBtnRow();
     const backBtn = makeBtn("Back");
-    backBtn.addEventListener("click", () => { close(); setTimeout(showChannelSwitcher, 100); });
+    backBtn.addEventListener("click", () => reopenPanel(close, showChannelSwitcher));
     btnRow.appendChild(backBtn);
     scroll.appendChild(btnRow);
   });
@@ -706,7 +697,7 @@ const createVersionChangeContent = (fromVersion, toVersion) => {
 const maybeShowVersionChangePopup = (fromVersion, toVersion) => {
   if (fromVersion === toVersion) return;
   Spicetify.PopupModal.display({
-    title: "Spicy Lyrics Updated!",
+    title: "",
     content: createVersionChangeContent(fromVersion, toVersion),
   });
 };
@@ -783,7 +774,7 @@ const load = async () => {
   injectStyles();
 
   // Initialize the custom-channel gate before any UI tries to read it
-  ensureCustomChannelAccessInitialized();
+  getCustomChannelAccessEnabled();
 
   // Register channel settings in the settings page (works even if plugin fails)
   registerChannelSettings();
