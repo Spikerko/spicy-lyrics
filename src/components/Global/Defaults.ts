@@ -31,6 +31,7 @@ const Defaults = {
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
   DeveloperMode: false,
+  BuildChannel: "Stable" as string,
 };
 
 export default Defaults;

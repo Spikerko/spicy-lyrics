@@ -196,6 +196,15 @@ function generalSettings(SettingsSection: any) {
   });
 
   settings.addButton(
+    "build-channel",
+    `Build Channel (Current: ${Defaults.BuildChannel})`,
+    "Manage",
+    () => {
+      (window as any)._spicy_lyrics_channels?.showSwitcher?.();
+    }
+  );
+
+  settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",
     "Save & Reload",

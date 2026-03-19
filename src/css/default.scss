@@ -156,3 +156,104 @@ body.sl_settings_top {
   padding: 12px;
   border-radius: 8px;
 }
+
+.GenericModal__overlay {
+  .main-trackCreditsModal-container:has(.update-card-wrapper) {
+    width: min(34rem, calc(100vw - 48px));
+    background: #0e0e0e;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  .update-card-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    color: #fff;
+    padding: 4px 0 0;
+
+    .sl-update-hero {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sl-update-status {
+      align-self: flex-start;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 6px 10px;
+      text-transform: uppercase;
+
+      &.is-success {
+        background: rgba(29, 185, 84, 0.14);
+        border-color: rgba(29, 185, 84, 0.28);
+        color: #74e39d;
+      }
+
+      &.is-warning {
+        background: rgba(237, 190, 78, 0.14);
+        border-color: rgba(237, 190, 78, 0.28);
+        color: #f1d47b;
+      }
+    }
+
+    .sl-update-title {
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .sl-update-copy {
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 0.92rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .sl-update-section {
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 14px 16px;
+    }
+
+    .sl-update-section-label {
+      color: rgba(255, 255, 255, 0.42);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .sl-update-version {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .sl-update-actions {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .sl-update-action {
+      align-items: center;
+      display: flex;
+      justify-content: center;
+      min-height: 38px;
+      width: 100%;
+    }
+  }
+}
