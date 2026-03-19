@@ -483,151 +483,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none !important;
 }
 
-.GenericModal__overlay {
-  .main-trackCreditsModal-container:has(.update-card-wrapper) {
-    width: min(34rem, calc(100vw - 48px));
-    background: #0e0e0e;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-bottom-color: transparent;
-    border-radius: 12px;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
-    overflow: hidden;
-    position: relative;
-  }
-
-  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header {
-    background: transparent;
-    border-bottom: none;
-    justify-content: flex-end;
-    padding: 10px 10px 0;
-    position: absolute;
-    right: 0;
-    top: 0;
-    z-index: 2;
-  }
-
-  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header h1 {
-    display: none;
-  }
-
-  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-mainSection {
-    overflow: hidden;
-    padding-top: 0;
-  }
-
-  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    -ms-overflow-style: none;
-    overflow: hidden;
-    padding: 0;
-    scrollbar-width: none;
-  }
-
-  .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits::-webkit-scrollbar {
-    display: none;
-  }
-
-  .update-card-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    color: #fff;
-    padding: 4px 0 2px;
-
-    .sl-update-hero {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .sl-update-status {
-      align-self: center;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 999px;
-      color: rgba(255, 255, 255, 0.82);
-      cursor: default;
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      padding: 6px 10px;
-      pointer-events: none;
-      text-align: center;
-      text-transform: uppercase;
-
-      &.is-success {
-        background: rgba(29, 185, 84, 0.14);
-        border-color: rgba(29, 185, 84, 0.28);
-        color: #74e39d;
-      }
-
-      &.is-warning {
-        background: rgba(237, 190, 78, 0.14);
-        border-color: rgba(237, 190, 78, 0.28);
-        color: #f1d47b;
-      }
-    }
-
-    .sl-update-title {
-      color: #fff;
-      font-size: 1.15rem;
-      font-weight: 700;
-      line-height: 1.3;
-    }
-
-    .sl-update-copy {
-      color: rgba(255, 255, 255, 0.66);
-      font-size: 0.92rem;
-      line-height: 1.55;
-      margin: 0;
-    }
-
-    .sl-update-section {
-      background: rgba(255, 255, 255, 0.045);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding: 14px 16px;
-    }
-
-    .sl-update-section-label {
-      color: rgba(255, 255, 255, 0.42);
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-    }
-
-    .sl-update-version {
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 1rem;
-      font-weight: 600;
-      line-height: 1.4;
-    }
-
-    .sl-update-actions {
-      align-items: stretch;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .sl-update-action {
-      align-items: center;
-      display: flex;
-      flex: 1 1 140px;
-      justify-content: center;
-      min-height: 38px;
-      width: 100%;
-    }
-  }
-}
-
-
-
 .GenericModal:has(.slm),
 .GenericModal:has(.slm) .main-trackCreditsModal-container {
   border-radius: 16px;
@@ -637,32 +492,13 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   overflow-x: hidden;
 }
 
-
 .Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
   display: none !important;
 }
 
 .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header {
-  /* border-bottom: none !important;
-  padding: 24px 46px 0px !important;
-  margin-bottom: -40px !important;
-  position: relative;
-  z-index: 104; */
-
   display: none;
 }
-
-/* .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
-  position: relative;
-  z-index: 106;
-}
-
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header h1 {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  height: 0px !important;
-  line-height: 0 !important;
-} */
 
 .Animated__GenericModal__overlay {
   opacity: 0;

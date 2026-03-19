@@ -216,24 +216,24 @@ const injectStyles = () => {
     .sl-btn.sl-btn-primary:hover{background:#fff;border-color:transparent;}
     .sl-btn.sl-btn-danger{color:rgba(220,80,60,.9);border-color:rgba(220,80,60,.3);}
     .sl-btn.sl-btn-danger:hover{background:rgba(220,80,60,.1);border-color:rgba(220,80,60,.5);}
-    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper){width:min(34rem,calc(100vw - 48px));background:#0e0e0e;border:1px solid rgba(255,255,255,.14);border-bottom-color:transparent;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.7);overflow:hidden;position:relative;}
+    .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper){width:min(35rem,calc(100vw - 48px));background:#0e0e0e;border:1px solid rgba(255,255,255,.14);border-bottom-color:transparent;border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.7);overflow:hidden;position:relative;}
     .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header{background:transparent;border-bottom:none;justify-content:flex-end;padding:10px 10px 0;position:absolute;right:0;top:0;z-index:2;}
     .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-header h1{display:none;}
     .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-mainSection{overflow:hidden;padding-top:0;}
     .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits{background:transparent;border:none;box-shadow:none;-ms-overflow-style:none;overflow:hidden;padding:0;scrollbar-width:none;}
     .GenericModal__overlay .main-trackCreditsModal-container:has(.update-card-wrapper) .main-trackCreditsModal-originalCredits::-webkit-scrollbar{display:none;}
-    .GenericModal__overlay .update-card-wrapper{display:flex;flex-direction:column;gap:14px;color:#fff;padding:4px 0 2px;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-hero{display:flex;flex-direction:column;gap:10px;}
+    .GenericModal__overlay .update-card-wrapper{display:flex;flex-direction:column;gap:14px;color:#fff;padding:20px 0 18px;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-hero{display:flex;flex-direction:column;gap:10px;text-align:center;}
     .GenericModal__overlay .update-card-wrapper .sl-update-status{align-self:center;border:1px solid rgba(255,255,255,.2);border-radius:999px;color:rgba(255,255,255,.82);cursor:default;font-size:.72rem;font-weight:700;letter-spacing:.1em;padding:6px 10px;pointer-events:none;text-align:center;text-transform:uppercase;}
     .GenericModal__overlay .update-card-wrapper .sl-update-status.is-success{background:rgba(29,185,84,.14);border-color:rgba(29,185,84,.28);color:#74e39d;}
     .GenericModal__overlay .update-card-wrapper .sl-update-status.is-warning{background:rgba(237,190,78,.14);border-color:rgba(237,190,78,.28);color:#f1d47b;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-title{color:#fff;font-size:1.15rem;font-weight:700;line-height:1.3;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-copy{color:rgba(255,255,255,.66);font-size:.92rem;line-height:1.55;margin:0;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-section{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);border-radius:10px;display:flex;flex-direction:column;gap:8px;padding:14px 16px;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-section-label{color:rgba(255,255,255,.42);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-version{color:rgba(255,255,255,.9);font-size:1rem;font-weight:600;line-height:1.4;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-actions{align-items:stretch;display:flex;flex-wrap:wrap;gap:10px;}
-    .GenericModal__overlay .update-card-wrapper .sl-update-action{align-items:center;display:flex;flex:1 1 140px;justify-content:center;min-height:38px;width:100%;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-title{color:#fff;font-size:1.15rem;font-weight:700;line-height:1.3;text-align:center;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-copy{color:rgba(255,255,255,.66);font-size:.92rem;line-height:1.55;margin:0;text-align:center;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-section{align-self:center;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);border-radius:10px;display:flex;flex-direction:column;gap:8px;padding:12px 14px;text-align:center;width:min(100%,18.5rem);}
+    .GenericModal__overlay .update-card-wrapper .sl-update-section-label{color:rgba(255,255,255,.42);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-align:center;text-transform:uppercase;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-version{color:rgba(255,255,255,.9);font-size:1rem;font-weight:600;line-height:1.4;text-align:center;}
+    .GenericModal__overlay .update-card-wrapper .sl-update-actions{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(156px,1fr));}
+    .GenericModal__overlay .update-card-wrapper .sl-update-action{align-items:center;display:flex;justify-content:center;min-height:42px;padding:8px 16px;width:100%;}
     .GenericModal:has(.slm),.GenericModal:has(.slm) .main-trackCreditsModal-container{border-radius:16px;}
     .main-trackCreditsModal-mainSection:has(.slm.scroll-x-hidden){overflow-x:hidden;}
   `;
@@ -629,6 +629,7 @@ const loadExtension = async (storageHost, version) => {
 const createVersionChangeContent = (fromVersion, toVersion) => {
   const wrap = document.createElement("div");
   wrap.className = "update-card-wrapper slm sl-update-modal";
+  wrap.style.fontFamily = "var(--encore-body-font-stack), SpicyLyrics, sans-serif";
 
   const isDowngrade = fromVersion ? compareVersions(toVersion, fromVersion) < 0 : false;
 
@@ -671,10 +672,12 @@ const createVersionChangeContent = (fromVersion, toVersion) => {
 
   const actions = document.createElement("div");
   actions.className = "sl-update-actions";
+  actions.style.cssText = "display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(156px,1fr));";
 
   const releaseNotes = document.createElement("button");
   releaseNotes.type = "button";
   releaseNotes.className = "sl-btn sl-btn-primary sl-update-action";
+  releaseNotes.style.cssText = "align-items:center;display:flex;font-family:var(--encore-body-font-stack), SpicyLyrics, sans-serif;font-size:.875rem;font-weight:600;justify-content:center;line-height:1.2;min-height:42px;padding:8px 16px;width:100%;";
   releaseNotes.textContent = "Release Notes";
   releaseNotes.addEventListener("click", () => {
     window.open(`https://github.com/Spikerko/spicy-lyrics/releases/tag/${toVersion}`, "_blank");
@@ -684,6 +687,7 @@ const createVersionChangeContent = (fromVersion, toVersion) => {
   const discord = document.createElement("button");
   discord.type = "button";
   discord.className = "sl-btn sl-update-action";
+  discord.style.cssText = "align-items:center;display:flex;font-family:var(--encore-body-font-stack), SpicyLyrics, sans-serif;font-size:.875rem;font-weight:600;justify-content:center;line-height:1.2;min-height:42px;padding:8px 16px;width:100%;";
   discord.textContent = "Join Discord";
   discord.addEventListener("click", () => {
     window.open("https://discord.com/invite/uqgXU5wh8j", "_blank");

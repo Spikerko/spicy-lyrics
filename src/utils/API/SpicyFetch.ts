@@ -2,7 +2,6 @@
 import Defaults from "../../components/Global/Defaults";
 import Platform from "../../components/Global/Platform";
 import Session from "../../components/Global/Session";
-import { CheckForUpdates } from "../version/CheckForUpdates";
 import { GetExpireStore } from "@spikerko/tools/Cache";
 
 
@@ -143,7 +142,6 @@ async function CheckForErrors(res: Response): Promise<Response | null> {
             try {
                 const data = JSON.parse(TEXT);
                 if (data?.message === "Update Spicy Lyrics") {
-                    await CheckForUpdates(true);
                     return null;
                 }
             } catch (e) {
