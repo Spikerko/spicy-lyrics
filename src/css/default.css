@@ -483,77 +483,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none !important;
 }
 
-.GenericModal__overlay {
-  .main-trackCreditsModal-container:has(.update-card-wrapper){
-    width: min(35rem,60vw);
-  }
-  .update-card-wrapper {
-    display: flex;
-    gap: 8px;
-    flex-direction: column;
-    margin-inline: -12px;
-    padding: 16px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    text-align: center;
-    background-color: #0d0d0d;
-
-    .header {
-      margin-bottom: 12px;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    button,
-    .card {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 12px 20px;
-      font-size: 18px !important;
-      font-weight: bold;
-      cursor: pointer;
-      transition:
-        background-color 0.3s ease,
-        color 0.3s ease,
-        box-shadow 0.3s ease;
-    }
-
-    .version {
-      font-size: 24px !important;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    .btn-release {
-      background-color: #148c39;
-      color: #ffffff;
-
-      &:hover {
-        background-color: #1db954;
-        box-shadow: 0 4px 12px rgba(29, 185, 84, 0.5);
-      }
-    }
-
-    .btn-discord {
-      background-color: #3b4cca;
-      color: #ffffff;
-
-      &:hover {
-        background-color: #5865f2;
-        box-shadow: 0 4px 12px rgba(88, 101, 242, 0.5);
-      }
-    }
-
-    a {
-      color: var(--spice-button, #1db954);
-      font-weight: bold;
-      text-decoration: underline;
-    }
-  }
-}
-
-
-
 .GenericModal:has(.slm),
 .GenericModal:has(.slm) .main-trackCreditsModal-container {
   border-radius: 16px;
@@ -563,32 +492,13 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   overflow-x: hidden;
 }
 
-
 .Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
   display: none !important;
 }
 
 .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header {
-  /* border-bottom: none !important;
-  padding: 24px 46px 0px !important;
-  margin-bottom: -40px !important;
-  position: relative;
-  z-index: 104; */
-
   display: none;
 }
-
-/* .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
-  position: relative;
-  z-index: 106;
-}
-
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header h1 {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  height: 0px !important;
-  line-height: 0 !important;
-} */
 
 .Animated__GenericModal__overlay {
   opacity: 0;

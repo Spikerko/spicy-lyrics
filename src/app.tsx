@@ -51,12 +51,8 @@ import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts"
 // Unused import removed: import sleep from "./utils/sleep";
 import { setSettingsMenu } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
-import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
-import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import ReactDOM from "react-dom/client";
-import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../tasks/config.ts";
 
 async function main() {
@@ -181,6 +177,14 @@ async function main() {
 
   if (storage.get("minimalLyricsMode")) {
     Defaults.MinimalLyricsMode = storage.get("minimalLyricsMode") === "true";
+  }
+
+  if (!storage.get("buildChannel")) {
+    storage.set("buildChannel", "Stable");
+  }
+
+  if (storage.get("buildChannel")) {
+    Defaults.BuildChannel = storage.get("buildChannel").toString() as string;
   }
 
   if (!storage.get("hide_npv_bg")) {
@@ -645,26 +649,6 @@ async function main() {
       }
     );
 
-    const fromVersion = storage.get("fromVersion") as string;
-    if (fromVersion !== Defaults.SpicyLyricsVersion) {
-      const div = document.createElement("div");
-      const reactRoot = ReactDOM.createRoot(div);
-      reactRoot.render(
-        <UpdateDialog fromVersion={fromVersion} spicyLyricsVersion={Defaults.SpicyLyricsVersion} />
-      );
-
-      PopupModal.display({
-        title: "Spicy Lyrics Updated!",
-        content: div,
-        isLarge: true,
-        onClose: () => {
-          reactRoot.unmount();
-        }
-      });
-    }
-
-    storage.set("fromVersion", Defaults.SpicyLyricsVersion);
-
     // Lets set out Dynamic Background (spicy-dynamic-bg) to the now playing bar
     let lastImgUrl: string | null;
     // Store the DynamicBackground instance for reuse
@@ -1064,21 +1048,6 @@ async function main() {
       });
       Spicetify.Platform.History.listen(Session.RecordNavigation);
       Session.RecordNavigation(Spicetify.Platform.History.location);
-
-      Global.Event.listen("session:navigation", (data: Location) => {
-        if (data.pathname === "/SpicyLyrics/Update") {
-          storage.set("fromVersion", Defaults.SpicyLyricsVersion);
-          window._spicy_lyrics_metadata = {};
-          Session.GoBack();
-          window.location.reload();
-        }
-      });
-
-      const CheckForUpdates_Intervaled = async () => {
-        await CheckForUpdates();
-        setTimeout(CheckForUpdates_Intervaled, 300 * 1000);
-      };
-      setTimeout(async () => await CheckForUpdates_Intervaled(), 1000);
     }
   };
 
