@@ -31,12 +31,81 @@ RetrievePackage("aromanize", "1.0.0", "js")
 RetrievePackage("GreekRomanization", "1.0.0", "js")
   .catch(() => {});
 
-const RomanizeKorean = async (lyricMetadata: any, primaryLanguage: string) => {
-  const aromanize = await RetrievePackage("aromanize", "1.0.0", "js");
+type RomanizationBranch = "Japanese" | "Chinese" | "Korean" | "Cyrillic" | "Greek";
+
+type RomanizationPackages = {
+  aromanize?: any;
+  pinyin?: any;
+  greekRomanization?: any;
+};
+
+const romanizationBranchFromFranc = (
+  primaryLanguage: string,
+  iso2Language: string | undefined
+): RomanizationBranch | undefined => {
+  if (primaryLanguage === "jpn") return "Japanese";
+  if (primaryLanguage === "cmn") return "Chinese";
+  if (primaryLanguage === "kor") return "Korean";
+  if (
+    primaryLanguage === "bel" ||
+    primaryLanguage === "bul" ||
+    primaryLanguage === "kaz" ||
+    iso2Language === "ky" ||
+    primaryLanguage === "mkd" ||
+    iso2Language === "mn" ||
+    primaryLanguage === "rus" ||
+    primaryLanguage === "srp" ||
+    primaryLanguage === "tgk" ||
+    primaryLanguage === "ukr"
+  ) {
+    return "Cyrillic";
+  }
+  if (primaryLanguage === "ell") return "Greek";
+  return undefined;
+};
+
+const preloadRomanizationPackages = async (
+  branch: RomanizationBranch
+): Promise<RomanizationPackages> => {
+  const packages: RomanizationPackages = {};
+  if (branch === "Japanese") {
+    await RomajiPromise;
+  } else if (branch === "Chinese") {
+    packages.pinyin = await RetrievePackage("pinyin", "4.0.0", "mjs");
+    while (!packages.pinyin) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  } else if (branch === "Korean") {
+    packages.aromanize = await RetrievePackage("aromanize", "1.0.0", "js");
+    while (!packages.aromanize) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  } else if (branch === "Greek") {
+    packages.greekRomanization = await RetrievePackage("GreekRomanization", "1.0.0", "js");
+    while (!packages.greekRomanization) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  }
+  return packages;
+};
+
+export type RomanizeOptions = {
+  skipTextTests?: boolean;
+  packages?: RomanizationPackages;
+};
+
+const RomanizeKorean = async (
+  lyricMetadata: any,
+  primaryLanguage: string,
+  preloadedAromanize: any | undefined,
+  skipTextTests: boolean
+) => {
+  const aromanize =
+    preloadedAromanize ?? (await RetrievePackage("aromanize", "1.0.0", "js"));
   while (!aromanize) {
     await new Promise((r) => setTimeout(r, 50));
   }
-  if (primaryLanguage === "kor" || KoreanTextTest.test(lyricMetadata.Text)) {
+  if (primaryLanguage === "kor" || (!skipTextTests && KoreanTextTest.test(lyricMetadata.Text))) {
     lyricMetadata.RomanizedText = aromanize.default(
       lyricMetadata.Text,
       "RevisedRomanizationTransliteration"
@@ -44,12 +113,17 @@ const RomanizeKorean = async (lyricMetadata: any, primaryLanguage: string) => {
   }
 };
 
-const RomanizeChinese = async (lyricMetadata: any, primaryLanguage: string) => {
-  const pinyin = await RetrievePackage("pinyin", "4.0.0", "mjs");
+const RomanizeChinese = async (
+  lyricMetadata: any,
+  primaryLanguage: string,
+  preloadedPinyin: any | undefined,
+  skipTextTests: boolean
+) => {
+  const pinyin = preloadedPinyin ?? (await RetrievePackage("pinyin", "4.0.0", "mjs"));
   while (!pinyin) {
     await new Promise((r) => setTimeout(r, 50));
   }
-  if (primaryLanguage === "cmn" || ChineseTextText.test(lyricMetadata.Text)) {
+  if (primaryLanguage === "cmn" || (!skipTextTests && ChineseTextText.test(lyricMetadata.Text))) {
     const result = pinyin.pinyin(lyricMetadata.Text, {
       segment: false,
       group: true,
@@ -59,8 +133,12 @@ const RomanizeChinese = async (lyricMetadata: any, primaryLanguage: string) => {
   }
 };
 
-const RomanizeJapanese = async (lyricMetadata: any, primaryLanguage: string) => {
-  if (primaryLanguage === "jpn" || JapaneseTextText.test(lyricMetadata.Text)) {
+const RomanizeJapanese = async (
+  lyricMetadata: any,
+  primaryLanguage: string,
+  skipTextTests: boolean
+) => {
+  if (primaryLanguage === "jpn" || (!skipTextTests && JapaneseTextText.test(lyricMetadata.Text))) {
     await RomajiPromise;
 
     const result = await RomajiConverter.convert(lyricMetadata.Text, {
@@ -72,7 +150,12 @@ const RomanizeJapanese = async (lyricMetadata: any, primaryLanguage: string) => 
   }
 };
 
-const RomanizeCyrillic = async (lyricMetadata: any, primaryLanguage: string, iso2Lang: string) => {
+const RomanizeCyrillic = async (
+  lyricMetadata: any,
+  primaryLanguage: string,
+  iso2Lang: string,
+  skipTextTests: boolean
+) => {
   if (
     primaryLanguage === "bel" ||
     primaryLanguage === "bul" ||
@@ -84,7 +167,7 @@ const RomanizeCyrillic = async (lyricMetadata: any, primaryLanguage: string, iso
     primaryLanguage === "srp" ||
     primaryLanguage === "tgk" ||
     primaryLanguage === "ukr" ||
-    CyrillicTextTest.test(lyricMetadata.Text)
+    (!skipTextTests && CyrillicTextTest.test(lyricMetadata.Text))
   ) {
     const result = cyrillicToLatin(lyricMetadata.Text);
     if (result != null) {
@@ -93,12 +176,18 @@ const RomanizeCyrillic = async (lyricMetadata: any, primaryLanguage: string, iso
   }
 };
 
-const RomanizeGreek = async (lyricMetadata: any, primaryLanguage: string) => {
-  const greekRomanization = await RetrievePackage("GreekRomanization", "1.0.0", "js");
+const RomanizeGreek = async (
+  lyricMetadata: any,
+  primaryLanguage: string,
+  preloadedGreekRomanization: any | undefined,
+  skipTextTests: boolean
+) => {
+  const greekRomanization =
+    preloadedGreekRomanization ?? (await RetrievePackage("GreekRomanization", "1.0.0", "js"));
   while (!greekRomanization) {
     await new Promise((r) => setTimeout(r, 50));
   }
-  if (primaryLanguage === "ell" || GreekTextTest.test(lyricMetadata.Text)) {
+  if (primaryLanguage === "ell" || (!skipTextTests && GreekTextTest.test(lyricMetadata.Text))) {
     const result = greekRomanization.default(lyricMetadata.Text);
     if (result != null) {
       lyricMetadata.RomanizedText = result;
@@ -106,19 +195,26 @@ const RomanizeGreek = async (lyricMetadata: any, primaryLanguage: string) => {
   }
 };
 
-const Romanize = async (lyricMetadata: any, rootInformation: any): Promise<string | undefined> => {
+const Romanize = async (
+  lyricMetadata: any,
+  rootInformation: any,
+  options?: RomanizeOptions
+): Promise<string | undefined> => {
   const primaryLanguage = rootInformation.Language;
   const iso2Language = rootInformation.LanguageISO2;
-  if (primaryLanguage === "jpn" || JapaneseTextText.test(lyricMetadata.Text)) {
-    await RomanizeJapanese(lyricMetadata, primaryLanguage);
+  const skipTextTests = options?.skipTextTests === true;
+  const packages = options?.packages;
+
+  if (primaryLanguage === "jpn" || (!skipTextTests && JapaneseTextText.test(lyricMetadata.Text))) {
+    await RomanizeJapanese(lyricMetadata, primaryLanguage, skipTextTests);
     rootInformation.IncludesRomanization = true;
     return "Japanese";
-  } else if (primaryLanguage === "cmn" || ChineseTextText.test(lyricMetadata.Text)) {
-    await RomanizeChinese(lyricMetadata, primaryLanguage);
+  } else if (primaryLanguage === "cmn" || (!skipTextTests && ChineseTextText.test(lyricMetadata.Text))) {
+    await RomanizeChinese(lyricMetadata, primaryLanguage, packages?.pinyin, skipTextTests);
     rootInformation.IncludesRomanization = true;
     return "Chinese";
-  } else if (primaryLanguage === "kor" || KoreanTextTest.test(lyricMetadata.Text)) {
-    await RomanizeKorean(lyricMetadata, primaryLanguage);
+  } else if (primaryLanguage === "kor" || (!skipTextTests && KoreanTextTest.test(lyricMetadata.Text))) {
+    await RomanizeKorean(lyricMetadata, primaryLanguage, packages?.aromanize, skipTextTests);
     rootInformation.IncludesRomanization = true;
     return "Korean";
   } else if (
@@ -132,13 +228,13 @@ const Romanize = async (lyricMetadata: any, rootInformation: any): Promise<strin
     primaryLanguage === "srp" ||
     primaryLanguage === "tgk" ||
     primaryLanguage === "ukr" ||
-    CyrillicTextTest.test(lyricMetadata.Text)
+    (!skipTextTests && CyrillicTextTest.test(lyricMetadata.Text))
   ) {
-    await RomanizeCyrillic(lyricMetadata, primaryLanguage, iso2Language);
+    await RomanizeCyrillic(lyricMetadata, primaryLanguage, iso2Language, skipTextTests);
     rootInformation.IncludesRomanization = true;
     return "Cyrillic";
-  } else if (primaryLanguage === "ell" || GreekTextTest.test(lyricMetadata.Text)) {
-    await RomanizeGreek(lyricMetadata, primaryLanguage);
+  } else if (primaryLanguage === "ell" || (!skipTextTests && GreekTextTest.test(lyricMetadata.Text))) {
+    await RomanizeGreek(lyricMetadata, primaryLanguage, packages?.greekRomanization, skipTextTests);
     rootInformation.IncludesRomanization = true;
     return "Greek";
   } else {
@@ -149,6 +245,8 @@ const Romanize = async (lyricMetadata: any, rootInformation: any): Promise<strin
 
 export const ProcessLyrics = async (lyrics: any) => {
   const romanizationPromises: Promise<string | undefined>[] = [];
+  let romanizeOptions: RomanizeOptions | undefined;
+
   if (lyrics.Type === "Static") {
     {
       let textToProcess = lyrics.Lines[0].Text;
@@ -161,10 +259,18 @@ export const ProcessLyrics = async (lyrics: any) => {
 
       lyrics.Language = language;
       lyrics.LanguageISO2 = languageISO2;
+
+      const branch = romanizationBranchFromFranc(language, languageISO2);
+      if (branch !== undefined) {
+        romanizeOptions = {
+          skipTextTests: true,
+          packages: await preloadRomanizationPackages(branch),
+        };
+      }
     }
 
     for (const lyricMetadata of lyrics.Lines) {
-      romanizationPromises.push(Romanize(lyricMetadata, lyrics));
+      romanizationPromises.push(Romanize(lyricMetadata, lyrics, romanizeOptions));
     }
   } else if (lyrics.Type === "Line") {
     {
@@ -181,11 +287,19 @@ export const ProcessLyrics = async (lyrics: any) => {
 
       lyrics.Language = language;
       lyrics.LanguageISO2 = languageISO2;
+
+      const branch = romanizationBranchFromFranc(language, languageISO2);
+      if (branch !== undefined) {
+        romanizeOptions = {
+          skipTextTests: true,
+          packages: await preloadRomanizationPackages(branch),
+        };
+      }
     }
 
     for (const vocalGroup of lyrics.Content) {
       if (vocalGroup.Type === "Vocal") {
-        romanizationPromises.push(Romanize(vocalGroup, lyrics));
+        romanizationPromises.push(Romanize(vocalGroup, lyrics, romanizeOptions));
       }
     }
   } else if (lyrics.Type === "Syllable") {
@@ -209,17 +323,25 @@ export const ProcessLyrics = async (lyrics: any) => {
 
       lyrics.Language = language;
       lyrics.LanguageISO2 = languageISO2;
+
+      const branch = romanizationBranchFromFranc(language, languageISO2);
+      if (branch !== undefined) {
+        romanizeOptions = {
+          skipTextTests: true,
+          packages: await preloadRomanizationPackages(branch),
+        };
+      }
     }
 
     for (const vocalGroup of lyrics.Content) {
       if (vocalGroup.Type === "Vocal") {
         for (const syllable of vocalGroup.Lead.Syllables) {
-          romanizationPromises.push(Romanize(syllable, lyrics));
+          romanizationPromises.push(Romanize(syllable, lyrics, romanizeOptions));
         }
 
         if (vocalGroup.Background !== undefined) {
           for (const syllable of vocalGroup.Background[0].Syllables) {
-            romanizationPromises.push(Romanize(syllable, lyrics));
+            romanizationPromises.push(Romanize(syllable, lyrics, romanizeOptions));
           }
         }
       }

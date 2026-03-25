@@ -13,13 +13,10 @@ import "./css/ttml-profile/profile.css";
 
 import "./components/Utils/GlobalExecute.ts";
 
-import React from "react"
-import { Defer } from "@spikerko/web-modules/Scheduler";
-import { DynamicBackground } from "@spikerko/tools/DynamicBackground";
 import Whentil from "@spikerko/tools/Whentil";
 import ApplyDynamicBackground, {
-  DynamicBackgroundConfig,
   GetStaticBackground,
+  KawarpMap,
 } from "./components/DynamicBG/dynamicBackground.ts";
 import Defaults from "./components/Global/Defaults.ts";
 import Global from "./components/Global/Global.ts";
@@ -57,7 +54,8 @@ import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
-import { ProjectVersion } from "../tasks/config.ts";
+import { ProjectVersion } from "../project/config.ts";
+import { runThemeMatcher } from "./utils/themeMatcher.ts";
 
 async function main() {
   await Platform.OnSpotifyReady;
@@ -667,70 +665,152 @@ async function main() {
 
     // Lets set out Dynamic Background (spicy-dynamic-bg) to the now playing bar
     let lastImgUrl: string | null;
-    // Store the DynamicBackground instance for reuse
-    let nowPlayingBarDynamicBg: DynamicBackground | null = null;
+    let lastNowPlayingBarElement: HTMLElement | null = null;
+    let nowPlayingBarObserver: MutationObserver | null = null;
+    let nowPlayingBarMutationTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const getNowPlayingBarElement = () =>
+      document.querySelector<HTMLElement>(".Root__right-sidebar aside.NowPlayingView") ??
+      document.querySelector<HTMLElement>(
+        `.Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)`
+      );
+
+    const scheduleNowPlayingBarDynamicBackgroundApply = () => {
+      if (nowPlayingBarMutationTimeout) {
+        clearTimeout(nowPlayingBarMutationTimeout);
+      }
+      nowPlayingBarMutationTimeout = setTimeout(() => {
+        nowPlayingBarMutationTimeout = null;
+        void applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+      }, 50);
+    };
+
+    const startNowPlayingBarObserver = () => {
+      if (nowPlayingBarObserver) return;
+
+      const sidebar = document.querySelector(".Root__right-sidebar");
+      if (!sidebar) return;
+
+      nowPlayingBarObserver = new MutationObserver((mutations) => {
+        const shouldReapply = mutations.some((mutation) => {
+          if (mutation.type === "childList") return true;
+          if (mutation.type !== "attributes") return false;
+          return (
+            mutation.attributeName === "src" ||
+            mutation.attributeName === "style" ||
+            mutation.attributeName === "class"
+          );
+        });
+
+        if (!shouldReapply) return;
+        scheduleNowPlayingBarDynamicBackgroundApply();
+      });
+
+      nowPlayingBarObserver.observe(sidebar, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["src", "style", "class"],
+      });
+    };
 
     const CleanupNowBarDynamicBgLets = () => {
-      if (nowPlayingBarDynamicBg != null) {
-        nowPlayingBarDynamicBg.Destroy();
-        nowPlayingBarDynamicBg = null;
+      const nowPlayingBar = getNowPlayingBarElement() ?? lastNowPlayingBarElement;
+
+      const kawarpInstance = KawarpMap.get("npvbg");
+      if (kawarpInstance) {
+        kawarpInstance.dispose();
+        KawarpMap.delete("npvbg");
+      }
+      nowPlayingBar?.querySelector<HTMLElement>(".spicy-dynamic-bg")?.remove();
+      nowPlayingBar?.classList.remove("spicy-dynamic-bg-in-this");
+      lastNowPlayingBarElement = null;
+      lastImgUrl = null;
+    };
+
+    // Some Spotify views (e.g. cinema) swap the right sidebar layout.
+    // When that happens, NPV dynamic background needs to be cleaned up,
+    // but page backgrounds (e.g. lpagebg) must remain intact.
+    let cinemaViewObserver: MutationObserver | null = null;
+    let cinemaViewActive = false;
+
+    const getTopContainerElement = () => {
+      const rightSidebar = document.querySelector<HTMLElement>(".Root__right-sidebar");
+      // `.Root__top-container` is expected to be the parent of `.Root__right-sidebar`.
+      const parent = rightSidebar?.parentElement;
+      if (parent?.classList.contains("Root__top-container")) return parent;
+      return document.querySelector<HTMLElement>(".Root__top-container");
+    };
+
+    const checkCinemaViewAndMaybeCleanup = (topContainer: HTMLElement) => {
+      const cinemaViewExists = Boolean(topContainer.querySelector(".Root__cinema-view"));
+
+      if (cinemaViewExists && !cinemaViewActive) {
+        cinemaViewActive = true;
+        CleanupNowBarDynamicBgLets();
+        return;
+      }
+
+      if (!cinemaViewExists && cinemaViewActive) {
+        cinemaViewActive = false;
+        // Restore NPV dynamic background after leaving cinema view.
+        scheduleNowPlayingBarDynamicBackgroundApply();
       }
     };
+
+    const startCinemaViewObserver = () => {
+      if (cinemaViewObserver) return;
+
+      const topContainer = getTopContainerElement();
+      if (!topContainer) return;
+
+      // Initial check (covers late observer start scenarios).
+      checkCinemaViewAndMaybeCleanup(topContainer);
+
+      cinemaViewObserver = new MutationObserver(() => {
+        if (!topContainer.isConnected) {
+          cinemaViewObserver?.disconnect();
+          cinemaViewObserver = null;
+          cinemaViewActive = false;
+          return;
+        }
+
+        checkCinemaViewAndMaybeCleanup(topContainer);
+      });
+
+      cinemaViewObserver.observe(topContainer, {
+        subtree: true,
+        childList: true,
+      });
+    };
+
+    Whentil.When(
+      () => Boolean(getTopContainerElement()),
+      () => {
+        startCinemaViewObserver();
+      }
+    );
 
     async function applyDynamicBackgroundToNowPlayingBar(coverUrl: string | undefined) {
       if (Defaults.hide_npv_bg) return;
       if (SpotifyPlayer.GetContentType() === "unknown" || SpotifyPlayer.IsDJ()) return;
-      if (Defaults.StaticBackground || Defaults.CanvasBackground || coverUrl === undefined) return;
-      const nowPlayingBar =
-        document.querySelector<HTMLElement>(".Root__right-sidebar aside.NowPlayingView") ??
-        document.querySelector<HTMLElement>(
-          `.Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)`
-        );
+      if (!coverUrl) return;
+      const nowPlayingBar = getNowPlayingBarElement();
+      const topContainer = getTopContainerElement();
+      const cinemaViewExists = Boolean(topContainer?.querySelector(".Root__cinema-view"));
 
       try {
-        if (!nowPlayingBar || isSpicySidebarMode) {
+        if (!nowPlayingBar || cinemaViewExists || isSpicySidebarMode) {
           lastImgUrl = null;
           CleanupNowBarDynamicBgLets();
           return;
         }
+        lastNowPlayingBarElement = nowPlayingBar;
         if (coverUrl === lastImgUrl) return;
 
-        const existingElement = nowPlayingBar.querySelector<HTMLElement>(".spicy-dynamic-bg");
         nowPlayingBar.classList.add("spicy-dynamic-bg-in-this");
 
-        // Process the cover URL
-        const processedCover = coverUrl;
-
-        // Check if we already have a DynamicBackground instance
-        if (nowPlayingBarDynamicBg && existingElement) {
-          // Update the data-cover-id attribute
-          existingElement.setAttribute("data-cover-id", coverUrl);
-
-          // Update with the current image
-          await nowPlayingBarDynamicBg.Update({
-            image: processedCover,
-          });
-        } else {
-          // Create new DynamicBackground instance
-          nowPlayingBarDynamicBg = new DynamicBackground(DynamicBackgroundConfig);
-
-          // Get the canvas element
-          const container = nowPlayingBarDynamicBg.GetCanvasElement();
-
-          // Add the spicy-dynamic-bg class
-          container.classList.add("spicy-dynamic-bg");
-
-          // Set the data-cover-id attribute
-          container.setAttribute("data-cover-id", coverUrl);
-
-          // Apply the background to the element
-          nowPlayingBarDynamicBg.AppendToElement(nowPlayingBar);
-
-          // Update with the current image
-          await nowPlayingBarDynamicBg.Update({
-            image: processedCover,
-          });
-        }
+        await ApplyDynamicBackground(nowPlayingBar, "npvbg");
 
         lastImgUrl = coverUrl;
       } catch (error) {
@@ -738,17 +818,16 @@ async function main() {
       }
     }
 
-    Global.Event.listen("cleanup:npvbg", () => {
-      CleanupNowBarDynamicBgLets();
+    startNowPlayingBarObserver();
+    scheduleNowPlayingBarDynamicBackgroundApply();
+
+    Global.Event.listen("fullscreen:open", () => {
+      CleanupNowBarDynamicBgLets()
     });
 
-    new IntervalManager(1, async () => {
-      try {
-        await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
-      } catch {
-        // No song data available, skip
-      }
-    }).Start();
+    Global.Event.listen("fullscreen:exit", () => {
+      scheduleNowPlayingBarDynamicBackgroundApply()
+    });
 
     async function onSongChange(event: any) {
       const contentType = SpotifyPlayer.GetContentType();
@@ -783,14 +862,14 @@ async function main() {
         const Artist =
           Artists?.map((artist) => artist.uri?.replace("spotify:artist:", ""))[0] ?? undefined;
         try {
-          await GetStaticBackground(Artist, SpotifyPlayer.GetId());
+          void GetStaticBackground(Artist, SpotifyPlayer.GetId());
         } catch {
           console.error("Unable to prefetch Static Background");
         }
       }
 
       try {
-        await applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+        void scheduleNowPlayingBarDynamicBackgroundApply();
       } catch (err) {
         console.error("Error applying dynamic BG to NowPlayingBar:", err);
       }
@@ -798,7 +877,7 @@ async function main() {
       const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
       if (!contentBox || (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color")) return;
       try {
-        ApplyDynamicBackground(contentBox);
+        void ApplyDynamicBackground(contentBox, "lpagebg");
       } catch (err) {
         console.error("Error applying dynamic background:", err);
       }
@@ -1102,6 +1181,8 @@ async function main() {
   );
 
   Hometinue();
+
+  runThemeMatcher();
 
   
   /* if (storage.get("developerMode") === "true") {

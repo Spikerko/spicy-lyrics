@@ -195,14 +195,14 @@ function promoteToGPU(el: HTMLElement): void {
   el.style.backfaceVisibility = "hidden";
 }
 
+const _gpuPromotedWithFilter = new WeakSet<HTMLElement>();
+
 // Variant that also hints filter changes (useful for blur)
 function promoteToGPUWithFilter(el: HTMLElement): void {
-  const existing = el.style.willChange?.trim();
-  const desired = "transform, opacity, text-shadow, scale, filter";
-  if (!existing || existing.indexOf("filter") === -1) {
-    el.style.willChange = desired;
-  }
+  if (_gpuPromotedWithFilter.has(el)) return;
+  el.style.willChange = "transform, opacity, text-shadow, scale, filter";
   el.style.backfaceVisibility = "hidden";
+  _gpuPromotedWithFilter.add(el);
 }
 
 // Cache last written style values to avoid redundant DOM writes
@@ -476,29 +476,11 @@ function getProgressPercentage(currentTime: number, startTime: number, endTime: 
 
 let lastAnimateFrameTime = 0;
 
-const FRAME_INTERVAL_MS = 1000 / 50;
-
-/* Global.SetScope("lyrics.animator.set_frame_interval", (input: number) => {
-  FRAME_INTERVAL = input;
-}) */
-
-let clpStatus: "playing" | "paused" | null = null;
-
 export function Animate(position: number): void {
   const ProcessedPosition = position + timeOffset - (Defaults.SimpleLyricsMode ? 33.5 : 0);
 
   const now = performance.now();
 
-  const LIMIT_FRAMES = (isSpicySidebarMode ? (Defaults.SimpleLyricsMode ? false : true) : false);
-  const FRAME_INTERVAL = FRAME_INTERVAL_MS;
-
-  //const isLetterElementActive = (findActiveElement(position)?.[1] === "letter" || findActiveElement(position)?.[1] === "letterGroup");
-  //const shouldLimitFrame = ((LIMIT_FRAMES && !isLetterElementActive) && now - lastAnimateFrameTime < FRAME_INTERVAL);
-
-  const shouldLimitFrame = LIMIT_FRAMES && now - lastAnimateFrameTime < FRAME_INTERVAL;
-  if (shouldLimitFrame) {
-    return;
-  }
   const deltaTime = (now - lastFrameTime) / 1000;
   lastFrameTime = now;
   lastAnimateFrameTime = now;
@@ -506,11 +488,6 @@ export function Animate(position: number): void {
   const CurrentLyricsType = Defaults.CurrentLyricsType;
 
   if (!CurrentLyricsType || CurrentLyricsType === "None") return;
-
-  /* const Credits =
-    document.querySelector<HTMLElement>(
-      "#SpicyLyricsPage .LyricsContainer .LyricsContent .Credits"
-    ) ?? undefined; */
 
   // Define proper types for the arrays and indices
   const applyBlur = (
@@ -625,15 +602,6 @@ export function Animate(position: number): void {
   if (CurrentLyricsType === "Syllable") {
     const arr = LyricsObject.Types.Syllable.Lines;
 
-    // Find the active line index
-    let _activeLineIndex = -1;
-    for (let i = 0; i < arr.length; i++) {
-      if (getElementState(ProcessedPosition, arr[i].StartTime, arr[i].EndTime) === "Active") {
-        _activeLineIndex = i;
-        break;
-      }
-    }
-
     for (let index = 0; index < arr.length; index++) {
       const line = arr[index];
       const lineState = getElementState(ProcessedPosition, line.StartTime, line.EndTime);
@@ -728,12 +696,13 @@ export function Animate(position: number): void {
             const currentYOffset = word.AnimatorStore.YOffset.Step(deltaTime);
             const currentGlow = word.AnimatorStore.Glow.Step(deltaTime);
 
-            queueStyle(word.HTMLElement, "scale", `${currentScale}`);
+            setStyleIfChanged(word.HTMLElement, "scale", `${currentScale}`, 0.001);
             // Use translate3d to ensure GPU-accelerated transforms
-            queueStyle(
+            setStyleIfChanged(
               word.HTMLElement,
               "transform",
-              `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset}), 0)`
+              `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset}), 0)`,
+              0.001
             );
             if (isLetterGroup) {
               if (Defaults.SimpleLyricsMode) {
@@ -921,13 +890,14 @@ export function Animate(position: number): void {
             const currentOpacity = word.AnimatorStore.Opacity.Step(deltaTime);
 
             // Use translate3d to ensure GPU-accelerated transforms
-            queueStyle(
+            setStyleIfChanged(
               word.HTMLElement,
               "transform",
-              `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset ?? 0}), 0)`
+              `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset ?? 0}), 0)`,
+              0.001
             ); // Use --DefaultLyricsSize
-            queueStyle(word.HTMLElement, "scale", `${currentScale}`);
-            queueStyle(word.HTMLElement, "opacity", `${currentOpacity}`);
+            setStyleIfChanged(word.HTMLElement, "scale", `${currentScale}`, 0.001);
+            setStyleIfChanged(word.HTMLElement, "opacity", `${currentOpacity}`, 0.001);
             setStyleIfChanged(
               word.HTMLElement,
               "--text-shadow-blur-radius",
@@ -1126,12 +1096,13 @@ export function Animate(position: number): void {
                   letter.HTMLElement.style.setProperty("--gradient-position", `${targetGradient}%`);
                 }
                 // Use translate3d to ensure GPU-accelerated transforms
-                queueStyle(
+                setStyleIfChanged(
                   letter.HTMLElement,
                   "transform",
-                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`
+                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`,
+                  0.001
                 );
-                queueStyle(letter.HTMLElement, "scale", `${currentScale}`);
+                setStyleIfChanged(letter.HTMLElement, "scale", `${currentScale}`, 0.001);
                 setStyleIfChanged(
                   letter.HTMLElement,
                   "--text-shadow-blur-radius",
@@ -1172,12 +1143,13 @@ export function Animate(position: number): void {
                   letter.HTMLElement.style.setProperty("--gradient-position", `-20%`);
                 }
 
-                queueStyle(
+                setStyleIfChanged(
                   letter.HTMLElement,
                   "transform",
-                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`
+                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`,
+                  0.001
                 );
-                queueStyle(letter.HTMLElement, "scale", `${currentScale}`);
+                setStyleIfChanged(letter.HTMLElement, "scale", `${currentScale}`, 0.001);
                 setStyleIfChanged(
                   letter.HTMLElement,
                   "--text-shadow-blur-radius",
@@ -1217,12 +1189,13 @@ export function Animate(position: number): void {
                 } else {
                   letter.HTMLElement.style.setProperty("--gradient-position", `100%`);
                 }
-                queueStyle(
+                setStyleIfChanged(
                   letter.HTMLElement,
                   "transform",
-                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`
+                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`,
+                  0.001
                 );
-                queueStyle(letter.HTMLElement, "scale", `${currentScale}`);
+                setStyleIfChanged(letter.HTMLElement, "scale", `${currentScale}`, 0.001);
                 setStyleIfChanged(
                   letter.HTMLElement,
                   "--text-shadow-blur-radius",
@@ -1345,12 +1318,13 @@ export function Animate(position: number): void {
               const currentGlow = word.AnimatorStore.Glow.Step(deltaTime);
               //if (!Defaults.SimpleLyricsMode) {
               // Use translate3d to ensure GPU-accelerated transforms
-              queueStyle(
+              setStyleIfChanged(
                 word.HTMLElement,
                 "transform",
-                `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset}), 0)`
+                `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset}), 0)`,
+                0.001
               );
-              queueStyle(word.HTMLElement, "scale", `${currentScale}`);
+              setStyleIfChanged(word.HTMLElement, "scale", `${currentScale}`, 0.001);
               //}
               if (!word.LetterGroup) {
                 if (Defaults.SimpleLyricsMode) {
@@ -1508,13 +1482,14 @@ export function Animate(position: number): void {
               const currentGlow = word.AnimatorStore.Glow.Step(deltaTime);
               const currentOpacity = word.AnimatorStore.Opacity.Step(deltaTime);
 
-              queueStyle(
+              setStyleIfChanged(
                 word.HTMLElement,
                 "transform",
-                `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset ?? 0}), 0)`
+                `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset ?? 0}), 0)`,
+                0.001
               );
-              queueStyle(word.HTMLElement, "scale", `${currentScale}`);
-              queueStyle(word.HTMLElement, "opacity", `${currentOpacity}`);
+              setStyleIfChanged(word.HTMLElement, "scale", `${currentScale}`, 0.001);
+              setStyleIfChanged(word.HTMLElement, "opacity", `${currentOpacity}`, 0.001);
               setStyleIfChanged(
                 word.HTMLElement,
                 "--text-shadow-blur-radius",
@@ -1553,12 +1528,13 @@ export function Animate(position: number): void {
                 } else {
                   letter.HTMLElement.style.setProperty("--gradient-position", `100%`);
                 }
-                queueStyle(
+                setStyleIfChanged(
                   letter.HTMLElement,
                   "transform",
-                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`
+                  `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset * 2}), 0)`,
+                  0.001
                 );
-                queueStyle(letter.HTMLElement, "scale", `${currentScale}`);
+                setStyleIfChanged(letter.HTMLElement, "scale", `${currentScale}`, 0.001);
                 letter.HTMLElement.style.setProperty(
                   "--text-shadow-blur-radius",
                   `${4 + 12 * currentGlow}px`

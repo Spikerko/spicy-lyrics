@@ -36,19 +36,28 @@ aside .spicy-dynamic-bg {
   filter: brightness(0.6) saturate(2.65);
 }
 
-/* Video element styling */
+@property --sl_videocanvas_mask-stop {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 80%;
+}
+
 aside video {
+  --sl_videocanvas_mask-stop: 25%;
   filter: brightness(0.6);
-  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 60%, rgba(0, 0, 0, 0) 100%);
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 60%, rgba(0, 0, 0, 0) 100%);
-  transition: filter 0.25s linear;
+  opacity: .95;
+  mask-image: linear-gradient(to bottom, transparent -5%, black 25%, black var(--sl_videocanvas_mask-stop), transparent 100%);
+  transition: --sl_videocanvas_mask-stop 1s cubic-bezier(0,0,0,1), filter 0.2s linear;
+}
+
+aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1) video {
+  --sl_videocanvas_mask-stop: 80%;
 }
 
 aside video:hover {
-  filter: brightness(0.95);
+  filter: brightness(0.9);
 }
 
-/* Reset styles for videos inside VideoPlayer__container */
 .VideoPlayer__container video {
   filter: none !important;
   -webkit-mask-image: none !important;

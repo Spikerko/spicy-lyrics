@@ -1,9 +1,6 @@
 import Whentil, { type CancelableTask } from "@spikerko/tools/Whentil";
 import storage from "../../utils/storage.ts";
-import {
-  SetPageBGBlur,
-  currentBgInstance as currentPageBgInstance,
-} from "../DynamicBG/dynamicBackground.ts";
+
 import PageView from "../Pages/PageView.ts";
 
 // Query selector functions
@@ -207,12 +204,6 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
       () => {
         // console.log("[Spicy Lyrics Debug] finalContainer appeared after click");
         runPageOpenWithCleanup(parentContainer);
-        Whentil.When(
-          () => currentPageBgInstance,
-          () => {
-            SetPageBGBlur(100);
-          }
-        );
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
         SetupQueueButtonListener();
@@ -225,12 +216,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
       () => {
         // console.log("[Spicy Lyrics Debug] Whentil with existing container");
         runPageOpenWithCleanup(parentContainer);
-        Whentil.When(
-          () => currentPageBgInstance,
-          () => {
-            SetPageBGBlur(100);
-          }
-        );
+
         currentNPVWhentil?.Cancel();
         currentNPVWhentil = null;
         SetupQueueButtonListener();

@@ -6,6 +6,7 @@ class IntervalManager implements Giveable {
   private duration: number; // Duration in milliseconds
   private lastTimestamp: number | null;
   private animationFrameId: number | null;
+  private intervalId: ReturnType<typeof setInterval> | null;
   public Running: boolean;
   public Destroyed: boolean;
 
@@ -19,6 +20,7 @@ class IntervalManager implements Giveable {
     this.duration = duration === Infinity ? 0 : duration * 1000; // Convert seconds to milliseconds or set to 0 for immediate execution
     this.lastTimestamp = null;
     this.animationFrameId = null;
+    this.intervalId = null;
     this.Running = false;
     this.Destroyed = false;
   }
@@ -37,6 +39,16 @@ class IntervalManager implements Giveable {
 
     this.Running = true;
     this.lastTimestamp = null;
+
+    if (this.duration > 0 && Number.isFinite(this.duration)) {
+      this.intervalId = setInterval(() => {
+        if (!this.Running || this.Destroyed) return;
+        this.callback();
+      }, this.duration);
+
+      this.maid.Give(() => this.Stop());
+      return;
+    }
 
     const loop = (timestamp: number) => {
       if (!this.Running || this.Destroyed) return;
@@ -63,12 +75,16 @@ class IntervalManager implements Giveable {
 
   // Stops the animation frame loop without destroying the manager
   public Stop() {
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
-      this.Running = false;
-      this.lastTimestamp = null;
     }
+    this.Running = false;
+    this.lastTimestamp = null;
   }
 
   // Restarts the animation frame loop
