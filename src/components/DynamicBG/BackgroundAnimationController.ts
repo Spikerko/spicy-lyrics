@@ -51,7 +51,7 @@ export class BackgroundAnimationController {
 
     /**
      * Maps a loudness dB value (usually -60 to 0) to a usable multiplier
-     * Example: -40dB -> ~0.2, 0dB -> 1.2
+     * Example: -40dB -> ~0.5, 0dB -> 1.2
      */
     private getLoudnessFactor(dB: number): number {
         const normalized = Math.max(0, (dB + 40) / 40); 
