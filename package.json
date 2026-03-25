@@ -10,10 +10,11 @@
     "fmt": "oxfmt"
   },
   "dependencies": {
-    "@spicemod/creator": "^0.0.32",
+    "@kawarp/core": "^1.1.1",
+    "@spicemod/creator": "^0.0.35",
     "@spikerko/tools": "npm:@jsr/spikerko__tools",
     "@spikerko/web-modules": "npm:@jsr/spikerko__web-modules",
-    "@tanstack/react-query": "^5.91.0",
+    "@tanstack/react-query": "^5.95.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "cubic-spline": "^3.0.3",
@@ -35,6 +36,6 @@
     "oxlint": "^1.56.0"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

@@ -2,21 +2,6 @@
   --bg-rotation-degree: 258deg;
 }
 
-/* Take the elapsed time out of normal layout flow to avoid document-wide reflow
- * when the text updates every second. The progress bar is offset manually to
- * preserve spacing.
- */
-body:has(#SpicyLyricsPage) .playback-bar {
-  position: relative;
-}
-body:has(#SpicyLyricsPage) .playback-bar > .playback-bar__progress-time-elapsed {
-  height: 100%;
-  position: absolute;
-}
-body:has(#SpicyLyricsPage) .playback-bar > .playback-progressbar-container {
-  margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
-}
-
 .main-nowPlayingView-contextItemInfo::before {
   display: none;
 }
@@ -251,7 +236,7 @@ body:not(.SpicyLyrics_StaticBackground)
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section,
+  .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type="button"])),
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew
@@ -259,14 +244,44 @@ body:not(.SpicyLyrics_StaticBackground)
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .Uw4tcZdmh7s4BMdgCCuu {
-  background-color: var(--background-tinted-base);
+  background-color: var(--background-tinted-base) !important;
+  backdrop-filter: blur(6px);
+}
+
+/* npv buttons */
+.yiRHu4qsmlXpKcnFQsm2:hover,
+.fetnShpUoCol51CFSqwn button,
+.fetnShpUoCol51CFSqwn > div,
+.search-searchCategory-carouselButton,
+.main-nowPlayingView-section a time:has(p),
+/* npv topbar */
+.niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV {
+  background-color: var(--background-tinted-base) !important;
+  backdrop-filter: blur(6px);
+}
+
+/* npv topbar */
+.cSZJwcwYgJfwduUmXOOV {
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+  backdrop-filter: blur(0);
+  transition: background-color .5s ease, backdrop-filter .5s ease;
+  padding-bottom: 16px !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+}
+
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section:has(button[type="button"]) {
+  background-color: transparent;
 }
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   button[type="button"] {
-  background-color: var(--background-tinted-base);
-  color: hsla(0, 0%, 100%, 0.8);
+  /* background-color: var(--background-tinted-base); */
+  background-color: transparent;
+  /* color: hsla(0, 0%, 100%, 0.8); */
 }
 
 body:not(.SpicyLyrics_StaticBackground)
@@ -631,4 +646,10 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
 .main-embedWidgetGenerator-container:has(.slm.w-60) {
   --slm-width: 60vw;
   width: var(--slm-width);
+}
+
+
+.Root__right-sidebar aside {
+  border-radius: 8px;
+  overflow: hidden;
 }

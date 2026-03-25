@@ -18,9 +18,7 @@ import {
   ResetLastLine,
 } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "../../utils/Scrolling/Simplebar/ScrollSimplebar.ts";
-import ApplyDynamicBackground, {
-  CleanupDynamicBGLets,
-} from "../DynamicBG/dynamicBackground.ts";
+import ApplyDynamicBackground, { KawarpMap } from "../DynamicBG/dynamicBackground.ts";
 import Defaults from "../Global/Defaults.ts";
 import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
@@ -246,7 +244,7 @@ async function OpenPage(
   );
   if (contentBox) {
     try {
-      ApplyDynamicBackground(contentBox);
+      ApplyDynamicBackground(contentBox, "lpagebg");
     } catch (err) {
       console.error("Error applying dynamic background:", err);
     }
@@ -347,7 +345,8 @@ function DestroyPage() {
   if (Fullscreen.IsOpen) Fullscreen.Close();
   if (!PageContainer) return;
 
-  CleanupDynamicBGLets();
+  KawarpMap.get("lpagebg")?.dispose();
+  KawarpMap.delete("lpagebg");
   ResetLastLine();
   CleanupScrollEvents();
   PageResizeListener?.disconnect(); // Disconnect the observer

@@ -1,5 +1,5 @@
 import { defineConfig } from "@spicemod/creator";
-import { ProjectName, ProjectVersion } from "./tasks/config";
+import { ProjectName, ProjectVersion } from "./project/config";
 
 export default defineConfig({
   name: ProjectName,
@@ -10,6 +10,6 @@ export default defineConfig({
   packageManager: "bun",
   cssId: "slstyles",
   esbuildOptions: {
-    legalComments: "none",
+    legalComments: "inline",
   },
 });

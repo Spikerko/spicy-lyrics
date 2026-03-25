@@ -1091,15 +1091,16 @@ function UpdateNowBar(force = false) {
     MediaImageContainer.setAttribute("data-update-token", updateToken);
 
     BlobURLMaker(finalUrl)
-      .catch(() => null)
-      .then((coverArtUrl) => {
+      .then((blobUrl) => blobUrl ?? coverArt)
+      .catch(() => coverArt)
+      .then((displayUrl) => {
         // If the container was removed or a newer update ran while we were loading, skip
         if (!MediaImageContainer.isConnected) return;
         const latestToken = MediaImageContainer.getAttribute("data-update-token");
         if (latestToken !== updateToken) return;
 
         MediaImageContainer.setAttribute("last-image", coverArt ?? "");
-        MediaImageContainer.setAttribute("last-image-url", coverArtUrl ?? finalUrl);
+        MediaImageContainer.setAttribute("last-image-url", displayUrl);
 
         const fromImage = MediaImageContainer.querySelector<HTMLDivElement>(".fi_FromImage");
         const toImage = MediaImageContainer.querySelector<HTMLDivElement>(".ti_ToImage");
@@ -1107,7 +1108,7 @@ function UpdateNowBar(force = false) {
         // If we don't even have a target image element, bail completely
         if (!toImage) return;
 
-        toImage.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`
+        toImage.style.backgroundImage = `url("${displayUrl}")`
         toImage.classList.remove("MB_hidden");
         toImage.classList.add("containsImage")
 
@@ -1124,7 +1125,7 @@ function UpdateNowBar(force = false) {
             // If another track update happened during the timeout, skip applying stale state
             const latestInnerToken = MediaImageContainer.getAttribute("data-update-token");
             if (latestInnerToken !== updateToken) return;
-            fromImage!.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`
+            fromImage!.style.backgroundImage = `url("${displayUrl}")`
             fromImage!.classList.add("containsImage");
 
             // Ensure the fromImage blur overlay fades out (opacity -> 0) before we hide toImage.
@@ -1143,7 +1144,7 @@ function UpdateNowBar(force = false) {
           toImage.classList.add("MB_hidden");
 
           if (fromImage) {
-            fromImage.style.backgroundImage = `url("${coverArtUrl ?? finalUrl}")`;
+            fromImage.style.backgroundImage = `url("${displayUrl}")`;
             fromImage.classList.add("containsImage");
             fromImage.classList.remove("MB_anim_fimg");
           } else {
