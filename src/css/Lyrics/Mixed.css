@@ -151,8 +151,8 @@
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letter,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letterGroup {
-  padding-bottom: 0.25em;
-  padding-top: 0.15em;
+  padding-bottom: 1.25cqw;
+  padding-top: 1.15cqw;
   margin-bottom: -0.25em;
   margin-top: -0.15em;
 }
