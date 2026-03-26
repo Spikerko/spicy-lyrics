@@ -142,13 +142,6 @@
   transform-origin: right center !important;
 }
 
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .SpicyLyricsScrollContainer[data-lyrics-type="Line"] .line.rtl,
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .SpicyLyricsScrollContainer[data-lyrics-type="Line"] .line.rtl .word,
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .SpicyLyricsScrollContainer[data-lyrics-type="Line"] .line.rtl .letter {
-  --gradient-degrees: 180deg !important;
-}
-
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letter {
   --gradient-degrees: -90deg !important;
