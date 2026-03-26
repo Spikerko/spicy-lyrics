@@ -197,6 +197,16 @@
   transform-origin: left center;
 }
 
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word.PartOfWord,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letterGroup.PartOfWord {
+  transform-origin: left center;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word.PartOfWord + :is(.word, .letterGroup),
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letterGroup.PartOfWord + :is(.word, .letterGroup) {
+  transform-origin: right center;
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .word,
 /* #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .dotGroup,  */
   #SpicyLyricsPage.SpicyRenderer
