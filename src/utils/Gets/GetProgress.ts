@@ -54,7 +54,7 @@ export const requestPositionSync = () => {
 
     sync
       .then((position: SyncedPosition) => {
-        if (Date.now() - lastSeekAt < 500) return;
+        if (Date.now() - lastSeekAt < SEEK_GUARD_MS) return;
         syncedPosition = position;
       })
       .then(() => {
