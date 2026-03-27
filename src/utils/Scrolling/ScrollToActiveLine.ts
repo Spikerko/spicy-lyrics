@@ -131,12 +131,8 @@ const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition
   const firstIdx = activeLines[0]._LineIndex;
   const lastIdx = activeLines[activeLines.length - 1]._LineIndex;
 
-  // 1) contiguous or off by only 1 → pick the first
-  if (lastIdx - firstIdx <= 1) {
-    return activeLines[0];
-  }
-
-  // 2) "gap" bigger than 1 → pick the last
+  // On an exact millisecond boundary overlap between contiguous lines, 
+  // prioritize the newly starting line instead of the finishing line.
   return activeLines[activeLines.length - 1];
 };
 
