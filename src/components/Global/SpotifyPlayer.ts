@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import GetProgress, {
   _DEPRECATED___GetProgress,
+  setOptimisticPosition,
 } from "../../utils/Gets/GetProgress.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -141,6 +142,7 @@ export const SpotifyPlayer = {
     return 0;
   },
   Seek: (position: number): void => {
+    setOptimisticPosition(position);
     Spicetify?.Player?.seek(position) ??
       (Spicetify?.Player as any)?.origin?.seekTo(position);
   },
