@@ -97,6 +97,7 @@ export default function GetProgress() {
 
   // Calculate and return the current track position
   if (!Spicetify.Player.isPlaying()) {
+    if (now - lastSeekAt < 1000) return Position; // Use optimistic position if recently seeked
     return SpotifyPlatform.PlayerAPI._state.positionAsOfTimestamp; // Position remains static when paused
   }
 
