@@ -50,6 +50,7 @@ import { setSettingsMenu } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
+import "./css/polyfills/generic-modal-polyfill.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import ReactDOM from "react-dom/client";
