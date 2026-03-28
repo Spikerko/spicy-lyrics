@@ -44,18 +44,19 @@ aside .spicy-dynamic-bg {
 
 aside video {
   --sl_videocanvas_mask-stop: 25%;
-  filter: brightness(0.6);
+  filter: brightness(0.9);
   opacity: .95;
-  mask-image: linear-gradient(to bottom, transparent -5%, black 25%, black var(--sl_videocanvas_mask-stop), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent -5%, black 15%, black var(--sl_videocanvas_mask-stop), transparent 100%);
   transition: --sl_videocanvas_mask-stop 1s cubic-bezier(0,0,0,1), filter 0.2s linear;
 }
 
-aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1) video {
+aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1) video,
+.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3) video {
   --sl_videocanvas_mask-stop: 80%;
 }
 
 aside video:hover {
-  filter: brightness(0.9);
+  filter: brightness(0.95);
 }
 
 .VideoPlayer__container video {
@@ -71,8 +72,10 @@ div.Of__Db4QgB9osz_mFxhw:has(video)::after,
 div.UUydeXMsXVZofB0YAOgm:has(.main-trackInfo-container)::before,
 div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::before,
 div.UUydeXMsXVZofB0YAOgm:has(.main-trackInfo-container)::after,
-div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after {
-  display: none;
+div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after,
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video)::before,
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video)::after {
+  display: none !important;
 }
 
 aside:has(.spicy-dynamic-bg) > div,
@@ -160,4 +163,14 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
 
 #SpicyLyricsPage .spicy-dynamic-bg.ColorBackground {
   z-index: -1 !important;
+}
+
+.NowPlayingView .main-nowPlayingView-headerCloseButton {
+  color: var(--spice-text);
+  opacity: .8 !important;
+}
+
+.NowPlayingView .main-nowPlayingView-headerCloseButton:hover,
+.NowPlayingView .main-nowPlayingView-headerCloseButton:focus {
+  opacity: 1 !important;
 }

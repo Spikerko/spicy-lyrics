@@ -251,31 +251,6 @@ body:not(.SpicyLyrics_StaticBackground)
   backdrop-filter: blur(6px);
 }
 
-/* npv buttons */
-.yiRHu4qsmlXpKcnFQsm2:hover,
-.main-nowPlayingView-headerButton:hover,
-
-/* switch to video button */
-:is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) button,
-:is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) .fetnShpUoCol51CFSqwn > div,
-
-.search-searchCategory-carouselButton,
-.main-nowPlayingView-section a time:has(p),
-/* npv topbar */
-:is(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV) {
-  background-color: var(--background-tinted-base) !important;
-  backdrop-filter: blur(6px);
-}
-
-/* npv topbar */
-:is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV) {
-  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-  backdrop-filter: blur(0);
-  transition: background-color .5s ease, backdrop-filter .5s ease;
-  padding-bottom: 16px !important;
-  -webkit-box-shadow: none !important;
-  box-shadow: none !important;
-}
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
