@@ -235,7 +235,7 @@ class SettingsSection {
             <span>
               <button
                 id={id}
-                className="Button-sc-y0gtbx-0 Button-small-buttonSecondary-useBrowserDefaultFocusStyle Button-sc-y0gtbx-0 Button-buttonSecondary-small-useBrowserDefaultFocusStyle encore-text-body-small-bold e-91000-button--small l_pugTMA53sS_K65iEiW Button-buttonSecondary-small-isUsingKeyboard-useBrowserDefaultFocusStyle x-settings-button"
+                className="Button-sc-y0gtbx-0 Button-small-buttonSecondary-useBrowserDefaultFocusStyle Button-sc-y0gtbx-0 Button-buttonSecondary-small-useBrowserDefaultFocusStyle encore-text-body-small-bold e-91000-button--small l_pugTMA53sS_K65iEiW Button-buttonSecondary-small-isUsingKeyboard-useBrowserDefaultFocusStyle encore-text-body-small-bold e-10180-legacy-button--small e-10180-legacy-button-secondary--text-base encore-internal-color-text-base e-10180-legacy-button e-10180-legacy-button-secondary e-10180-overflow-wrap-anywhere x-settings-button"
                 {...props.field.events}
                 onClick={(e) => {
                   setValue();

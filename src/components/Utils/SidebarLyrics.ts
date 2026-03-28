@@ -13,18 +13,25 @@ const getDesktopPanelContainer = () =>
     `.Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)`
   );
 const getRightSidebarParentContainer = () =>
+  document.querySelector<HTMLElement>(".Root__right-sidebar > div:first-of-type") ??
   document.querySelector<HTMLElement>(".Root__right-sidebar .XOawmCGZcQx4cesyNfVO") ??
   document.querySelector<HTMLElement>(".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a");
 const getQueueContainerElement = () =>
+  document.querySelector<HTMLElement>(
+    ".Root__right-sidebar > div:first-of-type:has(.v5CVyjR4gInbbJpm, .RSJZvcFNF4XzkvK4S1F9)"
+  ) ??
   document.querySelector<HTMLElement>(
     ".Root__right-sidebar .XOawmCGZcQx4cesyNfVO:not(:has(.h0XG5HZ9x0lYV7JNwhoA.JHlPg4iOkqbXmXjXwVdo)):has(.jD_TVjbjclUwewP7P9e8)"
   ) ??
   document.querySelector<HTMLElement>(
     ".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a:not(:has(.Ot1yAtVbjD2owYqmw6BK)):has(.ZWs_BNtabE4F1v34pU93.mpdgC9UTkN5_fMm1pFiz)"
+  ) ??
+  document.querySelector<HTMLElement>(
+    ".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a:not(:has(.Ot1yAtVbjD2owYqmw6BK)):has(.main-nowPlayingView-mainContainer.main-actionBar-ActionBarContainer)"
   );
 const getDevicesContainerElement = () =>
   document.querySelector<HTMLElement>(
-    ".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a:has(.Ot1yAtVbjD2owYqmw6BK)"
+    ".Root__right-sidebar > div:first-of-type:has(.OINH5zA0pQyzffwo, .FNi2RAtuzIc9THq8HYIW):not(:has(.main-nowPlayingView-coverArtContainer))"
   );
 // const getSpicyLyricsPageElement = () => document.querySelector<HTMLElement>('#SpicyLyricsPage');
 const getParentContainerChildren = (parentContainer: HTMLElement) =>
@@ -58,7 +65,7 @@ export const getQueuePlaybarButton = () => {
 
 const getDevicesPlaybarButton = () => {
   // console.log("[Spicy Lyrics Debug] getNowPlayingViewPlaybarButton");
-  return document.querySelector<HTMLElement>('[data-restore-focus-key="device_picker"]');
+  return document.querySelector<HTMLElement>('[data-restore-focus-key="device_picker"]') ?? document.querySelector<HTMLElement>('[aria-describedby="connect-message-nudge"]');
 };
 
 export const getQueueContainer = () => {

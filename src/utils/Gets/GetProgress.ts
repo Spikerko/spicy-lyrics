@@ -48,7 +48,7 @@ export const requestPositionSync = () => {
       })
       .then(() => {
         const delay = isLocallyPlaying
-          ? 1 // 1s for local playback; interpolation in GetProgress keeps UI smooth
+          ? 1 / 60
           : canSyncNonLocalTimestamp === 0
             ? 1 / 60
             : syncTimings[syncTimings.length - canSyncNonLocalTimestamp];

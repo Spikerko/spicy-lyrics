@@ -204,7 +204,8 @@
   transition-timing-function: cubic-bezier(0.54, 1.5, 0.38, 1.11);
 }
 
-.wRjmZh6e7KCL09qchtC9 .tippy-content {
+.wRjmZh6e7KCL09qtC9 .tippy-content,
+.main-contextMenu-tippy .tippy-content {
   background-color: var(--spice-card);
   border-radius: 4px;
   -webkit-box-shadow: 0 4px 12px 4px rgba(var(--spice-rgb-shadow), 0.5);

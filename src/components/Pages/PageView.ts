@@ -92,10 +92,10 @@ export const GetPageRoot = () =>
     return child?.parentElement as HTMLElement | null;
   })() ??
   document.querySelector<HTMLElement>(
-    ".Root__main-view .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
+    ".Root__main-view .main-view-container .os-host"
   ) ??
   document.querySelector<HTMLElement>(
-    ".Root__main-view .main-view-container .os-host"
+    ".Root__main-view .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
   );
 
 let PageResizeListener: ResizeObserver | null = null;

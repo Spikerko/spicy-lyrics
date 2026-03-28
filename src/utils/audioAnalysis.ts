@@ -2,7 +2,23 @@ import { GetExpireStore } from "@spikerko/tools/Cache";
 import type { AudioAnalysisData } from "../components/DynamicBG/BackgroundAnimationController";
 
 interface CachedAudioAnalysis {
-    analysis: AudioAnalysisData;
+    analysis?: AudioAnalysisData;
+    /** Persisted when Spotify has no analysis for this track (HTTP 404). */
+    notFound?: boolean;
+}
+
+function getCosmosErrorStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== "object") {
+        return undefined;
+    }
+    const e = error as { status?: unknown; code?: unknown };
+    if (typeof e.status === "number") {
+        return e.status;
+    }
+    if (typeof e.code === "number") {
+        return e.code;
+    }
+    return undefined;
 }
 
 export const AudioAnalysisStore = GetExpireStore<CachedAudioAnalysis>("SpicyLyrics_AudioAnalysis", 1, {
@@ -30,6 +46,9 @@ export async function getDynamicAudioAnalysis(trackId: string): Promise<AudioAna
     }
 
     const cached = await AudioAnalysisStore.GetItem(trackId);
+    if (cached?.notFound) {
+        return null;
+    }
     if (cached?.analysis && isAudioAnalysisData(cached.analysis)) {
         return cached.analysis;
     }
@@ -47,13 +66,18 @@ export async function getDynamicAudioAnalysis(trackId: string): Promise<AudioAna
 
         return data;
     } catch (error: unknown) {
-        const parsedError = error as { status?: number; message?: string };
-        if (parsedError?.status === 404) {
+        const httpStatus = getCosmosErrorStatus(error);
+        const message = error && typeof error === "object" && "message" in error
+            ? String((error as { message?: unknown }).message)
+            : undefined;
+
+        if (httpStatus === 404) {
             console.error("Analysis not found (404)");
-        } else if (parsedError?.status === 429) {
+            await AudioAnalysisStore.SetItem(trackId, { notFound: true });
+        } else if (httpStatus === 429) {
             console.error("Rate limited (429)");
         } else {
-            console.error("Network or Validation Error:", parsedError?.message || parsedError);
+            console.error("Network or Validation Error:", message || error);
         }
         return null;
     }

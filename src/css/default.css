@@ -243,25 +243,32 @@ body:not(.SpicyLyrics_StaticBackground)
   .CvxzmyND_aGd2RR8ZoSr,
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .Uw4tcZdmh7s4BMdgCCuu {
+  .Uw4tcZdmh7s4BMdgCCuu,
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
 }
 
 /* npv buttons */
 .yiRHu4qsmlXpKcnFQsm2:hover,
-.fetnShpUoCol51CFSqwn button,
-.fetnShpUoCol51CFSqwn > div,
+.main-nowPlayingView-headerButton:hover,
+
+/* switch to video button */
+:is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) button,
+:is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) .fetnShpUoCol51CFSqwn > div,
+
 .search-searchCategory-carouselButton,
 .main-nowPlayingView-section a time:has(p),
 /* npv topbar */
-.niJOWstqVyfckHcXQxP1 .cSZJwcwYgJfwduUmXOOV {
+:is(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV) {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
 }
 
 /* npv topbar */
-.cSZJwcwYgJfwduUmXOOV {
+:is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV) {
   mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
   backdrop-filter: blur(0);
   transition: background-color .5s ease, backdrop-filter .5s ease;

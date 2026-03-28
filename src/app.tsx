@@ -57,6 +57,13 @@ import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../project/config.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
 
+/* 
+  upcoming feature leak..?
+
+  import { initCliSocket } from "./components/cli-sync/index.ts";
+  import "./components/cli-sync/socket/manager.ts";
+*/
+
 async function main() {
   await Platform.OnSpotifyReady;
 

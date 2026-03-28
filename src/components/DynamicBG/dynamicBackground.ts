@@ -216,7 +216,8 @@ Global.Event.listen("playback:songchange", () => {
   }
 })
 
-const audioAnalysisCache = new Map<string, AudioAnalysisData>();
+/** Successful analysis, or `null` once we know the track has no analysis (stops progress-handler spam). */
+const audioAnalysisCache = new Map<string, AudioAnalysisData | null>();
 const audioAnalysisInflightRequests = new Map<string, Promise<AudioAnalysisData | null>>();
 let latestPlaybackTrackId: string | null = null;
 
@@ -229,9 +230,8 @@ const pruneAudioAnalysisCache = (activeTrackId: string) => {
 };
 
 const getAudioAnalysisForTrack = async (trackId: string): Promise<AudioAnalysisData | null> => {
-  const cached = audioAnalysisCache.get(trackId);
-  if (cached) {
-    return cached;
+  if (audioAnalysisCache.has(trackId)) {
+    return audioAnalysisCache.get(trackId)!;
   }
 
   const inflight = audioAnalysisInflightRequests.get(trackId);
@@ -241,9 +241,7 @@ const getAudioAnalysisForTrack = async (trackId: string): Promise<AudioAnalysisD
 
   const request = getDynamicAudioAnalysis(trackId)
     .then((analysis) => {
-      if (analysis) {
-        audioAnalysisCache.set(trackId, analysis);
-      }
+      audioAnalysisCache.set(trackId, analysis);
       return analysis;
     })
     .finally(() => {
