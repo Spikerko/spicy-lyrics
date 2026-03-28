@@ -12,8 +12,8 @@ import { getLocalTTML } from "./LocalTTML.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 
 export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
-  Unit: "Days",
-  Duration: 3,
+    Unit: "Days",
+    Duration: 3,
 }, isDev as true);
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
@@ -76,28 +76,31 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   const trackId = uri.split(":")[2];
 
-  let localTTML = null;
-  try {
-    localTTML = await getLocalTTML(trackId);
-  } catch (error) {
-    console.error("Error retrieving local TTML override:", error);
-  }
-
-  if (localTTML) {
-    if (localTTML?.IncludesRomanization) {
-      PageContainer?.classList.add("Lyrics_RomanizationAvailable");
-    } else {
-      PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+  // Only load local TTML if TTML maker mode is on
+  if (storage.get("devMode") === "true") {
+    let localTTML = null;
+    try {
+      localTTML = await getLocalTTML(trackId);
+    } catch (error) {
+      console.error("Error retrieving local TTML override:", error);
     }
 
-    storage.set("currentLyricsData", JSON.stringify(localTTML));
-    storage.set("currentlyFetching", "false");
-    HideLoaderContainer();
-    Defaults.CurrentLyricsType = localTTML.Type;
-    PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
-    PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
-    PageView.AppendViewControls(true);
-    return [{ ...localTTML, fromLocalTTML: true }, 200];
+    if (localTTML) {
+      if (localTTML?.IncludesRomanization) {
+        PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+      } else {
+        PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+      }
+
+      storage.set("currentLyricsData", JSON.stringify(localTTML));
+      storage.set("currentlyFetching", "false");
+      HideLoaderContainer();
+      Defaults.CurrentLyricsType = localTTML.Type;
+      PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+      PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+      PageView.AppendViewControls(true);
+      return [{ ...localTTML, fromLocalTTML: true }, 200];
+    }
   }
 
   // Check if there's already data in localStorage
