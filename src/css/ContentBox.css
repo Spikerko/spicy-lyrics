@@ -266,12 +266,59 @@
   padding: 0 2.5cqw;
 }
 
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 85cqw;
+  max-width: 85cqw;
+  overflow: hidden;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow span.ArtistYear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: calc(var(--default-font-size) * 1.5) !important;
+  line-height: calc(var(--title-height) * 8) !important;
+  font-weight: 400;
+  color: white;
+  opacity: 0.7;
+  padding: 0;
+  animation: none !important;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow span.ArtistYear.before {
+  padding-left: 2.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow span.ArtistYear.after {
+  padding-right: 2.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow span.ArtistYear.before::after {
+  content: "\00B7";
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .ArtistsRow span.ArtistYear.after::before {
+  content: "\00B7";
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists {
   font-size: calc(var(--default-font-size) * 1.5) !important;
   line-height: calc(var(--title-height) * 8) !important;
   font-weight: 400;
   color: white;
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 80cqw;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(
@@ -295,12 +342,52 @@
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span {
-  white-space: nowrap; /* Prevents text from wrapping */
-  overflow: hidden; /* Hides overflowing text */
-  display: inline-block; /* Ensures width is respected */
-  text-align: center; /* Align text within the span */
+  white-space: nowrap;
+  flex-shrink: 0;
   animation: Marquee_Artists 25s linear infinite alternate;
   padding: 0 2.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists.has-year-before {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 1cqw,
+    #000 calc(100% - 2cqw),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 1cqw,
+    #000 calc(100% - 2cqw),
+    transparent 100%
+  );
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists.has-year-before span {
+  padding-left: 0.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists.has-year-after {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 2cqw,
+    #000 calc(100% - 1cqw),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 2cqw,
+    #000 calc(100% - 1cqw),
+    transparent 100%
+  );
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists.has-year-after span {
+  padding-right: 0.5cqw;
 }
 
 #SpicyLyricsPage
@@ -1219,14 +1306,14 @@
   .Header
   .Metadata
   .Artists
-  span,
+  span:not(.ArtistYear),
 #SpicyLyricsPage.ForcedCompactMode
   .ContentBox
   .NowBar
   .Header
   .Metadata
   .Artists
-  span {
+  span:not(.ArtistYear) {
   animation: Marquee_Artists_Compact 25s linear infinite alternate;
 }
 

@@ -7,6 +7,7 @@ import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import storage from "../../utils/storage.ts";
 import Global from "../Global/Global.ts";
+import Defaults from "../Global/Defaults.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
@@ -1017,6 +1018,53 @@ async function getAVCStreamUrl(manifestUrl: string) {
     }
 } */
 
+let _yearGeneration = 0;
+let _yearAlbumUri: string | undefined;
+let _lastDisplayedYear: string | undefined;
+const _yearCache = new Map<string, string>();
+const _yearInflight = new Map<string, Promise<string | undefined>>();
+const _yearTrackInflight = new Map<string, Promise<string | undefined>>();
+const _yearInflightHandlers = new Map<string, number>();
+
+function EnsureNowBarYearFetch(albumUri?: string, trackId?: string): void {
+  if (!albumUri) return;
+
+  const syncYear = SpotifyPlayer.GetAlbumReleaseYearSync();
+  if (syncYear) {
+    _yearCache.set(albumUri, syncYear);
+    return;
+  }
+
+  if (!_yearCache.has(albumUri) && !_yearInflight.has(albumUri)) {
+    const inflight = SpotifyPlayer.GetAlbumReleaseYear(albumUri);
+    _yearInflight.set(albumUri, inflight);
+    inflight.finally(() => {
+      if (_yearInflight.get(albumUri) === inflight) _yearInflight.delete(albumUri);
+    });
+    inflight.then((year) => {
+      if (!year) return;
+      _yearCache.set(albumUri, year);
+    });
+  }
+
+  if (
+    trackId &&
+    !_yearCache.has(albumUri) &&
+    !_yearInflight.has(albumUri) &&
+    !_yearTrackInflight.has(trackId)
+  ) {
+    const inflight = SpotifyPlayer.GetReleaseYear(trackId);
+    _yearTrackInflight.set(trackId, inflight);
+    inflight.finally(() => {
+      if (_yearTrackInflight.get(trackId) === inflight) _yearTrackInflight.delete(trackId);
+    });
+    inflight.then((year) => {
+      if (!year) return;
+      if (!_yearCache.has(albumUri)) _yearCache.set(albumUri, year);
+    });
+  }
+}
+
 function UpdateNowBar(force = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
@@ -1042,11 +1090,11 @@ function UpdateNowBar(force = false) {
       el.addEventListener("transitionend", onEnd);
     });
 
-  //const ArtistsDiv = NowBar.querySelector(".Header .Metadata .Artists");
   const MetadataContainer = NowBar.querySelector(".Header .Metadata");
-  const ArtistsSpan = MetadataContainer.querySelector(".Artists span");
+  const ArtistsDiv = NowBar.querySelector<HTMLElement>(".Header .Metadata .ArtistsRow");
+  const ArtistsSpan = ArtistsDiv?.querySelector<HTMLElement>(".Artists span");
   const MediaImageContainer = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImageContainer");
-  const SongNameSpan = MetadataContainer.querySelector(".SongName span");
+  const SongNameSpan = MetadataContainer?.querySelector(".SongName span");
   //const MediaBox = NowBar.querySelector(".Header .MediaBox");
   //const SongName = NowBar.querySelector(".Header .Metadata .SongName");
 
@@ -1163,24 +1211,182 @@ function UpdateNowBar(force = false) {
     if (SongNameSpan) {
       SongNameSpan.textContent = songName ?? "";
     }
-  
+
     const contentType = SpotifyPlayer.GetContentType();
-  
+
     if (contentType === "episode") {
       const showName = SpotifyPlayer.GetShowName();
-      ArtistsSpan.textContent = showName ?? "";
+      if (ArtistsSpan) ArtistsSpan.textContent = showName ?? "";
+      // Clear year for episodes
+      if (ArtistsDiv) {
+        ArtistsDiv.querySelector(".ArtistYear")?.remove();
+        ArtistsDiv.removeAttribute("data-sl-year");
+        ArtistsDiv.removeAttribute("data-sl-year-pos");
+        ArtistsDiv.removeAttribute("data-sl-year-album-uri");
+        ArtistsDiv.removeAttribute("data-sl-year-pending");
+        ArtistsDiv.removeAttribute("data-sl-year-requested-album-uri");
+        const artistsEl = ArtistsDiv.querySelector<HTMLElement>(".Artists");
+        if (artistsEl) {
+          artistsEl.classList.remove("has-year-before", "has-year-after");
+        }
+      }
     }
-  
+
     const artists = SpotifyPlayer.GetArtists();
-    if (artists && ArtistsSpan && contentType !== "episode") {
+    if (artists && ArtistsSpan && ArtistsDiv && contentType !== "episode") {
       const processedArtists = artists.map((artist) => artist.name)?.join(", ");
       ArtistsSpan.textContent = processedArtists ?? "";
+
+      // Year display logic
+      const yearPos = Defaults.ReleaseYearPosition;
+      const currentAlbumUri = SpotifyPlayer.GetAlbumUri();
+      const trackId = SpotifyPlayer.GetId();
+
+      if (yearPos !== "Off") EnsureNowBarYearFetch(currentAlbumUri, trackId);
+
+      const clearYear = () => {
+        ArtistsDiv.querySelector(".ArtistYear")?.remove();
+        ArtistsDiv.removeAttribute("data-sl-year");
+        ArtistsDiv.removeAttribute("data-sl-year-pos");
+        ArtistsDiv.removeAttribute("data-sl-year-album-uri");
+        ArtistsDiv.removeAttribute("data-sl-year-pending");
+        const artistsEl = ArtistsDiv.querySelector<HTMLElement>(".Artists");
+        if (artistsEl) {
+          artistsEl.classList.remove("has-year-before", "has-year-after");
+        }
+      };
+
+      const renderYear = (year: string, pos: string, albumUri: string, pending = false) => {
+        clearYear();
+        if (!year || pos === "Off") return;
+        const artistsEl = ArtistsDiv.querySelector<HTMLElement>(".Artists");
+        if (!artistsEl) return;
+
+        const yearSpan = document.createElement("span");
+        yearSpan.className = `ArtistYear ${pos === "Before Artist" ? "before" : "after"}`;
+        yearSpan.textContent = year;
+        if (pos === "Before Artist") {
+          ArtistsDiv.insertBefore(yearSpan, artistsEl);
+        } else {
+          ArtistsDiv.appendChild(yearSpan);
+        }
+
+        artistsEl.classList.add(pos === "Before Artist" ? "has-year-before" : "has-year-after");
+
+        ArtistsDiv.setAttribute("data-sl-year", year);
+        ArtistsDiv.setAttribute("data-sl-year-pos", pos);
+        ArtistsDiv.setAttribute("data-sl-year-album-uri", albumUri);
+        ArtistsDiv.setAttribute("data-sl-year-pending", pending ? "1" : "0");
+        if (!pending) _lastDisplayedYear = year;
+      };
+
+      if (yearPos === "Off" || !currentAlbumUri) {
+        clearYear();
+        ArtistsDiv.removeAttribute("data-sl-year-requested-album-uri");
+      } else {
+        const existingAlbumUri = ArtistsDiv.getAttribute("data-sl-year-album-uri") ?? "";
+        const existingPos = ArtistsDiv.getAttribute("data-sl-year-pos") ?? "";
+        const existingYear = ArtistsDiv.getAttribute("data-sl-year") ?? "";
+        const existingPending = ArtistsDiv.getAttribute("data-sl-year-pending") === "1";
+
+        if (
+          existingAlbumUri === currentAlbumUri &&
+          existingPos === yearPos &&
+          existingYear &&
+          ArtistsDiv.querySelector(".ArtistYear") &&
+          !existingPending
+        ) {
+          // Already showing correct year, skip
+        } else {
+          const syncYear = SpotifyPlayer.GetAlbumReleaseYearSync();
+          if (syncYear) {
+            _yearCache.set(currentAlbumUri, syncYear);
+            renderYear(syncYear, yearPos, currentAlbumUri);
+          } else {
+            const cachedYear = _yearCache.get(currentAlbumUri);
+            if (cachedYear) {
+              renderYear(cachedYear, yearPos, currentAlbumUri);
+            } else {
+              const requestedAlbumUri = ArtistsDiv.getAttribute("data-sl-year-requested-album-uri") ?? "";
+              if (requestedAlbumUri !== currentAlbumUri) {
+                ArtistsDiv.setAttribute("data-sl-year-requested-album-uri", currentAlbumUri);
+              }
+
+              let inflight = _yearInflight.get(currentAlbumUri);
+              if (!inflight) {
+                inflight = SpotifyPlayer.GetAlbumReleaseYear(currentAlbumUri);
+                _yearInflight.set(currentAlbumUri, inflight);
+                inflight.finally(() => {
+                  if (_yearInflight.get(currentAlbumUri) === inflight) _yearInflight.delete(currentAlbumUri);
+                });
+              }
+
+              if (
+                existingAlbumUri === currentAlbumUri &&
+                existingPos === yearPos &&
+                existingYear &&
+                ArtistsDiv.querySelector(".ArtistYear") &&
+                existingPending
+              ) {
+                // Already showing placeholder, skip
+              } else {
+                const placeholderYear = _lastDisplayedYear ?? existingYear;
+                if (placeholderYear) {
+                  renderYear(placeholderYear, yearPos, currentAlbumUri, true);
+                } else {
+                  clearYear();
+                }
+              }
+
+              if (currentAlbumUri !== _yearAlbumUri) {
+                _yearAlbumUri = currentAlbumUri;
+                _yearGeneration++;
+              }
+              const generation = _yearGeneration;
+
+              if (_yearInflightHandlers.get(currentAlbumUri) !== generation) {
+                _yearInflightHandlers.set(currentAlbumUri, generation);
+                inflight
+                  .then((year) => {
+                    if (!year) return;
+                    _yearCache.set(currentAlbumUri, year);
+                    if (_yearGeneration !== generation) return;
+                    if (SpotifyPlayer.GetAlbumUri() !== currentAlbumUri) return;
+                    const currentPos = Defaults.ReleaseYearPosition;
+                    if (currentPos === "Off") return;
+                    if (!ArtistsDiv?.isConnected) return;
+                    renderYear(year, currentPos, currentAlbumUri, false);
+                  })
+                  .finally(() => {
+                    if (_yearInflightHandlers.get(currentAlbumUri) === generation) {
+                      _yearInflightHandlers.delete(currentAlbumUri);
+                    }
+                  });
+              }
+            }
+          }
+        }
+      }
+    } else if (ArtistsSpan && contentType !== "episode") {
+      ArtistsSpan.textContent = "";
     }
-  
+
     setTimeout(() => MetadataContainer.classList.remove("tr_VisuallyHidden"), 80);
   }, 350);
 }
 
+Global.Event.listen("playback:songchange", () => {
+  if (Defaults.ReleaseYearPosition !== "Off") {
+    setTimeout(() => {
+      if (SpotifyPlayer.GetContentType() === "episode") return;
+      EnsureNowBarYearFetch(SpotifyPlayer.GetAlbumUri(), SpotifyPlayer.GetId());
+    }, 0);
+    setTimeout(() => {
+      if (SpotifyPlayer.GetContentType() === "episode") return;
+      EnsureNowBarYearFetch(SpotifyPlayer.GetAlbumUri(), SpotifyPlayer.GetId());
+    }, 250);
+  }
+});
 
 function NowBar_SwapSides() {
   const NowBar = PageContainer.querySelector(".ContentBox .NowBar");

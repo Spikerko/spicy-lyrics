@@ -197,6 +197,14 @@ async function main() {
     Defaults.hide_npv_bg = storage.get("hide_npv_bg") === "true";
   }
 
+  if (!storage.get("releaseYearPosition")) {
+    storage.set("releaseYearPosition", "Off");
+  }
+
+  if (storage.get("releaseYearPosition")) {
+    Defaults.ReleaseYearPosition = storage.get("releaseYearPosition") as string;
+  }
+
   Defaults.SpicyLyricsVersion = window._spicy_lyrics_metadata?.LoadedVersion ?? ProjectVersion;
   window._spicy_lyrics_metadata = {}
 
