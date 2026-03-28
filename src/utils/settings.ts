@@ -1,4 +1,5 @@
 import Defaults from "../components/Global/Defaults.ts";
+import { openLocalLyricsManagerModal } from "../components/ReactComponents/Settings/LocalLyricsManager.tsx";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
 
@@ -39,6 +40,13 @@ function devSettings(SettingsSection: any) {
     "Clear Current Song Lyrics from internal state",
     "Clear Current Lyrics",
     () => RemoveCurrentLyrics_StateCache(true)
+  );
+
+  settings.addButton(
+    "manage-local-lyrics",
+    "Open the local lyrics manager",
+    "View Local Lyrics",
+    () => openLocalLyricsManagerModal()
   );
 
   settings.addToggle("dev-mode", "TTML Maker mode (previously Dev Mode)", Defaults.DevMode, () => {
