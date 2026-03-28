@@ -57,6 +57,7 @@ function getLocalDatabase() {
       };
 
       request.onblocked = () => {
+        localDatabasePromise = null;
         reject(new Error("IndexedDB is blocked by another connection."));
       };
 
@@ -69,7 +70,10 @@ function getLocalDatabase() {
         resolve(database);
       };
 
-      request.onerror = () => reject(request.error ?? new Error("Unable to open IndexedDB."));
+      request.onerror = () => {
+        localDatabasePromise = null;
+        reject(request.error ?? new Error("Unable to open IndexedDB."));
+      };
     });
   }
 
