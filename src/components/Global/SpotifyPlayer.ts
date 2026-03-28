@@ -141,8 +141,7 @@ export const SpotifyPlayer = {
     return 0;
   },
   Seek: (position: number): void => {
-    Spicetify?.Player?.seek(position) ??
-      (Spicetify?.Player as any)?.origin?.seekTo(position);
+    (Spicetify?.Player as any)?.origin?.seekTo(position);
   },
   GetCover: (size: CoverSizes): string | undefined => {
     const item = Spicetify?.Player?.data?.item;
@@ -473,6 +472,7 @@ export const SpotifyPlayer = {
       const leftPlayer =
         document.querySelector<HTMLElement>(".main-nowPlayingBar-left") ??
         document.querySelector<HTMLElement>(".qqAX5M23YurntqVJ_8Dt") ??
+        document.querySelector<HTMLElement>(".main-nowPlayingWidget-actionButtonWrapper") ??
         document.querySelector<HTMLElement>(
           ".main-nowPlayingWidget-nowPlaying > div:last-of-type"
         );

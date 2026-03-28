@@ -142,6 +142,21 @@
   transform-origin: right center !important;
 }
 
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letter {
+  --gradient-degrees: -90deg !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letter,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letterGroup {
+  padding-bottom: 1.25cqw;
+  padding-top: 1.15cqw;
+  margin-bottom: -0.25em;
+  margin-top: -0.15em;
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .word,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letterGroup {
   transform-origin: center center;
@@ -180,6 +195,16 @@
   .letterGroup.PartOfWord
   + :is(.word, .letterGroup) {
   transform-origin: left center;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word.PartOfWord,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letterGroup.PartOfWord {
+  transform-origin: left center;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .word.PartOfWord + :is(.word, .letterGroup),
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.rtl .letterGroup.PartOfWord + :is(.word, .letterGroup) {
+  transform-origin: right center;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .word,

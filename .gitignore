@@ -168,3 +168,8 @@ API_TERMS.md
 # production
 /build
 .spicetify/
+
+__dev-scripts/
+
+# upcoming feature leak..?
+src/components/cli-sync

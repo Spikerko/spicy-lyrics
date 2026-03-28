@@ -6,6 +6,7 @@ import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import storage from "../storage.ts";
 import { Lyrics } from "./Animator/Main.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
+import { convertToStaticLyrics } from "./tools.ts";
 
 export const ScrollingIntervalTime = Infinity;
 
@@ -180,8 +181,7 @@ const logLyric = (lyric: string) => {
 }
  */
 const LyricsInterval = () => {
-/* 
-  { // Logging Line part
+  /* { // Logging Line part
     const currentLyrics = storage.get("currentLyricsData") as string;
     if (currentLyrics != null && currentLyrics != "" && !currentLyrics?.includes("NO_LYRICS")) {
       const parsedLyricsData = JSON.parse(currentLyrics);
@@ -215,7 +215,7 @@ const LyricsInterval = () => {
           activeLineIndex < staticLyricsData.Lines.length
         ) {
           const activeLine = staticLyricsData.Lines[activeLineIndex];
-          logLyric(activeLine.Text);
+          console.log(activeLine.Text);
         }
       }
     }

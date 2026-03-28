@@ -174,7 +174,8 @@ body:has(#SpicyLyricsPage):not(:has(
     height: 100%;
     position: absolute;
   }
-  .playback-bar > .playback-progressbar-container {
+  .playback-bar > .playback-progressbar-container,
+  .playback-bar > :has(.playback-progressbar) {
     margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
   }
 }
