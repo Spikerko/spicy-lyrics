@@ -7,13 +7,20 @@ const LYRICS_SOURCE = {
   /** User locally uploaded lyrics via dev tools */
   USER_UPLOAD: "user_upload",
 } as const;
-type LyricsSource = typeof LYRICS_SOURCE[keyof typeof LYRICS_SOURCE];
+type LyricsSource = (typeof LYRICS_SOURCE)[keyof typeof LYRICS_SOURCE];
 
-type LocalLyricsRecord = {
+export type LocalLyricsRecord = {
   trackId: string;
+  trackName?: string;
+  artistNames?: string;
   lyrics: object;
   source: LyricsSource;
   addedAt: string;
+};
+
+type LocalLyricsMetadata = {
+  trackName?: string;
+  artistNames?: string;
 };
 
 let localDatabasePromise: Promise<IDBDatabase> | null = null;
@@ -21,8 +28,7 @@ let localDatabasePromise: Promise<IDBDatabase> | null = null;
 function requestToPromise<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
-      reject(request.error ?? new Error("IndexedDB request failed."));
+    request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed."));
   });
 }
 
@@ -50,6 +56,10 @@ function getLocalDatabase() {
         }
       };
 
+      request.onblocked = () => {
+        reject(new Error("IndexedDB is blocked by another connection."));
+      };
+
       request.onsuccess = () => {
         const database = request.result;
         database.onversionchange = () => {
@@ -59,8 +69,7 @@ function getLocalDatabase() {
         resolve(database);
       };
 
-      request.onerror = () =>
-        reject(request.error ?? new Error("Unable to open IndexedDB."));
+      request.onerror = () => reject(request.error ?? new Error("Unable to open IndexedDB."));
     });
   }
 
@@ -86,12 +95,27 @@ export async function getLocalTTML(trackId: string): Promise<object | null> {
   return record?.lyrics ?? null;
 }
 
+export async function getAllLocalLyricsRecords(): Promise<LocalLyricsRecord[]> {
+  const database = await getLocalDatabase();
+  const transaction = database.transaction(LOCAL_LYRICS_STORE_NAME, "readonly");
+  const store = transaction.objectStore(LOCAL_LYRICS_STORE_NAME);
+  const records = (await requestToPromise(store.getAll())) ?? [];
+
+  return records.sort((first, second) => {
+    return new Date(second.addedAt ?? 0).getTime() - new Date(first.addedAt ?? 0).getTime();
+  });
+}
+
 /**
  * Save a local TTML for a specific track.
  * @param trackId The ID of the track.
  * @param lyrics The TTML lyrics object to save.
  */
-export async function saveLocalTTML(trackId: string, lyrics: object): Promise<void> {
+export async function saveLocalTTML(
+  trackId: string,
+  lyrics: object,
+  metadata: LocalLyricsMetadata = {}
+): Promise<void> {
   if (!trackId) return;
 
   const now = new Date().toISOString();
@@ -101,6 +125,8 @@ export async function saveLocalTTML(trackId: string, lyrics: object): Promise<vo
 
   const record: LocalLyricsRecord = {
     trackId,
+    trackName: metadata.trackName,
+    artistNames: metadata.artistNames,
     lyrics,
     source: LYRICS_SOURCE.USER_UPLOAD,
     addedAt: now,
@@ -125,3 +151,11 @@ export async function removeLocalTTML(trackId: string): Promise<void> {
   await transactionToPromise(transaction);
 }
 
+export async function clearLocalTTML(): Promise<void> {
+  const database = await getLocalDatabase();
+  const transaction = database.transaction(LOCAL_LYRICS_STORE_NAME, "readwrite");
+  const store = transaction.objectStore(LOCAL_LYRICS_STORE_NAME);
+
+  store.clear();
+  await transactionToPromise(transaction);
+}

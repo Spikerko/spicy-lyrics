@@ -47,7 +47,20 @@ Global.SetScope("execute", async (command: string) => {
 
               try {
                 await ProcessLyrics(dataToSave);
-                await saveLocalTTML(trackId ?? "", dataToSave);
+                
+                if (trackId) {
+                  await saveLocalTTML(trackId, dataToSave, {
+                    trackName: SpotifyPlayer.GetName() || null,
+                    artistNames:
+                      SpotifyPlayer.GetArtists()
+                        ?.map((artist) => artist.name)
+                        .filter(Boolean)
+                        .join(", ") || null,
+                  });
+                } else {
+                  ShowNotification("Unable to save lyrics without a track ID.", "warning", 5000);
+                }
+
                 storage.set("currentLyricsData", JSON.stringify(dataToSave));
                 setTimeout(() => {
                   fetchLyrics(uri ?? "")
@@ -79,14 +92,15 @@ Global.SetScope("execute", async (command: string) => {
     case "reset-ttml": {
       // console.log("Reset TTML");
       try {
+        storage.set("currentLyricsData", "");
         await removeLocalTTML(SpotifyPlayer.GetId() ?? "");
+        ShowNotification("TTML has been reset.", "info", 5000);
       } catch (error) {
         console.error("Error removing local TTML:", error);
         ShowNotification("Error resetting local TTML.", "error", 5000);
       }
-      storage.set("currentLyricsData", "");
-      ShowNotification("TTML has been reset.", "info", 5000);
-      await new Promise(resolve => setTimeout(resolve, 25));
+
+      await new Promise((resolve) => setTimeout(resolve, 25));
       try {
         const lyrics = await fetchLyrics(SpotifyPlayer.GetUri() ?? "");
         ApplyLyrics(lyrics);
