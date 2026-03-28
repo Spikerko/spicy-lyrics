@@ -95,6 +95,10 @@ export async function getLocalTTML(trackId: string): Promise<object | null> {
   return record?.lyrics ?? null;
 }
 
+/**
+ * Get all local TTML records.
+ * @returns An array of all local TTML records.
+ */
 export async function getAllLocalLyricsRecords(): Promise<LocalLyricsRecord[]> {
   const database = await getLocalDatabase();
   const transaction = database.transaction(LOCAL_LYRICS_STORE_NAME, "readonly");
@@ -110,6 +114,7 @@ export async function getAllLocalLyricsRecords(): Promise<LocalLyricsRecord[]> {
  * Save a local TTML for a specific track.
  * @param trackId The ID of the track.
  * @param lyrics The TTML lyrics object to save.
+ * @param metadata Optional metadata about the lyrics (e.g., track name, artist names).
  */
 export async function saveLocalTTML(
   trackId: string,
@@ -151,6 +156,9 @@ export async function removeLocalTTML(trackId: string): Promise<void> {
   await transactionToPromise(transaction);
 }
 
+/**
+ * Clear all local TTML records.
+ */
 export async function clearLocalTTML(): Promise<void> {
   const database = await getLocalDatabase();
   const transaction = database.transaction(LOCAL_LYRICS_STORE_NAME, "readwrite");
