@@ -26,7 +26,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "semver": "^7.7.4",
-    "simplebar": "^6.3.3"
+    "simplebar": "^6.3.3",
+    "spicetify-creator": "^1.0.17"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -236,7 +236,7 @@
 }
 
 #SpicyLyricsPage [data-simplebar]:not(.simplebar-dragging) .simplebar-content-wrapper {
-  scroll-behavior: smooth !important;
+  scroll-behavior: auto !important;
 }
 
 #SpicyLyricsPage
