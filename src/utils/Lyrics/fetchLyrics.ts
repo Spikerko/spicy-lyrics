@@ -1,7 +1,7 @@
 import { GetExpireStore } from "@spikerko/tools/Cache";
 import Defaults, { isDev } from "../../components/Global/Defaults.ts";
 import Platform from "../../components/Global/Platform.ts";
-import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
+import { SpotifyPlayer, TrackIdFromUri } from "../../components/Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../components/Utils/Fullscreen.ts";
@@ -57,11 +57,6 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return ["unknown-track", 400];
   }
 
-  if (uri.startsWith("spotify:local:")) {
-    storage.set("currentlyFetching", "false");
-    return ["local-track", 400];
-  }
-
   const currFetching = storage.get("currentlyFetching");
   if (currFetching === "true") {
     storage.set("currentlyFetching", "false");
@@ -74,7 +69,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     LyricsContent.classList.add("HiddenTransitioned");
   }
 
-  const trackId = uri.split(":")[2];
+  const trackId = TrackIdFromUri(uri);
 
   // Only load local TTML if TTML maker mode is on
   if (storage.get("devMode") === "true") {
@@ -140,6 +135,12 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       storage.set("currentlyFetching", "false");
       HideLoaderContainer();
     }
+  }
+
+  // If no local lyrics exists, then do not fetch from API for local files
+  if (uri.startsWith("spotify:local:")) {
+    storage.set("currentlyFetching", "false");
+    return ["local-track", 400];
   }
 
   if (LyricsStore) {

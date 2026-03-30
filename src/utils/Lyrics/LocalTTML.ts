@@ -11,14 +11,14 @@ type LyricsSource = (typeof LYRICS_SOURCE)[keyof typeof LYRICS_SOURCE];
 
 export type LocalLyricsRecord = {
   trackId: string;
-  trackName?: string;
-  artistNames?: string;
   lyrics: object;
   source: LyricsSource;
   addedAt: string;
-};
+} & LocalLyricsMetadata;
 
 type LocalLyricsMetadata = {
+  trackUri?: string;
+  isLocal?: boolean;
   trackName?: string;
   artistNames?: string;
 };
@@ -116,7 +116,7 @@ export async function getAllLocalLyricsRecords(): Promise<LocalLyricsRecord[]> {
 
 /**
  * Save a local TTML for a specific track.
- * @param trackId The ID of the track.
+ * @param trackId The ID of the track. Should be unique for each track.
  * @param lyrics The TTML lyrics object to save.
  * @param metadata Optional metadata about the lyrics (e.g., track name, artist names).
  */
@@ -134,11 +134,10 @@ export async function saveLocalTTML(
 
   const record: LocalLyricsRecord = {
     trackId,
-    trackName: metadata.trackName,
-    artistNames: metadata.artistNames,
     lyrics,
     source: LYRICS_SOURCE.USER_UPLOAD,
     addedAt: now,
+    ...metadata
   };
 
   store.put(record);

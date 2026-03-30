@@ -124,6 +124,14 @@ export type Artist = {
   uri: string;
 };
 
+export const TrackIdFromUri = (uri: string): string => {
+  // For local lyrics, use the part after "spotify:local:" as id
+  if (uri?.startsWith("spotify:local:")) {
+    return uri.substring("spotify:local:".length);
+  }
+  return uri?.split(":")[2];
+}
+
 export const SpotifyPlayer = {
   IsPlaying: false,
   _DEPRECATED_: {
@@ -181,7 +189,11 @@ export const SpotifyPlayer = {
     return Spicetify?.Player?.data?.item?.metadata?.album_title;
   },
   GetId: (): string | undefined => {
-    return Spicetify?.Player?.data?.item?.uri?.split(":")[2];
+    const uri = Spicetify?.Player?.data?.item?.uri;
+    return uri != null ? TrackIdFromUri(uri) : undefined;
+  },
+  IsLocalTrack: (): boolean | undefined => {
+    return Spicetify?.Player?.data?.item?.isLocal;
   },
   GetArtists: (): Artist[] | undefined => {
     return Spicetify?.Player?.data?.item?.artists as Artist[];

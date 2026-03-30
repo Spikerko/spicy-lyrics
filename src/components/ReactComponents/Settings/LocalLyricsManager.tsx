@@ -14,7 +14,8 @@ import { SpotifyPlayer } from "../../Global/SpotifyPlayer.ts";
 import { PopupModal } from "../../Modal.ts";
 import { ShowNotification } from "../../Pages/PageView.ts";
 
-const BUTTON_CLASS_NAME = "spicy-local-lyrics-manager__button encore-text-body-small-bold";
+const BUTTON_CLASS_NAME =
+  "spicy-local-lyrics-manager__button encore-text-body-small-bold";
 
 async function refreshLyricsIfCurrentTrackWasRemoved(trackIds: string[]) {
   const currentTrackId = SpotifyPlayer.GetId();
@@ -33,8 +34,15 @@ async function refreshLyricsIfCurrentTrackWasRemoved(trackIds: string[]) {
     const lyrics = await fetchLyrics(uri);
     ApplyLyrics(lyrics);
   } catch (error) {
-    console.error("Error refreshing lyrics after removing a local TTML:", error);
-    ShowNotification("Removed local lyrics, but refreshing the page failed.", "warning", 5000);
+    console.error(
+      "Error refreshing lyrics after removing a local TTML:",
+      error,
+    );
+    ShowNotification(
+      "Removed local lyrics, but refreshing the page failed.",
+      "warning",
+      5000,
+    );
   }
 }
 
@@ -44,6 +52,10 @@ function getDisplayTrackName(record: LocalLyricsRecord) {
 
 function getDisplayArtistName(record: LocalLyricsRecord) {
   return record.artistNames?.trim() || "Unknown artist";
+}
+
+function getTrackTypeLabel(record: LocalLyricsRecord) {
+  return record.isLocal ? "Local" : "Spotify";
 }
 
 export function openLocalLyricsManagerModal() {
@@ -67,8 +79,12 @@ export default function LocalLyricsManager() {
   const [records, setRecords] = useState<LocalLyricsRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
-  const [pendingRemovalTrackId, setPendingRemovalTrackId] = useState<string | null>(null);
-  const [pendingClearAllStartedAt, setPendingClearAllStartedAt] = useState<number | null>(null);
+  const [pendingRemovalTrackId, setPendingRemovalTrackId] = useState<
+    string | null
+  >(null);
+  const [pendingClearAllStartedAt, setPendingClearAllStartedAt] = useState<
+    number | null
+  >(null);
   const [clearAllCountdown, setClearAllCountdown] = useState(0);
 
   const loadRecords = async () => {
@@ -96,7 +112,9 @@ export default function LocalLyricsManager() {
       return;
     }
 
-    const pendingRecordStillExists = records.some((record) => record.trackId === pendingRemovalTrackId);
+    const pendingRecordStillExists = records.some(
+      (record) => record.trackId === pendingRemovalTrackId,
+    );
     if (!pendingRecordStillExists) {
       setPendingRemovalTrackId(null);
     }
@@ -109,7 +127,9 @@ export default function LocalLyricsManager() {
 
     const timeoutId = window.setTimeout(() => {
       setPendingRemovalTrackId((currentPendingTrackId) => {
-        return currentPendingTrackId === pendingRemovalTrackId ? null : currentPendingTrackId;
+        return currentPendingTrackId === pendingRemovalTrackId
+          ? null
+          : currentPendingTrackId;
       });
     }, 3000);
 
@@ -237,7 +257,7 @@ export default function LocalLyricsManager() {
                   ? "Click Again to Clear"
                   : isClearAllArmed
                     ? `Wait ${clearAllCountdown}s`
-                  : "Clear All"}
+                    : "Clear All"}
             </button>
           </div>
         ) : null}
@@ -251,10 +271,23 @@ export default function LocalLyricsManager() {
         <div className="spicy-local-lyrics-manager__list" role="list">
           {records.map((record) => {
             return (
-              <div className="spicy-local-lyrics-manager__item" key={record.trackId} role="listitem">
+              <div
+                className="spicy-local-lyrics-manager__item"
+                key={record.trackId}
+                role="listitem"
+              >
                 <div className="spicy-local-lyrics-manager__item-text">
-                  <div className="spicy-local-lyrics-manager__title">
-                    {getDisplayTrackName(record)}
+                  <div className="spicy-local-lyrics-manager__title-row">
+                    <div className="spicy-local-lyrics-manager__title">
+                      {getDisplayTrackName(record)}
+                    </div>
+                    {record.isLocal && (
+                      <div className="spicy-local-lyrics-manager__badges">
+                        <span className="spicy-local-lyrics-manager__badge">
+                          {getTrackTypeLabel(record)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="spicy-local-lyrics-manager__artist">
                     {getDisplayArtistName(record)}
@@ -270,7 +303,9 @@ export default function LocalLyricsManager() {
                   onClick={() => void handleDelete(record)}
                   type="button"
                 >
-                  {pendingRemovalTrackId === record.trackId ? "Click Again" : "Remove"}
+                  {pendingRemovalTrackId === record.trackId
+                    ? "Click Again"
+                    : "Remove"}
                 </button>
               </div>
             );

@@ -21,16 +21,6 @@ Global.SetScope("execute", async (command: string) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
             const uri = SpotifyPlayer.GetUri();
-
-            if (uri.startsWith("spotify:local:")) {
-              ShowNotification(
-                "Local TTML files are not available on local songs",
-                "warning",
-                5000
-              );
-              return;
-            }
-
             const ttml = e.target?.result as string;
             ShowNotification("Found TTML, Parsing...", "info", 5000);
             ParseTTML(ttml).then(async (result) => {
@@ -50,6 +40,7 @@ Global.SetScope("execute", async (command: string) => {
                 
                 if (trackId) {
                   await saveLocalTTML(trackId, dataToSave, {
+                    isLocal: SpotifyPlayer.IsLocalTrack(),
                     trackName: SpotifyPlayer.GetName() || null,
                     artistNames:
                       SpotifyPlayer.GetArtists()
