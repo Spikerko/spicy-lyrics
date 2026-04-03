@@ -46,7 +46,7 @@ import { ScrollingIntervalTime } from "./utils/Lyrics/lyrics.ts";
 import { ScrollToActiveLine } from "./utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts";
 // Unused import removed: import sleep from "./utils/sleep";
-import { setSettingsMenu } from "./utils/settings.ts";
+import { setSettingsMenu, applyFontSizeClass } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
@@ -57,6 +57,8 @@ import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../project/config.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { initKeyboardShortcuts } from "./utils/KeyboardShortcuts.ts";
+import { initCacheWarmup } from "./utils/CacheWarmup.ts";
 
 /* 
   upcoming feature leak..?
@@ -224,6 +226,24 @@ async function main() {
 
   // Lets set out the Settings Menu
   setSettingsMenu();
+
+  // Lyrics font size
+  if (!storage.get("lyricsFontSize")) storage.set("lyricsFontSize", "Medium (Default)");
+  {
+    const size = storage.get("lyricsFontSize") as string;
+    Defaults.LyricsFontSize = size;
+    const sizeIndex = ["Small", "Medium (Default)", "Large", "Extra Large"].indexOf(size);
+    Defaults.LyricsFontSize_Preset = sizeIndex >= 0 ? sizeIndex : 1;
+    applyFontSizeClass(size);
+  }
+
+  // Keyboard shortcuts toggle
+  if (!storage.get("keyboard-shortcuts-enabled")) storage.set("keyboard-shortcuts-enabled", "true");
+  Defaults.KeyboardShortcutsEnabled = storage.get("keyboard-shortcuts-enabled") !== "false";
+  initKeyboardShortcuts();
+
+  // Background lyrics cache warm-up
+  initCacheWarmup();
 
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {
