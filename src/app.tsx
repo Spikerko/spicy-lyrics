@@ -57,6 +57,7 @@ import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../project/config.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { initCacheWarmup } from "./utils/CacheWarmup.ts";
 
 /* 
   upcoming feature leak..?
@@ -224,6 +225,9 @@ async function main() {
 
   // Lets set out the Settings Menu
   setSettingsMenu();
+
+  // Background lyrics cache warm-up
+  initCacheWarmup();
 
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {
