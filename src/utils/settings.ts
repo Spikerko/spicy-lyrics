@@ -1,17 +1,6 @@
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
-import { exportSettings, importSettings } from "./SettingsExportImport.ts";
-import { ProjectVersion } from "../../project/config.ts";
-
-// ── Helpers consumed by app.tsx on init ──────────────────────────────────────
-
-export function applyFontSizeClass(size: string): void {
-  document.body.classList.remove("sl_lyrics_sm", "sl_lyrics_lg", "sl_lyrics_xl");
-  if (size === "Small") document.body.classList.add("sl_lyrics_sm");
-  else if (size === "Large") document.body.classList.add("sl_lyrics_lg");
-  else if (size === "Extra Large") document.body.classList.add("sl_lyrics_xl");
-}
 
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
@@ -22,7 +11,6 @@ export async function setSettingsMenu() {
 
   generalSettings(SettingsSection);
   devSettings(SettingsSection);
-  healthSettings(SettingsSection);
   //infos(SettingsSection);
 }
 
@@ -207,20 +195,6 @@ function generalSettings(SettingsSection: any) {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
-  // ── New features ───────────────────────────────────────────────────────────
-
-  settings.addDropDown(
-    "lyrics-font-size",
-    "Lyrics Font Size",
-    ["Small", "Medium (Default)", "Large", "Extra Large"],
-    Defaults.LyricsFontSize_Preset,
-    () => {
-      const val = settings.getFieldValue("lyrics-font-size") as string;
-      storage.set("lyricsFontSize", val);
-      applyFontSizeClass(val);
-    }
-  );
-
   settings.addToggle(
     "keyboard-shortcuts-enabled",
     "Keyboard Shortcuts  (F = Fullscreen,  R = Toggle Romanization)",
@@ -238,40 +212,6 @@ function generalSettings(SettingsSection: any) {
     () => {
       window.location.reload();
     }
-  );
-
-  settings.pushSettings();
-}
-
-function healthSettings(SettingsSection: any) {
-  const settings = new SettingsSection(
-    "Spicy Lyrics - Info & Health",
-    "spicy-lyrics-health"
-  );
-
-  settings.addButton(
-    "version-info",
-    `Extension version: ${ProjectVersion} | API: ${Defaults.lyrics.api.url}`,
-    "Copy Debug Info",
-    () => {
-      const info = `Spicy Lyrics v${ProjectVersion} | API: ${Defaults.lyrics.api.url}`;
-      navigator.clipboard?.writeText(info).catch(() => {});
-      (Spicetify as any).showNotification?.("Debug info copied to clipboard", false, 2000);
-    }
-  );
-
-  settings.addButton(
-    "export-settings",
-    "Download all Spicy Lyrics settings as a JSON file for backup or sharing",
-    "Export Settings",
-    () => exportSettings()
-  );
-
-  settings.addButton(
-    "import-settings",
-    "Restore settings from a previously exported JSON file (reloads Spotify)",
-    "Import Settings",
-    () => importSettings()
   );
 
   settings.pushSettings();
