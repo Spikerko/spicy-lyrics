@@ -2,6 +2,15 @@ import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
 
+// ── Helpers consumed by app.tsx on init ──────────────────────────────────────
+
+export function applyFontSizeClass(size: string): void {
+  document.body.classList.remove("sl_lyrics_sm", "sl_lyrics_lg", "sl_lyrics_xl");
+  if (size === "Small") document.body.classList.add("sl_lyrics_sm");
+  else if (size === "Large") document.body.classList.add("sl_lyrics_lg");
+  else if (size === "Extra Large") document.body.classList.add("sl_lyrics_xl");
+}
+
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -194,6 +203,20 @@ function generalSettings(SettingsSection: any) {
   settings.addToggle("settings-on-top", "Display the settings panels on top of the settings page?", Defaults.SettingsOnTop, () => {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
+
+  // ── New features ───────────────────────────────────────────────────────────
+
+  settings.addDropDown(
+    "lyrics-font-size",
+    "Lyrics Font Size",
+    ["Small", "Medium (Default)", "Large", "Extra Large"],
+    Defaults.LyricsFontSize_Preset,
+    () => {
+      const val = settings.getFieldValue("lyrics-font-size") as string;
+      storage.set("lyricsFontSize", val);
+      applyFontSizeClass(val);
+    }
+  );
 
   settings.addButton(
     "save-n-reload",

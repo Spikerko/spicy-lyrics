@@ -46,7 +46,7 @@ import { ScrollingIntervalTime } from "./utils/Lyrics/lyrics.ts";
 import { ScrollToActiveLine } from "./utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts";
 // Unused import removed: import sleep from "./utils/sleep";
-import { setSettingsMenu } from "./utils/settings.ts";
+import { setSettingsMenu, applyFontSizeClass } from "./utils/settings.ts";
 import storage from "./utils/storage.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import "./css/polyfills/tippy-polyfill.css";
@@ -224,6 +224,16 @@ async function main() {
 
   // Lets set out the Settings Menu
   setSettingsMenu();
+
+  // Lyrics font size
+  if (!storage.get("lyricsFontSize")) storage.set("lyricsFontSize", "Medium (Default)");
+  {
+    const size = storage.get("lyricsFontSize") as string;
+    Defaults.LyricsFontSize = size;
+    const sizeIndex = ["Small", "Medium (Default)", "Large", "Extra Large"].indexOf(size);
+    Defaults.LyricsFontSize_Preset = sizeIndex >= 0 ? sizeIndex : 1;
+    applyFontSizeClass(size);
+  }
 
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {
