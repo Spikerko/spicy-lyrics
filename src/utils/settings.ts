@@ -1,6 +1,8 @@
 import Defaults from "../components/Global/Defaults.ts";
 import storage from "./storage.ts";
 import { RemoveCurrentLyrics_AllCaches, RemoveCurrentLyrics_StateCache, RemoveLyricsCache } from "./LyricsCacheTools.ts";
+import { exportSettings, importSettings } from "./SettingsExportImport.ts";
+import { ProjectVersion } from "../../project/config.ts";
 
 export async function setSettingsMenu() {
   while (!Spicetify.React || !Spicetify.ReactDOM) {
@@ -11,6 +13,7 @@ export async function setSettingsMenu() {
 
   generalSettings(SettingsSection);
   devSettings(SettingsSection);
+  healthSettings(SettingsSection);
   //infos(SettingsSection);
 }
 
@@ -202,6 +205,40 @@ function generalSettings(SettingsSection: any) {
     () => {
       window.location.reload();
     }
+  );
+
+  settings.pushSettings();
+}
+
+function healthSettings(SettingsSection: any) {
+  const settings = new SettingsSection(
+    "Spicy Lyrics - Info & Health",
+    "spicy-lyrics-health"
+  );
+
+  settings.addButton(
+    "version-info",
+    `Extension version: ${ProjectVersion} | API: ${Defaults.lyrics.api.url}`,
+    "Copy Debug Info",
+    () => {
+      const info = `Spicy Lyrics v${ProjectVersion} | API: ${Defaults.lyrics.api.url}`;
+      navigator.clipboard?.writeText(info).catch(() => {});
+      (Spicetify as any).showNotification?.("Debug info copied to clipboard", false, 2000);
+    }
+  );
+
+  settings.addButton(
+    "export-settings",
+    "Download all Spicy Lyrics settings as a JSON file for backup or sharing",
+    "Export Settings",
+    () => exportSettings()
+  );
+
+  settings.addButton(
+    "import-settings",
+    "Restore settings from a previously exported JSON file (reloads Spotify)",
+    "Import Settings",
+    () => importSettings()
   );
 
   settings.pushSettings();
