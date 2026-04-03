@@ -62,7 +62,7 @@ import { initKeyboardShortcuts } from "./utils/KeyboardShortcuts.ts";
 /* 
   upcoming feature leak..?
 
-  import { initCliSocket } from "./components/cli-sync/index.ts";
+          ((('documentPictureInPicture' in window) && (Defaults.PopupLyricsAllowed))
   import "./components/cli-sync/socket/manager.ts";
 */
 

@@ -1,5 +1,4 @@
 import Fullscreen from "../components/Utils/Fullscreen.ts";
-import { isRomanized, setRomanizedStatus } from "./Lyrics/lyrics.ts";
 import storage from "./storage.ts";
 
 function isInputFocused(): boolean {
@@ -23,11 +22,6 @@ function handleKeyDown(e: KeyboardEvent): void {
       } else {
         Fullscreen.Open();
       }
-      break;
-    }
-    case "r": {
-      e.preventDefault();
-      setRomanizedStatus(!isRomanized);
       break;
     }
     default:

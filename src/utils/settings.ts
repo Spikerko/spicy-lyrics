@@ -197,7 +197,7 @@ function generalSettings(SettingsSection: any) {
 
   settings.addToggle(
     "keyboard-shortcuts-enabled",
-    "Keyboard Shortcuts  (F = Fullscreen,  R = Toggle Romanization)",
+    "Keyboard Shortcuts (F = Fullscreen)",
     Defaults.KeyboardShortcutsEnabled,
     () => {
       const val = settings.getFieldValue("keyboard-shortcuts-enabled") as boolean;
