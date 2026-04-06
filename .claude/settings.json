@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/dist/**)",
+      "Read(**/dist_legacy/**)",
+      "Read(**/.spicetify/**)"
+    ]
+  }
+}
