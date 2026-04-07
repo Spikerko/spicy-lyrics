@@ -1,5 +1,10 @@
 :root {
   --bg-rotation-degree: 258deg;
+  --sltoaster-bottom-padding: 104px;
+}
+
+:root:has(#SpicyLyricsPage.Fullscreen) {
+  --sltoaster-bottom-padding: 32px;
 }
 
 .main-nowPlayingView-contextItemInfo::before {
@@ -45,13 +50,14 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 #SpicyLyricsPage .ViewControls {
   container-type: size;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   height: 5cqh;
   justify-content: center;
+  align-items: center;
   opacity: 1;
   transition: opacity 0.3s !important;
   z-index: 101;
-  --ViewControlSize: 100cqh;
+  --ViewControlSize: 110cqh;
 }
 
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
@@ -68,25 +74,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   top: 24px;
 }
 
-
-
-#SpicyLyricsPage:not(.Fullscreen) .ViewControls::before {
-  z-index: -1;
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.6;
-}
-
-#SpicyLyricsPage.ViewControlsPosition_Bottom:not(.Fullscreen) .ViewControls::before {
-  bottom: -24px;
-  background: linear-gradient(to top, var(--spice-main, #000000), transparent);
-}
-
-#SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls::before {
-  top: -24px;
-  background: linear-gradient(to bottom, var(--spice-main, #000000), transparent);
-}
 
 
 /* :root:has(.SpicyBG.BackgroundLayer)
@@ -110,7 +97,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
 }
 
 #SpicyLyricsPage:not(.Fullscreen):hover .ViewControls {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls:hover {
@@ -120,25 +107,40 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
 #SpicyLyricsPage .ViewControls .ViewControl {
   --ViewControlHeight: var(--ViewControlSize, 100cqh);
   aspect-ratio: 1;
-  background: rgba(21, 22, 23, 0.72);
-  border: none;
+  background: rgba(10, 10, 14, 0.52);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  backdrop-filter: blur(10px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 100rem;
   display: flex;
   height: var(--ViewControlHeight);
   width: var(--ViewControlHeight);
   -webkit-app-region: no-drag;
   align-items: center;
-  color: hsla(0, 0%, 100%, 0.7);
+  color: hsla(0, 0%, 100%, 0.88);
   justify-content: center;
   text-align: center;
   -webkit-box-align: center;
   -webkit-box-pack: center;
-  transition: scale 0.25s, opacity 0.2s;
-  transform-origin: center bottom;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  transition: scale 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.15s, background 0.15s, box-shadow 0.15s;
+  transform-origin: center;
+}
+
+#SpicyLyricsPage .ViewControls .ViewControl:hover {
+  scale: 1.015;
+  color: hsla(0, 0%, 100%, 1);
+  background: rgba(22, 22, 28, 0.72);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+#SpicyLyricsPage .ViewControls .ViewControl:active {
+  scale: 0.9;
 }
 
 #SpicyLyricsPage .ViewControls:has(.ViewControl:hover) > .ViewControl:not(:hover) {
-  opacity: 0.75;
+  opacity: 0.65;
+  scale: 0.95;
 }
 
 #SpicyLyricsPage .ViewControls .ViewControl svg:not(.NoFill) {
@@ -341,49 +343,10 @@ body:not(:has(.Root__main-view-overlay .BeautifulLyricsPage:is(.Fullscreen)))
   height: calc(var(--ViewControlSize)* .4);
 } */
 
-.GenericModal__overlay {
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
   z-index: 999;
 }
 
-.SpicyLyricsDevToolsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 1cqh;
-}
-
-.SpicyLyricsDevToolsContainer .Setting {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingName {
-  font-size: 0.95rem !important;
-  font-weight: 400;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingValue {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingValue button {
-  background-color: white;
-  color: black;
-  border: none;
-  border-radius: 5px;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 0.9rem !important;
-  font-weight: 400;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingValue button:hover {
-  background-color: rgb(206, 206, 206);
-}
 
 /* .QdB2YtfEq0ks5O4QbtwX .WRGTOibB8qNEkgPNtMxq:has(#SpicyLyricsPage) *:not(#SpicyLyricsPage),
 .QdB2YtfEq0ks5O4QbtwX:has(#SpicyLyricsPage) .DJcMUKFwkFECf5ksmSfU {
@@ -480,83 +443,279 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none !important;
 }
 
-.GenericModal__overlay {
-  .main-trackCreditsModal-container:has(.update-card-wrapper){
-    width: min(35rem,60vw);
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
+  .sl-modal-container:has(.update-card-wrapper) {
+    width: min(30rem, 92vw);
   }
+
   .update-card-wrapper {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     flex-direction: column;
-    margin-inline: -12px;
-    padding: 16px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    text-align: center;
-    background-color: #0d0d0d;
 
-    .header {
-      margin-bottom: 12px;
-      font-weight: bold;
-      color: #ffffff;
+    .uc-icon {
+      font-size: 2.5rem;
+      line-height: 1;
+      margin-bottom: 2px;
     }
 
-    button,
-    .card {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 12px 20px;
-      font-size: 18px !important;
-      font-weight: bold;
+    .uc-title {
+      font-size: 1.2rem !important;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+      margin: 0;
+    }
+
+    .uc-subtitle {
+      font-size: 0.82rem !important;
+      color: rgba(255, 255, 255, 0.45);
+      margin: 0;
+    }
+
+    .uc-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.07);
+      margin: 2px 0;
+    }
+
+    .uc-version-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+
+      .uc-ver {
+        font-size: 0.9rem !important;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.5);
+        font-variant-numeric: tabular-nums;
+
+        &.new {
+          color: #1db954;
+        }
+      }
+
+      .uc-arrow {
+        color: rgba(255, 255, 255, 0.25);
+        font-size: 0.85rem !important;
+      }
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 20px;
+      font-size: 0.88rem !important;
+      font-weight: 600;
       cursor: pointer;
-      transition:
-        background-color 0.3s ease,
-        color 0.3s ease,
-        box-shadow 0.3s ease;
+      transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+      letter-spacing: 0.01em;
+
+      &:active {
+        transform: scale(0.97);
+      }
     }
 
-    .version {
-      font-size: 24px !important;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    .btn-release {
-      background-color: #148c39;
-      color: #ffffff;
+    .btn-primary {
+      background-color: #1db954;
+      color: #000000;
 
       &:hover {
-        background-color: #1db954;
-        box-shadow: 0 4px 12px rgba(29, 185, 84, 0.5);
+        background-color: #1ed760;
+        box-shadow: 0 4px 16px rgba(29, 185, 84, 0.35);
+      }
+    }
+
+    .btn-update {
+      background-color: #1db954;
+      color: #000000;
+
+      &:hover {
+        background-color: #1ed760;
+        box-shadow: 0 4px 16px rgba(29, 185, 84, 0.35);
+      }
+    }
+
+    .btn-secondary {
+      background-color: rgba(255, 255, 255, 0.07);
+      color: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.11);
+        color: #ffffff;
+      }
+    }
+
+    /* Dismiss-confirm variant */
+    &.update-dismiss-confirm {
+      align-items: center;
+      text-align: center;
+
+      .udc-icon-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(255, 180, 0, 0.13);
+        border: 1.5px solid rgba(255, 180, 0, 0.25);
+        margin-bottom: 4px;
+        flex-shrink: 0;
+
+        .udc-warn-svg {
+          width: 26px;
+          height: 26px;
+          color: #ffb300;
+        }
+      }
+
+      .udc-desc {
+        color: rgba(255, 255, 255, 0.5);
+        max-width: 22rem;
+        line-height: 1.55;
+
+        strong {
+          color: rgba(255, 255, 255, 0.8);
+          font-weight: 600;
+        }
+      }
+
+      button {
+        width: 100%;
       }
     }
 
     .btn-discord {
-      background-color: #3b4cca;
+      background-color: #5865f2;
       color: #ffffff;
 
       &:hover {
-        background-color: #5865f2;
-        box-shadow: 0 4px 12px rgba(88, 101, 242, 0.5);
+        background-color: #6872f5;
+        box-shadow: 0 4px 16px rgba(88, 101, 242, 0.35);
       }
     }
 
     a {
-      color: var(--spice-button, #1db954);
-      font-weight: bold;
-      text-decoration: underline;
+      color: #1db954;
+      font-weight: 600;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 }
 
 
 
-.GenericModal:has(.slm),
-.GenericModal:has(.slm) .main-trackCreditsModal-container {
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
+  .dev-tools-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .dt-section-label {
+      font-size: 0.7rem !important;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.3);
+      padding: 0 2px;
+      margin-bottom: 4px;
+    }
+
+    .dt-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      transition: background 0.15s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .dt-setting-info {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .dt-setting-name {
+        font-size: 0.9rem !important;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: nowrap;
+      }
+
+      .dt-setting-desc {
+        font-size: 0.78rem !important;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
+
+    .dt-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.82rem !important;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.01em;
+      transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+      width: 132px;
+
+      &:active {
+        transform: scale(0.97);
+      }
+
+      &.dt-btn-primary {
+        background-color: #1db954;
+        color: #000000;
+
+        &:hover {
+          background-color: #1ed760;
+          box-shadow: 0 4px 14px rgba(29, 185, 84, 0.35);
+        }
+      }
+
+      &.dt-btn-danger {
+        background-color: rgba(255, 59, 59, 0.12);
+        color: rgba(255, 100, 100, 0.9);
+        border: 1px solid rgba(255, 59, 59, 0.2) !important;
+
+        &:hover {
+          background-color: rgba(255, 59, 59, 0.2);
+          color: #ff6464;
+          box-shadow: 0 4px 14px rgba(255, 59, 59, 0.2);
+        }
+      }
+    }
+  }
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal:has(.slm),
+sl-generic-modal.SpicyLyricsModal .sl-modal:has(.slm) .sl-modal-container {
   border-radius: 16px;
 }
 
-.main-trackCreditsModal-mainSection:has(.slm.scroll-x-hidden) {
+.sl-modal-main-section:has(.slm.scroll-x-hidden) {
   overflow-x: hidden;
 }
 
@@ -565,7 +724,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none !important;
 }
 
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header {
+.sl-modal:has(.slm.hidden-modal-header-style) .sl-modal-header {
   /* border-bottom: none !important;
   padding: 24px 46px 0px !important;
   margin-bottom: -40px !important;
@@ -575,27 +734,35 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none;
 }
 
-/* .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
+/* .sl-modal:has(.slm.hidden-modal-header-style) .sl-modal-content {
   position: relative;
   z-index: 106;
 }
 
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header h1 {
+.sl-modal:has(.slm.hidden-modal-header-style) .sl-modal-header h1 {
   opacity: 0 !important;
   pointer-events: none !important;
   height: 0px !important;
   line-height: 0 !important;
 } */
 
-.Animated__GenericModal__overlay {
+.sl-modal-overlay-animated {
   opacity: 0;
-  margin-bottom: -150px;
-  transition: opacity .3s, margin-bottom .3s;
+  transition: opacity .3s ease;
 }
 
-.Animated__GenericModal__overlay.Active {
+.sl-modal-overlay-animated.Active {
   opacity: 1;
-  margin-bottom: 0px;
+  scale: 1;
+}
+
+.sl-modal-overlay-animated .sl-modal {
+  scale: .8;
+  transition: scale .3s linear(0, 0.013 1%, 0.051 2.2%, 0.404 9.8%, 0.51 12.6%, 0.602 15.5%, 0.683 18.7%, 0.754 22.2%, 0.813 26%, 0.861 30.2%, 0.9 34.8%, 0.931 40%, 0.972 52.7%, 0.992 70.2%, 1);
+}
+
+.sl-modal-overlay-animated.Active .sl-modal {
+  scale: 1;
 }
 
 #SpicyLyricsPage .ContentBox.LyricsHidden .ViewControls #NowBarSideToggle {
@@ -620,12 +787,12 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   }
 }
 
-.main-embedWidgetGenerator-container:has(.slm.h-92) {
+.sl-modal-container-large:has(.slm.h-92) {
   --slm-height: 92vh;
   height: var(--slm-height);
 }
 
-.main-embedWidgetGenerator-container:has(.slm.w-60) {
+.sl-modal-container-large:has(.slm.w-60) {
   --slm-width: 60vw;
   width: var(--slm-width);
 }

@@ -26,7 +26,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "semver": "^7.7.4",
-    "simplebar": "^6.3.3"
+    "simplebar": "^6.3.3",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@types/bun": "latest",

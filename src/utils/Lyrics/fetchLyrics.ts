@@ -16,6 +16,7 @@ export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
 }, isDev as true);
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
+  console.log("fetchLyrics ran with uri:", uri)
   const IsSpicyRenderer = Defaults.LyricsRenderer === "Spicy";
 
   //if (!PageContainer) return;
@@ -77,6 +78,8 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   // Check if there's already data in localStorage
   const savedLyricsData = storage.get("currentLyricsData")?.toString();
+
+  console.log("fetchLyrics ran, saved lyrics data:", savedLyricsData ? JSON.parse(savedLyricsData) : null);
 
   if (savedLyricsData && !isDev) {
     try {

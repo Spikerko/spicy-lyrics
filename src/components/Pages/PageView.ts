@@ -50,6 +50,7 @@ import {
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
+import { OpenDevToolsModal } from "./TTMLImport.ts";
 
 interface TippyInstance {
   destroy: () => void;
@@ -526,7 +527,6 @@ function AppendViewControls(ReAppend: boolean = false) {
           }
 
           if (Fullscreen.IsOpen) {
-            // If in any fullscreen mode, close it first
             Fullscreen.Close();
           }
 
@@ -768,26 +768,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             globalThis.focus();
           }
 
-          Spicetify.PopupModal.display({
-            title: "Spicy Lyrics DevTools",
-            isLarge: true,
-            content: `
-                            <div class="SpicyLyricsDevToolsContainer">
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Load TTML (for the current song)</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window._spicy_lyrics.execute('upload-ttml')">Load TTML</button>
-                                    </div>
-                                </div>
-                                <div class="Setting">
-                                    <div class="SettingName"><span>Reset TTML (for the current song)</span></div>
-                                    <div class="SettingValue">
-                                        <button onclick="window._spicy_lyrics.execute('reset-ttml')">Reset TTML</button>
-                                    </div>
-                                </div>
-                            </div>
-                        `,
-          });
+          OpenDevToolsModal();
         });
       } catch (err) {
         console.warn("Failed to setup DevTools tooltip:", err);
@@ -908,43 +889,5 @@ export function SpicyLyrics_Notification({
   };
 }
 
-/* function SocketStatusChange(status: boolean) {
-    if (!PageView.IsOpened) return;
-    if (!document.querySelector("#SpicyLyricsPage")) return;
-    const notif = SpicyLyrics_Notification({
-        icon: Icons.LyricsPage,
-        metadata: {
-            title: "Connection Error",
-            description: "We're recconecting you back to Spicy Lyrics. Be patient."
-        },
-        type: "Warning",
-        closeBtn: false
-    })
-    if (status) {
-        notif.close();
-        notif.cleanup();
-    } else {
-        notif.open();
-    }
-}
-
-SocketStatusChange(isWsConnected); */
-
-type NotificationVariant = "info" | "success" | "warning" | "error";
-
-export const ShowNotification = (
-  content: string,
-  variant: NotificationVariant = "info",
-  autoHideDuration: number = 5000
-) => {
-  const AnySpicetify = Spicetify as any;
-  AnySpicetify.Snackbar.enqueueSnackbar(
-    Spicetify.React.createElement("div", null, content),
-    {
-      variant,
-      autoHideDuration,
-    }
-  );
-};
 
 export default PageView;

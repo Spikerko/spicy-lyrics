@@ -13,7 +13,7 @@
   flex-direction: column;
 }
 
-.main-trackCreditsModal-mainSection:has(.ttml-profile-container) {
+.sl-modal-main-section:has(.ttml-profile-container) {
   padding: 3rem 32px 0;
 }
 
@@ -168,15 +168,15 @@
   background: rgba(var(--spice-rgb-highlight), 0.9);
 }
 
-.main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled) {
+.sl-modal-container-large:has(.ttml-profile-container .ttml-profile-banner-styled) {
   overflow: hidden !important;
 }
 
-.main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled) .main-trackCreditsModal-originalCredits {
+.sl-modal-container-large:has(.ttml-profile-container .ttml-profile-banner-styled) .sl-modal-content {
   background-color: transparent !important;
 }
 
-/* .main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)::before {
+/* .sl-modal-container-large:has(.ttml-profile-container .ttml-profile-banner-styled)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -192,7 +192,7 @@
   opacity: 0.5;
 }
 
-.main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)::after {
+.sl-modal-container-large:has(.ttml-profile-container .ttml-profile-banner-styled)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -313,7 +313,7 @@
   height: 18px;
   border-radius: 7px;
 }
-.main-trackCreditsModal-mainSection:has(.ttml-profile-root-sort-of-skeleton) {
+.sl-modal-main-section:has(.ttml-profile-root-sort-of-skeleton) {
   overflow-y: hidden !important;
 }
 

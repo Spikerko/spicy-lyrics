@@ -1,75 +1,94 @@
-
-.GenericModal__overlay {
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     z-index: 999;
-}
-.GenericModal__overlay {
-    background-color: rgba(var(--spice-rgb-shadow), .7);
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     bottom: 0;
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
     left: 0;
-    position: absolute;
+    position: fixed;
     right: 0;
     top: 0;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
     align-items: center;
-    -webkit-box-pack: center;
-    -ms-flex-pack: center;
     justify-content: center;
     overflow: hidden;
 }
 
-.main-embedWidgetGenerator-container {
-    display: -webkit-box;
-    display: -ms-flexbox;
+sl-generic-modal.SpicyLyricsModal .sl-modal-container-large {
     display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-box-direction: normal;
-    background-color: var(--spice-player);
-    border-radius: 8px;
-    -webkit-box-shadow: 0 4px 4px rgba(var(--spice-rgb-shadow), .3);
-    box-shadow: 0 4px 4px rgba(var(--spice-rgb-shadow), .3);
-    color: var(--spice-text);
-    -ms-flex-direction: column;
     flex-direction: column;
-    max-height: 100vh;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    color: var(--spice-text);
+    max-height: 90vh;
     position: relative;
     width: 664px;
     z-index: 1;
 }
 
-.main-trackCreditsModal-header {
-    display: -webkit-box;
-    display: -ms-flexbox;
+sl-generic-modal.SpicyLyricsModal .sl-modal-container {
     display: flex;
-    -webkit-box-pack: justify;
-    -ms-flex-pack: justify;
+    flex-direction: column;
+    background-color: #111111;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    color: var(--spice-text);
+    max-height: 90vh;
+    position: relative;
+    width: 420px;
+    z-index: 1;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-header {
+    display: flex;
     justify-content: space-between;
-    -webkit-box-align: baseline;
-    -ms-flex-align: baseline;
-    align-items: baseline;
-    border-bottom: 1px solid rgba(var(--spice-rgb-selected-row), .1);
-    padding: 32px 32px 12px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 20px 24px 16px;
+    gap: 12px;
 }
 
-.main-trackCreditsModal-mainSection {
-    overflow-y: scroll;
-    padding: 16px 32px 0;
+sl-generic-modal.SpicyLyricsModal .sl-modal-header h1 {
+    font-size: 1rem !important;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.55);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
 }
 
-.main-trackCreditsModal-originalCredits {
-    padding-bottom: 20px;
+sl-generic-modal.SpicyLyricsModal .sl-modal-main-section {
+    overflow-y: auto;
+    padding: 20px 24px 24px;
 }
 
-.main-trackCreditsModal-closeBtn {
+sl-generic-modal.SpicyLyricsModal .sl-modal-content {
+    display: flex;
+    flex-direction: column;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-close-btn {
     background-color: transparent;
-    border: 0;
-    padding: 8px;
+    border: none;
+    padding: 6px;
+    border-radius: 50%;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, color 0.15s;
+    flex-shrink: 0;
 }
 
-.main-trackCreditsModal-closeBtn:focus, .main-trackCreditsModal-closeBtn:hover {
-    -webkit-transform: scale(1.1);
-    transform: scale(1.1);
+sl-generic-modal.SpicyLyricsModal .sl-modal-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-close-btn:active {
+    background-color: rgba(255, 255, 255, 0.12);
 }

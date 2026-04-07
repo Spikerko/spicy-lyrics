@@ -7,5 +7,8 @@
       "Read(**/dist_legacy/**)",
       "Read(**/.spicetify/**)"
     ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
   }
 }

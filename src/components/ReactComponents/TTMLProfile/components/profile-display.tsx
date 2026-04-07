@@ -166,7 +166,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
   /* React.useEffect(() => {
     if (profile?.data?.banner) {
       const modalContainer = document.querySelector<HTMLElement>(
-        ".GenericModal .main-embedWidgetGenerator-container:has(.ttml-profile-container .ttml-profile-banner-styled)"
+        ".sl-modal .sl-modal-container-large:has(.ttml-profile-container .ttml-profile-banner-styled)"
       );
       if (modalContainer && typeof profile.data.banner === "string") {
         modalContainer.style.setProperty("--banner-url-bg", `url(${profile.data.banner})`);
@@ -248,7 +248,7 @@ function ProfileDisplaySafe({ userId, hasProfileBanner }: ProfileDisplayProps) {
             <button
               type="button"
               aria-label="Close"
-              className="main-trackCreditsModal-closeBtn"
+              className="sl-modal-close-btn"
               onClick={() => PopupModal.hide()}
             >
               <svg

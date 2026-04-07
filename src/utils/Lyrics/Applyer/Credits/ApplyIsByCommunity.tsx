@@ -1,11 +1,9 @@
-import React from "react";
 import TTMLProfile from "../../../../components/ReactComponents/TTMLProfile/ttml-profile.tsx";
 import ReactDOM from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 import { PopupModal } from "../../../../components/Modal.ts";
 import { reactQueryClient } from "../../../../constants/index.ts";
-
 
 let isByCommunityAbortController: AbortController | null = null;
 let madeTippys = new Set<any>();
@@ -44,7 +42,7 @@ function showProfileModal(userId: string | undefined, hasProfileBanner: boolean)
   // This function will mount React after the modal inserts its structure into DOM
   const onModalDisplayed = () => {
     // Find the modal's main element where content should go
-    const mainElement = PopupModal.querySelector("main.main-trackCreditsModal-originalCredits");
+    const mainElement = PopupModal.querySelector("main.sl-modal-content");
     if (!mainElement) return;
 
     // Clear any existing content in mainElement
@@ -166,6 +164,8 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
     createProfileSection("Uploader", labelText, uploaderUsername, uploaderAvatar);
   }
   LyricsContainer.appendChild(songInfoElement);
+
+  if (!data.TTMLUploadMetadata) return;
 
   const uploaderSpan = songInfoElement.querySelector(".Uploader .song-info-profile-section");
   if (uploaderSpan) {

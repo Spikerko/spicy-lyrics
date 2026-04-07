@@ -26,7 +26,7 @@ import { SpotifyPlayer } from "./components/Global/SpotifyPlayer.ts";
 import PageView, { GetPageRoot, PageContainer } from "./components/Pages/PageView.ts";
 import LoadFonts, { ApplyFontPixel } from "./components/Styling/Fonts.ts";
 import { Icons } from "./components/Styling/Icons.ts";
-import Fullscreen from "./components/Utils/Fullscreen.ts";
+import Fullscreen, { EnterSpicyLyricsFullscreen, ExitFullscreenElement } from "./components/Utils/Fullscreen.ts";
 import { UpdateNowBar } from "./components/Utils/NowBar.ts";
 import {
   CloseSidebarLyrics,
@@ -57,6 +57,7 @@ import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../project/config.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { toast, Toaster } from "sonner";
 
 /* 
   upcoming feature leak..?
@@ -660,7 +661,7 @@ async function main() {
       );
 
       PopupModal.display({
-        title: "Spicy Lyrics Updated!",
+        title: "Spicy Lyrics",
         content: div,
         isLarge: true,
         onClose: () => {
@@ -670,6 +671,24 @@ async function main() {
     }
 
     storage.set("fromVersion", Defaults.SpicyLyricsVersion);
+
+    {
+      const div = document.createElement("div");
+      div.classList.add("sltoaster");
+      const reactRoot = ReactDOM.createRoot(div);
+
+      reactRoot.render(
+        <Toaster
+          position="bottom-center"
+          offset={{ bottom: "var(--sltoaster-bottom-padding)" }}
+          theme="dark"
+        />
+      )
+
+      document.body.appendChild(div);
+    }
+
+    (window as any)._toaster = toast;
 
     // Lets set out Dynamic Background (spicy-dynamic-bg) to the now playing bar
     let lastImgUrl: string | null;
@@ -1191,6 +1210,37 @@ async function main() {
   Hometinue();
 
   runThemeMatcher();
+
+  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, () => {
+    if (IsPIP) return;
+    if (Fullscreen.CinemaViewOpen) {
+      Fullscreen.Close();
+      Session.GoBack();
+    }
+  });
+
+  document.addEventListener("fullscreenchange", async () => {
+    if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
+      Fullscreen.CinemaViewOpen = true;
+      await ExitFullscreenElement();
+      PageView.AppendViewControls(true);
+    }
+  });
+
+  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.F11, async () => {
+    if (IsPIP) return;
+    if (Fullscreen.IsOpen) {
+      if (!Fullscreen.CinemaViewOpen) {
+        Fullscreen.CinemaViewOpen = true;
+        await ExitFullscreenElement();
+        PageView.AppendViewControls(true);
+      } else {
+        Fullscreen.CinemaViewOpen = false;
+        await EnterSpicyLyricsFullscreen();
+        PageView.AppendViewControls(true);
+      }
+    }
+  });
 
 
   /* if (storage.get("developerMode") === "true") {

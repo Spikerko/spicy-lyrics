@@ -172,6 +172,9 @@ export const EnterSpicyLyricsFullscreen = async () => {
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.error(`Fullscreen error: ${errorMessage}`);
   }
+
+  document.documentElement.focus();
+
   setTimeout(Compactify, 1000);
 };
 

@@ -8,12 +8,21 @@ interface UpdateDialogProps {
 const UpdateDialog: React.FC<UpdateDialogProps> = ({ fromVersion, spicyLyricsVersion }) => {
   return (
     <div className="update-card-wrapper slm">
-      <h2 className="header">Spicy Lyrics has been successfully updated!</h2>
-      <div className="card version">
-        Version: {fromVersion ? `${fromVersion} → ` : ""}{spicyLyricsVersion || "Unknown"}
-      </div>
+      <h2 className="uc-title">Spicy Lyrics updated!</h2>
+      <p className="uc-subtitle">You're running the latest version.</p>
+
+      <div className="uc-divider" />
+
+      {(fromVersion || spicyLyricsVersion) && (
+        <div className="uc-version-row">
+          {fromVersion && <span className="uc-ver">{fromVersion}</span>}
+          {fromVersion && spicyLyricsVersion && <span className="uc-arrow">→</span>}
+          {spicyLyricsVersion && <span className="uc-ver new">{spicyLyricsVersion}</span>}
+        </div>
+      )}
+
       <button
-        className="card btn btn-release"
+        className="btn-primary"
         onClick={() =>
           window.open(
             `https://github.com/Spikerko/spicy-lyrics/releases/tag/${spicyLyricsVersion}`,
@@ -21,13 +30,13 @@ const UpdateDialog: React.FC<UpdateDialogProps> = ({ fromVersion, spicyLyricsVer
           )
         }
       >
-        Release Notes →
+        See what's new →
       </button>
       <button
-        className="card btn btn-discord"
+        className="btn-discord"
         onClick={() => window.open("https://discord.com/invite/uqgXU5wh8j", "_blank")}
       >
-        <p>Join our Discord Server! →</p>
+        Join the Discord
       </button>
     </div>
   );

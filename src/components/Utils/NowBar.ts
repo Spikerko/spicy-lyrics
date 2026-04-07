@@ -13,6 +13,7 @@ import { Icons } from "../Styling/Icons.ts";
 import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
 import { isSpicySidebarMode } from "./SidebarLyrics.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { IsCompactMode } from "./CompactMode.ts";
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
@@ -97,6 +98,32 @@ function ApplyMarquee(baseWidth, elementWidth, name) {
 } */
 
 let NowBarFullscreenMaid: Maid | null = null;
+
+function PositionTimelineElement(TimelineElem: HTMLElement) {
+  if (IsCompactMode() || IsPIP) {
+    // In CompactMode or PIP: place inside .MediaContent
+    const MediaContent = PageContainer?.querySelector<HTMLElement>(
+      ".ContentBox .NowBar .Header .MediaBox .MediaContent"
+    );
+    if (MediaContent && TimelineElem.parentNode !== MediaContent) {
+      MediaContent.appendChild(TimelineElem);
+    }
+  } else {
+    // In normal fullscreen: place in .Header before .Metadata
+    const Header = PageContainer?.querySelector<HTMLElement>(".ContentBox .NowBar .Header");
+    const Metadata = Header?.querySelector<HTMLElement>(".Metadata");
+    if (Header && Metadata && TimelineElem.parentNode !== Header) {
+      Header.insertBefore(TimelineElem, Metadata);
+    }
+  }
+}
+
+function RepositionTimeline() {
+  if (!ActiveSetupSongProgressBarInstance) return;
+  const TimelineElem = ActiveSetupSongProgressBarInstance.GetElement();
+  if (!TimelineElem) return;
+  PositionTimelineElement(TimelineElem);
+}
 
 function OpenNowBar(skipSaving: boolean = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
@@ -652,7 +679,13 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         return {
           Apply: () => {
-            AppendQueue.push(TimelineElem);
+            if (IsCompactMode() || IsPIP) {
+              // In CompactMode/PIP the Timeline must go through the AppendQueue
+              // because the Whentil.When callback wipes MediaContent with innerHTML = ""
+              AppendQueue.push(TimelineElem);
+            } else {
+              PositionTimelineElement(TimelineElem);
+            }
           },
           GetElement: () => TimelineElem,
           CleanUp: cleanup,
@@ -840,22 +873,26 @@ function CleanUpActiveComponents() {
   }
 
   // Also remove any leftover elements
-  const MediaBox = PageContainer.querySelector(
+  const MediaContent = PageContainer.querySelector(
     ".ContentBox .NowBar .Header .MediaBox .MediaContent"
   );
 
-  if (MediaBox) {
-    const heart = MediaBox.querySelector(".Heart");
-    if (heart) MediaBox.removeChild(heart);
+  if (MediaContent) {
+    const heart = MediaContent.querySelector(".Heart");
+    if (heart) MediaContent.removeChild(heart);
 
-    const playbackControls = MediaBox.querySelector(".PlaybackControls");
-    if (playbackControls) MediaBox.removeChild(playbackControls);
+    const playbackControls = MediaContent.querySelector(".PlaybackControls");
+    if (playbackControls) MediaContent.removeChild(playbackControls);
 
-    const songProgressBar = MediaBox.querySelector(".SongProgressBar");
-    if (songProgressBar) MediaBox.removeChild(songProgressBar);
-
-    // // console.log("Cleared elements from DOM");
+    const timeline = MediaContent.querySelector(".Timeline");
+    if (timeline) MediaContent.removeChild(timeline);
   }
+
+  // Also remove Timeline if it was placed in the Header
+  const headerTimeline = PageContainer.querySelector(
+    ".ContentBox .NowBar .Header > .Timeline"
+  );
+  if (headerTimeline) headerTimeline.remove();
 
   // // console.log("Finished CleanUpActiveComponents Process");
 }
@@ -1380,6 +1417,14 @@ Global.Event.listen("page:destroy", () => {
 Global.Event.listen("nowbar:timeline:dragging", () => {
   ResetLastLine();
   QueueForceScroll();
+});
+
+Global.Event.listen("compact-mode:enable", () => {
+  RepositionTimeline();
+});
+
+Global.Event.listen("compact-mode:disable", () => {
+  RepositionTimeline();
 });
 
 export {
