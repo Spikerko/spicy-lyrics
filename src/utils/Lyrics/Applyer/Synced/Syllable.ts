@@ -227,7 +227,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
       ).split("").length;
 
-      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration);
+      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(lead.Text);
 
       if (IfLetterCapable) {
         word = document.createElement("div");
@@ -336,7 +336,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text
           ).split("").length;
 
-          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration);
+          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(bw.Text);
 
           if (IfLetterCapable) {
             bwE = document.createElement("div");
