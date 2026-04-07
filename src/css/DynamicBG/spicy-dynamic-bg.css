@@ -50,8 +50,8 @@ aside video {
   transition: --sl_videocanvas_mask-stop 1s cubic-bezier(0,0,0,1), filter 0.2s linear;
 }
 
-aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1) video,
-.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3) video {
+aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3) video,
+.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1) video {
   --sl_videocanvas_mask-stop: 80%;
 }
 
