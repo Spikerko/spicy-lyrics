@@ -227,7 +227,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
       ).split("").length;
 
-      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(lead.Text);
+      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text);
 
       if (IfLetterCapable) {
         word = document.createElement("div");
