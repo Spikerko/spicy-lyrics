@@ -662,43 +662,11 @@ export function Animate(position: number): void {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const totalDuration = word.EndTime - word.StartTime; // Kept for future reference
 
-            // Check if this word is in an RTL line (Arabic, Hebrew, Persian, etc.)
-            const isRtlWord = line.HTMLElement.classList.contains("rtl");
-            // RTL words with long durations get a bounce-back gradient animation
-            // since they can't be split into individual letters without breaking ligatures
-            const rtlBounceThreshold = 1000; // ms — same threshold as IsLetterCapable
-            const isRtlLongDuration = isRtlWord && !isLetterGroup && totalDuration >= rtlBounceThreshold;
-
             if (wordState === "Active") {
               targetScale = ScaleSpline.at(percentage);
               targetYOffset = YOffsetSpline.at(percentage);
               targetGlow = GlowSpline.at(percentage);
-
-              if (isRtlLongDuration) {
-                // Bounce-back (ping-pong) gradient for long RTL words:
-                // Calculate how many full sweeps fit in the duration
-                // Each sweep takes ~1000ms, so we cycle based on that
-                const sweepDuration = Math.min(totalDuration / 2, 1200); // duration of one sweep direction
-                const elapsed = (percentage * totalDuration);
-                const cyclePosition = (elapsed % (sweepDuration * 2)) / sweepDuration;
-                // cyclePosition goes 0→2 over one full ping-pong cycle
-                // 0→1 = forward sweep, 1→2 = backward sweep
-                const bouncePercentage = cyclePosition <= 1
-                  ? cyclePosition     // forward sweep
-                  : 2 - cyclePosition; // backward sweep
-
-                const gradientStart = Defaults.SimpleLyricsMode ? -50 : -20;
-                const bouncedPos = gradientStart + 120 * easeSinOut(bouncePercentage);
-
-                // In the last 15% of the word, smoothly blend toward 100% (fully sung)
-                const endingPhaseStart = 0.85;
-                if (percentage >= endingPhaseStart) {
-                  const blendFactor = (percentage - endingPhaseStart) / (1 - endingPhaseStart);
-                  targetGradientPos = bouncedPos + (100 - bouncedPos) * easeSinOut(blendFactor);
-                } else {
-                  targetGradientPos = bouncedPos;
-                }
-              } else if (Defaults.SimpleLyricsMode) {
+              if (Defaults.SimpleLyricsMode) {
                 targetGradientPos = -50 + 120 * percentage;
               } else {
                 targetGradientPos = -20 + 120 * percentage;
