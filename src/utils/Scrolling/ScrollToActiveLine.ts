@@ -12,6 +12,8 @@ import {
 } from "../Lyrics/lyrics.ts";
 import { ScrollIntoCenterViewCSS } from "../ScrollIntoView/Center.ts";
 import { ScrollIntoTopViewCSS } from "../ScrollIntoView/Top.ts";
+import ScrollIntoCenterView from "../ScrollIntoView/Center.ts";
+import ScrollIntoTopView from "../ScrollIntoView/Top.ts";
 
 // Define intersection types that include _LineIndex
 type LyricsLineWithIndex = LyricsLine & { _LineIndex: number };
@@ -147,9 +149,9 @@ const ScrollTo = (
   type: "Center" | "Top" = "Center"
 ) => {
   if (type === "Center") {
-    ScrollIntoCenterViewCSS(container, element, -30, instantScroll);
+    ScrollIntoCenterView(container, element, 250, -30, instantScroll);
   } else if (type === "Top") {
-    ScrollIntoTopViewCSS(container, element, (IsPIP ? 50 : 85), instantScroll);
+    ScrollIntoTopView(container, element, 250, (IsPIP ? 50 : 85), instantScroll);
   }
 };
 

@@ -1,11 +1,12 @@
+let currentTopAnimationId: number | null = null;
+
 export default function ScrollIntoTopView(
   container: HTMLElement,
   element: HTMLElement,
-  duration: number = 150, // Duration in milliseconds
-  offset: number = 0, // Offset in pixels
-  instantScroll: boolean = false // Instant scroll without animation
+  duration: number = 400, // Balanced duration for top alignment
+  offset: number = 0,
+  instantScroll: boolean = false
 ) {
-  // Calculate the target scroll position with offset using container-relative metrics
   const elementOffsetTop = element.offsetTop;
   const targetScrollTop = elementOffsetTop - offset;
 
@@ -15,29 +16,37 @@ export default function ScrollIntoTopView(
 
   if (instantScroll) {
     container.classList.add("InstantScroll");
+    container.scrollTop = targetScrollTop;
+    requestAnimationFrame(() => {
+        container.classList.remove("InstantScroll");
+    });
+    return;
+  }
+
+  // Cancel any existing animation on this container
+  if (currentTopAnimationId !== null) {
+    cancelAnimationFrame(currentTopAnimationId);
   }
 
   function smoothScroll(currentTime: number) {
     const elapsedTime = currentTime - startTime;
-    const progress = Math.min(elapsedTime / duration, 1); // Progress between 0 and 1
+    const progress = Math.min(elapsedTime / duration, 1);
 
-    // Smooth cubic easing in-out
-    const easing =
-      progress < 0.5 ? 4 * progress * progress * progress : 1 - (-2 * progress + 2) ** 3 / 2;
+    // easeInOutCubic easing function
+    const easing = progress < 0.5 
+      ? 4 * progress * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
-    // Update container scroll position
-    const newScrollTop = startScrollTop + distance * easing;
-    container.scrollTop = newScrollTop;
+    container.scrollTop = startScrollTop + distance * easing;
 
-    // Continue animation until complete
     if (progress < 1) {
-      requestAnimationFrame(smoothScroll);
-    } else if (instantScroll) {
-      container.classList.remove("InstantScroll");
+      currentTopAnimationId = requestAnimationFrame(smoothScroll);
+    } else {
+      currentTopAnimationId = null;
     }
   }
 
-  requestAnimationFrame(smoothScroll);
+  currentTopAnimationId = requestAnimationFrame(smoothScroll);
 }
 
 /**

@@ -1,17 +1,17 @@
+let currentCenterAnimationId: number | null = null;
+
 export default function ScrollIntoCenterView(
   container: HTMLElement,
   element: HTMLElement,
-  duration: number = 800, // Increased duration for smoother scrolling
-  offset: number = 0, // Offset in pixels, defaults to 0
-  instantScroll: boolean = false // Instant scroll without animation
+  duration: number = 600, // Reduced duration for better responsiveness
+  offset: number = 0,
+  instantScroll: boolean = false
 ) {
-  // Calculate the target scroll position relative to the container using
-  // only container-relative metrics to avoid layout thrashing.
   const elementOffsetTop = element.offsetTop;
   const targetScrollTop =
     elementOffsetTop -
     (container.clientHeight / 2 - element.clientHeight / 2) -
-    offset; // Apply the offset
+    offset;
 
   const startScrollTop = container.scrollTop;
   const distance = targetScrollTop - startScrollTop;
@@ -19,41 +19,37 @@ export default function ScrollIntoCenterView(
 
   if (instantScroll) {
     container.classList.add("InstantScroll");
+    container.scrollTop = targetScrollTop;
+    requestAnimationFrame(() => {
+        container.classList.remove("InstantScroll");
+    });
+    return;
+  }
+
+  // Cancel any existing animation on this container
+  if (currentCenterAnimationId !== null) {
+    cancelAnimationFrame(currentCenterAnimationId);
   }
 
   function smoothScroll(currentTime: number) {
     const elapsedTime = currentTime - startTime;
-    const progress = Math.min(elapsedTime / duration, 1); // Progress between 0 and 1
+    const progress = Math.min(elapsedTime / duration, 1);
 
-    // Enhanced easing function for more natural movement
-    // This provides a slight bounce effect at the end
-    let easing: number;
-    if (progress < 0.4) {
-      // Slow start (ease-in)
-      easing = 2.5 * progress ** 2;
-    } else if (progress < 0.65) {
-      // Speed up in the middle
-      easing = 0.7 + (progress - 0.4) * 1.2;
-    } else if (progress < 0.85) {
-      // Slight overshoot
-      easing = 1.0 + (progress - 0.65) * 0.15;
-    } else {
-      // Settle back (slight bounce)
-      easing = 1.03 - (progress - 0.85) * 0.2;
-    }
+    // easeInOutCubic easing function for a premium feel
+    const easing = progress < 0.5 
+      ? 4 * progress * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 3) / 2;
 
-    const newScrollTop = startScrollTop + distance * easing;
-
-    container.scrollTop = newScrollTop;
+    container.scrollTop = startScrollTop + distance * easing;
 
     if (progress < 1) {
-      requestAnimationFrame(smoothScroll);
-    } else if (instantScroll) {
-      container.classList.remove("InstantScroll");
+      currentCenterAnimationId = requestAnimationFrame(smoothScroll);
+    } else {
+      currentCenterAnimationId = null;
     }
   }
 
-  requestAnimationFrame(smoothScroll);
+  currentCenterAnimationId = requestAnimationFrame(smoothScroll);
 }
 
 /**
