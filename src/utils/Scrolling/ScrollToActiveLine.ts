@@ -1,4 +1,4 @@
-import Defaults from "../../components/Global/Defaults.ts";
+import { $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
@@ -85,7 +85,7 @@ function handleUserScroll(ScrollSimplebar: any | null) {
 
 // Initialization function for scroll events and observers
 export function InitializeScrollEvents(ScrollSimplebar: any) {
-  if (!Defaults.LyricsContainerExists) return;
+  if (!$lyricsContainerExists.get()) return;
   // --- NEW: Store instance and define handlers ---
   currentSimpleBarInstance = ScrollSimplebar;
   wheelHandler = () => handleUserScroll(currentSimpleBarInstance);
@@ -109,7 +109,7 @@ export function InitializeScrollEvents(ScrollSimplebar: any) {
 }
 
 const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition: number) => {
-  if (Defaults.CurrentLyricsType === "Static" || Defaults.CurrentLyricsType === "None" || !Lines)
+  if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None" || !Lines)
     return;
   // 1) gather all active lines
   const activeLines = Lines.map((line, idx) => ({ line, idx }))
@@ -170,7 +170,6 @@ const GetScrollType = (): "Center" | "Top" => {
 const policyEventPreset = "policy:";
 
 let allowForceScrolling = true;
-let waitingForHeight = true;
 
 export const SetForceScrollingPolicy = (value: boolean) => {
   allowForceScrolling = value; // true = allow force scrolling, false = disallow force scrolling
@@ -180,20 +179,11 @@ export const GetForceScrollingPolicy = () => {
   return allowForceScrolling;
 };
 
-export const SetWaitingForHeight = (value: boolean) => {
-  waitingForHeight = value;
-  Global.Event.evoke(`${policyEventPreset}waiting-for-height`, value);
-};
-export const IsWaitingForHeight = () => {
-  return waitingForHeight;
-};
-
 export function ScrollToActiveLine(ScrollSimplebar: any) {
-  if (waitingForHeight) return;
-  if (Defaults.CurrentLyricsType === "Static" || Defaults.CurrentLyricsType === "None") return;
-  if (!Defaults.LyricsContainerExists) return;
+  if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None") return;
+  if (!$lyricsContainerExists.get()) return;
 
-  const currentType = Defaults.CurrentLyricsType as LyricsType;
+  const currentType = $currentLyricsType.get() as LyricsType;
   const Lines = LyricsObject.Types[currentType]?.Lines as LyricsLine[] | LyricsSyllable[];
   if (!Lines) return;
 

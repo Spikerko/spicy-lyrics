@@ -48,7 +48,7 @@
 }
 
 #SpicyLyricsPage {
-  --NowBarWidth: calc(min(30cqw, 50cqh) * 1.1);
+  --NowBarWidth: calc(min(30cqw, 52cqh) * 1.1);
   --NowBarRightSpacing: calc(var(--NowBarWidth) / 4);
   --NowBarLeftSpacing: calc(
     50cqw - var(--NowBarWidth) - var(--NowBarRightSpacing)
@@ -138,6 +138,10 @@
   width: var(--NowBarWidth);
   left: var(--unactive-spacing);
   transition: left 0.4s;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar:has(> .Header:not(:has(> .Timeline))) {
+  padding-top: calc(50cqh - var(--NowBarWidth) * 0.6);
 }
 
 #SpicyLyricsPage .ContentBox .NowBar.LeftSide.Active {

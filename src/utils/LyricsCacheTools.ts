@@ -3,7 +3,7 @@ import PageView from "../components/Pages/PageView.ts";
 import { toast } from "sonner";
 import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
-import storage from "./storage.ts";
+import { $currentLyricsData } from "./stores.ts";
 
 export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
   const currentSongId = SpotifyPlayer.GetId();
@@ -14,7 +14,7 @@ export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
   }
   try {
     await LyricsStore.RemoveItem(currentSongId ?? "");
-    storage.set("currentLyricsData", null);
+    $currentLyricsData.set("");
     ui
       ? toast.success(`Lyrics for the current song, have been removed from available all caches`)
       : null;
@@ -54,7 +54,7 @@ export const RemoveLyricsCache = async (ui: boolean = false) => {
 
 export const RemoveCurrentLyrics_StateCache = (ui: boolean = false) => {
   try {
-    storage.set("currentLyricsData", null);
+    $currentLyricsData.set("");
     ui
       ? toast.success("Lyrics for the current song, have been removed from the internal state successfully")
       : null;

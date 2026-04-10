@@ -6,6 +6,7 @@
       "name": "spicy-lyrics",
       "dependencies": {
         "@kawarp/core": "^1.1.1",
+        "@nanostores/react": "^1.1.0",
         "@spicemod/creator": "^0.0.35",
         "@spikerko/tools": "npm:@jsr/spikerko__tools",
         "@spikerko/web-modules": "npm:@jsr/spikerko__web-modules",
@@ -18,6 +19,7 @@
         "franc-all": "^7.2.0",
         "kuroshiro": "^1.2.0",
         "langs": "^2.0.0",
+        "nanostores": "^1.2.0",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "semver": "^7.7.4",
@@ -208,6 +210,8 @@
     "@jsr/socali__modules": ["@jsr/socali__modules@4.4.1", "https://npm.jsr.io/~/11/@jsr/socali__modules/4.4.1.tgz", {}, "sha512-O4TomkQzdA28HNtoLI3uPnZzvuccOXkLGoupcBfqORlbX+o4uXs7acAlgTaWPMXMETpg4n/ak1Yi+GqdPdx27w=="],
 
     "@kawarp/core": ["@kawarp/core@1.1.1", "", {}, "sha512-hnJ0CQQAa6o4HPoUE6Tkn6/cqzpA/tRPNDTNqVeoY9rozL37KweAzbypmdrYTBOdyJRR9MvETyxy4hlpenIa/w=="],
+
+    "@nanostores/react": ["@nanostores/react@1.1.0", "", { "peerDependencies": { "nanostores": "^1.2.0", "react": ">=18.0.0" } }, "sha512-MbH35fjhcf7LAubYX5vhOChYUfTLzNLqH/mBGLVsHkcvjy0F8crO1WQwdmQ2xKbAmtpalDa2zBt3Hlg5kqr8iw=="],
 
     "@oxfmt/binding-android-arm-eabi": ["@oxfmt/binding-android-arm-eabi@0.41.0", "", { "os": "android", "cpu": "arm" }, "sha512-REfrqeMKGkfMP+m/ScX4f5jJBSmVNYcpoDF8vP8f8eYPDuPGZmzp56NIUsYmx3h7f6NzC6cE3gqh8GDWrJHCKw=="],
 

@@ -1,4 +1,4 @@
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $currentLyricsType } from "../../../../utils/stores.ts";
 import { LyricsObject, type LyricsType } from "../../lyrics.ts";
 import { timeOffset } from "../Shared.ts";
 
@@ -19,7 +19,7 @@ interface _SyllableLead {
 
 export function TimeSetter(PreCurrentPosition: number): void {
   const CurrentPosition = PreCurrentPosition + timeOffset;
-  const CurrentLyricsType = Defaults.CurrentLyricsType as ExtendedLyricsType;
+  const CurrentLyricsType = $currentLyricsType.get() as ExtendedLyricsType;
 
   if (!CurrentLyricsType || CurrentLyricsType === "None") return;
 

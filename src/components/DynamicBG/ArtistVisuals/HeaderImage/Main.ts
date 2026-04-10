@@ -1,4 +1,4 @@
-import Defaults from "../../../Global/Defaults.ts";
+import { $staticBackgroundType } from "../../../../utils/stores.ts";
 import { SpotifyPlayer } from "../../../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "../Main.ts";
 import GetHeaderUrl from "./GetHeaderUrl.ts";
@@ -11,7 +11,7 @@ export default async function ApplyContent(
   TrackId: string
 ): Promise<string | undefined> {
   if (!TrackId) throw new Error("Invalid Song Id");
-  if (Defaults.StaticBackgroundType === "Cover Art")
+  if ($staticBackgroundType.get() === "Cover Art")
     return SpotifyPlayer.GetCover("xlarge") ?? undefined;
   if (!ArtistId) throw new Error("Invalid Song Artist");
   if (!TrackId || !ArtistId) throw new Error("Invalid URIs");

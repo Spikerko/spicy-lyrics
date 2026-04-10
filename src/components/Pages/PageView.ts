@@ -1,5 +1,5 @@
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
-import storage from "../../utils/storage.ts";
+import { $forceCompactMode, $isGlobalNav } from "../../utils/uiState.ts";
 import "../../css/Loaders/DotLoader.css";
 import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
@@ -19,7 +19,16 @@ import {
 } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "../../utils/Scrolling/Simplebar/ScrollSimplebar.ts";
 import ApplyDynamicBackground, { KawarpMap } from "../DynamicBG/dynamicBackground.ts";
-import Defaults from "../Global/Defaults.ts";
+import {
+  $currentLyricsData,
+  $lyricsContainerExists,
+  $minimalLyricsMode,
+  $showTopbarNotifications,
+  $simpleLyricsMode,
+  $skipSpicyFont,
+  $ttmlMakerMode,
+  $viewControlsPosition,
+} from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
@@ -120,9 +129,7 @@ async function OpenPage(
   const elem = document.createElement("div");
   elem.id = "SpicyLyricsPage";
 
-  if (Defaults.LyricsRenderer === "Spicy") {
-    elem.classList.add("SpicyRenderer");
-  }
+  elem.classList.add("SpicyRenderer");
 
   if (isSidebarMode) {
     elem.classList.add("SidebarMode");
@@ -142,10 +149,7 @@ async function OpenPage(
             </div>
             <div class="NotificationCloseButton">X</div>
         </div>
-        <div class="SpicyLoader">
-            <div id="DotLoader"></div>
-        </div>
-        <div class="ContentBox WaitingForHeight">
+        <div class="ContentBox">
             <div class="NowBar">
                 <div class="CenteredView">
                     <div class="Header">
@@ -177,21 +181,9 @@ async function OpenPage(
         </div>
     `;
 
-  const waitingForHeightEvent = Global.Event.listen(
-    `policy:waiting-for-height`,
-    (value: boolean) => {
-      if (value === false) {
-        elem
-          .querySelector<HTMLElement>(".ContentBox")
-          ?.classList.remove("WaitingForHeight");
-        Global.Event.unListen(waitingForHeightEvent);
-      }
-    }
-  );
-
-  if (Defaults.ViewControlsPosition === "Top") {
+  if ($viewControlsPosition.get() === "Top") {
     elem.classList.add("ViewControlsPosition_Top")
-  } else if (Defaults.ViewControlsPosition === "Bottom") {
+  } else if ($viewControlsPosition.get() === "Bottom") {
     elem.classList.add("ViewControlsPosition_Bottom")
   }
 
@@ -221,16 +213,15 @@ async function OpenPage(
     */
   PageContainer = elem;
 
-  const SkipSpicyFont = storage.get("skip-spicy-font");
-  if (SkipSpicyFont !== "true") {
+  if (!$skipSpicyFont.get()) {
     elem.classList.add("UseSpicyFont");
   }
 
-  if (Defaults.SimpleLyricsMode) {
+  if ($simpleLyricsMode.get()) {
     elem.classList.add("SimpleLyricsMode");
   }
 
-  if (Defaults.MinimalLyricsMode) {
+  if ($minimalLyricsMode.get()) {
     elem.classList.add("MinimalLyricsMode");
   }
 
@@ -292,7 +283,7 @@ async function OpenPage(
 
   // UpdateSongMoreInfo()
 
-  Defaults.LyricsContainerExists = true;
+  $lyricsContainerExists.set(true);
   PageView.IsOpened = true;
 
   if (IsPIP) {
@@ -352,7 +343,7 @@ function DestroyPage() {
   CleanupScrollEvents();
   PageResizeListener?.disconnect(); // Disconnect the observer
   PageView.IsOpened = false;
-  Defaults.LyricsContainerExists = false;
+  $lyricsContainerExists.set(false);
   DestroyAllLyricsContainers();
   CleanUpIsByCommunity();
 
@@ -411,9 +402,8 @@ function AppendViewControls(ReAppend: boolean = false) {
 
   if (ReAppend) elem.innerHTML = "";
   const isNoLyrics =
-    storage.get("currentLyricsData")?.toString() ===
-    `NO_LYRICS:${SpotifyPlayer.GetId()}`;
-  const isDevMode = storage.get("devMode") === "true";
+    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
+  const isTTMLMakerMode = $ttmlMakerMode.get();
   elem.innerHTML = `
         ${
           Fullscreen.IsOpen || Fullscreen.CinemaViewOpen
@@ -429,15 +419,13 @@ function AppendViewControls(ReAppend: boolean = false) {
               }</button>`
             : ""
         }
-        ${
-          Defaults.LyricsRenderer === "Spicy"
-            ? `<button id="RomanizationToggle" class="ViewControl">${
-                isRomanized
-                  ? Icons.DisableRomanization
-                  : Icons.EnableRomanization
-              }</button>`
-            : ""
-        }
+        <button id="RomanizationToggle" class="ViewControl">
+          ${
+            isRomanized
+              ? Icons.DisableRomanization
+              : Icons.EnableRomanization
+          }
+        </button>
         ${
           !Fullscreen.IsOpen &&
           !Fullscreen.CinemaViewOpen &&
@@ -461,7 +449,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             : ""
         }
         ${
-          !Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen
+          !Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen && $isGlobalNav.get()
             ? IsPIP ? "" : `<button id="SidebarModeToggle" class="ViewControl">${
                 isSpicySidebarMode
                   ? Icons["panel-right-open"]
@@ -470,7 +458,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             : ""
         }
         ${
-          isDevMode
+          isTTMLMakerMode
             ? `<button id="DevTools" class="ViewControl">${Icons.DevTools}</button>`
             : ""
         }
@@ -560,11 +548,11 @@ function AppendViewControls(ReAppend: boolean = false) {
             if (IsCompactMode()) {
               SpicyLyricsPage?.classList.remove("ForcedCompactMode");
               DisableCompactMode();
-              storage.set("ForceCompactMode", "false");
+              $forceCompactMode.set(false);
             } else {
               SpicyLyricsPage?.classList.add("ForcedCompactMode");
               EnableCompactMode();
-              storage.set("ForceCompactMode", "true");
+              $forceCompactMode.set(true);
             }
 
             setTimeout(() => {
@@ -755,7 +743,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     }
 
     const devToolsButton = elem.querySelector("#DevTools");
-    if (devToolsButton && isDevMode) {
+    if (devToolsButton && isTTMLMakerMode) {
       try {
         if (!isPip) {
           Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
@@ -783,9 +771,6 @@ interface SpicyLyricsNotificationReturnObject {
   open: () => void;
 }
 
-const showTopbarNotifications =
-  storage.get("show_topbar_notifications") === "true";
-
 export function SpicyLyrics_Notification({
   icon,
   metadata: { title, description },
@@ -805,7 +790,7 @@ export function SpicyLyrics_Notification({
     close: () => {},
     open: () => {},
   };
-  if (!showTopbarNotifications) return nonFunctionalReturnObject;
+  if (!$showTopbarNotifications.get()) return nonFunctionalReturnObject;
   if (!PageView.IsOpened) return nonFunctionalReturnObject;
   const NotificationContainer = PageContainer?.querySelector(
     ".NotificationContainer"
@@ -889,5 +874,40 @@ export function SpicyLyrics_Notification({
   };
 }
 
+
+// --- Reactive setting subscriptions ---
+
+$simpleLyricsMode.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("SimpleLyricsMode", v);
+  const uri = SpotifyPlayer.GetUri();
+  $currentLyricsData.set("");
+  if (uri) fetchLyrics(uri).then(ApplyLyrics);
+});
+
+$minimalLyricsMode.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("MinimalLyricsMode", v);
+  const uri = SpotifyPlayer.GetUri();
+  $currentLyricsData.set("");
+  if (uri) fetchLyrics(uri).then(ApplyLyrics);
+});
+
+$skipSpicyFont.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("UseSpicyFont", !v);
+});
+
+$viewControlsPosition.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("ViewControlsPosition_Top", v === "Top");
+  PageContainer.classList.toggle("ViewControlsPosition_Bottom", v === "Bottom");
+  AppendViewControls(true);
+});
+
+$ttmlMakerMode.listen((v) => {
+  if (!PageContainer) return;
+  AppendViewControls(true);
+})
 
 export default PageView;

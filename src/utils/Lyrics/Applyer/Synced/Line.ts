@@ -1,4 +1,4 @@
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $lyricsContainerExists, $simpleLyricsMode } from "../../../../utils/stores.ts";
 import { PageContainer } from "../../../../components/Pages/PageView.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
 import {
@@ -17,7 +17,7 @@ import {
   SetWordArrayInCurentLine_LINE_SYNCED,
   SimpleLyricsMode_InterludeAddonTime,
   endInterludeEarlierBy,
-  lyricsBetweenShow,
+  getLyricsBetweenShow,
   setRomanizedStatus,
 } from "../../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyricsContainer.ts";
@@ -45,7 +45,7 @@ interface LyricsData {
 }
 
 export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false): void {
-  if (!Defaults.LyricsContainerExists) return;
+  if (!$lyricsContainerExists.get()) return;
   EmitNotApplyed();
 
   DestroyAllLyricsContainers();
@@ -70,7 +70,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
 
   ClearLyricsPageContainer();
 
-  if (data.StartTime >= lyricsBetweenShow) {
+  if (data.StartTime >= getLyricsBetweenShow()) {
     const musicalLine = document.createElement("div");
     musicalLine.classList.add("line");
     musicalLine.classList.add("musical-line");
@@ -144,7 +144,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
         StartTime: dotTime * 2,
         EndTime:
           ConvertTime(data.StartTime) +
-          (Defaults.SimpleLyricsMode ? SimpleLyricsMode_InterludeAddonTime : -400),
+          ($simpleLyricsMode.get() ? SimpleLyricsMode_InterludeAddonTime : -400),
         TotalTime: dotTime,
         Dot: true,
       });
@@ -175,10 +175,10 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
     const lineEndTimeAndNextLineStartTimeDistance =
       nextLineStartTime !== 0 ? nextLineStartTime - line.EndTime : 0;
 
-    const lineEndTime = Defaults.SimpleLyricsMode
+    const lineEndTime = $simpleLyricsMode.get()
       ? nextLineStartTime === 0
         ? line.EndTime
-        : lineEndTimeAndNextLineStartTimeDistance < lyricsBetweenShow &&
+        : lineEndTimeAndNextLineStartTimeDistance < getLyricsBetweenShow() &&
             nextLineStartTime > line.EndTime
           ? nextLineStartTime
           : line.EndTime
@@ -196,7 +196,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
     }
 
     LyricsContainer.appendChild(lineElem);
-    if (arr[index + 1] && arr[index + 1].StartTime - line.EndTime >= lyricsBetweenShow) {
+    if (arr[index + 1] && arr[index + 1].StartTime - line.EndTime >= getLyricsBetweenShow()) {
       const musicalLine = document.createElement("div");
       musicalLine.classList.add("line");
       musicalLine.classList.add("musical-line");
@@ -264,7 +264,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
         StartTime: ConvertTime(line.EndTime) + dotTime * 2,
         EndTime:
           ConvertTime(arr[index + 1].StartTime) +
-          (Defaults.SimpleLyricsMode ? SimpleLyricsMode_InterludeAddonTime : -400),
+          ($simpleLyricsMode.get() ? SimpleLyricsMode_InterludeAddonTime : -400),
         TotalTime: dotTime,
         Dot: true,
       });

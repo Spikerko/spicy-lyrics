@@ -1,6 +1,6 @@
 import Defaults from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
-import storage from "../storage.ts";
+import { $developerMode } from "../stores.ts";
 
 export type Query = {
   operation: string;
@@ -25,12 +25,12 @@ export interface QueryResultGetter {
 
 const log = {
   info: (...args: unknown[]) => {
-    if (storage.get("developerMode") === "true") {
+    if ($developerMode.get()) {
       console.log("[Spicy Lyrics] [Query]", ...args);
     }
   },
   warn: (...args: unknown[]) => {
-    if (storage.get("developerMode") === "true") {
+    if ($developerMode.get()) {
       console.warn("[Spicy Lyrics] [Query]", ...args);
     }
   },

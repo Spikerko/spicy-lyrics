@@ -63,6 +63,8 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-header h1 {
 sl-generic-modal.SpicyLyricsModal .sl-modal-main-section {
     overflow-y: auto;
     padding: 20px 24px 24px;
+    transform: translate3d(0px, 0px, 0px);
+    will-change: transform;
 }
 
 sl-generic-modal.SpicyLyricsModal .sl-modal-content {

@@ -5,7 +5,8 @@ import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
-import storage from "../../utils/storage.ts";
+import { $currentLyricsData, $timelineOutsideMediaContent } from "../../utils/stores.ts";
+import { $isNowBarOpen, $nowBarSide } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
@@ -100,8 +101,9 @@ function ApplyMarquee(baseWidth, elementWidth, name) {
 let NowBarFullscreenMaid: Maid | null = null;
 
 function PositionTimelineElement(TimelineElem: HTMLElement) {
-  if (IsCompactMode() || IsPIP) {
-    // In CompactMode or PIP: place inside .MediaContent
+  const forceInsideMediaContent = IsCompactMode() || IsPIP || !$timelineOutsideMediaContent.get();
+  if (forceInsideMediaContent) {
+    // In CompactMode, PIP, or when setting is off: place inside .MediaContent
     const MediaContent = PageContainer?.querySelector<HTMLElement>(
       ".ContentBox .NowBar .Header .MediaBox .MediaContent"
     );
@@ -109,7 +111,7 @@ function PositionTimelineElement(TimelineElem: HTMLElement) {
       MediaContent.appendChild(TimelineElem);
     }
   } else {
-    // In normal fullscreen: place in .Header before .Metadata
+    // Setting is on and no forced-inside condition: place in .Header before .Metadata
     const Header = PageContainer?.querySelector<HTMLElement>(".ContentBox .NowBar .Header");
     const Metadata = Header?.querySelector<HTMLElement>(".Metadata");
     if (Header && Metadata && TimelineElem.parentNode !== Header) {
@@ -142,7 +144,7 @@ function OpenNowBar(skipSaving: boolean = false) {
     spicyLyricsPage.classList.add("NowBarStatus__Open");
   }
 
-  if (!skipSaving) storage.set("IsNowBarOpen", "true");
+  if (!skipSaving) $isNowBarOpen.set(true);
 
   setTimeout(() => {
     // console.log("Resizing Lyrics Container");
@@ -679,9 +681,9 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         return {
           Apply: () => {
-            if (IsCompactMode() || IsPIP) {
-              // In CompactMode/PIP the Timeline must go through the AppendQueue
-              // because the Whentil.When callback wipes MediaContent with innerHTML = ""
+            if (IsCompactMode() || IsPIP || !$timelineOutsideMediaContent.get()) {
+              // Timeline goes inside MediaContent — must use AppendQueue
+              // because Whentil.When wipes MediaContent with innerHTML = ""
               AppendQueue.push(TimelineElem);
             } else {
               PositionTimelineElement(TimelineElem);
@@ -770,7 +772,7 @@ function OpenNowBar(skipSaving: boolean = false) {
         );
 
         DragBox.addEventListener("dragstart", (e) => {
-            const missingLyrics = storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
+            const missingLyrics = $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
             if (missingLyrics) return;
 
             // Don't prevent default - allow the drag to start
@@ -796,7 +798,7 @@ function OpenNowBar(skipSaving: boolean = false) {
         });
 
         DragBox.addEventListener("dragend", () => {
-            const missingLyrics = storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
+            const missingLyrics = $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
             if (missingLyrics) return;
             document.querySelector("#SpicyLyricsPage").classList.remove("SomethingDragging");
             dropZones.forEach((zone) => zone.classList.remove("Hidden"));
@@ -806,20 +808,20 @@ function OpenNowBar(skipSaving: boolean = false) {
         dropZones.forEach((zone) => {
             zone.addEventListener("dragover", (e) => {
                 e.preventDefault();
-                const missingLyrics = storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
+                const missingLyrics = $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
                 if (missingLyrics) return;
                 zone.classList.add("DraggingOver");
             });
 
             zone.addEventListener("dragleave", () => {
-                const missingLyrics = storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
+                const missingLyrics = $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
                 if (missingLyrics) return;
                 zone.classList.remove("DraggingOver");
             });
 
             zone.addEventListener("drop", (e) => {
                 e.preventDefault();
-                const missingLyrics = storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
+                const missingLyrics = $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetSongId()}`;
                 if (missingLyrics) return;
                 zone.classList.remove("DraggingOver");
 
@@ -902,7 +904,7 @@ function CloseNowBar() {
   const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
   NowBar.classList.remove("Active");
-  storage.set("IsNowBarOpen", "false");
+  $isNowBarOpen.set(false);
   CleanUpActiveComponents();
 
   const spicyLyricsPage = PageContainer;
@@ -922,8 +924,7 @@ function CloseNowBar() {
 }
 
 function ToggleNowBar() {
-  const IsNowBarOpen = storage.get("IsNowBarOpen");
-  if (IsNowBarOpen === "true") {
+  if ($isNowBarOpen.get()) {
     CloseNowBar();
   } else {
     OpenNowBar();
@@ -931,8 +932,7 @@ function ToggleNowBar() {
 }
 
 function Session_OpenNowBar() {
-  const IsNowBarOpen = storage.get("IsNowBarOpen");
-  if (IsNowBarOpen === "true") {
+  if ($isNowBarOpen.get()) {
     OpenNowBar();
   } else {
     CloseNowBar();
@@ -1087,8 +1087,7 @@ function UpdateNowBar(force = false) {
   //const MediaBox = NowBar.querySelector(".Header .MediaBox");
   //const SongName = NowBar.querySelector(".Header .Metadata .SongName");
 
-  const IsNowBarOpen = storage.get("IsNowBarOpen");
-  if (IsNowBarOpen === "false" && !force) return;
+  if (!$isNowBarOpen.get() && !force) return;
 
   const coverArt = SpotifyPlayer.GetCover("xlarge");
 
@@ -1226,21 +1225,21 @@ function NowBar_SwapSides() {
   const spicyLyricsPage = PageContainer;
   if (!spicyLyricsPage) return;
 
-  const CurrentSide = storage.get("NowBarSide");
+  const CurrentSide = $nowBarSide.get();
   if (CurrentSide === "left") {
-    storage.set("NowBarSide", "right");
+    $nowBarSide.set("right");
     NowBar.classList.remove("LeftSide");
     NowBar.classList.add("RightSide");
     spicyLyricsPage.classList.remove("NowBarSide__Left");
     spicyLyricsPage.classList.add("NowBarSide__Right");
   } else if (CurrentSide === "right") {
-    storage.set("NowBarSide", "left");
+    $nowBarSide.set("left");
     NowBar.classList.remove("RightSide");
     NowBar.classList.add("LeftSide");
     spicyLyricsPage.classList.remove("NowBarSide__Right");
     spicyLyricsPage.classList.add("NowBarSide__Left");
   } else {
-    storage.set("NowBarSide", "right");
+    $nowBarSide.set("right");
     NowBar.classList.remove("LeftSide");
     NowBar.classList.add("RightSide");
     spicyLyricsPage.classList.remove("NowBarSide__Left");
@@ -1262,21 +1261,19 @@ function Session_NowBar_SetSide() {
   const spicyLyricsPage = PageContainer;
   if (!spicyLyricsPage) return;
 
-  const CurrentSide = storage.get("NowBarSide");
+  const CurrentSide = $nowBarSide.get();
   if (CurrentSide === "left") {
-    storage.set("NowBarSide", "left");
     NowBar.classList.remove("RightSide");
     NowBar.classList.add("LeftSide");
     spicyLyricsPage.classList.remove("NowBarSide__Right");
     spicyLyricsPage.classList.add("NowBarSide__Left");
   } else if (CurrentSide === "right") {
-    storage.set("NowBarSide", "right");
     NowBar.classList.remove("LeftSide");
     NowBar.classList.add("RightSide");
     spicyLyricsPage.classList.remove("NowBarSide__Left");
     spicyLyricsPage.classList.add("NowBarSide__Right");
   } else {
-    storage.set("NowBarSide", "left");
+    $nowBarSide.set("left");
     NowBar.classList.remove("RightSide");
     NowBar.classList.add("LeftSide");
     spicyLyricsPage.classList.remove("NowBarSide__Right");
@@ -1424,6 +1421,10 @@ Global.Event.listen("compact-mode:enable", () => {
 });
 
 Global.Event.listen("compact-mode:disable", () => {
+  RepositionTimeline();
+});
+
+$timelineOutsideMediaContent.subscribe(() => {
   RepositionTimeline();
 });
 

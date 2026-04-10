@@ -1,6 +1,6 @@
 :root {
   --bg-rotation-degree: 258deg;
-  --sltoaster-bottom-padding: 104px;
+  /* --sltoaster-bottom-padding: 104px; */
 }
 
 :root:has(#SpicyLyricsPage.Fullscreen) {
@@ -60,6 +60,8 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   --ViewControlSize: 110cqh;
 }
 
+
+
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   position: absolute;
   width: 100cqw;
@@ -72,6 +74,11 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 
 #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
   top: 24px;
+}
+
+.Root:not(.global-nav) .Root__main-view #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
+  bottom: 36px;
+  top: unset;
 }
 
 
@@ -248,9 +255,16 @@ body:not(.SpicyLyrics_StaticBackground)
   .Uw4tcZdmh7s4BMdgCCuu,
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
+  .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent) {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
+}
+
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section.main-nowPlayingView-aboutArtistV2 .main-nowPlayingView-aboutArtistV2TextContent {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 
@@ -281,6 +295,10 @@ body:not(.SpicyLyrics_StaticBackground)
 #SpicyLyricsPageSvg {
   fill: currentColor;
   transform: translateY(2px);
+}
+
+.Root:not(.global-nav) #SpicyLyricsPageSvg {
+  transform: translateY(0);
 }
 
 #SpicyLyrics_PopupLyricsButton svg {
@@ -351,42 +369,6 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
 /* .QdB2YtfEq0ks5O4QbtwX .WRGTOibB8qNEkgPNtMxq:has(#SpicyLyricsPage) *:not(#SpicyLyricsPage),
 .QdB2YtfEq0ks5O4QbtwX:has(#SpicyLyricsPage) .DJcMUKFwkFECf5ksmSfU {
   display: none !important;
-} */
-
-.WaitingForHeight {
-  opacity: 0 !important;
-}
-
-.SpicyLoader {
-  --bg-color: var(--spice-main);
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: z-index 0.34s;
-  background-color: var(--bg-color);
-  animation: SpicyLoader_FadeOut 0.34s forwards;
-}
-
-:root:has(.WaitingForHeight) .SpicyLoader {
-  z-index: 105;
-  animation: SpicyLoader_FadeIn 0.34s forwards;
-}
-
-/* .SpicyLoader::after {
-  content: "";
-  display: flex;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  background-color: #000000;
-  opacity: 0.5;
-  z-index: -1;
 } */
 
 body.SpicySidebarLyrics__Active .eguwzH_QWTBXry7hiNj3:has([id="settings.showFriendActivity"]),
@@ -592,6 +574,41 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       }
     }
 
+    /* Data migration variant */
+    &.migration-card {
+      align-items: center;
+      text-align: center;
+
+      .udc-icon-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(56, 139, 253, 0.13);
+        border: 1.5px solid rgba(56, 139, 253, 0.28);
+        margin-bottom: 4px;
+        flex-shrink: 0;
+
+        .udc-migrate-svg {
+          width: 26px;
+          height: 26px;
+          color: #388bfd;
+        }
+      }
+
+      .udc-desc {
+        color: rgba(255, 255, 255, 0.5);
+        max-width: 22rem;
+        line-height: 1.55;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
     .btn-discord {
       background-color: #5865f2;
       color: #ffffff;
@@ -720,7 +737,8 @@ sl-generic-modal.SpicyLyricsModal .sl-modal:has(.slm) .sl-modal-container {
 }
 
 
-.Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
+.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > header,
+.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > .main-topBar-container {
   display: none !important;
 }
 
@@ -801,4 +819,19 @@ sl-generic-modal.SpicyLyricsModal .sl-modal:has(.slm) .sl-modal-container {
 .Root__right-sidebar aside {
   border-radius: 8px;
   overflow: hidden;
+}
+
+
+.main-genericButton-button.main-genericButton-buttonActiveDot:after {
+  content: "";
+  background-color: var(--spice-button);
+  border-radius: 50%;
+  width: 4px;
+  height: 4px;
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%);
+  inline-size: 4px !important;
 }

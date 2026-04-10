@@ -2,7 +2,7 @@ import { Query } from "../../utils/API/Query.ts";
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "../../utils/Lyrics/Global/Applyer.ts";
 import { ProcessLyrics } from "../../utils/Lyrics/ProcessLyrics.ts";
-import storage from "../../utils/storage.ts";
+import { $currentLyricsData } from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ Global.SetScope("execute", (command: string) => {
 
               await ProcessLyrics(dataToSave);
 
-              storage.set("currentLyricsData", JSON.stringify(dataToSave));
+              $currentLyricsData.set(JSON.stringify(dataToSave));
               setTimeout(() => {
                 fetchLyrics(uri ?? "")
                   .then((lyrics) => {
@@ -63,13 +63,13 @@ Global.SetScope("execute", (command: string) => {
     }
     case "reset-ttml":
       // console.log("Reset TTML");
-      storage.set("currentLyricsData", "");
+      $currentLyricsData.set("");
       toast("TTML has been reset.", { duration: 5000 });
       setTimeout(() => {
         fetchLyrics(SpotifyPlayer.GetUri() ?? "")
           .then(ApplyLyrics)
           .catch((err) => {
-            ShowNotification("Error applying lyrics", "error", 5000);
+            toast.error("Error applying lyrics", { duration: 5000 });
             console.error("Error applying lyrics:", err);
           });
       }, 25);

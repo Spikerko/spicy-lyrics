@@ -1,4 +1,4 @@
-import Defaults from "../../../components/Global/Defaults.ts";
+import { $lyricsContainerExists } from "../../../utils/stores.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { type StyleProperties, applyStyles, removeAllStyles } from "../../CSS/Styles.ts";
 import {
@@ -41,7 +41,7 @@ export interface StaticLyricsData {
  * @param data - Static lyrics data
  */
 export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean = false): void {
-  if (!Defaults.LyricsContainerExists) return;
+  if (!$lyricsContainerExists.get()) return;
 
   EmitNotApplyed();
 

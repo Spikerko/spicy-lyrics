@@ -3,7 +3,8 @@ import { OnPreRender } from "@spikerko/web-modules/Scheduler";
 import Spring from "@spikerko/web-modules/Spring";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
-import storage from "../../utils/storage.ts";
+import { $currentLyricsData } from "../../utils/stores.ts";
+import { $forceCompactMode, $isNowBarOpen } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
 import PageView, { Compactify, GetPageRoot, PageContainer, Tooltips } from "../Pages/PageView.ts";
 import { EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
@@ -275,7 +276,7 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
 
     Compactify();
 
-    if (storage.get("ForceCompactMode") === "true" && !IsCompactMode()) {
+    if ($forceCompactMode.get() && !IsCompactMode()) {
       SpicyPage?.classList.add("ForcedCompactMode");
       EnableCompactMode();
     }
@@ -284,7 +285,7 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
   setTimeout(() => {
     PageView.AppendViewControls(true);
 
-    const NoLyrics = storage.get("currentLyricsData")?.toString()?.includes("NO_LYRICS");
+    const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
     if (NoLyrics && !IsCompactMode()) {
       SpicyPage
         ?.querySelector(".ContentBox .LyricsContainer")
@@ -325,7 +326,7 @@ function Close(isPip: boolean = false) {
 
     if (!isPip) handleFullscreenExit();
 
-    const NoLyrics = storage.get("currentLyricsData")?.toString()?.includes("NO_LYRICS");
+    const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
     if (NoLyrics && !isPip) {
       SpicyPage
         ?.querySelector(".ContentBox .LyricsContainer")
@@ -338,7 +339,7 @@ function Close(isPip: boolean = false) {
 
     ResetLastLine();
 
-    if (storage.get("IsNowBarOpen") !== "true") {
+    if (!$isNowBarOpen.get()) {
       CloseNowBar();
     }
 

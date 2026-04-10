@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@kawarp/core": "^1.1.1",
+    "@nanostores/react": "^1.1.0",
     "@spicemod/creator": "^0.0.35",
     "@spikerko/tools": "npm:@jsr/spikerko__tools",
     "@spikerko/web-modules": "npm:@jsr/spikerko__web-modules",
@@ -23,6 +24,7 @@
     "franc-all": "^7.2.0",
     "kuroshiro": "^1.2.0",
     "langs": "^2.0.0",
+    "nanostores": "^1.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "semver": "^7.7.4",

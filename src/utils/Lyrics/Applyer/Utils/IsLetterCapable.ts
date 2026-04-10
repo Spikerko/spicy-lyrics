@@ -1,4 +1,4 @@
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $simpleLyricsMode } from "../../../../utils/stores.ts";
 
 const Simple = (letterLength: number, totalDuration: number) => {
   if (letterLength > 12) {
@@ -36,7 +36,7 @@ const _Complex = (letterLength: number, totalDuration: number) => {
 };
 
 export function IsLetterCapable(letterLength: number, totalDuration: number) {
-  return Defaults.SimpleLyricsMode
+  return $simpleLyricsMode.get()
     ? SimpleLyricsModeCapable(letterLength, totalDuration)
     : Simple(letterLength, totalDuration);
 }

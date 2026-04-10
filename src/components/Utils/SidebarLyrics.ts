@@ -1,5 +1,5 @@
 import Whentil, { type CancelableTask } from "@spikerko/tools/Whentil";
-import storage from "../../utils/storage.ts";
+import { $isGlobalNav, $sidebarStatus } from "../../utils/uiState.ts";
 
 import PageView from "../Pages/PageView.ts";
 
@@ -174,6 +174,7 @@ function runPageOpenWithCleanup(parentContainer: HTMLElement) {
 }
 
 export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
+  if (!$isGlobalNav.get()) return;
   onOpen_wasThingOpen = undefined;
   // console.log("[Spicy Lyrics Debug] OpenSidebarLyrics");
   if (isSpicySidebarMode) {
@@ -232,7 +233,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
   }
 
   isSpicySidebarMode = true;
-  storage.set("sidebar-status", "open");
+  $sidebarStatus.set("open");
 
   // console.log("[Spicy Lyrics Debug] isSpicySidebarMode set to true");
 }
@@ -254,7 +255,7 @@ export function CloseSidebarLyrics(auto: boolean = false) {
   appendClosed();
   CleanupQueueButtonListener();
   isSpicySidebarMode = false;
-  storage.set("sidebar-status", "closed");
+  $sidebarStatus.set("closed");
 
   if (!auto) {
     if (onOpen_wasThingOpen === undefined) {

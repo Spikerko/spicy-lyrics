@@ -2,11 +2,11 @@
 import Spline from "cubic-spline";
 import { easeSinOut } from "d3-ease";
 import Spring from "@spikerko/web-modules/Spring";
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $currentLyricsType, $simpleLyricsMode, $simpleLyricsModeRenderingType } from "../../../../utils/stores.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
-import storage from "../../../storage.ts";
 import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig } from "../../lyrics.ts";
 import { BlurMultiplier, SidebarBlurMultiplier, timeOffset } from "../Shared.ts";
+import { PageContainer } from "../../../../components/Pages/PageView.ts";
 
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
@@ -61,8 +61,8 @@ const SimpleYOffsetRange = [
 ];
 
 const ScaleSpline = GetSpline(ScaleRange);
-const YOffsetSpline = GetSpline(
-  storage.get("simpleLyricsMode") === "true" ? SimpleYOffsetRange : YOffsetRange
+let YOffsetSpline = GetSpline(
+  $simpleLyricsMode.get() ? SimpleYOffsetRange : YOffsetRange
 );
 
 const LetterYOffsetSpline = GetSpline(YOffsetRange);
@@ -75,6 +75,13 @@ const ScaleDamping = 0.6;
 const ScaleFrequency = 0.7;
 const GlowDamping = 0.5;
 const GlowFrequency = 1;
+
+const getDotOpacityRange = (simpleLyricsMode: boolean) => [
+  // Controls element opacity
+  { Time: 0, Value: simpleLyricsMode ? 0.27 : 0.35 }, // Resting (NotSung)
+  { Time: 0.6, Value: 1 }, // Peak animation
+  { Time: 1, Value: 1 }, // End (Sung)
+];
 
 // NEW Dot Animation Constants
 const DotAnimations = {
@@ -103,12 +110,6 @@ const DotAnimations = {
     { Time: 0, Value: 0 }, // Resting (NotSung)
     { Time: 0.6, Value: 1 }, // Peak animation
     { Time: 1, Value: 1 }, // End (Sung) - Note: Inspiration code ends at 1, might need adjustment based on visual needs
-  ],
-  OpacityRange: [
-    // Controls element opacity
-    { Time: 0, Value: storage.get("simpleLyricsMode") === "true" ? 0.27 : 0.35 }, // Resting (NotSung)
-    { Time: 0.6, Value: 1 }, // Peak animation
-    { Time: 1, Value: 1 }, // End (Sung)
   ],
 };
 
@@ -176,7 +177,12 @@ const DotGroupAnimations = {
 const DotScaleSpline = GetSpline(DotAnimations.ScaleRange);
 const DotYOffsetSpline = GetSpline(DotAnimations.YOffsetRange);
 const DotGlowSpline = GetSpline(DotAnimations.GlowRange);
-const DotOpacitySpline = GetSpline(DotAnimations.OpacityRange);
+let DotOpacitySpline = GetSpline(getDotOpacityRange($simpleLyricsMode.get()));
+
+$simpleLyricsMode.subscribe((simpleLyricsMode) => {
+  YOffsetSpline = GetSpline(simpleLyricsMode ? SimpleYOffsetRange : YOffsetRange);
+  DotOpacitySpline = GetSpline(getDotOpacityRange(simpleLyricsMode));
+});
 
 // DotGroup splines
 //const DotGroupScaleSpline = GetSpline(DotGroupAnimations.ScaleRange);
@@ -256,7 +262,7 @@ function flushStyleBatch(): void {
 }
 
 const createWordSprings = () => {
-  if (Defaults.SimpleLyricsMode) {
+  if ($simpleLyricsMode.get()) {
     return {
       Scale: {
         Step: () => {},
@@ -282,7 +288,7 @@ const createWordSprings = () => {
 
 // NEW Dot Springs Function
 const createDotSprings = () => {
-  if (Defaults.SimpleLyricsMode) {
+  if ($simpleLyricsMode.get()) {
     return {
       Scale: {
         Step: () => {},
@@ -326,7 +332,7 @@ const createDotSprings = () => {
 // DotGroup Springs Function - for animating the entire dotGroup element
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _createDotGroupSprings = () => {
-  /*   if (Defaults.SimpleLyricsMode) {
+  /*   if ($simpleLyricsMode.get()) {
     return {
       Scale: {
         Step: () => {},
@@ -378,7 +384,7 @@ const LineGlowDamping = 0.5;
 const LineGlowFrequency = 1;
 
 const createLineSprings = () => {
-  if (Defaults.SimpleLyricsMode) {
+  if ($simpleLyricsMode.get()) {
     return {
       Glow: {
         Step: () => {},
@@ -397,7 +403,7 @@ let lastFrameTime = performance.now();
 
 export function findActiveElement(currentTime: number): any {
   const ProcessedPosition = currentTime + timeOffset;
-  const CurrentLyricsType = Defaults.CurrentLyricsType;
+  const CurrentLyricsType = $currentLyricsType.get();
 
   if (!CurrentLyricsType || CurrentLyricsType === "None") return null;
 
@@ -477,7 +483,7 @@ function getProgressPercentage(currentTime: number, startTime: number, endTime: 
 let lastAnimateFrameTime = 0;
 
 export function Animate(position: number): void {
-  const ProcessedPosition = position + timeOffset - (Defaults.SimpleLyricsMode ? 33.5 : 0);
+  const ProcessedPosition = position + timeOffset - ($simpleLyricsMode.get() ? 33.5 : 0);
 
   const now = performance.now();
 
@@ -485,7 +491,7 @@ export function Animate(position: number): void {
   lastFrameTime = now;
   lastAnimateFrameTime = now;
 
-  const CurrentLyricsType = Defaults.CurrentLyricsType;
+  const CurrentLyricsType = $currentLyricsType.get();
 
   if (!CurrentLyricsType || CurrentLyricsType === "None") return;
 
@@ -666,7 +672,7 @@ export function Animate(position: number): void {
               targetScale = ScaleSpline.at(percentage);
               targetYOffset = YOffsetSpline.at(percentage);
               targetGlow = GlowSpline.at(percentage);
-              if (Defaults.SimpleLyricsMode) {
+              if ($simpleLyricsMode.get()) {
                 targetGradientPos = -50 + 120 * percentage;
               } else {
                 targetGradientPos = -20 + 120 * percentage;
@@ -675,7 +681,7 @@ export function Animate(position: number): void {
               targetScale = ScaleSpline.at(0);
               targetYOffset = YOffsetSpline.at(0);
               targetGlow = GlowSpline.at(0);
-              if (Defaults.SimpleLyricsMode) {
+              if ($simpleLyricsMode.get()) {
                 targetGradientPos = -50;
               } else {
                 targetGradientPos = -20;
@@ -705,9 +711,9 @@ export function Animate(position: number): void {
               0.001
             );
             if (isLetterGroup) {
-              if (Defaults.SimpleLyricsMode) {
+              if ($simpleLyricsMode.get()) {
                 if (wordState === "Active") {
-                  if (Defaults.SimpleLyricsMode_RenderingType === "animate") {
+                  if ($simpleLyricsModeRenderingType.get() === "animate") {
                     const nextWord = words[wordIndex + 1];
                     if (nextWord && !nextWord?.LetterGroup) {
                       if (!nextWord.PreSLMAnimated) {
@@ -726,9 +732,9 @@ export function Animate(position: number): void {
               }
             }
             if (!isLetterGroup) {
-              if (Defaults.SimpleLyricsMode) {
+              if ($simpleLyricsMode.get()) {
                 if (wordState === "Active" && !word.SLMAnimated) {
-                  if (Defaults.SimpleLyricsMode_RenderingType === "calculate") {
+                  if ($simpleLyricsModeRenderingType.get() === "calculate") {
                     word.HTMLElement.style.setProperty(
                       "--SLM_GradientPosition",
                       `${targetGradientPos}%`
@@ -755,7 +761,7 @@ export function Animate(position: number): void {
                   }
                 }
                 if (wordState === "NotSung") {
-                  if (Defaults.SimpleLyricsMode_RenderingType === "calculate") {
+                  if ($simpleLyricsModeRenderingType.get() === "calculate") {
                     word.HTMLElement.style.setProperty(
                       "--SLM_GradientPosition",
                       `${targetGradientPos}%`
@@ -771,7 +777,7 @@ export function Animate(position: number): void {
                   }
                 }
                 if (wordState === "Sung") {
-                  if (Defaults.SimpleLyricsMode_RenderingType === "calculate") {
+                  if ($simpleLyricsModeRenderingType.get() === "calculate") {
                     word.HTMLElement.style.setProperty(
                       "--SLM_GradientPosition",
                       `${targetGradientPos}%`
@@ -970,28 +976,28 @@ export function Animate(position: number): void {
                 // Apply proximity-based animation if an active letter is found
                 if (activeLetterIndex !== -1) {
                   // Get the base animation values for the active letter
-                  const percentageCount = Defaults.SimpleLyricsMode
+                  const percentageCount = $simpleLyricsMode.get()
                     ? getProgressPercentage(ProcessedPosition, word.StartTime, word.EndTime)
                     : activeLetterPercentage;
 
                   const config = SimpleLyricsMode_LetterEffectsStrengthConfig;
                   const baseScale =
                     ScaleSpline.at(percentageCount) *
-                    (Defaults.SimpleLyricsMode
+                    ($simpleLyricsMode.get()
                       ? word.TotalTime > config.LongerThan
                         ? config.Longer.Scale
                         : config.Shorter.Scale
                       : 1);
                   const baseYOffset =
                     LetterYOffsetSpline.at(percentageCount) *
-                    (Defaults.SimpleLyricsMode
+                    ($simpleLyricsMode.get()
                       ? word.TotalTime > config.LongerThan
                         ? config.Longer.YOffset
                         : config.Shorter.YOffset
                       : 1);
                   const baseGlow =
                     GlowSpline.at(percentageCount) *
-                    (Defaults.SimpleLyricsMode
+                    ($simpleLyricsMode.get()
                       ? word.TotalTime > config.LongerThan
                         ? config.Longer.Glow
                         : config.Shorter.Glow
@@ -1016,7 +1022,7 @@ export function Animate(position: number): void {
                 } // else - if no active letter, targets remain at resting state set above
 
                 // Only override values for NotSung letters or for letters in a non-Active word
-                if (letterState === "NotSung" && !Defaults.SimpleLyricsMode) {
+                if (letterState === "NotSung" && !$simpleLyricsMode.get()) {
                   // NotSung letters always use resting values
                   targetScale = ScaleSpline.at(0);
                   targetYOffset = LetterYOffsetSpline.at(0);
@@ -1029,7 +1035,7 @@ export function Animate(position: number): void {
 
                 // --- Determine Gradient based on individual letter state ---
                 if (letterState === "NotSung") {
-                  if (Defaults.SimpleLyricsMode) {
+                  if ($simpleLyricsMode.get()) {
                     targetGradient = -50;
                   } else {
                     targetGradient = -20;
@@ -1041,7 +1047,7 @@ export function Animate(position: number): void {
                   // Only the *actual* active letter gets the animated gradient
                   targetGradient =
                     k === activeLetterIndex ? -20 + 120 * easeSinOut(activeLetterPercentage) : -20;
-                  if (Defaults.SimpleLyricsMode) {
+                  if ($simpleLyricsMode.get()) {
                     targetGradient =
                       k === activeLetterIndex
                         ? -50 + 120 * easeSinOut(activeLetterPercentage)
@@ -1066,8 +1072,8 @@ export function Animate(position: number): void {
 
                 const totalDuration = letter.EndTime - letter.StartTime;
                 // Apply styles from springs and calculated gradient
-                if (Defaults.SimpleLyricsMode) {
-                  if (Defaults.SimpleLyricsMode_RenderingType === "calculate") {
+                if ($simpleLyricsMode.get()) {
+                  if ($simpleLyricsModeRenderingType.get() === "calculate") {
                     letter.HTMLElement.style.setProperty(
                       "--SLM_GradientPosition",
                       `${targetGradient}%`
@@ -1136,7 +1142,7 @@ export function Animate(position: number): void {
                 const currentYOffset = letter.AnimatorStore.YOffset.Step(deltaTime);
                 const currentGlow = letter.AnimatorStore.Glow.Step(deltaTime);
 
-                if (Defaults.SimpleLyricsMode) {
+                if ($simpleLyricsMode.get()) {
                   letter.HTMLElement.style.animation = "none";
                   letter.HTMLElement.style.setProperty("--SLM_GradientPosition", "-50%");
                 } else {
@@ -1183,7 +1189,7 @@ export function Animate(position: number): void {
                 const currentYOffset = letter.AnimatorStore.YOffset.Step(deltaTime);
                 const currentGlow = letter.AnimatorStore.Glow.Step(deltaTime);
 
-                if (Defaults.SimpleLyricsMode) {
+                if ($simpleLyricsMode.get()) {
                   letter.HTMLElement.style.animation = "none";
                   letter.HTMLElement.style.setProperty("--SLM_GradientPosition", "100%");
                 } else {
@@ -1316,7 +1322,7 @@ export function Animate(position: number): void {
               const currentScale = word.AnimatorStore.Scale.Step(deltaTime);
               const currentYOffset = word.AnimatorStore.YOffset.Step(deltaTime);
               const currentGlow = word.AnimatorStore.Glow.Step(deltaTime);
-              //if (!Defaults.SimpleLyricsMode) {
+              //if (!$simpleLyricsMode.get()) {
               // Use translate3d to ensure GPU-accelerated transforms
               setStyleIfChanged(
                 word.HTMLElement,
@@ -1327,7 +1333,7 @@ export function Animate(position: number): void {
               setStyleIfChanged(word.HTMLElement, "scale", `${currentScale}`, 0.001);
               //}
               if (!word.LetterGroup) {
-                if (Defaults.SimpleLyricsMode) {
+                if ($simpleLyricsMode.get()) {
                   word.HTMLElement.style.animation = "none";
                   word.HTMLElement.style.setProperty("--SLM_GradientPosition", "100%");
                 } else {
@@ -1522,7 +1528,7 @@ export function Animate(position: number): void {
                 const currentYOffset = letter.AnimatorStore.YOffset.Step(deltaTime);
                 const currentGlow = letter.AnimatorStore.Glow.Step(deltaTime);
 
-                if (Defaults.SimpleLyricsMode) {
+                if ($simpleLyricsMode.get()) {
                   letter.HTMLElement.style.animation = "none";
                   letter.HTMLElement.style.setProperty("--SLM_GradientPosition", "100%");
                 } else {
@@ -1695,7 +1701,7 @@ export function Animate(position: number): void {
           const currentGlow = line.AnimatorStore.Glow.Step(deltaTime);
 
           // Apply styles using spring value for glow, keep direct calculation for gradient
-          if (!Defaults.SimpleLyricsMode) {
+          if (!$simpleLyricsMode.get()) {
             line.HTMLElement.style.setProperty("--gradient-position", `${targetGradientPos}%`);
             setStyleIfChanged(
               line.HTMLElement,

@@ -1,4 +1,4 @@
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $lyricsContainerExists, $minimalLyricsMode, $simpleLyricsMode } from "../../../../utils/stores.ts";
 import { PageContainer } from "../../../../components/Pages/PageView.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
@@ -19,7 +19,7 @@ import {
   SetWordArrayInCurentLine,
   SimpleLyricsMode_InterludeAddonTime,
   endInterludeEarlierBy,
-  lyricsBetweenShow,
+  getLyricsBetweenShow,
   setRomanizedStatus,
 } from "../../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyricsContainer.ts";
@@ -67,7 +67,7 @@ interface LyricsData {
 }
 
 export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): void {
-  if (!Defaults.LyricsContainerExists) return;
+  if (!$lyricsContainerExists.get()) return;
   EmitNotApplyed();
 
   DestroyAllLyricsContainers();
@@ -90,7 +90,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
   ClearLyricsPageContainer();
 
-  if (data.StartTime >= lyricsBetweenShow) {
+  if (data.StartTime >= getLyricsBetweenShow()) {
     const musicalLine = document.createElement("div");
     musicalLine.classList.add("line");
     musicalLine.classList.add("musical-line");
@@ -163,7 +163,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         StartTime: dotTime * 2,
         EndTime:
           ConvertTime(data.StartTime) +
-          (Defaults.SimpleLyricsMode ? SimpleLyricsMode_InterludeAddonTime : -400),
+          ($simpleLyricsMode.get() ? SimpleLyricsMode_InterludeAddonTime : -400),
         TotalTime: dotTime,
         Dot: true,
       });
@@ -188,10 +188,10 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       nextLineStartTime !== 0 ? nextLineStartTime - line.Lead.EndTime : 0;
 
     const lineEndTime =
-      Defaults.MinimalLyricsMode || isSpicySidebarMode
+      $minimalLyricsMode.get() || isSpicySidebarMode
         ? nextLineStartTime === 0
           ? line.Lead.EndTime
-          : lineEndTimeAndNextLineStartTimeDistance < lyricsBetweenShow &&
+          : lineEndTimeAndNextLineStartTimeDistance < getLyricsBetweenShow() &&
               nextLineStartTime > line.Lead.EndTime
             ? nextLineStartTime
             : line.Lead.EndTime
@@ -243,7 +243,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             ? word.classList.add("PartOfWord")
             : null;
 
-        if (!Defaults.SimpleLyricsMode) {
+        if (!$simpleLyricsMode.get()) {
           word.style.setProperty("--text-shadow-opacity", `0%`);
           word.style.setProperty("--text-shadow-blur-radius", `4px`);
           word.style.scale = IdleEmphasisLyricsScale.toString();
@@ -253,7 +253,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         word.textContent =
           UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text;
 
-        if (!Defaults.SimpleLyricsMode) {
+        if (!$simpleLyricsMode.get()) {
           word.style.setProperty("--gradient-position", `-20%`);
           word.style.setProperty("--text-shadow-opacity", `0%`);
           word.style.setProperty("--text-shadow-blur-radius", `4px`);
@@ -352,7 +352,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
                 ? bwE.classList.add("PartOfWord")
                 : null;
 
-            if (!Defaults.SimpleLyricsMode) {
+            if (!$simpleLyricsMode.get()) {
               bwE.style.setProperty("--text-shadow-opacity", `0%`);
               bwE.style.setProperty("--text-shadow-blur-radius", `4px`);
               bwE.style.scale = IdleEmphasisLyricsScale.toString();
@@ -362,7 +362,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             bwE.textContent =
               UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text;
 
-            if (!Defaults.SimpleLyricsMode) {
+            if (!$simpleLyricsMode.get()) {
               bwE.style.setProperty("--gradient-position", `0%`);
               bwE.style.setProperty("--text-shadow-opacity", `0%`);
               bwE.style.setProperty("--text-shadow-blur-radius", `4px`);
@@ -415,7 +415,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         });
       });
     }
-    if (arr[index + 1] && arr[index + 1].Lead.StartTime - line.Lead.EndTime >= lyricsBetweenShow) {
+    if (arr[index + 1] && arr[index + 1].Lead.StartTime - line.Lead.EndTime >= getLyricsBetweenShow()) {
       const musicalLine = document.createElement("div");
       musicalLine.classList.add("line");
       musicalLine.classList.add("musical-line");
@@ -491,7 +491,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           StartTime: ConvertTime(line.Lead.EndTime) + dotTime * 2,
           EndTime:
             ConvertTime(arr[index + 1].Lead.StartTime) +
-            (Defaults.SimpleLyricsMode ? SimpleLyricsMode_InterludeAddonTime : -400),
+            ($simpleLyricsMode.get() ? SimpleLyricsMode_InterludeAddonTime : -400),
           TotalTime: dotTime,
           Dot: true,
         });

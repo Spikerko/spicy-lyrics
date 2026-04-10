@@ -1,6 +1,5 @@
 import { Timeout } from "@spikerko/web-modules/Scheduler";
-import { Signal } from "@spikerko/web-modules/Signal";
-import Defaults from "../Global/Defaults.ts";
+import { $staticBackground, $staticBackgroundType } from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "./ArtistVisuals/Main.ts";
@@ -41,8 +40,8 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
 
   const TrackId = SpotifyPlayer.GetId() ?? undefined;
   
-  if (Defaults.StaticBackground) {
-    if (Defaults.StaticBackgroundType === "Color") {
+  if ($staticBackground.get()) {
+    if ($staticBackgroundType.get() === "Color") {
       // First, create/init the background with black as a fallback
       let dynamicBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.ColorBackground");
       if (!dynamicBg) {
@@ -184,7 +183,7 @@ const getColorBackgroundElement = (): HTMLElement | null => {
 };
 
 Global.Event.listen("playback:songchange", () => {
-  if (Defaults.StaticBackground && Defaults.StaticBackgroundType === "Color" && PageContainer) {
+  if ($staticBackground.get() && $staticBackgroundType.get() === "Color" && PageContainer) {
     if (staticColorBgTransitionTimeout) {
       clearTimeout(staticColorBgTransitionTimeout);
       staticColorBgTransitionTimeout = null;
@@ -281,6 +280,21 @@ const applyPlayPauseAnimationSpeed = (isPaused: boolean) => {
 Global.Event.listen("playback:playpause", (e: { data?: { isPaused?: boolean } }) => {
   applyPlayPauseAnimationSpeed(!!e?.data?.isPaused);
 });
+
+const reapplyPageBackground = () => {
+  const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
+  if (!contentBox) return;
+  const kawarp = KawarpMap.get("lpagebg");
+  if (kawarp) {
+    kawarp.dispose();
+    KawarpMap.delete("lpagebg");
+  }
+  contentBox.querySelectorAll<HTMLElement>(".spicy-dynamic-bg").forEach((el) => el.remove());
+  void ApplyDynamicBackground(contentBox, "lpagebg");
+};
+
+$staticBackground.listen(reapplyPageBackground);
+$staticBackgroundType.listen(reapplyPageBackground);
 
 Global.Event.listen("playback:progress", async (e) => {
   const songId = SpotifyPlayer.GetId();

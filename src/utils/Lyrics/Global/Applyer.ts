@@ -1,7 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
-import Defaults from "../../../components/Global/Defaults.ts";
-import { SetWaitingForHeight } from "../../Scrolling/ScrollToActiveLine.ts";
+import { $currentLyricsData, $currentLyricsType } from "../../stores.ts";
 import { ClearScrollSimplebar } from "../../Scrolling/Simplebar/ScrollSimplebar.ts";
 import { setBlurringLastLine } from "../Animator/Lyrics/LyricsAnimator.ts";
 import { DestroyAllLyricsContainers } from "../Applyer/CreateLyricsContainer.ts";
@@ -15,7 +14,6 @@ import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
 import { IsCompactMode } from "../../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../../components/Utils/Fullscreen.ts";
-import storage from "../../storage.ts";
 import { SpotifyPlayer } from "../../../components/Global/SpotifyPlayer.ts";
 
 /**
@@ -107,17 +105,13 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
   }
 
   if (noticeContent) {
-    Defaults.CurrentLyricsType = "None";
+    $currentLyricsType.set("None");
 
-    PageContainer
-      .querySelector<HTMLElement>(".ContentBox")
-        ?.classList.remove("WaitingForHeight");
-    
     if (descriptor === "lyrics-not-found") {
       const trackId = SpotifyPlayer.GetId() ?? "";
-      storage.set("currentLyricsData", `NO_LYRICS:${trackId}`);
+      $currentLyricsData.set(`NO_LYRICS:${trackId}`);
     } else {
-      storage.set("currentLyricsData", null);
+      $currentLyricsData.set("");
     }
 
     const lyricsContainer = PageContainer.querySelector<HTMLElement>(
@@ -153,8 +147,6 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     }
 
     EmitApply("None", null)
-    SetWaitingForHeight(false);
-    
     return;
   }
 

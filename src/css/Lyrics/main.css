@@ -85,11 +85,24 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent
   margin-top: 25cqh;
 }
 
+body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {
+  margin-top: 0cqh;
+  padding-top: 25cqh;
+}
+
 #SpicyLyricsPage.Fullscreen.MinimalLyricsMode
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer {
   margin-top: 40cqh;
+}
+
+body:has(.Root:not(.global-nav)) #SpicyLyricsPage.Fullscreen.MinimalLyricsMode
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer {
+  margin-top: 0cqh;
+  padding-top: 40cqh;
 }
 /* 
 #SpicyLyricsPage .LyricsContainer .LyricsContent .BottomSpacer {
