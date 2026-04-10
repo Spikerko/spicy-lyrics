@@ -183,7 +183,7 @@ function generalSettings(SettingsSection: any) {
     "Disable Lyrics Not Found Notice",
     Defaults.DisableLyricsNotFoundNotice,
     () => {
-      const isDisabled = settings.getFieldValue("disable-lyrics-not-found-notice") === "true";
+      const isDisabled = settings.getFieldValue("disable-lyrics-not-found-notice") as boolean;
       storage.set(
         "disableLyricsNotFoundNotice",
         isDisabled ? "true" : "false"
