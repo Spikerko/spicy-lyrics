@@ -178,6 +178,20 @@ function generalSettings(SettingsSection: any) {
     }
   );
 
+  settings.addToggle(
+    "disable-lyrics-not-found-notice",
+    "Disable Lyrics Not Found Notice",
+    Defaults.DisableLyricsNotFoundNotice,
+    () => {
+      const isDisabled = settings.getFieldValue("disable-lyrics-not-found-notice") === "true";
+      storage.set(
+        "disableLyricsNotFoundNotice",
+        isDisabled ? "true" : "false"
+      );
+      document.body.classList.toggle("sl_hide_lyrics_not_found_notice", isDisabled);
+    }
+  );
+
   settings.addDropDown(
     "viewcontrols-position",
     "View Controls Position",

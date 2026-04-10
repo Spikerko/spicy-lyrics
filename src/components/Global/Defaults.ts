@@ -30,6 +30,7 @@ const Defaults = {
   PopupLyricsAllowed: true,
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
+  DisableLyricsNotFoundNotice: false,
   DeveloperMode: false,
 };
 

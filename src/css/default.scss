@@ -149,6 +149,16 @@ body.sl_settings_top {
   }
 }
 
+body.sl_hide_lyrics_not_found_notice {
+  #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent .LyricsNotice {
+
+    .notice-footer,
+    .notice-descriptor {
+      display: none !important;
+    }
+  }
+}
+
 #spicy-lyrics-settings,
 #spicy-lyrics-dev-settings,
 #spicy-lyrics-settings-info {
