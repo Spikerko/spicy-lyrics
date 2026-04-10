@@ -118,6 +118,14 @@ async function main() {
     Defaults.SettingsOnTop = storage.get("settingsOnTop") === "true";
   }
 
+  if (!storage.get("disableLyricsNotFoundNotice")) {
+    storage.set("disableLyricsNotFoundNotice", "false");
+  }
+
+  if (storage.get("disableLyricsNotFoundNotice")) {
+    Defaults.DisableLyricsNotFoundNotice = storage.get("disableLyricsNotFoundNotice") === "true";
+  }
+
   if (!storage.get("disablePopupLyrics")) {
     storage.set("disablePopupLyrics", "false");
   }
@@ -220,6 +228,12 @@ async function main() {
 
   if (Defaults.SettingsOnTop) {
     document.body.classList.add("sl_settings_top");
+  }
+
+  if (Defaults.DisableLyricsNotFoundNotice) {
+    document.body.classList.add("sl_hide_lyrics_not_found_notice");
+  } else {
+    document.body.classList.remove("sl_hide_lyrics_not_found_notice");
   }
 
   // Lets set out the Settings Menu

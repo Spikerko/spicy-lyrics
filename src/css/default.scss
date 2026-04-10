@@ -147,6 +147,10 @@ body.sl_settings_top {
   #spicy-lyrics-settings-info {
     order: -1;
   }
+body.sl_hide_lyrics_not_found_notice {
+  #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent .LyricsNotice {
+    display: none !important;
+  }
 }
 
 #spicy-lyrics-settings,
