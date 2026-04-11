@@ -2,6 +2,7 @@ import Defaults from "../../../../components/Global/Defaults.ts";
 import { PageContainer } from "../../../../components/Pages/PageView.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
+import { convertToFurigana, initFurigana } from "../../FuriganaConverter.ts";
 import {
   ClearScrollSimplebar,
   MountScrollSimplebar,
@@ -66,9 +67,18 @@ interface LyricsData {
   styles?: Record<string, string>;
 }
 
-export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): void {
+export async function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): Promise<void> {
   if (!Defaults.LyricsContainerExists) return;
   EmitNotApplyed();
+
+  // Initialize furigana if enabled
+  if (Defaults.EnableFurigana && !UseRomanized) {
+    try {
+      await initFurigana();
+    } catch (error) {
+      console.error("SpicyLyrics: Failed to initialize furigana, falling back to regular text");
+    }
+  }
 
   DestroyAllLyricsContainers();
   const LyricsContainerParent = PageContainer?.querySelector<HTMLElement>(
@@ -250,8 +260,19 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           word.style.transform = `translateY(calc(var(--DefaultLyricsSize) * 0.02))`;
         }
       } else {
-        word.textContent =
+        const textToDisplay =
           UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text;
+        
+        // Apply furigana if enabled and not using romanized text
+        if (Defaults.EnableFurigana && !UseRomanized) {
+          convertToFurigana(textToDisplay).then((furiganaHtml) => {
+            word.innerHTML = furiganaHtml;
+          }).catch(() => {
+            word.textContent = textToDisplay;
+          });
+        } else {
+          word.textContent = textToDisplay;
+        }
 
         if (!Defaults.SimpleLyricsMode) {
           word.style.setProperty("--gradient-position", `-20%`);
@@ -359,8 +380,19 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
               bwE.style.transform = `translateY(calc(var(--font-size) * 0.02))`;
             }
           } else {
-            bwE.textContent =
+            const bgTextToDisplay =
               UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text;
+            
+            // Apply furigana if enabled and not using romanized text
+            if (Defaults.EnableFurigana && !UseRomanized) {
+              convertToFurigana(bgTextToDisplay).then((furiganaHtml) => {
+                bwE.innerHTML = furiganaHtml;
+              }).catch(() => {
+                bwE.textContent = bgTextToDisplay;
+              });
+            } else {
+              bwE.textContent = bgTextToDisplay;
+            }
 
             if (!Defaults.SimpleLyricsMode) {
               bwE.style.setProperty("--gradient-position", `0%`);
