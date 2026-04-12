@@ -31,6 +31,8 @@ const Defaults = {
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
   DeveloperMode: false,
+  LyricsFontSize: "Medium",
+  LyricsFontSize_Preset: 1,
 };
 
 export default Defaults;
