@@ -1,18 +1,19 @@
 import { GetExpireStore } from "@spikerko/tools/Cache";
 import Defaults, { isDev } from "../../components/Global/Defaults.ts";
 import Platform from "../../components/Global/Platform.ts";
-import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
+import { SpotifyPlayer, TrackIdFromUri } from "../../components/Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../components/Utils/Fullscreen.ts";
 import { Query } from "../API/Query.ts";
 import { SetWaitingForHeight } from "../Scrolling/ScrollToActiveLine.ts";
 import storage from "../storage.ts";
+import { getLocalTTML } from "./LocalTTML.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 
 export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
-  Unit: "Days",
-  Duration: 3,
+    Unit: "Days",
+    Duration: 3,
 }, isDev as true);
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
@@ -56,11 +57,6 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return ["unknown-track", 400];
   }
 
-  if (uri.startsWith("spotify:local:")) {
-    storage.set("currentlyFetching", "false");
-    return ["local-track", 400];
-  }
-
   const currFetching = storage.get("currentlyFetching");
   if (currFetching === "true") {
     storage.set("currentlyFetching", "false");
@@ -73,7 +69,34 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     LyricsContent.classList.add("HiddenTransitioned");
   }
 
-  const trackId = uri.split(":")[2];
+  const trackId = TrackIdFromUri(uri);
+
+  // Only load local TTML if TTML maker mode is on
+  if (storage.get("devMode") === "true") {
+    let localTTML = null;
+    try {
+      localTTML = await getLocalTTML(trackId);
+    } catch (error) {
+      console.error("Error retrieving local TTML override:", error);
+    }
+
+    if (localTTML) {
+      if (localTTML?.IncludesRomanization) {
+        PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+      } else {
+        PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+      }
+
+      storage.set("currentLyricsData", JSON.stringify(localTTML));
+      storage.set("currentlyFetching", "false");
+      HideLoaderContainer();
+      Defaults.CurrentLyricsType = localTTML.Type;
+      PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+      PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+      PageView.AppendViewControls(true);
+      return [{ ...localTTML, fromLocalTTML: true }, 200];
+    }
+  }
 
   // Check if there's already data in localStorage
   const savedLyricsData = storage.get("currentLyricsData")?.toString();
@@ -112,6 +135,12 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       storage.set("currentlyFetching", "false");
       HideLoaderContainer();
     }
+  }
+
+  // If no local lyrics exists, then do not fetch from API for local files
+  if (uri.startsWith("spotify:local:")) {
+    storage.set("currentlyFetching", "false");
+    return ["local-track", 400];
   }
 
   if (LyricsStore) {

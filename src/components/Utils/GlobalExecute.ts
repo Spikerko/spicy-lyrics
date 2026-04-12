@@ -1,13 +1,14 @@
 import { Query } from "../../utils/API/Query.ts";
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "../../utils/Lyrics/Global/Applyer.ts";
+import { removeLocalTTML, saveLocalTTML } from "../../utils/Lyrics/LocalTTML.ts";
 import { ProcessLyrics } from "../../utils/Lyrics/ProcessLyrics.ts";
 import storage from "../../utils/storage.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { ShowNotification } from "../Pages/PageView.ts";
 
-Global.SetScope("execute", (command: string) => {
+Global.SetScope("execute", async (command: string) => {
   switch (command) {
     case "upload-ttml": {
       // console.log("Upload TTML");
@@ -20,35 +21,53 @@ Global.SetScope("execute", (command: string) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
             const uri = SpotifyPlayer.GetUri();
-
-            if (uri.startsWith("spotify:local:")) {
-              ShowNotification("Local TTML files are not available on local songs", "warning", 5000);
-              return
-            };
-
-
             const ttml = e.target?.result as string;
             ShowNotification("Found TTML, Parsing...", "info", 5000);
             ParseTTML(ttml).then(async (result) => {
+              if (!result?.Result) {
+                ShowNotification("Unable to parse TTML file.", "error", 5000);
+                return;
+              }
+
+              const trackId = SpotifyPlayer.GetId();
               const dataToSave = {
                 ...result?.Result,
-                id: SpotifyPlayer.GetId(),
+                id: trackId,
               };
 
-              await ProcessLyrics(dataToSave);
-
-              storage.set("currentLyricsData", JSON.stringify(dataToSave));
-              setTimeout(() => {
-                fetchLyrics(uri ?? "")
-                  .then((lyrics) => {
-                    ApplyLyrics(lyrics);
-                    ShowNotification("Lyrics Parsed and Applied!", "success", 5000);
-                  })
-                  .catch((err) => {
-                    ShowNotification("Error applying lyrics", "error", 5000);
-                    console.error("Error applying lyrics:", err);
+              try {
+                await ProcessLyrics(dataToSave);
+                
+                if (trackId) {
+                  await saveLocalTTML(trackId, dataToSave, {
+                    isLocal: SpotifyPlayer.IsLocalTrack(),
+                    trackName: SpotifyPlayer.GetName() || null,
+                    artistNames:
+                      SpotifyPlayer.GetArtists()
+                        ?.map((artist) => artist.name)
+                        .filter(Boolean)
+                        .join(", ") || null,
                   });
-              }, 25);
+                } else {
+                  ShowNotification("Unable to save lyrics without a track ID.", "warning", 5000);
+                }
+
+                storage.set("currentLyricsData", JSON.stringify(dataToSave));
+                setTimeout(() => {
+                  fetchLyrics(uri ?? "")
+                    .then((lyrics) => {
+                      ApplyLyrics(lyrics);
+                      ShowNotification("Lyrics Parsed and Applied!", "success", 5000);
+                    })
+                    .catch((err) => {
+                      ShowNotification("Error applying lyrics", "error", 5000);
+                      console.error("Error applying lyrics:", err);
+                    });
+                }, 25);
+              } catch (error) {
+                console.error("Error saving local TTML:", error);
+                ShowNotification("Error saving local TTML.", "error", 5000);
+              }
             });
           };
           reader.onerror = (e) => {
@@ -61,19 +80,27 @@ Global.SetScope("execute", (command: string) => {
       fileInput.click();
       break;
     }
-    case "reset-ttml":
+    case "reset-ttml": {
       // console.log("Reset TTML");
-      storage.set("currentLyricsData", "");
-      ShowNotification("TTML has been reset.", "info", 5000);
-      setTimeout(() => {
-        fetchLyrics(SpotifyPlayer.GetUri() ?? "")
-          .then(ApplyLyrics)
-          .catch((err) => {
-            ShowNotification("Error applying lyrics", "error", 5000);
-            console.error("Error applying lyrics:", err);
-          });
-      }, 25);
+      try {
+        storage.set("currentLyricsData", "");
+        await removeLocalTTML(SpotifyPlayer.GetId() ?? "");
+        ShowNotification("TTML has been reset.", "info", 5000);
+      } catch (error) {
+        console.error("Error removing local TTML:", error);
+        ShowNotification("Error resetting local TTML.", "error", 5000);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      try {
+        const lyrics = await fetchLyrics(SpotifyPlayer.GetUri() ?? "");
+        ApplyLyrics(lyrics);
+      } catch (err) {
+        ShowNotification("Error applying lyrics", "error", 5000);
+        console.error("Error applying lyrics:", err);
+      }
       break;
+    }
   }
 });
 
