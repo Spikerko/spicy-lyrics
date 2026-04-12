@@ -303,7 +303,7 @@ async function main() {
           Icons.Fullscreen,
           async (self) => {
             if (isSpicySidebarMode) {
-              CloseSidebarLyrics();
+              await CloseSidebarLyrics();
             }
             Whentil.When(
               () => !isSpicySidebarMode,
@@ -831,7 +831,7 @@ async function main() {
     async function loadPage(location: Location) {
       if (location.pathname === "/SpicyLyrics") {
         if (isSpicySidebarMode) {
-          CloseSidebarLyrics();
+          await CloseSidebarLyrics();
         }
         Whentil.When(
           () => !isSpicySidebarMode,
@@ -843,7 +843,7 @@ async function main() {
         );
       } else {
         if (lastLocation?.pathname === "/SpicyLyrics") {
-          PageView.Destroy();
+          await PageView.Destroy();
           if (!button) return;
           button.Button.active = false;
         }
@@ -1088,10 +1088,10 @@ async function main() {
 
   runThemeMatcher();
 
-  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, () => {
+  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
     if (IsPIP) return;
     if (Fullscreen.CinemaViewOpen) {
-      Fullscreen.Close();
+      await Fullscreen.Close();
       Session.GoBack();
     }
   });

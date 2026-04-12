@@ -6,7 +6,6 @@ import { $currentLyricsType, $simpleLyricsMode, $simpleLyricsModeRenderingType }
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig } from "../../lyrics.ts";
 import { BlurMultiplier, SidebarBlurMultiplier, timeOffset } from "../Shared.ts";
-import { PageContainer } from "../../../../components/Pages/PageView.ts";
 
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
@@ -40,14 +39,28 @@ const LetterGlowMultiplier_Opacity = 185;
 
 const ScaleRange = [
   { Time: 0, Value: 0.95 },
-  { Time: 0.7, Value: 1.025 },
+  { Time: 0.7, Value: 1.075 /* 1.025 */ },
   { Time: 1, Value: 1 },
 ];
+
+const LetterScaleRange = [
+  { Time: 0, Value: 0.95 },
+  { Time: 0.7, Value: 1.18 /* 1.025 */ },
+  { Time: 1, Value: 1 },
+];
+
 const YOffsetRange = [
   { Time: 0, Value: 1 / 100 },
-  { Time: 0.9, Value: -(1 / 60) },
+  { Time: 0.9, Value: -(1 / 52.5) },
   { Time: 1, Value: 0 },
 ];
+
+const LetterYOffsetRange = [
+  { Time: 0, Value: 1 / 100 },
+  { Time: 0.9, Value: -(1 / 50) },
+  { Time: 1, Value: 0 },
+];
+
 const GlowRange = [
   { Time: 0, Value: 0 },
   { Time: 0.15, Value: 1 },
@@ -61,11 +74,12 @@ const SimpleYOffsetRange = [
 ];
 
 const ScaleSpline = GetSpline(ScaleRange);
+const LetterScaleSpline = GetSpline(LetterScaleRange);
 let YOffsetSpline = GetSpline(
   $simpleLyricsMode.get() ? SimpleYOffsetRange : YOffsetRange
 );
 
-const LetterYOffsetSpline = GetSpline(YOffsetRange);
+const LetterYOffsetSpline = GetSpline(LetterYOffsetRange);
 
 const GlowSpline = GetSpline(GlowRange);
 
@@ -91,8 +105,8 @@ const DotAnimations = {
   ScaleFrequency: 0.7,
   GlowDamping: 0.5,
   GlowFrequency: 1,
-  OpacityDamping: 0.5, // Assuming same as Glow
-  OpacityFrequency: 1, // Assuming same as Glow
+  OpacityDamping: 0.5,
+  OpacityFrequency: 1,
 
   ScaleRange: [
     { Time: 0, Value: 0.75 }, // Resting (NotSung)
@@ -357,7 +371,7 @@ const _createDotGroupSprings = () => {
 
 const createLetterSprings = () => {
   return {
-    Scale: new Spring(ScaleSpline.at(0), ScaleFrequency, ScaleDamping),
+    Scale: new Spring(LetterScaleSpline.at(0), ScaleFrequency, ScaleDamping),
     YOffset: new Spring(LetterYOffsetSpline.at(0), YOffsetFrequency, YOffsetDamping),
     Glow: new Spring(GlowSpline.at(0), GlowFrequency, GlowDamping),
   };
@@ -925,7 +939,7 @@ export function Animate(position: number): void {
 
                 if (!letter.AnimatorStore) {
                   letter.AnimatorStore = createLetterSprings();
-                  letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(0), true);
+                  letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
                   // Enable GPU compositing for letter elements
@@ -962,7 +976,7 @@ export function Animate(position: number): void {
 
                 // Determine initial targets based on word state
                 // wordState is Active - Default to resting, then apply proximity-based animation
-                targetScale = ScaleSpline.at(0); // Default active state target is resting
+                targetScale = LetterScaleSpline.at(0); // Default active state target is resting
                 targetYOffset = LetterYOffsetSpline.at(0);
                 targetGlow = GlowSpline.at(0);
 
@@ -982,7 +996,7 @@ export function Animate(position: number): void {
 
                   const config = SimpleLyricsMode_LetterEffectsStrengthConfig;
                   const baseScale =
-                    ScaleSpline.at(percentageCount) *
+                  LetterScaleSpline.at(percentageCount) *
                     ($simpleLyricsMode.get()
                       ? word.TotalTime > config.LongerThan
                         ? config.Longer.Scale
@@ -1004,7 +1018,7 @@ export function Animate(position: number): void {
                       : 1);
 
                   // Get the resting values
-                  const restingScale = ScaleSpline.at(0);
+                  const restingScale = LetterScaleSpline.at(0);
                   const restingYOffset = LetterYOffsetSpline.at(0);
                   const restingGlow = GlowSpline.at(0);
 
@@ -1013,18 +1027,20 @@ export function Animate(position: number): void {
 
                   // Use a steeper falloff curve for proximity effect
                   // This creates a more pronounced difference between the active letter and others
-                  const falloff = Math.max(0, 1 / (1 + distance * 0.9));
-
+                  // Make the falloff much steeper for a bolder active letter scaling
+                  const falloff = Math.max(0, 1 / (1 + Math.pow(distance, 2.8)));
+                  const glowFalloff = Math.max(0, 1 / (1 + distance * 0.9));
+          
                   // Apply the proximity-based animation values
                   targetScale = restingScale + (baseScale - restingScale) * falloff;
                   targetYOffset = restingYOffset + (baseYOffset - restingYOffset) * falloff;
-                  targetGlow = restingGlow + (baseGlow - restingGlow) * falloff;
+                  targetGlow = restingGlow + (baseGlow - restingGlow) * glowFalloff;
                 } // else - if no active letter, targets remain at resting state set above
 
                 // Only override values for NotSung letters or for letters in a non-Active word
                 if (letterState === "NotSung" && !$simpleLyricsMode.get()) {
                   // NotSung letters always use resting values
-                  targetScale = ScaleSpline.at(0);
+                  targetScale = LetterScaleSpline.at(0);
                   targetYOffset = LetterYOffsetSpline.at(0);
                   targetGlow = GlowSpline.at(0);
                 } else if (letterState === "Sung" && activeLetterIndex === -1) {
@@ -1128,13 +1144,13 @@ export function Animate(position: number): void {
 
                 if (!letter.AnimatorStore) {
                   letter.AnimatorStore = createLetterSprings();
-                  letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(0), true);
+                  letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
                   promoteToGPU(letter.HTMLElement);
                 }
 
-                letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(0));
+                letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0));
                 letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0));
                 letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0));
 
@@ -1175,13 +1191,13 @@ export function Animate(position: number): void {
 
                 if (!letter.AnimatorStore) {
                   letter.AnimatorStore = createLetterSprings();
-                  letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(0), true);
+                  letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
                   promoteToGPU(letter.HTMLElement);
                 }
 
-                letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(1));
+                letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(1));
                 letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(1));
                 letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(1));
 
@@ -1515,12 +1531,12 @@ export function Animate(position: number): void {
 
                 if (!letter.AnimatorStore) {
                   letter.AnimatorStore = createLetterSprings();
-                  letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(0), true);
+                  letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
                 }
 
-                letter.AnimatorStore.Scale.SetGoal(ScaleSpline.at(1));
+                letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(1));
                 letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(1));
                 letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(1));
 

@@ -270,7 +270,7 @@
   display: inline-block; /* Ensures width is respected */
   text-align: center; /* Align text within the span */
   animation: Marquee_SongName 25s linear infinite alternate;
-  padding: 0 2.5cqw;
+  padding: 0 3cqw 0 2.5cqw;
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists {
@@ -301,13 +301,24 @@
   );
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span {
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists > span {
   white-space: nowrap; /* Prevents text from wrapping */
   overflow: hidden; /* Hides overflowing text */
   display: inline-block; /* Ensures width is respected */
   text-align: center; /* Align text within the span */
   animation: Marquee_Artists 25s linear infinite alternate;
-  padding: 0 2.5cqw;
+  padding: 0 3cqw 0 2.5cqw;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName span.Clickable,
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span.Clickable {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName span.Clickable:hover,
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span.Clickable:hover {
+  opacity: 0.75;
 }
 
 #SpicyLyricsPage
@@ -1251,14 +1262,14 @@
   .Header
   .Metadata
   .Artists
-  span,
+  > span,
 #SpicyLyricsPage.ForcedCompactMode
   .ContentBox
   .NowBar
   .Header
   .Metadata
   .Artists
-  span {
+  > span {
   animation: Marquee_Artists_Compact 25s linear infinite alternate;
 }
 

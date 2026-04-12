@@ -117,7 +117,7 @@ async function OpenPage(
 ) {
 
   if (_IsPIP_after) {
-    ClosePopupLyrics();
+    await ClosePopupLyrics();
     // After closing, open again with the same arguments
     return OpenPage(AppendTo, isSidebarMode);
   }
@@ -211,6 +211,8 @@ async function OpenPage(
             </div>
         </div>
     */
+
+  
   PageContainer = elem;
 
   if (!$skipSpicyFont.get()) {
@@ -225,12 +227,6 @@ async function OpenPage(
     elem.classList.add("MinimalLyricsMode");
   }
 
-  if (AppendTo !== undefined) {
-    AppendTo?.appendChild(elem);
-  } else {
-    GetPageRoot()?.appendChild(elem);
-  }
-
   const contentBox = elem.querySelector<HTMLElement>(
     ".ContentBox"
   );
@@ -240,6 +236,12 @@ async function OpenPage(
     } catch (err) {
       console.error("Error applying dynamic background:", err);
     }
+  }
+
+  if (AppendTo !== undefined) {
+    AppendTo?.appendChild(elem);
+  } else {
+    GetPageRoot()?.appendChild(elem);
   }
 
   addLinesEvListener();
@@ -325,7 +327,7 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
   }
 }
 
-function DestroyPage() {
+async function DestroyPage() {
   if (!PageView.IsOpened) return;
 
   cleanupApplyLyricsAbortController();
@@ -334,7 +336,7 @@ function DestroyPage() {
     cleanupSidebarLyricsObservers();
   }
 
-  if (Fullscreen.IsOpen) Fullscreen.Close();
+  if (Fullscreen.IsOpen) await Fullscreen.Close();
   if (!PageContainer) return;
 
   KawarpMap.get("lpagebg")?.dispose();
@@ -507,19 +509,19 @@ function AppendViewControls(ReAppend: boolean = false) {
             content: `Close Page`,
           });
         }
-        closeButton.addEventListener("click", () => {
+        closeButton.addEventListener("click", async () => {
           if (IsPIP) {
-            ClosePopupLyrics();
+            await ClosePopupLyrics();
             globalThis.focus();
             return;
           }
 
           if (Fullscreen.IsOpen) {
-            Fullscreen.Close();
+            await Fullscreen.Close();
           }
 
           if (isSpicySidebarMode) {
-            CloseSidebarLyrics();
+            await CloseSidebarLyrics();
             return;
           }
 
@@ -631,8 +633,8 @@ function AppendViewControls(ReAppend: boolean = false) {
             const page = PageContainer;
             if (isSpicySidebarMode) {
               page?.classList.add("SidebarTransition__Closing");
-              setTimeout(() => {
-                CloseSidebarLyrics();
+              setTimeout(async () => {
+                await CloseSidebarLyrics();
                 Whentil.When(
                   () => !isSpicySidebarMode,
                   () => {
@@ -699,7 +701,7 @@ function AppendViewControls(ReAppend: boolean = false) {
         }
         cinemaViewBtn.addEventListener("click", async () => {
           if (isSpicySidebarMode) {
-            CloseSidebarLyrics();
+            await CloseSidebarLyrics();
             Whentil.When(
               () => !isSpicySidebarMode,
               () => {

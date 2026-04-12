@@ -16,6 +16,7 @@
     "@spikerko/tools": "npm:@jsr/spikerko__tools",
     "@spikerko/web-modules": "npm:@jsr/spikerko__web-modules",
     "@tanstack/react-query": "^5.95.2",
+    "@tanstack/virtual-core": "^3.13.23",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "cubic-spline": "^3.0.3",

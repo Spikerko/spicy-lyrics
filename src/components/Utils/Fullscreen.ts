@@ -299,54 +299,78 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
   GetCurrentLyricsContainerInstance()?.Resize();
 }
 
-function Close(isPip: boolean = false) {
+async function Close(isPip: boolean = false) {
   const SpicyPage = PageContainer;
   const mainElement = document.querySelector<HTMLElement>("#main");
 
   if (SpicyPage) {
-    // Set state first
+    const wasCinemaMode = Fullscreen.CinemaViewOpen;
+
     Fullscreen.IsOpen = false;
     Fullscreen.CinemaViewOpen = false;
 
-    // Handle DOM changes
-    if (!isPip) TransferElement(SpicyPage, GetPageRoot() as HTMLElement);
-    SpicyPage.classList.remove("Fullscreen");
+    if (isPip) {
+      SpicyPage.classList.remove("Fullscreen");
 
-    // Show the main element again
-    if (mainElement && !isPip) {
-      mainElement.style.removeProperty("display");
+      ResetLastLine();
+
+      if (!$isNowBarOpen.get()) {
+        CloseNowBar();
+      }
+
+      CleanupMediaBox();
+      CleanUpNowBarComponents();
+
+      Global.Event.evoke("fullscreen:exit", null);
+    } else {
+      // Show the main element again
+      if (mainElement) {
+        mainElement.style.removeProperty("display");
+      }
+
+      // Apply exit animation and block all interaction for its duration
+      SpicyPage.classList.add("frame_F_Exit");
+      document.body.style.pointerEvents = "none";
+
+      await new Promise(r => setTimeout(r, 650));
+
+      TransferElement(SpicyPage, GetPageRoot() as HTMLElement);
+      SpicyPage.classList.remove("Fullscreen");
+
+      // Kick off fullscreen exit immediately (no need to wait for animation)
+      const handleFullscreenExit = async () => {
+        await ExitFullscreenElement();
+        setTimeout(() => PageView.AppendViewControls(true), 50);
+      };
+      //setTimeout(() => {
+        handleFullscreenExit()
+      //}, !wasCinemaMode ? 70 : 0);
+
+      const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
+      if (NoLyrics) {
+        SpicyPage
+          ?.querySelector(".ContentBox .LyricsContainer")
+          ?.classList.remove("Hidden");
+        SpicyPage
+          ?.querySelector<HTMLElement>(".ContentBox")
+          ?.classList.remove("LyricsHidden");
+        DeregisterNowBarBtn();
+      }
+
+      document.body.style.removeProperty("pointer-events");
+      SpicyPage.classList.remove("frame_F_Exit");
+
+      ResetLastLine();
+
+      if (!$isNowBarOpen.get()) {
+        CloseNowBar();
+      }
+
+      CleanupMediaBox();
+      CleanUpNowBarComponents();
+
+      Global.Event.evoke("fullscreen:exit", null);
     }
-
-    // Handle fullscreen exit
-    const handleFullscreenExit = async () => {
-      await ExitFullscreenElement();
-
-      setTimeout(() => PageView.AppendViewControls(true), 50);
-    };
-
-    if (!isPip) handleFullscreenExit();
-
-    const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
-    if (NoLyrics && !isPip) {
-      SpicyPage
-        ?.querySelector(".ContentBox .LyricsContainer")
-        ?.classList.remove("Hidden");
-      SpicyPage
-        ?.querySelector<HTMLElement>(".ContentBox")
-        ?.classList.remove("LyricsHidden");
-      DeregisterNowBarBtn();
-    }
-
-    ResetLastLine();
-
-    if (!$isNowBarOpen.get()) {
-      CloseNowBar();
-    }
-
-    CleanupMediaBox();
-    CleanUpNowBarComponents();
-
-    Global.Event.evoke("fullscreen:exit", null);
   }
   if (!isPip) setTimeout(Compactify, 1000);
   GetCurrentLyricsContainerInstance()?.Resize();

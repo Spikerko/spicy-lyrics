@@ -14,12 +14,12 @@ export const OpenPopupLyrics = async () => {
   if (PageView.IsOpened && !IsPIP) {
     if (Fullscreen.IsOpen) {
       // If in any fullscreen mode, close it first
-      Fullscreen.Close();
+      await Fullscreen.Close();
       Session.GoBack();
     } else if (isSpicySidebarMode) {
-      CloseSidebarLyrics();
+      await CloseSidebarLyrics();
     } else {
-      PageView.Destroy();
+      await PageView.Destroy();
       Session.GoBack();
     }
 
@@ -151,12 +151,12 @@ export const OpenPopupLyrics = async () => {
   _IsPIP_after = true;
 };
 
-export const ClosePopupLyrics = () => {
+export const ClosePopupLyrics = async () => {
   if (!IsPIP || !currentPipWindow) return;
   _IsPIP_after = false;
 
-  Fullscreen.Close(true)
-  PageView.Destroy();
+  await Fullscreen.Close(true)
+  await PageView.Destroy();
 
   // Remove the event listener before closing the window
   if (pipPageHideHandler) {

@@ -8,13 +8,14 @@ import Kawarp, { type KawarpOptions } from "@kawarp/core";
 import { BackgroundAnimationController, type AudioAnalysisData } from "./BackgroundAnimationController.ts";
 import { getDynamicAudioAnalysis } from "../../utils/audioAnalysis.ts";
 
+const KawarpTransitionDuration = 1000;
 export const KawarpOptionsStatic: KawarpOptions = {
   warpIntensity: 1,
   blurPasses: 8,
   animationSpeed: 0.1,
   saturation: 1.5,
   dithering: 0.008,
-  transitionDuration: 1000,
+  transitionDuration: 500,
   // tintColor: [0.16, 0.16, 0.24],
   tintIntensity: 0, // 0.15
   scale: 1,
@@ -26,7 +27,11 @@ let cachedColorBackgroundEl: HTMLElement | null = null;
 export const KawarpMap = new Map<HTMLElement | string, Kawarp>();
 const animSpeedController = new BackgroundAnimationController();
 
-export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string) {
+interface ApplyDynamicBackgroundOpts {
+  doTransitionDurationAppendWithPromise?: boolean;
+}
+
+export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
   const preCurrentImgCover = SpotifyPlayer.GetCover("large") ?? "";
   const currentImgCover = preCurrentImgCover?.replace("spotify:image:", "https://i.scdn.co/image/");
@@ -151,6 +156,16 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     element.appendChild(canvas);
     await kawarpInstance.loadImage(currentImgCover);
     kawarpInstance.start();
+    const msDelay = KawarpOptionsStatic.transitionDuration * 2;
+
+    if (opts?.doTransitionDurationAppendWithPromise) {
+      await new Promise(r => setTimeout(r, msDelay));
+      kawarpInstance?.setOptions({ transitionDuration: KawarpTransitionDuration });
+    } else {
+      setTimeout(() => {
+        kawarpInstance?.setOptions({ transitionDuration: KawarpTransitionDuration });
+      }, msDelay);
+    }
   }
 }
 
@@ -281,6 +296,7 @@ Global.Event.listen("playback:playpause", (e: { data?: { isPaused?: boolean } })
   applyPlayPauseAnimationSpeed(!!e?.data?.isPaused);
 });
 
+// TODO: Make this also remove the NPV dynamic bg when we switch to staticBackground mode, as that should be removed.
 const reapplyPageBackground = () => {
   const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
   if (!contentBox) return;
@@ -294,7 +310,10 @@ const reapplyPageBackground = () => {
 };
 
 $staticBackground.listen(reapplyPageBackground);
-$staticBackgroundType.listen(reapplyPageBackground);
+$staticBackgroundType.listen(() => {
+  if (!$staticBackground.get()) return;
+  reapplyPageBackground()
+});
 
 Global.Event.listen("playback:progress", async (e) => {
   const songId = SpotifyPlayer.GetId();

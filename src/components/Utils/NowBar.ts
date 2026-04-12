@@ -8,6 +8,7 @@ import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToA
 import { $currentLyricsData, $timelineOutsideMediaContent } from "../../utils/stores.ts";
 import { $isNowBarOpen, $nowBarSide } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
+import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
@@ -875,7 +876,7 @@ function CleanUpActiveComponents() {
   }
 
   // Also remove any leftover elements
-  const MediaContent = PageContainer.querySelector(
+  const MediaContent = PageContainer?.querySelector(
     ".ContentBox .NowBar .Header .MediaBox .MediaContent"
   );
 
@@ -891,7 +892,7 @@ function CleanUpActiveComponents() {
   }
 
   // Also remove Timeline if it was placed in the Header
-  const headerTimeline = PageContainer.querySelector(
+  const headerTimeline = PageContainer?.querySelector(
     ".ContentBox .NowBar .Header > .Timeline"
   );
   if (headerTimeline) headerTimeline.remove();
@@ -1083,7 +1084,7 @@ function UpdateNowBar(force = false) {
   const MetadataContainer = NowBar.querySelector(".Header .Metadata");
   const ArtistsSpan = MetadataContainer.querySelector(".Artists span");
   const MediaImageContainer = NowBar.querySelector<HTMLDivElement>(".Header .MediaBox .MediaImageContainer");
-  const SongNameSpan = MetadataContainer.querySelector(".SongName span");
+  const SongNameSpan = MetadataContainer.querySelector<HTMLElement>(".SongName span");
   //const MediaBox = NowBar.querySelector(".Header .MediaBox");
   //const SongName = NowBar.querySelector(".Header .Metadata .SongName");
 
@@ -1198,21 +1199,66 @@ function UpdateNowBar(force = false) {
     const songName = SpotifyPlayer.GetName();
     if (SongNameSpan) {
       SongNameSpan.textContent = songName ?? "";
+      if (Fullscreen.IsOpen) {
+        const albumUri = (Spicetify?.Player?.data?.item as any)?.metadata?.album_uri as string | undefined;
+        const albumId = albumUri?.split(":")?.[2];
+        if (albumId) {
+          SongNameSpan.classList.add("Clickable");
+          SongNameSpan.onclick = async () => {
+            await Fullscreen.Close();
+            Session.Navigate({ pathname: `/album/${albumId}` });
+          };
+        } else {
+          SongNameSpan.classList.remove("Clickable");
+          SongNameSpan.onclick = null;
+        }
+      } else {
+        SongNameSpan.classList.remove("Clickable");
+        SongNameSpan.onclick = null;
+      }
     }
-  
+
     const contentType = SpotifyPlayer.GetContentType();
-  
+    const ArtistsDiv = MetadataContainer.querySelector<HTMLElement>(".Artists");
+
     if (contentType === "episode") {
       const showName = SpotifyPlayer.GetShowName();
-      ArtistsSpan.textContent = showName ?? "";
+      if (ArtistsDiv) {
+        ArtistsDiv.innerHTML = "<span></span>";
+        const span = ArtistsDiv.querySelector("span");
+        if (span) span.textContent = showName ?? "";
+      }
     }
-  
+
     const artists = SpotifyPlayer.GetArtists();
-    if (artists && ArtistsSpan && contentType !== "episode") {
-      const processedArtists = artists.map((artist) => artist.name)?.join(", ");
-      ArtistsSpan.textContent = processedArtists ?? "";
+    if (artists && ArtistsDiv && contentType !== "episode") {
+      if (Fullscreen.IsOpen) {
+        ArtistsDiv.innerHTML = "";
+        const scrollWrapper = document.createElement("span");
+        artists.forEach((artist, idx) => {
+          const artistId = (artist.uri as string | undefined)?.split(":")?.[2];
+          const span = document.createElement("span");
+          span.textContent = artist.name;
+          if (artistId) {
+            span.classList.add("Clickable");
+            span.onclick = async () => {
+              await Fullscreen.Close();
+              Session.Navigate({ pathname: `/artist/${artistId}` });
+            };
+          }
+          scrollWrapper.appendChild(span);
+          if (idx < artists.length - 1) {
+            scrollWrapper.appendChild(document.createTextNode(", "));
+          }
+        });
+        ArtistsDiv.appendChild(scrollWrapper);
+      } else {
+        ArtistsDiv.innerHTML = "<span></span>";
+        const span = ArtistsDiv.querySelector("span");
+        if (span) span.textContent = artists.map((artist) => artist.name).join(", ");
+      }
     }
-  
+
     setTimeout(() => MetadataContainer.classList.remove("tr_VisuallyHidden"), 80);
   }, 350);
 }

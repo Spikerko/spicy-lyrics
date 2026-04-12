@@ -238,7 +238,7 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
   // console.log("[Spicy Lyrics Debug] isSpicySidebarMode set to true");
 }
 
-export function CloseSidebarLyrics(auto: boolean = false) {
+export async function CloseSidebarLyrics(auto: boolean = false) {
   // console.log("[Spicy Lyrics Debug] CloseSidebarLyrics");
   if (!isSpicySidebarMode) {
     // console.log("[Spicy Lyrics Debug] not in sidebar mode, returning");
@@ -251,7 +251,7 @@ export function CloseSidebarLyrics(auto: boolean = false) {
   cleanupSidebarLyricsObservers();
 
   // console.log("[Spicy Lyrics Debug] PageView.Destroy()");
-  PageView.Destroy();
+  await PageView.Destroy();
   appendClosed();
   CleanupQueueButtonListener();
   isSpicySidebarMode = false;
@@ -303,7 +303,7 @@ export function SetupQueueButtonListener() {
   QBClickELController = abortController;
   button.addEventListener(
     "click",
-    () => {
+    async () => {
       if (!isSpicySidebarMode) return;
       currentNPVWhentil?.Cancel();
       currentNPVWhentil = null;
@@ -311,7 +311,7 @@ export function SetupQueueButtonListener() {
         try { spicyLyricsPageObserver.disconnect(); } catch(_e){}
         spicyLyricsPageObserver = null;
       }
-      PageView.Destroy();
+      await PageView.Destroy();
       appendClosed();
       isSpicySidebarMode = false;
       button.click();

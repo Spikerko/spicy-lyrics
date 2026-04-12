@@ -26,7 +26,14 @@
   user-select: none;
   -webkit-user-drag: none;
   opacity: 1;
-  transition: left 0.5s cubic-bezier(0.91, 0.04, 0.94, 0.98);
+  transition:
+    left 0.5s cubic-bezier(0.91, 0.04, 0.94, 0.98),
+    transform 0.6s cubic-bezier(0.78, 0, 0.22, 1);
+  will-change: transform;
+}
+
+#SpicyLyricsPage.frame_F_Exit {
+  transform: translateY(100%);
 }
 
 body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
@@ -220,7 +227,7 @@ body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
   .main-nowPlayingView-coverArtContainer
-  div:has(video):after,
+  div:has(video)::after,
 .Root__right-sidebar:has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
   .main-nowPlayingView-coverArtContainer
@@ -312,8 +319,12 @@ body.SpicySidebarLyrics__Active button:has(#SpicyLyricsPageSvg) {
   display: none !important;
 }
 
-button:has(#SpicyLyricsPageSvg):after {
+button:has(#SpicyLyricsPageSvg)::after {
   transform: translateX(-370%) translateY(-40%) !important;
+}
+
+button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-genericButton-buttonActiveDot)::after {
+  content: unset;
 }
 
 /* "Page Not Visible" fix */
