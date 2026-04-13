@@ -192,7 +192,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         ? nextLineStartTime === 0
           ? line.Lead.EndTime
           : lineEndTimeAndNextLineStartTimeDistance < lyricsBetweenShow &&
-              nextLineStartTime > line.Lead.EndTime
+            nextLineStartTime > line.Lead.EndTime
             ? nextLineStartTime
             : line.Lead.EndTime
         : line.Lead.EndTime;
@@ -227,7 +227,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
       ).split("").length;
 
-      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration);
+      // Disable letter-by-letter sync for RTL languages to preserve cursive text shaping
+      const IfLetterCapable = !isRtl(lead.Text) && IsLetterCapable(letterLength, totalDuration);
 
       if (IfLetterCapable) {
         word = document.createElement("div");
@@ -336,7 +337,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text
           ).split("").length;
 
-          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration);
+          // Disable letter-by-letter sync for RTL languages to preserve cursive text shaping
+          const IfLetterCapable = !isRtl(bw.Text) && IsLetterCapable(letterLength, totalDuration);
 
           if (IfLetterCapable) {
             bwE = document.createElement("div");

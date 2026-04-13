@@ -9,6 +9,8 @@ import { Query } from "../API/Query.ts";
 import { SetWaitingForHeight } from "../Scrolling/ScrollToActiveLine.ts";
 import storage from "../storage.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
+import { convertToLineLyrics } from "./tools.ts";
+import isRtl from "./isRtl.ts";
 
 export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
   Unit: "Days",
@@ -219,8 +221,22 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     }
 
     // const providerLyrics = JSON.parse(lyricsText);
-    const lyrics = JSON.parse(lyricsText);
+    let lyrics = JSON.parse(lyricsText);
 
+    if (lyrics.Type === "Syllable") {
+      let isRtlSong = false;
+      try {
+        const firstVocal = lyrics.Content?.find((c: any) => c.Type === "Vocal");
+        const sampleText = firstVocal?.Lead?.Syllables?.map((s: any) => s.Text).join("") || "";
+        if (isRtl(sampleText)) {
+          isRtlSong = true;
+        }
+      } catch (e) { }
+
+      if (isRtlSong) {
+        lyrics = convertToLineLyrics(lyrics);
+      }
+    }
     IsSpicyRenderer ? await ProcessLyrics(lyrics) : null;
 
     storage.set("currentLyricsData", JSON.stringify(lyrics));
