@@ -227,10 +227,9 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
       ).split("").length;
 
-      // Disable letter-by-letter sync for RTL languages to preserve cursive text shaping
-      const IfLetterCapable = !isRtl(lead.Text) && IsLetterCapable(letterLength, totalDuration);
+      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration);
 
-      if (IfLetterCapable) {
+      if (IfLetterCapable && !isRtl(lead.Text)) {
         word = document.createElement("div");
         const letters = (
           UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
@@ -337,10 +336,9 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text
           ).split("").length;
 
-          // Disable letter-by-letter sync for RTL languages to preserve cursive text shaping
-          const IfLetterCapable = !isRtl(bw.Text) && IsLetterCapable(letterLength, totalDuration);
+          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration);
 
-          if (IfLetterCapable) {
+          if (IfLetterCapable && !isRtl(bw.Text)) {
             bwE = document.createElement("div");
             const letters = (
               UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text
