@@ -195,6 +195,16 @@ function generalSettings(SettingsSection: any) {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
+  settings.addToggle(
+    "keyboard-shortcuts-enabled",
+    "Keyboard Shortcuts (F = Fullscreen)",
+    Defaults.KeyboardShortcutsEnabled,
+    () => {
+      const val = settings.getFieldValue("keyboard-shortcuts-enabled") as boolean;
+      storage.set("keyboard-shortcuts-enabled", String(val));
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",

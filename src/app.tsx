@@ -57,11 +57,12 @@ import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../project/config.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { initKeyboardShortcuts } from "./utils/KeyboardShortcuts.ts";
 
 /* 
   upcoming feature leak..?
 
-  import { initCliSocket } from "./components/cli-sync/index.ts";
+          ((('documentPictureInPicture' in window) && (Defaults.PopupLyricsAllowed))
   import "./components/cli-sync/socket/manager.ts";
 */
 
@@ -224,6 +225,11 @@ async function main() {
 
   // Lets set out the Settings Menu
   setSettingsMenu();
+
+  // Keyboard shortcuts toggle
+  if (!storage.get("keyboard-shortcuts-enabled")) storage.set("keyboard-shortcuts-enabled", "true");
+  Defaults.KeyboardShortcutsEnabled = storage.get("keyboard-shortcuts-enabled") !== "false";
+  initKeyboardShortcuts();
 
   const OldStyleFont = storage.get("old-style-font");
   if (OldStyleFont !== "true") {
@@ -456,7 +462,7 @@ async function main() {
       {
         Registered: false,
         Button: (
-          (('documentPictureInPicture' in window) && (Defaults.PopupLyricsAllowed))
+          ((('documentPictureInPicture' in window) && (Defaults.PopupLyricsAllowed))
             ? new SpotifyPlayer.Playbar.Button(
               "Spicy Popup Lyrics",
               Icons.PiPMode,

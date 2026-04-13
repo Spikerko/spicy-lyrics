@@ -31,6 +31,7 @@ const Defaults = {
   ViewControlsPosition: "Top",
   SettingsOnTop: true,
   DeveloperMode: false,
+  KeyboardShortcutsEnabled: true,
 };
 
 export default Defaults;
