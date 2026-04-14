@@ -217,6 +217,26 @@
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letterGroup {
   --text-shadow-blur-radius: 4px;
   --text-shadow-opacity: 0%;
+  /* Extend compositing layer boundaries to cover italic/oblique glyph overhang.
+     GPU-composited layers are clipped to the element's layout box, which cuts off
+     slanted glyphs at the box edges — most visibly on the active (animated) line.
+     Padding extends the layer; negative margin cancels the layout impact. */
+  padding-inline: 0.3em;
+  margin-inline: -0.3em;
+  padding-block: 0.15em;
+  margin-block: -0.15em;
+}
+
+/* Fix for line-synced mode: extend GPU compositing layer to capture italic/oblique glyph overhang.
+   In data-lyrics-type="Line", the .line itself is the animated unit (scale transition).
+   Only padding-block is used here — no negative margin — because inter-line spacing already
+   comes from the explicit margin on .line and must not be overridden. */
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
+  .line:not(.musical-line) {
+  padding-block: 0.15em;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:not(.musical-line) .word,
@@ -538,6 +558,10 @@
     scale 0.2s cubic-bezier(0.37, 0, 0.63, 1),
     opacity 0.2s cubic-bezier(0.37, 0, 0.63, 1) !important;
   margin: var(--SpicyLyrics-LineSpacing, 2cqw 0);
+  /* Counteract the padding-block added for italic glyph overhang (see earlier rule).
+     margin-block after margin: wins the cascade within this block. 1cqw matches
+     the block component of --SpicyLyrics-LineSpacing so text-to-text spacing is unchanged. */
+  margin-block: calc(1cqw - 0.15em);
   /*   text-shadow: 0 0 var(--text-shadow-blur-radius) rgba(255,255,255,var(--text-shadow-opacity)); */
 }
 
