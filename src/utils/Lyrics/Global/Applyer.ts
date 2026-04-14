@@ -162,6 +162,12 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
 
   const romanize = isRomanized;
 
+  if (Defaults.RightAlignLyrics && lyrics.Content) {
+    for (const item of (lyrics as any).Content) {
+      item.OppositeAligned = !item.OppositeAligned;
+    }
+  }
+
   if (lyrics.Type === "Syllable") {
     ApplySyllableLyrics(lyrics as any, romanize);
   } else if (lyrics.Type === "Line") {
