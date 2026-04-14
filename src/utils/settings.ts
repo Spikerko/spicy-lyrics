@@ -195,6 +195,19 @@ function generalSettings(SettingsSection: any) {
     storage.set("settingsOnTop", settings.getFieldValue("settings-on-top") as string);
   });
 
+  settings.addDropDown(
+    "release-year-position",
+    "Release Year Position",
+    ["Off", "Before Artist", "After Artist"],
+    Defaults.ReleaseYearPosition === "After Artist" ? 2 : Defaults.ReleaseYearPosition === "Before Artist" ? 1 : 0,
+    () => {
+      const val = settings.getFieldValue("release-year-position") as string;
+      storage.set("releaseYearPosition", val);
+      Defaults.ReleaseYearPosition = val;
+      import("../components/Utils/NowBar.ts").then(({ UpdateNowBar }) => UpdateNowBar(true));
+    }
+  );
+
   settings.addButton(
     "save-n-reload",
     "Save your current settings and reload.",
