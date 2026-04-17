@@ -270,7 +270,7 @@ async function main() {
                 if (isNewFullscreen) {
                   PageView.Open();
                   self.active = true;
-                } else { */
+                } else  */
               Session.Navigate({ pathname: "/SpicyLyrics" });
               if (Global.Saves.shift_key_pressed) {
                 const pageWhentil = Whentil.When(
@@ -283,11 +283,6 @@ async function main() {
               }
               //}
             } else {
-              /* const isNewFullscreen = document.querySelector<HTMLElement>(".QdB2YtfEq0ks5O4QbtwX .WRGTOibB8qNEkgPNtMxq");
-                if (isNewFullscreen) {
-                  PageView.Destroy();
-                  self.active = false;
-                } else { */
               Session.GoBack();
               //}
             }

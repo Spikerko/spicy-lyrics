@@ -1,10 +1,6 @@
 import { $simpleLyricsMode } from "../../../../utils/stores.ts";
 
 const Simple = (letterLength: number, totalDuration: number) => {
-  if (letterLength > 12) {
-    return false;
-  }
-
   const minDuration = 1000;
 
   return totalDuration >= minDuration;

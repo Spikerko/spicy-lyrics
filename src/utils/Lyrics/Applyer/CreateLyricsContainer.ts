@@ -1,6 +1,6 @@
-import { GetContainerHeight } from "../../Addons.ts";
 import { QueueForceScroll } from "../../Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "../../Scrolling/Simplebar/ScrollSimplebar.ts";
+import { destroyLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 
 type LyricsContainerReturnObject = {
   Container: HTMLElement;
@@ -23,14 +23,8 @@ const CreateLyricsContainer = (): LyricsContainerReturnObject => {
 
   const Resize = () => {
     requestAnimationFrame(() => {
-      Container.style.height = `${GetContainerHeight(Container)}px`;
-      ScrollSimplebar?.recalculate();
       QueueForceScroll();
-      requestAnimationFrame(() => {
-        Container.style.height = `${GetContainerHeight(Container)}px`;
-        ScrollSimplebar?.recalculate();
-        QueueForceScroll();
-      });
+      ScrollSimplebar?.recalculate();
     });
   };
 
@@ -50,7 +44,6 @@ const CreateLyricsContainer = (): LyricsContainerReturnObject => {
     ResizeListener,
     Append: (AppendTo: HTMLElement) => {
       AppendTo.appendChild(Container);
-      Container.style.height = `${GetContainerHeight(Container)}px`;
       ResizeListener.observe(Container.parentElement as HTMLElement);
     },
     Remove,
@@ -70,6 +63,7 @@ const GetCurrentLyricsContainerInstance = (): LyricsContainerReturnObject | unde
 };
 
 const DestroyAllLyricsContainers = () => {
+  destroyLyricsVirtualizer();
   LyricsContainerInstances.forEach((Instance) => {
     Instance.Remove();
   });

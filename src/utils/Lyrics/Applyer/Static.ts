@@ -16,6 +16,7 @@ import {
   setRomanizedStatus,
 } from "../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "./CreateLyricsContainer.ts";
+import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "./Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
@@ -58,11 +59,22 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     return;
   }
 
+  const hasOppositeAligned = data.Content.some(item => item.OppositeAligned === true);
+  LyricsContainer.classList.toggle("HasDuetLines", hasOppositeAligned);
+  const hasRtlLines = data.Lines.some(line => isRtl(line.Text));
+  LyricsContainer.classList.toggle("HasRtlLines", hasRtlLines);
+
   LyricsContainer.setAttribute("data-lyrics-type", "Static");
 
   ClearLyricsContentArrays();
   ClearScrollSimplebar();
   ClearLyricsPageContainer();
+
+  const virtualContainer = document.createElement("div");
+  virtualContainer.classList.add("VirtualLyricsContainer");
+  LyricsContainer.appendChild(virtualContainer);
+
+  const lineElements: HTMLElement[] = [];
 
   data.Lines.forEach((line) => {
     const lineElem = document.createElement("div");
@@ -83,7 +95,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     };
 
     LyricsObject.Types.Static.Lines.push(staticLine);
-    LyricsContainer.appendChild(lineElem);
+    lineElements.push(lineElem);
   });
 
   ApplyLyricsCredits(data, LyricsContainer);
@@ -98,6 +110,9 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   } else {
     MountScrollSimplebar();
   }
+
+  const scrollEl = ScrollSimplebar?.getScrollElement() as HTMLElement | undefined;
+  if (scrollEl) initLyricsVirtualizer(scrollEl, virtualContainer, lineElements);
 
   // Apply styling to the content container
   const LyricsStylingContainer = PageContainer?.querySelector<HTMLElement>(

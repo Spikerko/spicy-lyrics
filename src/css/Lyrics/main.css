@@ -73,8 +73,15 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent
 }
 
 #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {
-  container-type: size !important;
-  width: 100cqw;
+  /* No container-type here — let the element size naturally from its children
+     (VirtualLyricsContainer + Credits). LyricsContent's container-type: size
+     context is sufficient for all cqw/cqh values used inside. */
+  width: 100%;
+  /* border-box keeps total width at 100% when padding is applied (e.g. for NowBar
+     layout). Without this, content-box would make the element overflow the
+     Simplebar scroll container by the sum of padding-left + padding-right,
+     causing lyrics misalignment whenever the NowBar is open. */
+  box-sizing: border-box;
   transition:
     padding-right 0.4s,
     padding-left 0.4s;
@@ -88,6 +95,19 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent
 body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {
   margin-top: 0cqh;
   padding-top: 25cqh;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .VirtualLyricsContainer {
+  position: relative;
+  width: 100%;
+  /* height set dynamically via JS by the virtualizer */
+}
+
+/* With position:absolute, CSS margins don't collapse between siblings.
+   Clear them here — TanStack Virtual's gap option provides equivalent spacing.
+   Specificity (1,6,0) beats Mixed.css rules at (1,5,0) that are loaded after this file. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .VirtualLyricsContainer .line {
+  margin: 0 !important;
 }
 
 #SpicyLyricsPage.Fullscreen.MinimalLyricsMode

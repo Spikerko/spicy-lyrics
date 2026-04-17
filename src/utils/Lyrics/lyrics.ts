@@ -1,6 +1,6 @@
 import { Maid } from "@spikerko/web-modules/Maid";
 import { OnPreRender } from "@spikerko/web-modules/Scheduler";
-import { $currentLyricsData, $lyricsContainerExists, $minimalLyricsMode } from "../stores.ts";
+import { $lyricsContainerExists, $minimalLyricsMode } from "../stores.ts";
 import { $romanization } from "../uiState.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
@@ -10,8 +10,6 @@ import { PageContainer } from "../../components/Pages/PageView.ts";
 export const ScrollingIntervalTime = Infinity;
 
 export const getLyricsBetweenShow = () => ($minimalLyricsMode.get() ? 5 : 3);
-
-export const endInterludeEarlierBy = 0;
 
 export const SimpleLyricsMode_LetterEffectsStrengthConfig = {
   LongerThan: 1500,
@@ -344,4 +342,5 @@ export const setRomanizedStatus = (val: boolean) => {
   $romanization.set(val);
 };
 
-export const SimpleLyricsMode_InterludeAddonTime = 2000;
+export const preHiddenDotLineMs = 500;
+export const getInterludeTimePadding = () => (preHiddenDotLineMs + 50) * -1;

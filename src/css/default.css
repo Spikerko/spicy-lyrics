@@ -846,3 +846,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal:has(.slm) .sl-modal-container {
   transform: translate(-50%);
   inline-size: 4px !important;
 }
+
+body.SpicySidebarLyrics__Active .Root__right-sidebar > div:first-of-type > :not(#SpicyLyricsPage) {
+  display: none;
+}

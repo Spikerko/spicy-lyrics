@@ -4,8 +4,9 @@ import { easeSinOut } from "d3-ease";
 import Spring from "@spikerko/web-modules/Spring";
 import { $currentLyricsType, $simpleLyricsMode, $simpleLyricsModeRenderingType } from "../../../../utils/stores.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
-import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig } from "../../lyrics.ts";
+import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig, preHiddenDotLineMs } from "../../lyrics.ts";
 import { BlurMultiplier, SidebarBlurMultiplier, timeOffset } from "../Shared.ts";
+import { setOnNewElementMounted } from "../../LyricsVirtualizer.ts";
 
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
@@ -415,6 +416,13 @@ export let Blurring_LastLine: number | null = null;
 //const SKIP_ANIMATING_ACTIVE_WORD_DURATION = 235;
 let lastFrameTime = performance.now();
 
+// When the virtualizer mounts a previously off-screen element, reset
+// Blurring_LastLine so that applyBlur runs on the next animation frame and
+// writes the correct --BlurAmount to the freshly connected element.
+setOnNewElementMounted(() => {
+  Blurring_LastLine = null;
+});
+
 export function findActiveElement(currentTime: number): any {
   const ProcessedPosition = currentTime + timeOffset;
   const CurrentLyricsType = $currentLyricsType.get();
@@ -524,6 +532,14 @@ export function Animate(position: number): void {
 
     for (let i = 0; i < arr.length; i++) {
       const el = arr[i].HTMLElement;
+      // The virtualizer only mounts a small window of elements at a time.
+      // Skip elements that are not in the DOM — writing styles to detached
+      // elements is wasteful: it populates _styleQueue with hundreds of entries
+      // that flushStyleBatch() then has to flush (style.setProperty on each),
+      // creating a large burst of DOM work every time the active line changes.
+      // When an off-screen element is later mounted, the next active-line change
+      // will call applyBlur again and catch it with the correct values.
+      if (!el.isConnected) continue;
       const state = getElementState(ProcessedPosition, arr[i].StartTime, arr[i].EndTime);
       const distance = Math.abs(i - activeIndex);
       const blurAmount = distance === 0 ? 0 : Math.min(blurMultiplierValue * distance, max);
@@ -624,6 +640,7 @@ export function Animate(position: number): void {
 
     for (let index = 0; index < arr.length; index++) {
       const line = arr[index];
+      if (!line.HTMLElement.isConnected) continue;
       const lineState = getElementState(ProcessedPosition, line.StartTime, line.EndTime);
 
       if (lineState === "Active") {
@@ -643,6 +660,18 @@ export function Animate(position: number): void {
 
         if (line.HTMLElement.classList.contains("Sung")) {
           line.HTMLElement.classList.remove("Sung");
+        }
+
+        if (line.DotLine) {
+          if (ProcessedPosition > line.EndTime - preHiddenDotLineMs) {
+            if (!line.HTMLElement.classList.contains("pre-hidden")) {
+              line.HTMLElement.classList.add("pre-hidden");
+            }
+          } else {
+            if (line.HTMLElement.classList.contains("pre-hidden")) {
+              line.HTMLElement.classList.remove("pre-hidden");
+            }
+          }
         }
 
         /* if (line.HTMLElement.classList.contains("FeelSung")) {
@@ -1240,6 +1269,9 @@ export function Animate(position: number): void {
         if (line.HTMLElement.classList.contains("Active")) {
           line.HTMLElement.classList.remove("Active");
         }
+        if (line.DotLine && !line.HTMLElement.classList.contains("pre-hidden")) {
+          line.HTMLElement.classList.add("pre-hidden");
+        }
         /* const words = line.Syllables.Lead;
               for (const word of words) {
                   if (word.AnimatorStore && !word.Dot) {
@@ -1302,6 +1334,9 @@ export function Animate(position: number): void {
       } else if (lineState === "Sung") {
         line.HTMLElement.classList.add("Sung");
         line.HTMLElement.classList.remove("Active", "NotSung");
+        if (line.DotLine && line.HTMLElement.classList.contains("pre-hidden")) {
+          line.HTMLElement.classList.remove("pre-hidden");
+        }
 
         /* // Apply FeelSung class to lines that are at a distance of 2 or more from the active line
               // Only for non-dot lines (regular lyrics lines)
@@ -1592,6 +1627,7 @@ export function Animate(position: number): void {
 
     for (let index = 0; index < arr.length; index++) {
       const line = arr[index];
+      if (!line.HTMLElement.isConnected) continue;
       const lineState = getElementState(ProcessedPosition, line.StartTime, line.EndTime);
 
       if (lineState === "Active") {
@@ -1611,6 +1647,18 @@ export function Animate(position: number): void {
 
         if (line.HTMLElement.classList.contains("Sung")) {
           line.HTMLElement.classList.remove("Sung");
+        }
+
+        if (line.DotLine) {
+          if (ProcessedPosition > line.EndTime - preHiddenDotLineMs) {
+            if (!line.HTMLElement.classList.contains("pre-hidden")) {
+              line.HTMLElement.classList.add("pre-hidden");
+            }
+          } else {
+            if (line.HTMLElement.classList.contains("pre-hidden")) {
+              line.HTMLElement.classList.remove("pre-hidden");
+            }
+          }
         }
 
         const percentage = getProgressPercentage(ProcessedPosition, line.StartTime, line.EndTime);
@@ -1744,11 +1792,17 @@ export function Animate(position: number): void {
         if (line.HTMLElement.classList.contains("Active")) {
           line.HTMLElement.classList.remove("Active");
         }
+        if (line.DotLine && !line.HTMLElement.classList.contains("pre-hidden")) {
+          line.HTMLElement.classList.add("pre-hidden");
+        }
       } else if (lineState === "Sung") {
         if (!line.HTMLElement.classList.contains("Sung")) {
           line.HTMLElement.classList.add("Sung");
         }
         line.HTMLElement.classList.remove("Active", "NotSung");
+        if (line.DotLine && line.HTMLElement.classList.contains("pre-hidden")) {
+          line.HTMLElement.classList.remove("pre-hidden");
+        }
 
         if (arr.length === index + 1) {
           /* if (Credits && !Credits.classList.contains("Active")) {
