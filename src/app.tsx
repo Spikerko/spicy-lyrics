@@ -57,6 +57,7 @@ import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { ProjectVersion } from "../project/config.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { setupSpotifyDockBridge } from "./components/Utils/SpotifyDockBridge.ts";
 
 /* 
   upcoming feature leak..?
@@ -1189,6 +1190,7 @@ async function main() {
   );
 
   Hometinue();
+  setupSpotifyDockBridge();
 
   runThemeMatcher();
 
