@@ -16,7 +16,27 @@ function saveUiStateBlob(obj: Record<string, any>) {
   Spicetify.LocalStorage.set(UI_STATE_KEY, JSON.stringify(obj));
 }
 
-const _uiState: Record<string, any> = readUiStateBlob();
+function migrateUiStateKeys(blob: Record<string, any>): Record<string, any> {
+  const renames: Record<string, string> = {
+    "sidebar-status": "sidebarStatus",
+    "IsNowBarOpen": "isNowBarOpen",
+    "NowBarSide": "nowBarSide",
+    "ForceCompactMode": "forceCompactMode",
+    "previous-version": "previousVersion",
+  };
+  let changed = false;
+  for (const [oldKey, newKey] of Object.entries(renames)) {
+    if (oldKey in blob) {
+      blob[newKey] = blob[oldKey];
+      delete blob[oldKey];
+      changed = true;
+    }
+  }
+  if (changed) saveUiStateBlob(blob);
+  return blob;
+}
+
+const _uiState: Record<string, any> = migrateUiStateKeys(readUiStateBlob());
 
 function persistAtom<T>(key: string, defaultValue: T) {
   const store = atom<T>(_uiState[key] !== undefined ? _uiState[key] : defaultValue);
@@ -28,14 +48,14 @@ function persistAtom<T>(key: string, defaultValue: T) {
 }
 
 // UI state atoms (persisted, not settings-panel entries)
-export const $sidebarStatus = persistAtom<"open" | "closed">("sidebar-status", "closed");
-export const $isNowBarOpen = persistAtom<boolean>("IsNowBarOpen", false);
-export const $nowBarSide = persistAtom<"left" | "right">("NowBarSide", "left");
-export const $forceCompactMode = persistAtom<boolean>("ForceCompactMode", false);
+export const $sidebarStatus = persistAtom<"open" | "closed">("sidebarStatus", "closed");
+export const $isNowBarOpen = persistAtom<boolean>("isNowBarOpen", false);
+export const $nowBarSide = persistAtom<"left" | "right">("nowBarSide", "left");
+export const $forceCompactMode = persistAtom<boolean>("forceCompactMode", false);
 export const $romanization = persistAtom<boolean>("romanization", false);
 export const $fromVersion = persistAtom<string>("fromVersion", "");
 export const $lastFetchedUri = persistAtom<string | null>("lastFetchedUri", null);
-export const $previousVersion = persistAtom<string>("previous-version", "");
+export const $previousVersion = persistAtom<string>("previousVersion", "");
 
 // Runtime (ephemeral) atoms
 export const $isGlobalNav = atom<boolean>(true);

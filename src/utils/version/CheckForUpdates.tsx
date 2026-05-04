@@ -177,7 +177,3 @@ export function triggerSpicyLyricsFakeUpdate(options: { updateTo: string }) {
   const latestVersion = fakeLatestVersion(options.updateTo);
   presentUpdateAvailable(currentVersion, latestVersion);
 }
-
-if (typeof window !== "undefined") {
-  (window as any)._sl_fku = triggerSpicyLyricsFakeUpdate;
-}

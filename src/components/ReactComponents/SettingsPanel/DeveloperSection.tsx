@@ -21,7 +21,7 @@ export default function DeveloperSection({ query, sectionFilter }: Props) {
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 
-  const r1 = matches(query, "TTML Maker Mode", "Enable tools for creating and editing TTML lyric files.");
+  const r1 = matches(query, "TTML Maker Mode", "Enable tools for importing/managing TTML lyric files.");
   const r2 = matches(query, "Developer Mode", "Enable extra logging and debug utilities.");
   const r3 = matches(query, "Clear All Caches for Current Song", "Remove all cached lyrics data for the currently playing track.");
   const r4 = matches(query, "Clear Stored Lyrics Cache", "Delete lyrics that have been cached for up to 3 days.");
@@ -39,7 +39,7 @@ export default function DeveloperSection({ query, sectionFilter }: Props) {
           <SectionTitle>Developer</SectionTitle>
 
           {r1 && (
-            <Row label="TTML Maker Mode" description="Enable tools for creating and editing TTML lyric files.">
+            <Row label="TTML Maker Mode" description="Enable tools for importing/managing TTML lyric files.">
               <Toggle checked={ttmlMakerMode} onChange={(v) => $ttmlMakerMode.set(v)} />
             </Row>
           )}

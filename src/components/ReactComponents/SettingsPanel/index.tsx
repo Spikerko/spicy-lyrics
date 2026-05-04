@@ -13,7 +13,7 @@ export default function SettingsPanel() {
   const [sectionFilter, setSectionFilter] = useState("All");
 
   return (
-    <div style={{ padding: "8px 0" }} className="slm w-60">
+    <div style={{ padding: "8px 0" }} className="slm w-40">
       <div className="sl-sp-toolbar">
         <SearchBar value={query} onChange={setQuery} />
         <FilterDropdown sections={SECTIONS} value={sectionFilter} onChange={setSectionFilter} />

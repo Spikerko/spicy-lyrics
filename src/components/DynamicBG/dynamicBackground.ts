@@ -1,5 +1,4 @@
-import { Timeout } from "@spikerko/web-modules/Scheduler";
-import { $staticBackground, $staticBackgroundType } from "../../utils/stores.ts";
+import { $staticBackgroundMode } from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "./ArtistVisuals/Main.ts";
@@ -7,6 +6,9 @@ import { PageContainer } from "../Pages/PageView.ts";
 import Kawarp, { type KawarpOptions } from "@kawarp/core";
 import { BackgroundAnimationController, type AudioAnalysisData } from "./BackgroundAnimationController.ts";
 import { getDynamicAudioAnalysis } from "../../utils/audioAnalysis.ts";
+import Logger from "../../utils/logger.ts";
+
+const dynamicBgLogger = new Logger("Dynamic Background");
 
 const KawarpTransitionDuration = 1000;
 export const KawarpOptionsStatic: KawarpOptions = {
@@ -33,6 +35,7 @@ interface ApplyDynamicBackgroundOpts {
 
 export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
+  dynamicBgLogger.debug("Applying dynamic background", { tag });
   const preCurrentImgCover = SpotifyPlayer.GetCover("large") ?? "";
   const currentImgCover = preCurrentImgCover?.replace("spotify:image:", "https://i.scdn.co/image/");
   const IsEpisode = SpotifyPlayer.GetContentType() === "episode";
@@ -45,8 +48,9 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
 
   const TrackId = SpotifyPlayer.GetId() ?? undefined;
   
-  if ($staticBackground.get()) {
-    if ($staticBackgroundType.get() === "Color") {
+  const staticBgMode = $staticBackgroundMode.get();
+  if (staticBgMode !== "off") {
+    if (staticBgMode === "color") {
       // First, create/init the background with black as a fallback
       let dynamicBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.ColorBackground");
       if (!dynamicBg) {
@@ -90,7 +94,7 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
         dynamicBg.style.setProperty("--OverlayColor", overlayColor);
       } catch (err) {
         // If the color fetch fails, just keep the black fallback
-        console.error("Failed to fetch dynamic colors, using fallback black background.", err);
+        dynamicBgLogger.error("Failed to fetch dynamic colors, using fallback black background", err);
       }
       return;
     }
@@ -112,13 +116,13 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     dynamicBg.setAttribute("data-cover-id", currentImgCover);
     element.appendChild(dynamicBg);
 
-    Timeout(0.08, () => {
+    setTimeout(() => {
       if (prevBg) {
         prevBg.classList.add("Hidden");
-        Timeout(0.5, () => prevBg?.remove());
+        setTimeout(() => prevBg?.remove(), 500);
       }
       dynamicBg.classList.remove("Hidden");
-    });
+    }, 80);
   } else {
     const existingElement = element.querySelector<HTMLElement>(".spicy-dynamic-bg");
   
@@ -178,10 +182,7 @@ export async function GetStaticBackground(
   try {
     return await ArtistVisuals.ApplyContent(TrackArtist, TrackId);
   } catch (error) {
-    console.error(
-      "Error happened while trying to set the Low Quality Mode Dynamic Background",
-      error
-    );
+    dynamicBgLogger.error("Error setting static low quality dynamic background", error);
     return undefined;
   }
 }
@@ -198,7 +199,7 @@ const getColorBackgroundElement = (): HTMLElement | null => {
 };
 
 Global.Event.listen("playback:songchange", () => {
-  if ($staticBackground.get() && $staticBackgroundType.get() === "Color" && PageContainer) {
+  if ($staticBackgroundMode.get() === "color" && PageContainer) {
     if (staticColorBgTransitionTimeout) {
       clearTimeout(staticColorBgTransitionTimeout);
       staticColorBgTransitionTimeout = null;
@@ -309,11 +310,7 @@ const reapplyPageBackground = () => {
   void ApplyDynamicBackground(contentBox, "lpagebg");
 };
 
-$staticBackground.listen(reapplyPageBackground);
-$staticBackgroundType.listen(() => {
-  if (!$staticBackground.get()) return;
-  reapplyPageBackground()
-});
+$staticBackgroundMode.listen(reapplyPageBackground);
 
 Global.Event.listen("playback:progress", async (e) => {
   const songId = SpotifyPlayer.GetId();

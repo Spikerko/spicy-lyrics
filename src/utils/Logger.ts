@@ -1,34 +1,57 @@
-type LoggerMessage =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | Array<string | number | boolean | null | undefined>;
-type ProcessedLoggerMessage = Array<string | number | boolean | null | undefined>;
+import { ProjectName } from "../../project/config";
+import { Maid } from "../modules/Maid";
+import { $developerMode } from "./stores";
 
-const Logger = {
-  log: (messages: LoggerMessage) => {
-    const processedMessages: ProcessedLoggerMessage =
-      typeof messages === "object" ? messages : [messages];
+class Logger {
+  private maid: Maid;
 
-    Spicetify?.showNotification(`Spicy Logger: ${processedMessages.join(" ")}`, false, 5000);
-    console.log(`Spicy Logger: ${processedMessages.join(" ")}`);
-  },
-  warn: (messages: LoggerMessage) => {
-    const processedMessages: ProcessedLoggerMessage =
-      typeof messages === "object" ? messages : [messages];
+  public isEnabled = false;
+  public prefix: string;
 
-    Spicetify?.showNotification(`Spicy Logger: ${processedMessages.join(" ")}`, true, 5000);
-    console.warn(`Spicy Logger: ${processedMessages.join(" ")}`);
-  },
-  error: (messages: LoggerMessage) => {
-    const processedMessages: ProcessedLoggerMessage =
-      typeof messages === "object" ? messages : [messages];
+  constructor(prefix?: string) {
+    this.maid = new Maid();
+    this.prefix = `[${ProjectName}]${prefix ? ` (${prefix})` : ""}`;
+    this.isEnabled = $developerMode.get();
 
-    Spicetify?.showNotification(`Spicy Logger: ${processedMessages.join(" ")}`, true, 5000);
-    console.error(`Spicy Logger: ${processedMessages.join(" ")}`);
-  },
-};
+    this.maid.Give(
+      $developerMode.subscribe((v) => {
+        this.isEnabled = v;
+      })
+    )
+  }
+
+  private getPrefixArgs(): [string, string] {
+    return [`%c${this.prefix}`, "color: #c9c9c9;"];
+  }
+
+  info(...args: unknown[]) {
+    if (this.maid.IsDestroyed() || !this.isEnabled) return;
+    const [prefix, style] = this.getPrefixArgs();
+    console.info(prefix, style, ...args);
+  }
+
+  warn(...args: unknown[]) {
+    if (this.maid.IsDestroyed() || !this.isEnabled) return;
+    const [prefix, style] = this.getPrefixArgs();
+    console.warn(prefix, style, ...args);
+  }
+
+  error(...args: unknown[]) {
+    if (this.maid.IsDestroyed() || !this.isEnabled) return;
+    const [prefix, style] = this.getPrefixArgs();
+    console.error(prefix, style, ...args);
+  }
+
+  debug(...args: unknown[]) {
+    if (this.maid.IsDestroyed() || !this.isEnabled) return;
+    const [prefix, style] = this.getPrefixArgs();
+    console.debug(prefix, style, ...args);
+  }
+
+  destroy() {
+    if (this.maid.IsDestroyed()) return;
+    this.maid.Destroy();
+  }
+}
 
 export default Logger;

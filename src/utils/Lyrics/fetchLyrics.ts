@@ -8,6 +8,11 @@ import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../components/Utils/Fullscreen.ts";
 import { Query } from "../API/Query.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
+import Logger from "../logger.ts";
+import { LocalLyricsManager } from "./manager/index.ts";
+
+const lyricsLogger = new Logger("Lyrics Pipeline");
+const lyricsCacheLogger = new Logger("Lyrics Cache");
 
 export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
   Unit: "Days",
@@ -15,6 +20,7 @@ export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 12, {
 }, isDev as true);
 
 export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
+  lyricsLogger.debug("Fetch requested", uri);
   //if (!PageContainer) return;
   const LyricsContent =
     PageContainer?.querySelector(".LyricsContainer .LyricsContent") ?? undefined;
@@ -51,6 +57,24 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       return ["episode-track", 400];
     }
     return ["unknown-track", 400];
+  }
+
+  const localLyric = await LocalLyricsManager.get(uri);
+  if (localLyric) {
+    if (localLyric?.IncludesRomanization) {
+      PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+    } else {
+      PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+    }
+
+    $currentlyFetching.set(false);
+    HideLoaderContainer();
+    $currentLyricsType.set(localLyric.Type);
+    PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+    PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+    PageView.AppendViewControls(true);
+    $currentlyFetching.set(false);
+    return [localLyric, 200];
   }
 
   if (uri.startsWith("spotify:local:")) {
@@ -104,7 +128,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
         }
       }
     } catch (error) {
-      console.error("Error parsing saved lyrics data:", error);
+      lyricsCacheLogger.error("Error parsing saved lyrics data", error);
       $currentlyFetching.set(false);
       HideLoaderContainer();
     }
@@ -136,7 +160,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
         return [{ ...lyricsFromCache, fromCache: true }, 200];
       }
     } catch (error) {
-      console.error("Error parsing saved lyrics data:", error);
+      lyricsCacheLogger.error("Error parsing cache entry", error);
       $currentlyFetching.set(false);
       return ["unknown-error", 0];
     }
@@ -160,6 +184,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     let lyricsText = "";
     let status = 0;
 
+    lyricsLogger.debug("GraphQL lyrics query", { trackId });
     const queries = await Query(
       [
         {
@@ -177,7 +202,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
     const lyricsQuery = queries.get("0");
     if (!lyricsQuery) {
-      console.error("[Spicy Lyrics] Lyrics query not found");
+      lyricsLogger.error("Lyrics query not found");
       HideLoaderContainer();
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
@@ -227,7 +252,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       try {
         await LyricsStore.SetItem(trackId, lyrics);
       } catch (error) {
-        console.error("Error saving lyrics to cache:", error);
+        lyricsCacheLogger.error("Error saving lyrics to cache", error);
       }
     }
 
@@ -239,7 +264,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     $currentlyFetching.set(false);
     return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {
-    console.error("Error fetching lyrics:", error);
+    lyricsLogger.error("Error fetching lyrics", error);
     $currentlyFetching.set(false);
     HideLoaderContainer();
     return ["unknown-error", 0];
@@ -331,7 +356,7 @@ async function noLyricsMessage(Cache = true, LocalStorage = true) {
     try {
       await LyricsStore.SetItem(trackId, { Value: "NO_LYRICS" });
     } catch (error) {
-      console.error("Error saving lyrics to cache:", error);
+      lyricsCacheLogger.error("Error saving NO_LYRICS marker to cache", error);
     }
   }
 

@@ -20,13 +20,13 @@ import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "./Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
+import { ApplyLyricsProvider } from "./Credits/ApplyProvider.ts";
 
 /**
  * Interface for static lyrics data
  */
 export interface StaticLyricsData {
   Type: string;
-  Content?: any;
   Lines: Array<{
     Text: string;
     RomanizedText?: string;
@@ -59,8 +59,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     return;
   }
 
-  const hasOppositeAligned = data.Content.some(item => item.OppositeAligned === true);
-  LyricsContainer.classList.toggle("HasDuetLines", hasOppositeAligned);
+  LyricsContainer.classList.remove("HasDuetLines");
   const hasRtlLines = data.Lines.some(line => isRtl(line.Text));
   LyricsContainer.classList.toggle("HasRtlLines", hasRtlLines);
 
@@ -99,6 +98,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   });
 
   ApplyLyricsCredits(data, LyricsContainer);
+  ApplyLyricsProvider(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);
   if (LyricsContainerParent) {
     LyricsContainerInstance.Append(LyricsContainerParent);
@@ -135,7 +135,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     }
   }
 
-  EmitApply(data.Type, data.Content);
+  EmitApply(data.Type, data.Lines);
 
   setRomanizedStatus(UseRomanized);
 }

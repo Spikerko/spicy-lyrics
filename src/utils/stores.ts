@@ -17,7 +17,24 @@ function saveSettingsBlob(obj: Record<string, any>) {
   Spicetify.LocalStorage.set(SETTINGS_KEY, JSON.stringify(obj));
 }
 
-const _settings: Record<string, any> = readSettingsBlob();
+function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
+  const renames: Record<string, string> = {
+    "skip-spicy-font": "skipSpicyFont",
+    "show_npv_dynamic_bg": "showNpvDynamicBg",
+  };
+  let changed = false;
+  for (const [oldKey, newKey] of Object.entries(renames)) {
+    if (oldKey in blob) {
+      blob[newKey] = blob[oldKey];
+      delete blob[oldKey];
+      changed = true;
+    }
+  }
+  if (changed) saveSettingsBlob(blob);
+  return blob;
+}
+
+const _settings: Record<string, any> = migrateSettingsKeys(readSettingsBlob());
 
 function persistAtom<T>(key: string, defaultValue: T) {
   const store = atom<T>(_settings[key] !== undefined ? _settings[key] : defaultValue);
@@ -29,15 +46,12 @@ function persistAtom<T>(key: string, defaultValue: T) {
 }
 
 // Setting atoms (persisted)
-export const $staticBackground = persistAtom<boolean>("staticBackground", false);
-export const $staticBackgroundType = persistAtom<string>("staticBackgroundType", "Auto");
+export const $staticBackgroundMode = persistAtom<string>("staticBackgroundMode", "off");
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
 export const $simpleLyricsModeRenderingType = persistAtom<string>("simpleLyricsModeRenderingType", "calculate");
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
-export const $skipSpicyFont = persistAtom<boolean>("skip-spicy-font", false);
-export const $oldStyleFont = persistAtom<boolean>("old-style-font", false);
-export const $showTopbarNotifications = persistAtom<boolean>("show_topbar_notifications", true);
-export const $hideNpvBg = persistAtom<boolean>("hide_npv_bg", false);
+export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
+export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
 export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
@@ -50,7 +64,6 @@ export const $popupLyricsAllowed = (() => {
   return store;
 })();
 export const $viewControlsPosition = persistAtom<string>("viewControlsPosition", "Top");
-export const $settingsOnTop = persistAtom<boolean>("settingsOnTop", true);
 export const $ttmlMakerMode = persistAtom<boolean>("ttmlMakerMode", false);
 export const $developerMode = persistAtom<boolean>("developerMode", false);
 export const $timelineOutsideMediaContent = persistAtom<boolean>("timelineOutsideMediaContent", true);

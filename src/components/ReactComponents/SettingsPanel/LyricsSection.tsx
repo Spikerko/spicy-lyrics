@@ -22,9 +22,9 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 
-  const r1 = matches(query, "Simple Lyrics Mode", "Show lyrics as plain text without advanced visual effects.");
+  const r1 = matches(query, "Simple Lyrics Mode", "Remove extra visual effects from lyrics");
   const r2 = matches(query, "Simple Mode: Text Animation Style", "How lyrics text transitions are rendered in Simple Lyrics Mode.");
-  const r3 = matches(query, "Minimal Lyrics Mode", "Strip down the lyrics UI to bare essentials. Only applies in Fullscreen and Cinema mode.");
+  const r3 = matches(query, "Minimal Lyrics Mode", "Hides sung lyrics lines in Fullscreen and Cinema Mode");
 
   if (!r1 && !r2 && !r3) return null;
 
@@ -33,7 +33,7 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
       <SectionTitle>Lyrics Display</SectionTitle>
 
       {r1 && (
-        <Row label="Simple Lyrics Mode" description="Show lyrics as plain text without advanced visual effects.">
+        <Row label="Simple Lyrics Mode" description="Remove extra visual effects from lyrics">
           <Toggle checked={simpleLyricsMode} onChange={(v) => $simpleLyricsMode.set(v)} />
         </Row>
       )}
@@ -42,11 +42,14 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
         <Row
           label="Simple Mode: Text Animation Style"
           description="How lyrics text transitions are rendered in Simple Lyrics Mode."
+          disabled={!simpleLyricsMode}
+          disabledReason="Enable Simple Lyrics Mode to use this setting"
         >
           <Select
             value={simpleLyricsModeRenderingType}
             options={renderingTypeOptions}
             onChange={(v) => $simpleLyricsModeRenderingType.set(v)}
+            disabled={!simpleLyricsMode}
           />
         </Row>
       )}
@@ -54,7 +57,7 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
       {r3 && (
         <Row
           label="Minimal Lyrics Mode"
-          description="Strip down the lyrics UI to bare essentials. Only applies in Fullscreen and Cinema mode."
+          description="Hides sung lyrics lines in Fullscreen and Cinema Mode"
         >
           <Toggle checked={minimalLyricsMode} onChange={(v) => $minimalLyricsMode.set(v)} />
         </Row>

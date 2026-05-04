@@ -1,6 +1,3 @@
-import { Maid } from "@spikerko/web-modules/Maid";
-import { OnPreRender } from "@spikerko/web-modules/Scheduler";
-import Spring from "@spikerko/web-modules/Spring";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import { $currentLyricsData } from "../../utils/stores.ts";
@@ -11,6 +8,9 @@ import { EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
 import { CleanUpNowBarComponents, CloseNowBar, DeregisterNowBarBtn, OpenNowBar } from "./NowBar.ts";
 import TransferElement from "./TransferElement.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { Spring } from "../../modules/Spring.ts";
+import { Maid } from "../../modules/Maid.ts";
+import Scheduler from "../../modules/Scheduler.ts";
 
 const Fullscreen = {
   Open,
@@ -50,7 +50,7 @@ const MouseMoveChecker = () => {
     ControlsMaid.Clean("MouseMoveChecker");
     return;
   }
-  ControlsMaid.Give(OnPreRender(MouseMoveChecker), "MouseMoveChecker");
+  ControlsMaid.Give(Scheduler.OnPreRender(MouseMoveChecker), "MouseMoveChecker");
 };
 
 const RunMediaBoxAnimation = () => {
@@ -79,7 +79,7 @@ const RunMediaBoxAnimation = () => {
 
   animationLastTimestamp = timestampNow;
 
-  ControlsMaid.Give(OnPreRender(RunMediaBoxAnimation), "MediaBoxAnimation");
+  ControlsMaid.Give(Scheduler.OnPreRender(RunMediaBoxAnimation), "MediaBoxAnimation");
 };
 
 const ToggleControls = (force: boolean = false) => {

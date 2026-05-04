@@ -216,8 +216,12 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     }
 
     &.sl-sp-row--disabled {
-      opacity: 0.45;
       cursor: not-allowed;
+
+      .sl-sp-label-wrap,
+      .sl-sp-control {
+        opacity: 0.45;
+      }
 
       .sl-sp-control {
         pointer-events: none;

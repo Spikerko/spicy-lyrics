@@ -55,21 +55,26 @@ export function Toggle({
 export function Select({
   value,
   options,
+  labels,
   onChange,
+  disabled,
 }: {
   value: string;
   options: string[];
+  labels?: string[];
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <select
       className="sl-sp-select"
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
+      disabled={disabled}
     >
-      {options.map((opt) => (
+      {options.map((opt, i) => (
         <option key={opt} value={opt}>
-          {opt}
+          {labels?.[i] ?? opt}
         </option>
       ))}
     </select>

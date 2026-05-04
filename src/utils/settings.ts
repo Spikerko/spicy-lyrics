@@ -16,5 +16,3 @@ export function openSettingsPanel() {
     },
   });
 }
-
-(window as any)._sl_sp = openSettingsPanel;

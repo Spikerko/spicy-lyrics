@@ -1,11 +1,9 @@
-import { Maid } from "@spikerko/web-modules/Maid";
-import { Interval } from "@spikerko/web-modules/Scheduler";
 import Whentil from "@spikerko/tools/Whentil";
 import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
-import { $currentLyricsData, $timelineOutsideMediaContent } from "../../utils/stores.ts";
+import { $timelineOutsideMediaContent } from "../../utils/stores.ts";
 import { $isNowBarOpen, $nowBarSide } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
@@ -16,6 +14,8 @@ import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
 import { isSpicySidebarMode } from "./SidebarLyrics.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 import { IsCompactMode } from "./CompactMode.ts";
+import { Maid } from "../../modules/Maid.ts";
+import Scheduler from "../../modules/Scheduler.ts";
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
@@ -224,7 +224,7 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         let lastStatus: boolean | null = null;
         ActiveHeartMaid.Give(
-          Interval(0.05, () => {
+          Scheduler.Interval(() => {
             const IsLiked = SpotifyPlayer.IsLiked();
             if (IsLiked === lastStatus) return;
             lastStatus = IsLiked;
@@ -233,7 +233,7 @@ function OpenNowBar(skipSaving: boolean = false) {
             } else {
               HeartElement.classList.remove("Filled");
             }
-          })
+          }, 50)
         );
 
         AppendQueue.push(HeartElement);
@@ -280,38 +280,29 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
         }
 
-        // Store event handlers so they can be removed later
-        const eventHandlers = {
-          pressHandlers: new Map(),
-          releaseHandlers: new Map(),
-          clickHandlers: new Map(),
-        };
+        const controlsMaid = new Maid();
 
         // Find all playback controls
         const playbackControls = ControlsElement.querySelectorAll(".PlaybackControl");
 
         // Add event listeners to each control with named functions
         playbackControls.forEach((control) => {
-          // Create handlers for this specific control
-          const pressHandler = () => {
-            control.classList.add("Pressed");
-          };
+          const pressHandler = () => { control.classList.add("Pressed"); };
+          const releaseHandler = () => { control.classList.remove("Pressed"); };
 
-          const releaseHandler = () => {
-            control.classList.remove("Pressed");
-          };
-
-          // Store handlers in the Map with the control as the key
-          eventHandlers.pressHandlers.set(control, pressHandler);
-          eventHandlers.releaseHandlers.set(control, releaseHandler);
-
-          // Add event listeners
           control.addEventListener("mousedown", pressHandler);
           control.addEventListener("touchstart", pressHandler);
-
           control.addEventListener("mouseup", releaseHandler);
           control.addEventListener("mouseleave", releaseHandler);
           control.addEventListener("touchend", releaseHandler);
+
+          controlsMaid.Give(() => {
+            control.removeEventListener("mousedown", pressHandler);
+            control.removeEventListener("touchstart", pressHandler);
+            control.removeEventListener("mouseup", releaseHandler);
+            control.removeEventListener("mouseleave", releaseHandler);
+            control.removeEventListener("touchend", releaseHandler);
+          });
         });
 
         const PlayPauseControl = ControlsElement.querySelector(".PlayStateToggle");
@@ -368,80 +359,34 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
         };
 
-        // Store click handlers
-        eventHandlers.clickHandlers.set(PlayPauseControl, playPauseHandler);
-        eventHandlers.clickHandlers.set(PrevTrackControl, prevTrackHandler);
-        eventHandlers.clickHandlers.set(NextTrackControl, nextTrackHandler);
-        eventHandlers.clickHandlers.set(ShuffleControl, shuffleHandler);
-        eventHandlers.clickHandlers.set(LoopControl, loopHandler);
-
-        // Add click event listeners
         if (PlayPauseControl) {
           PlayPauseControl.addEventListener("click", playPauseHandler);
+          const el = PlayPauseControl;
+          controlsMaid.Give(() => el.removeEventListener("click", playPauseHandler));
         }
         if (PrevTrackControl) {
           PrevTrackControl.addEventListener("click", prevTrackHandler);
+          const el = PrevTrackControl;
+          controlsMaid.Give(() => el.removeEventListener("click", prevTrackHandler));
         }
         if (NextTrackControl) {
           NextTrackControl.addEventListener("click", nextTrackHandler);
+          const el = NextTrackControl;
+          controlsMaid.Give(() => el.removeEventListener("click", nextTrackHandler));
         }
         if (ShuffleControl) {
           ShuffleControl.addEventListener("click", shuffleHandler);
+          const el = ShuffleControl;
+          controlsMaid.Give(() => el.removeEventListener("click", shuffleHandler));
         }
         if (LoopControl) {
           LoopControl.addEventListener("click", loopHandler);
+          const el = LoopControl;
+          controlsMaid.Give(() => el.removeEventListener("click", loopHandler));
         }
 
-        // Create and return a cleanup function
         const cleanup = () => {
-          // Remove press/release handlers
-          playbackControls.forEach((control) => {
-            const pressHandler = eventHandlers.pressHandlers.get(control);
-            const releaseHandler = eventHandlers.releaseHandlers.get(control);
-
-            control.removeEventListener("mousedown", pressHandler);
-            control.removeEventListener("touchstart", pressHandler);
-
-            control.removeEventListener("mouseup", releaseHandler);
-            control.removeEventListener("mouseleave", releaseHandler);
-            control.removeEventListener("touchend", releaseHandler);
-          });
-
-          // Remove click handlers
-          if (PlayPauseControl) {
-            PlayPauseControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(PlayPauseControl)
-            );
-          }
-          if (PrevTrackControl) {
-            PrevTrackControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(PrevTrackControl)
-            );
-          }
-          if (NextTrackControl) {
-            NextTrackControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(NextTrackControl)
-            );
-          }
-          if (ShuffleControl) {
-            ShuffleControl.removeEventListener(
-              "click",
-              eventHandlers.clickHandlers.get(ShuffleControl)
-            );
-          }
-          if (LoopControl) {
-            LoopControl.removeEventListener("click", eventHandlers.clickHandlers.get(LoopControl));
-          }
-
-          // Clear the maps
-          eventHandlers.pressHandlers.clear();
-          eventHandlers.releaseHandlers.clear();
-          eventHandlers.clickHandlers.clear();
-
-          // Remove the controls element from DOM if it exists
+          controlsMaid.Destroy();
           if (ControlsElement.parentNode) {
             ControlsElement.parentNode.removeChild(ControlsElement);
           }
@@ -638,6 +583,8 @@ function OpenNowBar(skipSaving: boolean = false) {
           updateTimelineState();
         };
 
+        const timelineMaid = new Maid();
+
         // Add event listeners for drag
         SliderBar.addEventListener("mousedown", handleDragStart);
         SliderBar.addEventListener("touchstart", handleDragStart);
@@ -645,38 +592,25 @@ function OpenNowBar(skipSaving: boolean = false) {
         // Keep the click handler for simple clicks
         SliderBar.addEventListener("click", sliderBarHandler);
 
+        timelineMaid.Give(() => {
+          SliderBar.removeEventListener("click", sliderBarHandler);
+          SliderBar.removeEventListener("mousedown", handleDragStart);
+          SliderBar.removeEventListener("touchstart", handleDragStart);
+          document.removeEventListener("mousemove", handleDragMove);
+          document.removeEventListener("touchmove", handleDragMove);
+          document.removeEventListener("mouseup", handleDragEnd);
+          document.removeEventListener("touchend", handleDragEnd);
+        });
+
         // Run initial update
         updateTimelineState();
         ActiveSongProgressBarInstance_Map.set("updateTimelineState_Function", updateTimelineState);
 
         const cleanup = () => {
-          // Remove event listeners
-          if (SliderBar) {
-            SliderBar.removeEventListener("click", sliderBarHandler);
-            SliderBar.removeEventListener("mousedown", handleDragStart);
-            SliderBar.removeEventListener("touchstart", handleDragStart);
-
-            // Also remove any potentially active document listeners
-            document.removeEventListener("mousemove", handleDragMove);
-            document.removeEventListener("touchmove", handleDragMove);
-            document.removeEventListener("mouseup", handleDragEnd);
-            document.removeEventListener("touchend", handleDragEnd);
-          }
-
-          // Clean up the progress bar instance
-          const progressBar = ActiveSongProgressBarInstance_Map.get(
-            "SongProgressBar_ClassInstance"
-          );
-          if (progressBar) {
-            progressBar.Destroy();
-          }
-
-          // Remove the timeline element from DOM if it's attached
-          if (TimelineElem.parentNode) {
-            TimelineElem.parentNode.removeChild(TimelineElem);
-          }
-
-          // Clear the map
+          timelineMaid.Destroy();
+          const progressBar = ActiveSongProgressBarInstance_Map.get("SongProgressBar_ClassInstance");
+          if (progressBar) progressBar.Destroy();
+          if (TimelineElem.parentNode) TimelineElem.parentNode.removeChild(TimelineElem);
           ActiveSongProgressBarInstance_Map.clear();
         };
 

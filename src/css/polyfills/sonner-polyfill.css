@@ -1,0 +1,81 @@
+/* Sonner toast design — matches settings panel / modal style */
+[data-sonner-toaster][data-theme='dark'] {
+  --normal-bg: #1e1e1e;
+  --normal-border: rgba(255, 255, 255, 0.1);
+  --normal-text: rgba(255, 255, 255, 0.85);
+
+  --success-bg: rgba(29, 185, 84, 0.1);
+  --success-border: rgba(29, 185, 84, 0.28);
+  --success-text: rgba(255, 255, 255, 0.85);
+
+  --error-bg: rgba(255, 59, 59, 0.1);
+  --error-border: rgba(255, 59, 59, 0.22);
+  --error-text: rgba(255, 255, 255, 0.85);
+
+  --warning-bg: rgba(255, 170, 50, 0.1);
+  --warning-border: rgba(255, 170, 50, 0.22);
+  --warning-text: rgba(255, 255, 255, 0.85);
+
+  --info-bg: rgba(80, 160, 255, 0.1);
+  --info-border: rgba(80, 160, 255, 0.22);
+  --info-text: rgba(255, 255, 255, 0.85);
+
+  --border-radius: 10px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --description-color: rgba(255, 255, 255, 0.35);
+  font-size: 0.85rem;
+}
+
+[data-sonner-toast] {
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  font-size: 0.85rem !important;
+  font-family: inherit !important;
+}
+
+[data-sonner-toast][data-type='success'] [data-icon] {
+  color: #1db954 !important;
+}
+
+[data-sonner-toast][data-type='error'] [data-icon] {
+  color: rgba(255, 100, 100, 0.9) !important;
+}
+
+[data-sonner-toast][data-type='warning'] [data-icon] {
+  color: rgba(255, 185, 60, 0.9) !important;
+}
+
+[data-sonner-toast][data-type='info'] [data-icon] {
+  color: rgba(100, 170, 255, 0.9) !important;
+}
+
+[data-sonner-toast] [data-title] {
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-sonner-toast] [data-description] {
+  font-size: 0.78rem !important;
+  font-weight: 400 !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  border-radius: 6px !important;
+  transition: background 0.15s, color 0.15s !important;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+  background: rgba(255, 255, 255, 0.11) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+[data-sonner-toast] [data-button] {
+  border-radius: 7px !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+}

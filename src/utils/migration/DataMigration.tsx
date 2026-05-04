@@ -8,20 +8,18 @@ import { UI_STATE_KEY } from "../uiState.ts";
 const OLD_PREFIX = "SpicyLyrics-";
 
 const OLD_SETTINGS_KEYS = [
-  "staticBackground",
-  "staticBackgroundType",
   "simpleLyricsMode",
   "simpleLyricsModeRenderingType",
   "minimalLyricsMode",
-  "skip-spicy-font",
-  "old-style-font",
-  "show_topbar_notifications",
-  "hide_npv_bg",
   "lockedMediaBox",
   "viewControlsPosition",
   "settingsOnTop",
   "developerMode",
 ];
+
+const OLD_SETTINGS_KEY_RENAMES: Record<string, string> = {
+  "skip-spicy-font": "skipSpicyFont",
+};
 
 const OLD_UI_STATE_KEYS = [
   "sidebar-status",
@@ -33,6 +31,14 @@ const OLD_UI_STATE_KEYS = [
   "lastFetchedUri",
   "previous-version",
 ];
+
+const OLD_UI_STATE_KEY_RENAMES: Record<string, string> = {
+  "sidebar-status": "sidebarStatus",
+  "IsNowBarOpen": "isNowBarOpen",
+  "NowBarSide": "nowBarSide",
+  "ForceCompactMode": "forceCompactMode",
+  "previous-version": "previousVersion",
+};
 
 function readOld(key: string): any {
   const raw = Spicetify.LocalStorage.get(`${OLD_PREFIX}${key}`);
@@ -48,10 +54,18 @@ function hasAnyOldKey(): boolean {
   for (const key of OLD_SETTINGS_KEYS) {
     if (Spicetify.LocalStorage.get(`${OLD_PREFIX}${key}`) !== null) return true;
   }
+  for (const key of Object.keys(OLD_SETTINGS_KEY_RENAMES)) {
+    if (Spicetify.LocalStorage.get(`${OLD_PREFIX}${key}`) !== null) return true;
+  }
   for (const key of OLD_UI_STATE_KEYS) {
     if (Spicetify.LocalStorage.get(`${OLD_PREFIX}${key}`) !== null) return true;
   }
-  if (Spicetify.LocalStorage.get(`${OLD_PREFIX}disablePopupLyrics`) !== null || Spicetify.LocalStorage.get(`${OLD_PREFIX}devMode`) !== null) return true;
+  if (
+    Spicetify.LocalStorage.get(`${OLD_PREFIX}disablePopupLyrics`) !== null ||
+    Spicetify.LocalStorage.get(`${OLD_PREFIX}devMode`) !== null ||
+    Spicetify.LocalStorage.get(`${OLD_PREFIX}staticBackground`) !== null ||
+    Spicetify.LocalStorage.get(`${OLD_PREFIX}staticBackgroundType`) !== null
+  ) return true;
   return false;
 }
 
@@ -61,6 +75,33 @@ function migrateData() {
     const val = readOld(key);
     if (val !== undefined) settings[key] = val;
   }
+  for (const [oldKey, newKey] of Object.entries(OLD_SETTINGS_KEY_RENAMES)) {
+    const val = readOld(oldKey);
+    if (val !== undefined) settings[newKey] = val;
+  }
+  // Merge old staticBackground (bool) + staticBackgroundType (string) into staticBackgroundMode
+  const oldStaticBg = readOld("staticBackground");
+  const oldStaticBgType = readOld("staticBackgroundType");
+  if (oldStaticBg !== undefined || oldStaticBgType !== undefined) {
+    if (!oldStaticBg) {
+      settings["staticBackgroundMode"] = "off";
+    } else {
+      const typeMap: Record<string, string> = {
+        "Auto": "auto",
+        "Artist Header Visual": "artistHeader",
+        "Cover Art": "coverArt",
+        "Color": "color",
+      };
+      settings["staticBackgroundMode"] = typeMap[oldStaticBgType] ?? "auto";
+    }
+  }
+
+  // showNpvDynamicBg is the inverse of the old hide_npv_bg key
+  const oldHideNpvBg = readOld("hide_npv_bg");
+  if (oldHideNpvBg !== undefined) {
+    settings["showNpvDynamicBg"] = !oldHideNpvBg;
+  }
+
   // popupLyricsAllowed is the inverse of the old disablePopupLyrics key
   const disablePopup = readOld("disablePopupLyrics");
   if (disablePopup !== undefined) {
@@ -76,7 +117,7 @@ function migrateData() {
   const uiState: Record<string, any> = {};
   for (const key of OLD_UI_STATE_KEYS) {
     const val = readOld(key);
-    if (val !== undefined) uiState[key] = val;
+    if (val !== undefined) uiState[OLD_UI_STATE_KEY_RENAMES[key] ?? key] = val;
   }
 
   Spicetify.LocalStorage.set(SETTINGS_KEY, JSON.stringify(settings));

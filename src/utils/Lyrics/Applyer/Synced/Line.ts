@@ -24,6 +24,7 @@ import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "../Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
+import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
 
 // Define the data structure for lyrics
 interface LyricsLineData {
@@ -295,6 +296,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
   });
 
   ApplyLyricsCredits(data, LyricsContainer);
+  ApplyLyricsProvider(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);
 
   if (LyricsContainerParent) {

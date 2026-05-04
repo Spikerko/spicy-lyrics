@@ -28,6 +28,7 @@ import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
 import Emphasize from "../Utils/Emphasize.ts";
 import { IsLetterCapable } from "../Utils/IsLetterCapable.ts";
+import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
 
 // Define the data structure for syllable lyrics
 interface SyllableData {
@@ -528,6 +529,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
   });
 
   ApplyLyricsCredits(data, LyricsContainer);
+  ApplyLyricsProvider(data, LyricsContainer);
   ApplyIsByCommunity(data, LyricsContainer);
 
   if (LyricsContainerParent) {

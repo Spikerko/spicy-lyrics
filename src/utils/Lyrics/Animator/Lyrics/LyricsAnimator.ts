@@ -1,12 +1,12 @@
 // @ts-ignore pkg has no @types on npm
 import Spline from "cubic-spline";
 import { easeSinOut } from "d3-ease";
-import Spring from "@spikerko/web-modules/Spring";
 import { $currentLyricsType, $simpleLyricsMode, $simpleLyricsModeRenderingType } from "../../../../utils/stores.ts";
 import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig, preHiddenDotLineMs } from "../../lyrics.ts";
 import { BlurMultiplier, SidebarBlurMultiplier, timeOffset } from "../Shared.ts";
 import { setOnNewElementMounted } from "../../LyricsVirtualizer.ts";
+import { Spring } from "../../../../modules/Spring.ts";
 
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
@@ -50,15 +50,15 @@ const LetterScaleRange = [
   { Time: 1, Value: 1 },
 ];
 
+const SimpleLetterScaleRange = [
+  { Time: 0, Value: 0.95 },
+  { Time: 0.7, Value: 1.095 },
+  { Time: 1, Value: 1 },
+];
+
 const YOffsetRange = [
   { Time: 0, Value: 1 / 100 },
   { Time: 0.9, Value: -(1 / 52.5) },
-  { Time: 1, Value: 0 },
-];
-
-const LetterYOffsetRange = [
-  { Time: 0, Value: 1 / 100 },
-  { Time: 0.9, Value: -(1 / 50) },
   { Time: 1, Value: 0 },
 ];
 
@@ -75,12 +75,30 @@ const SimpleYOffsetRange = [
 ];
 
 const ScaleSpline = GetSpline(ScaleRange);
-const LetterScaleSpline = GetSpline(LetterScaleRange);
+let LetterScaleSpline = GetSpline(
+  $simpleLyricsMode.get() ? SimpleLetterScaleRange : LetterScaleRange
+);
 let YOffsetSpline = GetSpline(
   $simpleLyricsMode.get() ? SimpleYOffsetRange : YOffsetRange
 );
 
-const LetterYOffsetSpline = GetSpline(LetterYOffsetRange);
+const LetterYOffsetRange = [
+  { Time: 0, Value: 1 / 100 },
+  { Time: 0.9, Value: -(1 / 50) },
+  { Time: 1, Value: 0 },
+];
+
+
+const SimpleLetterYOffsetRange = [
+  { Time: 0, Value: 1 / 100 },
+  { Time: 0.9, Value: -(1 / 65) },
+  { Time: 1, Value: 0 },
+];
+
+
+let LetterYOffsetSpline = GetSpline(
+  $simpleLyricsMode.get() ? SimpleLetterYOffsetRange : LetterYOffsetRange
+);
 
 const GlowSpline = GetSpline(GlowRange);
 
@@ -194,9 +212,19 @@ const DotYOffsetSpline = GetSpline(DotAnimations.YOffsetRange);
 const DotGlowSpline = GetSpline(DotAnimations.GlowRange);
 let DotOpacitySpline = GetSpline(getDotOpacityRange($simpleLyricsMode.get()));
 
+const createLetterSprings = () => {
+  return {
+    Scale: new Spring(LetterScaleSpline.at(0), ScaleFrequency, ScaleDamping),
+    YOffset: new Spring(LetterYOffsetSpline.at(0), YOffsetFrequency, YOffsetDamping),
+    Glow: new Spring(GlowSpline.at(0), GlowFrequency, GlowDamping),
+  };
+};
+
 $simpleLyricsMode.subscribe((simpleLyricsMode) => {
   YOffsetSpline = GetSpline(simpleLyricsMode ? SimpleYOffsetRange : YOffsetRange);
   DotOpacitySpline = GetSpline(getDotOpacityRange(simpleLyricsMode));
+  LetterYOffsetSpline = GetSpline(simpleLyricsMode? SimpleLetterYOffsetRange : LetterYOffsetRange);
+  LetterScaleSpline = GetSpline(simpleLyricsMode ? SimpleLetterScaleRange : LetterScaleRange);
 });
 
 // DotGroup splines
@@ -367,14 +395,6 @@ const _createDotGroupSprings = () => {
     Scale: new Spring(0, DotGroupAnimations.ScaleFrequency, DotGroupAnimations.ScaleDamping),
     YOffset: new Spring(0, DotGroupAnimations.YOffsetFrequency, DotGroupAnimations.YOffsetDamping),
     Opacity: new Spring(0, DotGroupAnimations.YOffsetFrequency, DotGroupAnimations.YOffsetDamping),
-  };
-};
-
-const createLetterSprings = () => {
-  return {
-    Scale: new Spring(LetterScaleSpline.at(0), ScaleFrequency, ScaleDamping),
-    YOffset: new Spring(LetterYOffsetSpline.at(0), YOffsetFrequency, YOffsetDamping),
-    Glow: new Spring(GlowSpline.at(0), GlowFrequency, GlowDamping),
   };
 };
 

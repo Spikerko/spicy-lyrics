@@ -1,11 +1,10 @@
-import { Maid } from "@spikerko/web-modules/Maid";
-import { OnPreRender } from "@spikerko/web-modules/Scheduler";
 import { $lyricsContainerExists, $minimalLyricsMode } from "../stores.ts";
 import { $romanization } from "../uiState.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { Lyrics } from "./Animator/Main.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
+import { Maid } from "../../modules/Maid.ts";
 
 export const ScrollingIntervalTime = Infinity;
 
@@ -223,7 +222,7 @@ const LyricsInterval = () => {
     Lyrics.TimeSetter(progress);
     Lyrics.Animate(progress);
   }
-  OnPreRender(LyricsInterval);
+  requestAnimationFrame(LyricsInterval);
 };
 
 LyricsInterval();

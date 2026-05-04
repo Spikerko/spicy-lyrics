@@ -23,7 +23,6 @@ import {
   $currentLyricsData,
   $lyricsContainerExists,
   $minimalLyricsMode,
-  $showTopbarNotifications,
   $simpleLyricsMode,
   $skipSpicyFont,
   $ttmlMakerMode,
@@ -60,6 +59,10 @@ import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenDevToolsModal } from "./TTMLImport.ts";
+import Logger from "../../utils/logger.ts";
+
+const pageLogger = new Logger("Page View");
+const controlsLogger = new Logger("View Controls");
 
 interface TippyInstance {
   destroy: () => void;
@@ -234,7 +237,7 @@ async function OpenPage(
     try {
       ApplyDynamicBackground(contentBox, "lpagebg");
     } catch (err) {
-      console.error("Error applying dynamic background:", err);
+      pageLogger.error("Error applying dynamic background", err);
     }
   }
 
@@ -329,6 +332,7 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 
 async function DestroyPage() {
   if (!PageView.IsOpened) return;
+  pageLogger.debug("Destroying page");
 
   cleanupApplyLyricsAbortController();
 
@@ -388,6 +392,7 @@ Global.Event.listen("lyrics:apply", ({ Type }: { Type: string }) => {
 
 function AppendViewControls(ReAppend: boolean = false) {
   if (!PageContainer) return;
+  controlsLogger.debug("Append view controls");
   const elem = PageContainer.querySelector<HTMLElement>(
     ".ContentBox .ViewControls"
   );
@@ -528,7 +533,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           Session.GoBack();
         });
       } catch (err) {
-        console.warn("Failed to setup Close tooltip:", err);
+        controlsLogger.warn("Failed to setup Close tooltip", err);
       }
     }
 
@@ -563,7 +568,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           }
         });
       } catch (err) {
-        console.warn("Failed to setup Close tooltip:", err);
+        controlsLogger.warn("Failed to setup Compact Mode tooltip", err);
       }
     }
 
@@ -596,7 +601,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           }, 45);
         });
       } catch (err) {
-        console.warn("Failed to setup Close tooltip:", err);
+        controlsLogger.warn("Failed to setup Romanization tooltip", err);
       }
     }
 
@@ -612,7 +617,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           }
           nowBarButton.addEventListener("click", () => ToggleNowBar());
         } catch (err) {
-          console.warn("Failed to setup NowBar tooltip:", err);
+          controlsLogger.warn("Failed to setup NowBar tooltip", err);
         }
       }
 
@@ -656,7 +661,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             }
           });
         } catch (err) {
-          console.warn("Failed to setup sidebarModeToggle tooltip:", err);
+          controlsLogger.warn("Failed to setup Sidebar Mode tooltip", err);
         }
       }
     }
@@ -686,7 +691,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           setTimeout(Compactify, 250);
         });
       } catch (err) {
-        console.warn("Failed to setup Fullscreen tooltip:", err);
+        controlsLogger.warn("Failed to setup Fullscreen tooltip", err);
       }
     }
 
@@ -721,7 +726,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           }
         });
       } catch (err) {
-        console.warn("Failed to setup CinemaView tooltip:", err);
+        controlsLogger.warn("Failed to setup Cinema View tooltip", err);
       }
     }
 
@@ -740,7 +745,7 @@ function AppendViewControls(ReAppend: boolean = false) {
         }
         nowBarSideToggleBtn.addEventListener("click", () => NowBar_SwapSides());
       } catch (err) {
-        console.warn("Failed to setup NowBarSideToggle tooltip:", err);
+        controlsLogger.warn("Failed to setup NowBar Side Toggle tooltip", err);
       }
     }
 
@@ -761,7 +766,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           OpenDevToolsModal();
         });
       } catch (err) {
-        console.warn("Failed to setup DevTools tooltip:", err);
+        controlsLogger.warn("Failed to setup DevTools tooltip", err);
       }
     }
   }
@@ -792,7 +797,6 @@ export function SpicyLyrics_Notification({
     close: () => {},
     open: () => {},
   };
-  if (!$showTopbarNotifications.get()) return nonFunctionalReturnObject;
   if (!PageView.IsOpened) return nonFunctionalReturnObject;
   const NotificationContainer = PageContainer?.querySelector(
     ".NotificationContainer"

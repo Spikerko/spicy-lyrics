@@ -1,10 +1,7 @@
 import { useStore } from "@nanostores/react";
-import React from "react";
 import {
   $lockedMediaBox,
   $popupLyricsAllowed,
-  $settingsOnTop,
-  $showTopbarNotifications,
   $timelineOutsideMediaContent,
   $viewControlsPosition,
 } from "../../../utils/stores.ts";
@@ -20,37 +17,24 @@ interface Props {
 }
 
 export default function InterfaceSection({ query, sectionFilter }: Props) {
-  const showTopbarNotifications = useStore($showTopbarNotifications);
   const lockedMediaBox = useStore($lockedMediaBox);
   const popupLyricsAllowed = useStore($popupLyricsAllowed);
   const viewControlsPosition = useStore($viewControlsPosition);
-  const settingsOnTop = useStore($settingsOnTop);
   const timelineOutsideMediaContent = useStore($timelineOutsideMediaContent);
   const isGlobalNav = useStore($isGlobalNav);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 
-  const r1 = matches(query, "Show Topbar Notifications", "Display brief status notifications in the top bar.");
   const r2 = matches(query, "Lock Media Box Size in Compact Mode", "Prevent the media box from resizing when Forced Compact Mode is active.");
   const r3 = matches(query, "Disable Popup Lyrics Window", "Prevent lyrics from opening in a floating popup window.");
   const r4 = matches(query, "Lyrics Controls Position", "Where the lyrics view controls (play, scroll, etc.) appear.");
-  const r5 = matches(query, "Show Settings Panel Above the Settings Page", "Pin the Spicy Lyrics settings panel to the top of the settings page.");
-  const r6 = matches(query, "Timeline Outside Media Box", "Display the playback timeline outside the media box, in the NowBar header. Stays inside the media box in Compact Mode or PIP.");
+  const r5 = matches(query, "Timeline Outside Media Box", "Display the playback timeline outside the media box, in the NowBar header. Stays inside the media box in Compact Mode or PIP.");
 
-  if (!r1 && !r2 && !r3 && !r4 && !r5 && !r6) return null;
+  if (!r2 && !r3 && !r4 && !r5) return null;
 
   return (
     <>
       <SectionTitle>Interface</SectionTitle>
-
-      {r1 && (
-        <Row label="Show Topbar Notifications" description="Display brief status notifications in the top bar.">
-          <Toggle
-            checked={showTopbarNotifications}
-            onChange={(v) => $showTopbarNotifications.set(v)}
-          />
-        </Row>
-      )}
 
       {r2 && (
         <Row
@@ -86,15 +70,6 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
       )}
 
       {r5 && (
-        <Row
-          label="Show Settings Panel Above the Settings Page"
-          description="Pin the Spicy Lyrics settings panel to the top of the settings page."
-        >
-          <Toggle checked={settingsOnTop} onChange={(v) => $settingsOnTop.set(v)} />
-        </Row>
-      )}
-
-      {r6 && (
         <Row
           label="Timeline Outside Media Box"
           description="Display the playback timeline outside the media box, in the NowBar header. Stays inside the media box in Compact Mode or PIP."

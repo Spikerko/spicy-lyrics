@@ -1,6 +1,6 @@
 import Defaults from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
-import { $developerMode } from "../stores.ts";
+import Logger from "../logger.ts";
 
 export type Query = {
   operation: string;
@@ -23,21 +23,7 @@ export interface QueryResultGetter {
   get(operationId: string): QueryObjectResult | undefined;
 }
 
-const log = {
-  info: (...args: unknown[]) => {
-    if ($developerMode.get()) {
-      console.log("[Spicy Lyrics] [Query]", ...args);
-    }
-  },
-  warn: (...args: unknown[]) => {
-    if ($developerMode.get()) {
-      console.warn("[Spicy Lyrics] [Query]", ...args);
-    }
-  },
-  error: (...args: unknown[]) => {
-    console.error("[Spicy Lyrics] [Query]", ...args);
-  },
-};
+const queryLogger = new Logger("API Query");
 
 
 export async function Query(
@@ -47,7 +33,12 @@ export async function Query(
   const host = Defaults.lyrics.api.url;
   const clientVersion = Session.SpicyLyrics.GetCurrentVersion();
 
-  log.info("Sending Query request", { queries, host, clientVersion: clientVersion?.Text, headers });
+  queryLogger.info("Sending API query request", {
+    queries,
+    host,
+    clientVersion: clientVersion?.Text,
+    headers,
+  });
 
   try {
     const res = await fetch(`${host}/query`, {
@@ -65,36 +56,36 @@ export async function Query(
       }),
     });
 
-    log.info("Received response", { status: res.status });
+    queryLogger.info("Received response", { status: res.status });
 
     if (!res.ok) {
-      log.error(`Request failed with status ${res.status}`);
+      queryLogger.error(`Request failed with status ${res.status}`);
       throw new Error(`Request failed with status ${res.status}`);
     }
 
     const data = await res.json();
-    log.info("Response data", data);
+    queryLogger.debug("Response data", data);
     const results: Map<string, QueryObjectResult> = new Map();
 
     for (const job of data.queries) {
       results.set(job.operationId, job.result);
-      log.info("Query result set", { operationId: job.operationId, result: job.result });
+      queryLogger.debug("Query result set", { operationId: job.operationId, result: job.result });
     }
 
     return {
       get(operationId: string): QueryObjectResult | undefined {
-        log.info("Attempting to retrieve query result for operationId:", operationId);
+        queryLogger.debug("Attempting to retrieve query result for operationId", operationId);
         const result = results.get(operationId);
         if (!result) {
-          log.warn("Query result not found for operationId", operationId, Array.from(results.keys()));
+          queryLogger.warn("Query result not found for operationId", operationId, Array.from(results.keys()));
         } else {
-          log.info("Query result retrieved for operationId", operationId, result);
+          queryLogger.debug("Query result retrieved for operationId", operationId, result);
         }
         return result;
       },
     };
   } catch (error) {
-    log.error("Query error", error);
+    queryLogger.error("Query error", error);
     throw error;
   }
 }

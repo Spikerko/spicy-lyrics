@@ -100,6 +100,7 @@ body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsConten
 #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .VirtualLyricsContainer {
   position: relative;
   width: 100%;
+  container-type: size;
   /* height set dynamically via JS by the virtualizer */
 }
 

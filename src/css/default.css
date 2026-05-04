@@ -826,6 +826,10 @@ sl-generic-modal.SpicyLyricsModal .sl-modal:has(.slm) .sl-modal-container {
   width: var(--slm-width);
 }
 
+.sl-modal-container-large:has(.slm.w-40) {
+  --slm-width: 40vw;
+  width: var(--slm-width);
+}
 
 .Root__right-sidebar aside {
   border-radius: 8px;

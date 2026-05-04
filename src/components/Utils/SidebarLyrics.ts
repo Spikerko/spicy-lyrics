@@ -2,6 +2,9 @@ import Whentil, { type CancelableTask } from "@spikerko/tools/Whentil";
 import { $isGlobalNav, $sidebarStatus } from "../../utils/uiState.ts";
 
 import PageView from "../Pages/PageView.ts";
+import Logger from "../../utils/logger.ts";
+
+const sidebarLogger = new Logger("Sidebar Lyrics");
 
 // Query selector functions
 const getSpicySidebarActiveBody = () => document.body;
@@ -183,12 +186,12 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
   }
   const playbarButton = getQueuePlaybarButton();
   if (!playbarButton) {
-    console.error("[Spicy Lyrics] Playbar button is missing");
+    sidebarLogger.error("Queue playbar button is missing");
     return;
   }
   const parentContainer = getNowPlayingViewParentContainer();
   if (!parentContainer) {
-    console.error("[Spicy Lyrics] Now Playing View parent container is missing");
+    sidebarLogger.error("Now Playing View parent container is missing");
     return;
   }
   const finalContainer = getQueueContainer();
@@ -204,6 +207,9 @@ export function OpenSidebarLyrics(wasOpenForceUndefined: boolean = false) {
             : undefined;
   }
   appendOpen();
+  sidebarLogger.debug("Opening sidebar mode", {
+    source: onOpen_wasThingOpen ?? "unknown",
+  });
   if (!finalContainer) {
     // console.log("[Spicy Lyrics Debug] finalContainer not found, clicking button and waiting");
     playbarButton.click();
@@ -261,28 +267,28 @@ export async function CloseSidebarLyrics(auto: boolean = false) {
     if (onOpen_wasThingOpen === undefined) {
       const queuePlaybarButton = getQueuePlaybarButton();
       if (!queuePlaybarButton) {
-        console.error("[Spicy Lyrics] Queue playbar button is missing");
+        sidebarLogger.error("Queue playbar button is missing");
         return;
       }
       queuePlaybarButton.click();
     } else if (onOpen_wasThingOpen === "npv") {
       const playbarButton = getNowPlayingViewPlaybarButton();
       if (!playbarButton) {
-        console.error("[Spicy Lyrics] Now Playing View playbar button is missing");
+        sidebarLogger.error("Now Playing View playbar button is missing");
         return;
       }
       playbarButton.click();
     } else if (onOpen_wasThingOpen === "queue") {
       const queuePlaybarButton = getQueuePlaybarButton();
       if (!queuePlaybarButton) {
-        console.error("[Spicy Lyrics] Queue playbar button is missing");
+        sidebarLogger.error("Queue playbar button is missing");
         return;
       }
       queuePlaybarButton.click();
     } else if (onOpen_wasThingOpen === "devices") {
       const devicesPlaybarButton = getDevicesPlaybarButton();
       if (!devicesPlaybarButton) {
-        console.error("[Spicy Lyrics] Devices playbar button is missing");
+        sidebarLogger.error("Devices playbar button is missing");
         return;
       }
       devicesPlaybarButton.click();
