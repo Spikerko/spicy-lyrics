@@ -13,7 +13,6 @@ import "./css/ttml-profile/profile.css";
 
 import "./components/Utils/GlobalExecute.ts";
 
-import Whentil from "@spikerko/tools/Whentil";
 import ApplyDynamicBackground, {
   GetStaticBackground,
   KawarpMap,
@@ -54,6 +53,7 @@ import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import { needsMigration, showMigrationModal } from "./utils/migration/DataMigration.tsx";
 import "./css/polyfills/tippy-polyfill.css";
 import "./css/settings-panel.css";
+import "./components/ReactComponents/LyricsManager/styles.css";
 import "./css/polyfills/generic-modal-polyfill.css";
 import "./css/polyfills/sonner-polyfill.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
@@ -67,6 +67,7 @@ import SLToaster from "./components/ReactComponents/SLToaster.tsx";
 import { openSettingsPanel } from "./utils/settings.ts";
 import { exposeToWindow } from "./utils/expose.ts";
 import Logger from "./utils/logger.ts";
+import Whentil from "./modules/Whentil.ts";
 
 /* 
   upcoming feature leak..?
@@ -1012,6 +1013,8 @@ async function main() {
             currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetId()}`
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics);
+            console.log('id', parsedLyrics.id);
+            console.log('id2', SpotifyPlayer.GetId());
             if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
               const refetchUri = SpotifyPlayer.GetUri();
               if (refetchUri) {

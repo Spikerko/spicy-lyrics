@@ -13,7 +13,6 @@
     "@kawarp/core": "^1.1.1",
     "@nanostores/react": "^1.1.0",
     "@spicemod/creator": "^0.0.35",
-    "@spikerko/tools": "npm:@jsr/spikerko__tools",
     "@tanstack/react-query": "^5.95.2",
     "@tanstack/virtual-core": "^3.14.0",
     "@types/react": "^19.2.14",

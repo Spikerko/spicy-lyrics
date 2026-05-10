@@ -64,6 +64,13 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent
   --vertical-gap: 0.95cqh;
 }
 
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent {
+  /* CinemaView-like sizing tuned for the popup: comfortably large at the
+     default popup size, scales modestly with width, and is capped so very
+     wide popups don't end up with oversized text. */
+  --DefaultLyricsSize: clamp(2.4rem, calc(1cqw * 8), 3.5rem);
+}
+
 /* #SpicyLyricsPage.Fullscreen.MinimalLyricsMode .LyricsContainer .LyricsContent {
   --vertical-gap: 14cqh;
 } */

@@ -1,4 +1,4 @@
-import { GetExpireStore } from "@spikerko/tools/Cache";
+import { GetExpireStore } from "../../../modules/Store";
 
 const CacheStore = GetExpireStore("SpicyLyrics_ArtistVisuals", 3, {
   Unit: "Days",

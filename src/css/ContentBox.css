@@ -45,6 +45,9 @@
 
 .spicy-pip-wrapper #SpicyLyricsPage .ContentBox {
   --default-font-size: clamp(0.5rem, calc(1cqw * 4.5), 2.4rem);
+  /* Floor the NowBar height so very short popup windows still fit the
+     artwork + controls; grows naturally for taller windows. */
+  --Compact_NowBarHeight: max(54px, 15cqh);
 }
 
 #SpicyLyricsPage {
@@ -1140,6 +1143,24 @@
   margin-right: 0px !important;
 }
 
+/* In PIP, cap the (square) MediaBox by NowBar width too — otherwise on tall,
+   narrow popups the height-driven MediaBox overflows horizontally when the
+   NowBar expands on hover. */
+.spicy-pip-wrapper
+  #SpicyLyricsPage.CompactMode
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header,
+.spicy-pip-wrapper
+  #SpicyLyricsPage.ForcedCompactMode
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header {
+  --MediaBoxSize: min(100cqh, 90cqw);
+}
+
 #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .MediaBox,
 #SpicyLyricsPage.ForcedCompactMode .ContentBox .NowBar .Header .MediaBox {
   width: var(--MediaBoxSize);
@@ -1203,8 +1224,8 @@
   .Header
   .Metadata
   .SongName {
-  font-size: 1.25rem !important;
-  line-height: 3rem !important;
+  font-size: clamp(1.5rem, calc(1cqw * 6), 2rem) !important;
+  line-height: 1.4 !important;
   max-width: 100cqw;
 }
 
@@ -1251,8 +1272,8 @@
   .Header
   .Metadata
   .Artists {
-  font-size: 1rem !important;
-  line-height: 2rem !important;
+  font-size: clamp(1.05rem, calc(1cqw * 4.5), 1.5rem) !important;
+  line-height: 1.4 !important;
   max-width: 100cqw;
 }
 
@@ -1670,7 +1691,14 @@
   #SpicyLyricsPage
   .ContentBox
   .NowBar:has(.CenteredView .Header .MediaBox:hover) {
-  height: calc(var(--Compact_NowBarHeight) + 73.5cqh) !important;
+  /* Hover-expanded NowBar should grow with popup height, but never exceed
+     popup height and never exceed what the (square) MediaBox can render
+     (capped by popup width on tall, narrow popups). */
+  height: min(
+    95cqh,
+    calc(var(--Compact_NowBarHeight) + 73.5cqh),
+    calc(var(--Compact_NowBarHeight) + 90cqw)
+  ) !important;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .ContentBox .LyricsContainer {
@@ -1699,13 +1727,15 @@
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage {
-  --LyricsLeftSidePadding: 7cqw !important;
-  --LyricsRightSidePadding: 7.5cqw !important;
+  /* Side paddings scale with popup width but are clamped to avoid being too
+     thin on tiny popups or unnecessarily wide on resized large popups. */
+  --LyricsLeftSidePadding: clamp(0.75rem, 7cqw, 5.5rem) !important;
+  --LyricsRightSidePadding: clamp(0.75rem, 7.5cqw, 5.5rem) !important;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage:not(.SpicyRenderer) {
-  --LyricsLeftSidePadding: 4cqw;
-  --LyricsRightSidePadding: 4.5cqw;
+  --LyricsLeftSidePadding: clamp(0.5rem, 4cqw, 3.5rem);
+  --LyricsRightSidePadding: clamp(0.5rem, 4.5cqw, 3.5rem);
 }
 
 .spicy-pip-wrapper

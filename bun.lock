@@ -8,7 +8,6 @@
         "@kawarp/core": "^1.1.1",
         "@nanostores/react": "^1.1.0",
         "@spicemod/creator": "^0.0.35",
-        "@spikerko/tools": "npm:@jsr/spikerko__tools",
         "@tanstack/react-query": "^5.95.2",
         "@tanstack/virtual-core": "^3.14.0",
         "@types/react": "^19.2.14",
@@ -206,10 +205,6 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+knoa0BDoeXgkNvvV1vvbZX4+hizelrkwmGJBdT17t8FNPwG2lKemmuMZlmaNQ3ws3DKKCxpb4zRZEIp3UxFCg=="],
 
-    "@jsr/3d__three": ["@jsr/3d__three@0.166.0", "https://npm.jsr.io/~/11/@jsr/3d__three/0.166.0.tgz", {}, "sha512-r71U0vQCeXqq6PoIyEXLk5VFxllno8XxTSnFwSQjuKxnmAVi0ZkjKU2cXRuzB0UB7vqYwfMTRvS8Xsq6jv2CNg=="],
-
-    "@jsr/socali__modules": ["@jsr/socali__modules@4.4.1", "https://npm.jsr.io/~/11/@jsr/socali__modules/4.4.1.tgz", {}, "sha512-O4TomkQzdA28HNtoLI3uPnZzvuccOXkLGoupcBfqORlbX+o4uXs7acAlgTaWPMXMETpg4n/ak1Yi+GqdPdx27w=="],
-
     "@kawarp/core": ["@kawarp/core@1.1.1", "", {}, "sha512-hnJ0CQQAa6o4HPoUE6Tkn6/cqzpA/tRPNDTNqVeoY9rozL37KweAzbypmdrYTBOdyJRR9MvETyxy4hlpenIa/w=="],
 
     "@nanostores/react": ["@nanostores/react@1.1.0", "", { "peerDependencies": { "nanostores": "^1.2.0", "react": ">=18.0.0" } }, "sha512-MbH35fjhcf7LAubYX5vhOChYUfTLzNLqH/mBGLVsHkcvjy0F8crO1WQwdmQ2xKbAmtpalDa2zBt3Hlg5kqr8iw=="],
@@ -319,8 +314,6 @@
     "@parcel/watcher-win32-x64": ["@parcel/watcher-win32-x64@2.5.6", "", { "os": "win32", "cpu": "x64" }, "sha512-hbQlYcCq5dlAX9Qx+kFb0FHue6vbjlf0FrNzSKdYK2APUf7tGfGxQCk2ihEREmbR6ZMc0MVAD5RIX/41gpUzTw=="],
 
     "@spicemod/creator": ["@spicemod/creator@0.0.35", "", { "dependencies": { "@clack/prompts": "^0.11.0", "@csstools/postcss-minify": "^3.0.0", "autoprefixer": "^10.4.27", "c12": "^3.3.3", "commander": "^14.0.3", "dotenv": "^17.3.1", "esbuild": "^0.27.4", "esbuild-plugin-sass": "^1.0.1", "esbuild-sass-plugin": "^3.7.0", "ini": "^6.0.0", "nanostores": "^1.2.0", "picocolors": "^1.1.1", "postcss": "^8.5.8", "postcss-import": "^16.1.1", "postcss-modules": "^6.0.1", "postcss-preset-env": "^11.2.0", "tinyglobby": "^0.2.15", "valibot": "^1.3.1", "ws": "^8.20.0" }, "bin": { "sc": "dist/bin.mjs", "spicetify-creator": "dist/bin.mjs" } }, "sha512-WXpDPxbDkWKF2xuBV5IU5WZtN0Tn67bhbL1ECJvP71euDe0Wb0wFm2vsvdys8jXR0/wra6Xl6ayJly1lmtPy1g=="],
-
-    "@spikerko/tools": ["@jsr/spikerko__tools@1.6.0", "https://npm.jsr.io/~/11/@jsr/spikerko__tools/1.6.0.tgz", { "dependencies": { "@jsr/3d__three": "0.166.0", "@jsr/socali__modules": "^4.4.1" } }, "sha512-fbgKiFPu4Q1TUAYmbiSX/NseEpi0/fP4Igie1EyEUbZzPBRPhWQlMYSzwMqjiiTKzJvcWAhN6Isu5Gl2h8BZfA=="],
 
     "@tanstack/query-core": ["@tanstack/query-core@5.95.2", "", {}, "sha512-o4T8vZHZET4Bib3jZ/tCW9/7080urD4c+0/AUaYVpIqOsr7y0reBc1oX3ttNaSW5mYyvZHctiQ/UOP2PfdmFEQ=="],
 

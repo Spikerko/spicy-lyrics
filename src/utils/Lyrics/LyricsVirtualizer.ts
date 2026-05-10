@@ -74,6 +74,17 @@ class LyricsVirtualizer {
   private _maid: Maid | null = null;
   private _lastVirtualWindowSignature = "";
 
+  // Pending verification rAF for scrollToIndex. Programmatic scroll lands on a
+  // position computed from the measurementsCache, but for items not yet mounted
+  // that cache is just _estimateSize. The first scroll after init (e.g. opening
+  // the lyrics page mid-song) routinely targets a stale position, the browser
+  // clamps scrollTop because totalSize was under-estimated, only items near the
+  // start mount, and the active line is invisible until a manual scroll/resize
+  // pumps the measurement cycle. We schedule a retry one frame after every
+  // scroll so the now-updated cache can re-compute the target until it stabilises.
+  private _scrollVerifyRAF: ReturnType<typeof requestAnimationFrame> | null = null;
+  private static readonly _MAX_SCROLL_RETRIES = 8;
+
   // Re-entry guard for _onVirtualizerChange. TanStack's resizeItem calls
   // notify(false) → onChange synchronously when an item's size delta is
   // non-zero, so v.measureElement() inside the mount loop can recurse back
@@ -543,12 +554,49 @@ class LyricsVirtualizer {
    *  3. Compute the target scrollTop for the requested alignment.
    *  4. Set scrollTop directly (always instant — smooth per-line scrolling
    *     would fight with subsequent auto-scroll ticks).
+   *  5. Schedule a one-frame retry that re-reads the cache and re-scrolls if
+   *     measurements drifted or the browser clamped scrollTop. This converges
+   *     the position when the first call relied on estimates (mid-song open).
    */
   scrollToIndex(
     index: number,
     align: "start" | "center" | "end" | "auto" = "center",
     instant: boolean = false,
     padding: number = 0
+  ): void {
+    if (this._scrollVerifyRAF !== null) {
+      cancelAnimationFrame(this._scrollVerifyRAF);
+      this._scrollVerifyRAF = null;
+    }
+    this._scrollToIndexWithRetry(index, align, instant, padding, 0, null);
+  }
+
+  private _computeFinalScrollTop(
+    itemStart: number,
+    itemSize: number,
+    viewportHeight: number,
+    containerOffset: number,
+    align: "start" | "center" | "end" | "auto",
+    padding: number
+  ): number {
+    let target: number;
+    if (align === "center" || align === "auto") {
+      target = containerOffset + itemStart - (viewportHeight - itemSize) / 2;
+    } else if (align === "start") {
+      target = containerOffset + itemStart;
+    } else {
+      target = containerOffset + itemStart - viewportHeight + itemSize;
+    }
+    return Math.max(0, target + padding);
+  }
+
+  private _scrollToIndexWithRetry(
+    index: number,
+    align: "start" | "center" | "end" | "auto",
+    instant: boolean,
+    padding: number,
+    retry: number,
+    expectedScrollTop: number | null
   ): void {
     const v = this._virtualizer;
     if (!v || !this._virtualContainer) return;
@@ -558,6 +606,21 @@ class LyricsVirtualizer {
 
     const viewportHeight = scrollEl.clientHeight;
     if (!viewportHeight) return;
+
+    // If something else moved the scroll between our last set and this retry
+    // (user scroll, another scrollTo call, etc), abandon the retry chain so we
+    // don't fight whoever took over.
+    if (
+      expectedScrollTop !== null &&
+      Math.abs(scrollEl.scrollTop - expectedScrollTop) > 2
+    ) {
+      virtualizerLogger.debug("Aborting scrollToIndex retry: external scroll detected", {
+        expectedScrollTop,
+        actualScrollTop: scrollEl.scrollTop,
+        retry,
+      });
+      return;
+    }
 
     let itemStart: number;
     let itemSize: number;
@@ -582,34 +645,38 @@ class LyricsVirtualizer {
     const scrollElRect = scrollEl.getBoundingClientRect();
     const containerOffset = containerRect.top - scrollElRect.top + scrollEl.scrollTop;
 
-    let targetScrollTop: number;
-    if (align === "center" || align === "auto") {
-      targetScrollTop = containerOffset + itemStart - (viewportHeight - itemSize) / 2;
-    } else if (align === "start") {
-      targetScrollTop = containerOffset + itemStart;
-    } else {
-      // end
-      targetScrollTop = containerOffset + itemStart - viewportHeight + itemSize;
-    }
-
-    // The permanent spacer (half a viewport) appended to scrollEl during init
-    // guarantees there is always enough scrollable room to reach finalScrollTop,
-    // so no temporary container-height inflation is needed here.
-    const finalScrollTop = Math.max(0, targetScrollTop + padding);
-    virtualizerLogger.debug("scrollToIndex computed target", {
-      index,
-      align,
-      instant,
-      padding,
-    });
-    virtualizerLogger.debug("scrollToIndex computed offsets", {
+    const finalScrollTop = this._computeFinalScrollTop(
       itemStart,
       itemSize,
       viewportHeight,
       containerOffset,
-      targetScrollTop,
-      finalScrollTop,
-    });
+      align,
+      padding
+    );
+
+    if (retry === 0) {
+      virtualizerLogger.debug("scrollToIndex computed target", {
+        index,
+        align,
+        instant,
+        padding,
+      });
+      virtualizerLogger.debug("scrollToIndex computed offsets", {
+        itemStart,
+        itemSize,
+        viewportHeight,
+        containerOffset,
+        finalScrollTop,
+      });
+    } else {
+      virtualizerLogger.debug("scrollToIndex retry pass", {
+        index,
+        retry,
+        itemStart,
+        itemSize,
+        finalScrollTop,
+      });
+    }
 
     if (instant) {
       scrollEl.classList.add("InstantScroll");
@@ -618,6 +685,39 @@ class LyricsVirtualizer {
     }
 
     scrollEl.scrollTop = finalScrollTop;
+    // Read back: the browser clamps scrollTop to (scrollHeight - clientHeight),
+    // and the spacer-padded scrollHeight may not be tall enough on retry 0 when
+    // most items are still estimated.
+    const observedScrollTop = scrollEl.scrollTop;
+
+    if (retry < LyricsVirtualizer._MAX_SCROLL_RETRIES) {
+      this._scrollVerifyRAF = requestAnimationFrame(() => {
+        this._scrollVerifyRAF = null;
+        if (this._virtualizer !== v) return;
+
+        const fresh = v.measurementsCache[index] as
+          | { start: number; size: number }
+          | undefined;
+        // Detect whether the cache moved item N's position/size since we read it.
+        // Newly-mounted items above N can shift its `start` even when N itself
+        // hasn't been measured.
+        const drift = fresh
+          ? Math.abs(fresh.start - itemStart) + Math.abs(fresh.size - itemSize)
+          : 0;
+        const wasClamped = Math.abs(observedScrollTop - finalScrollTop) > 1;
+
+        if (drift >= 1 || wasClamped) {
+          this._scrollToIndexWithRetry(
+            index,
+            align,
+            instant,
+            padding,
+            retry + 1,
+            observedScrollTop
+          );
+        }
+      });
+    }
   }
 
   destroy(): void {
@@ -626,6 +726,10 @@ class LyricsVirtualizer {
       wrappers: this._wrappers.length,
       hasVirtualizer: Boolean(this._virtualizer),
     });
+    if (this._scrollVerifyRAF !== null) {
+      cancelAnimationFrame(this._scrollVerifyRAF);
+      this._scrollVerifyRAF = null;
+    }
     this._maid?.Destroy();
     this._maid = null;
     this._scrollEl = null;
@@ -650,7 +754,10 @@ class LyricsVirtualizer {
     this._mountedIndices.clear();
     this._lastVirtualWindowSignature = "";
     this._virtualContainer = null;
-    if (this._resizeDebounceTimer) clearTimeout(this._resizeDebounceTimer);
+    if (this._resizeDebounceTimer !== null) {
+      clearTimeout(this._resizeDebounceTimer);
+      this._resizeDebounceTimer = null;
+    }
     this._onNewElementMounted = null;
   }
 }

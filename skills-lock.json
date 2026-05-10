@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "apple-ui-designer": {
+      "source": "heyman333/atelier-ui",
+      "sourceType": "github",
+      "skillPath": "skills/apple-ui-designer/SKILL.md",
+      "computedHash": "0610e28a1965eeb565cdef1a5f12def084e80551aa7704aa6c4c378acbc60c46"
+    },
+    "ios-glass-ui-designer": {
+      "source": "heyman333/atelier-ui",
+      "sourceType": "github",
+      "skillPath": "skills/ios-glass-ui-designer/SKILL.md",
+      "computedHash": "47e86b07fd18cb23128b81eb02cf5ce133a52564e5b58c3ec7157e10e4283522"
+    }
+  }
+}

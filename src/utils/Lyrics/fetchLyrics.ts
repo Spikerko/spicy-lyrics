@@ -1,4 +1,3 @@
-import { GetExpireStore } from "@spikerko/tools/Cache";
 import { isDev } from "../../components/Global/Defaults.ts";
 import { $currentLyricsData, $currentLyricsType, $currentlyFetching } from "../stores.ts";
 import Platform from "../../components/Global/Platform.ts";
@@ -10,6 +9,7 @@ import { Query } from "../API/Query.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 import Logger from "../logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
+import { GetExpireStore } from "../../modules/Store.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -59,28 +59,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return ["unknown-track", 400];
   }
 
-  const localLyric = await LocalLyricsManager.get(uri);
-  if (localLyric) {
-    if (localLyric?.IncludesRomanization) {
-      PageContainer?.classList.add("Lyrics_RomanizationAvailable");
-    } else {
-      PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
-    }
-
-    $currentlyFetching.set(false);
-    HideLoaderContainer();
-    $currentLyricsType.set(localLyric.Type);
-    PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
-    PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
-    PageView.AppendViewControls(true);
-    $currentlyFetching.set(false);
-    return [localLyric, 200];
-  }
-
-  if (uri.startsWith("spotify:local:")) {
-    $currentlyFetching.set(false);
-    return ["local-track", 400];
-  }
+  const trackId = uri.split(":")[2];
 
   if ($currentlyFetching.get()) {
     $currentlyFetching.set(false);
@@ -93,7 +72,6 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     LyricsContent.classList.add("HiddenTransitioned");
   }
 
-  const trackId = uri.split(":")[2];
 
   // Check if there's already data in localStorage
   const savedLyricsData = $currentLyricsData.get();
@@ -134,6 +112,26 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     }
   }
 
+  const localLyric = await LocalLyricsManager.get(uri);
+  if (localLyric) {
+    if (localLyric?.IncludesRomanization) {
+      PageContainer?.classList.add("Lyrics_RomanizationAvailable");
+    } else {
+      PageContainer?.classList.remove("Lyrics_RomanizationAvailable");
+    }
+
+    $currentlyFetching.set(false);
+    HideLoaderContainer();
+    $currentLyricsType.set(localLyric.Type);
+    PageContainer?.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
+    PageContainer?.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
+    PageView.AppendViewControls(true);
+    const lyricsData = { ...localLyric, id: trackId }
+    $currentLyricsData.set(JSON.stringify(lyricsData));
+    $currentlyFetching.set(false);
+    return [lyricsData, 200];
+  }
+
   if (LyricsStore) {
     try {
       const lyricsFromCacheRes = await LyricsStore.GetItem(trackId);
@@ -164,6 +162,12 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       $currentlyFetching.set(false);
       return ["unknown-error", 0];
     }
+  }
+
+  
+  if (uri.startsWith("spotify:local:")) {
+    $currentlyFetching.set(false);
+    return ["local-track", 400];
   }
 
 

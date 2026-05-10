@@ -109,10 +109,9 @@ class _HTMLGenericModal extends HTMLElement {
 
 		// Listen for click events on Overlay
 		const overlay = this.querySelector(".sl-modal-overlay");
-		const modal = this.querySelector(".sl-modal");
-		if (overlay && modal) {
+		if (overlay) {
 			overlay.addEventListener("click", (event: MouseEvent) => {
-				if (closeOnOutsideClick && !modal.contains(event.target as Node)) hidePopup();
+				if (closeOnOutsideClick && event.target === event.currentTarget) hidePopup();
 			});
 		}
 

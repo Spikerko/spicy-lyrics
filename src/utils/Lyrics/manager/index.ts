@@ -56,8 +56,32 @@ async function listKeys(): Promise<Array<string>> {
   }
 }
 
+async function getRaw(uri: string): Promise<string | null> {
+  try {
+    const db = await dbPromise;
+    const data = await db.get(objStore, uri);
+    if (data == null) return null;
+    return typeof data === "string" ? data : null;
+  } catch (error) {
+    logCaught("getRaw", error, { uri });
+    return null;
+  }
+}
+
+async function remove(uri: string): Promise<void> {
+  try {
+    const db = await dbPromise;
+    await db.delete(objStore, uri);
+  } catch (error) {
+    logCaught("remove", error, { uri });
+    throw error;
+  }
+}
+
 export const LocalLyricsManager = {
   put,
   get,
+  getRaw,
   listKeys,
+  remove,
 };

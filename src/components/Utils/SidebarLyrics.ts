@@ -1,8 +1,8 @@
-import Whentil, { type CancelableTask } from "@spikerko/tools/Whentil";
 import { $isGlobalNav, $sidebarStatus } from "../../utils/uiState.ts";
 
 import PageView from "../Pages/PageView.ts";
 import Logger from "../../utils/logger.ts";
+import Whentil, { type CancelableTask } from "../../modules/Whentil.ts";
 
 const sidebarLogger = new Logger("Sidebar Lyrics");
 

@@ -173,3 +173,5 @@ __dev-scripts/
 
 # upcoming feature leak..?
 src/components/cli-sync
+
+settings.local.json

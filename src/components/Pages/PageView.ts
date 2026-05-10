@@ -1,7 +1,6 @@
 import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
 import { $forceCompactMode, $isGlobalNav } from "../../utils/uiState.ts";
 import "../../css/Loaders/DotLoader.css";
-import Whentil from "@spikerko/tools/Whentil";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
   cleanupApplyLyricsAbortController,
@@ -58,8 +57,9 @@ import {
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
-import { OpenDevToolsModal } from "./TTMLImport.ts";
+import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import Logger from "../../utils/logger.ts";
+import Whentil from "../../modules/Whentil.ts";
 
 const pageLogger = new Logger("Page View");
 const controlsLogger = new Logger("View Controls");
@@ -75,14 +75,14 @@ export const Tooltips: {
   FullscreenToggle: TippyInstance | null;
   CinemaView: TippyInstance | null;
   NowBarSideToggle: TippyInstance | null;
-  DevTools: TippyInstance | null;
+  LyricsManager: TippyInstance | null;
 } = {
   Close: null,
   NowBarToggle: null,
   FullscreenToggle: null,
   CinemaView: null,
   NowBarSideToggle: null,
-  DevTools: null,
+  LyricsManager: null,
 };
 
 const PageView = {
@@ -466,7 +466,7 @@ function AppendViewControls(ReAppend: boolean = false) {
         }
         ${
           isTTMLMakerMode
-            ? `<button id="DevTools" class="ViewControl">${Icons.DevTools}</button>`
+            ? `<button id="LyricsManager" class="ViewControl">${Icons.LyricsManager}</button>`
             : ""
         }
         <button id="Close" class="ViewControl">${Icons.Close}</button>
@@ -749,24 +749,24 @@ function AppendViewControls(ReAppend: boolean = false) {
       }
     }
 
-    const devToolsButton = elem.querySelector("#DevTools");
-    if (devToolsButton && isTTMLMakerMode) {
+    const lyricsManagerButton = elem.querySelector("#LyricsManager");
+    if (lyricsManagerButton && isTTMLMakerMode) {
       try {
         if (!isPip) {
-          Tooltips.DevTools = Spicetify.Tippy(devToolsButton, {
+          Tooltips.LyricsManager = Spicetify.Tippy(lyricsManagerButton, {
             ...Spicetify.TippyProps,
-            content: `DevTools`,
+            content: `Lyrics Manager`,
           });
         }
-        devToolsButton.addEventListener("click", () => {
+        lyricsManagerButton.addEventListener("click", () => {
           if (IsPIP) {
             globalThis.focus();
           }
-
-          OpenDevToolsModal();
+          
+          OpenLyricsDBPanel();
         });
       } catch (err) {
-        controlsLogger.warn("Failed to setup DevTools tooltip", err);
+        controlsLogger.warn("Failed to setup Lyrics Manager tooltip", err);
       }
     }
   }

@@ -1,6 +1,7 @@
 import { dbPromise } from "./db";
 import { LocalLyricsManager } from "./Lyrics/manager";
 import { openSettingsPanel } from "./settings";
+import { OpenLyricsDBPanel } from "./openLyricsDBPanel";
 import { DeepFreeze } from "./utils";
 import { triggerSpicyLyricsFakeUpdate } from "./version/CheckForUpdates";
 
@@ -9,7 +10,10 @@ export function exposeToWindow() {
         panels: {
             settings: {
                 open: () => openSettingsPanel(),
-            }
+            },
+            lyricsDB: {
+                open: () => OpenLyricsDBPanel(),
+            },
         },
         db: {
             dbPromise: dbPromise,
