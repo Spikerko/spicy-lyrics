@@ -140,7 +140,11 @@ export default function GetProgress() {
         return normalizeProgress(positionAsOfTimestamp);
       }
 
-      return normalizeProgress(positionAsOfTimestamp + (Date.now() - timestamp));
+      // Apply the same playback offset used by the syncedPosition path so
+      // lyric/progress timing stays aligned regardless of which state source is available.
+      return normalizeProgress(
+        positionAsOfTimestamp + (Date.now() - timestamp) + PROGRESS_POSITION_OFFSET,
+      );
     }
   }
 
