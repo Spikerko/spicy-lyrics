@@ -512,7 +512,7 @@ function getElementState(
   endTime: number
 ): "NotSung" | "Active" | "Sung" {
   if (currentTime < startTime) return "NotSung";
-  if (currentTime > endTime) return "Sung";
+  if (currentTime >= endTime) return "Sung";
   return "Active";
 }
 
