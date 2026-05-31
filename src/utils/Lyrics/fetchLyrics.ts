@@ -132,6 +132,15 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     return [lyricsData, 200];
   }
 
+  // Local files have no real track id (uri.split(":")[2] is the URL-encoded
+  // artist name), so they can't be looked up in LyricsStore or fetched from the
+  // API. Bail out here — after LocalLyricsManager.get() (which serves any
+  // user-uploaded TTML) but before the meaningless remote cache read.
+  if (uri.startsWith("spotify:local:")) {
+    $currentlyFetching.set(false);
+    return ["local-track", 400];
+  }
+
   if (LyricsStore) {
     try {
       const lyricsFromCacheRes = await LyricsStore.GetItem(trackId);
@@ -150,12 +159,6 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       $currentlyFetching.set(false);
       return ["unknown-error", 0];
     }
-  }
-
-
-  if (uri.startsWith("spotify:local:")) {
-    $currentlyFetching.set(false);
-    return ["local-track", 400];
   }
 
 

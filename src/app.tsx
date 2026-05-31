@@ -59,7 +59,6 @@ import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/Pop
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
-import { toast } from "sonner";
 import "./utils/settings.ts";
 import SLToaster from "./components/ReactComponents/SLToaster.tsx";
 import { openSettingsPanel } from "./utils/settings.ts";
@@ -542,8 +541,6 @@ async function main() {
 
       document.body.appendChild(div);
     }
-
-    (window as any)._toaster = toast;
 
     // Lets set out Dynamic Background (spicy-dynamic-bg) to the now playing bar
     let lastImgUrl: string | null;

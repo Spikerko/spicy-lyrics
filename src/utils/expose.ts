@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { dbPromise } from "./db";
 import { LocalLyricsManager } from "./Lyrics/manager";
 import { openSettingsPanel } from "./settings";
@@ -26,7 +27,8 @@ export function exposeToWindow() {
         testing: {
             autoUpdate: {
                 triggerFakeUpdate: triggerSpicyLyricsFakeUpdate,
-            }
+            },
+            toaster: toast,
         }
     };
 

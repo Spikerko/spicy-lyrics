@@ -3,6 +3,7 @@ import { LocalLyricsManager } from "../../../../utils/Lyrics/manager";
 import { $currentLyricsData } from "../../../../utils/stores";
 import ApplyLyrics from "../../../../utils/Lyrics/Global/Applyer";
 import fetchLyrics from "../../../../utils/Lyrics/fetchLyrics";
+import { SpotifyPlayer } from "../../../Global/SpotifyPlayer";
 
 export type UseLyricsDBResult = {
   uris: string[];
@@ -33,11 +34,16 @@ export function useLyricsDB(): UseLyricsDBResult {
 
   const remove = useCallback(async (uri: string) => {
     await LocalLyricsManager.remove(uri);
-    $currentLyricsData.set("");
-    setTimeout(() => {
-      fetchLyrics(uri)
-        .then(ApplyLyrics);
-    }, 25);
+    // Only refresh the on-screen lyrics if the deleted entry belongs to the
+    // track that's currently playing. Otherwise we'd wipe the playing track's
+    // lyrics and re-apply the (now deleted) non-playing track's lyrics.
+    if (SpotifyPlayer.GetUri() === uri) {
+      $currentLyricsData.set("");
+      setTimeout(() => {
+        fetchLyrics(uri)
+          .then(ApplyLyrics);
+      }, 25);
+    }
     await refresh();
   }, [refresh]);
 

@@ -31,13 +31,16 @@ class Logger {
   }
 
   warn(...args: unknown[]) {
-    if (this.maid.IsDestroyed() || !this.isEnabled) return;
+    // Warnings always reach the console — they surface real runtime issues
+    // that users (and bug reports) need to see regardless of developer mode.
+    if (this.maid.IsDestroyed()) return;
     const [prefix, style] = this.getPrefixArgs();
     console.warn(prefix, style, ...args);
   }
 
   error(...args: unknown[]) {
-    if (this.maid.IsDestroyed() || !this.isEnabled) return;
+    // Errors always reach the console, regardless of developer mode.
+    if (this.maid.IsDestroyed()) return;
     const [prefix, style] = this.getPrefixArgs();
     console.error(prefix, style, ...args);
   }
