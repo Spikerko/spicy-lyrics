@@ -997,15 +997,19 @@ async function main() {
         }
         lastTimeout = setTimeout(async () => {
           const currentSongLyrics = $currentLyricsData.get();
+          const currentUri = SpotifyPlayer.GetUri();
+          const currentTrackKey = currentUri?.startsWith("spotify:local:")
+            ? currentUri
+            : SpotifyPlayer.GetId();
+
           if (
             currentSongLyrics &&
-            currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetId()}`
+            currentSongLyrics !== `NO_LYRICS:${currentTrackKey}`
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics);
-            if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
-              const refetchUri = SpotifyPlayer.GetUri();
-              if (refetchUri) {
-                fetchLyrics(refetchUri).then(ApplyLyrics);
+            if (parsedLyrics?.id !== currentTrackKey) {
+              if (currentUri) {
+                fetchLyrics(currentUri).then(ApplyLyrics);
               }
             }
           }
