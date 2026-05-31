@@ -52,6 +52,7 @@ export const RemoveLyricsCache = async (ui: boolean = false) => {
   }
 };
 
+
 export const RemoveCurrentLyrics_StateCache = (ui: boolean = false) => {
   try {
     $currentLyricsData.set("");

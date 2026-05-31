@@ -31,7 +31,7 @@ interface LyricsLineData {
   Text: string;
   StartTime: number;
   EndTime: number;
-  RomanizedText?: string;
+  TransliteratedText?: string;
   OppositeAligned?: boolean;
 }
 
@@ -177,7 +177,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
   data.Content.forEach((line, index, arr) => {
     const lineElem = document.createElement("div");
     lineElem.textContent =
-      UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
+      UseRomanized && line.TransliteratedText !== undefined ? line.TransliteratedText : line.Text;
     lineElem.classList.add("line");
 
     if (isRtl(line.Text) && !lineElem.classList.contains("rtl")) {

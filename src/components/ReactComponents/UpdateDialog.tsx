@@ -7,7 +7,7 @@ interface UpdateDialogProps {
 
 const UpdateDialog: React.FC<UpdateDialogProps> = ({ fromVersion, spicyLyricsVersion }) => {
   return (
-    <div className="update-card-wrapper slm">
+    <div className="update-card-wrapper">
       <h2 className="uc-title">Spicy Lyrics updated!</h2>
       <p className="uc-subtitle">You're running the latest version.</p>
 

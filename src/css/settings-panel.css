@@ -1,11 +1,16 @@
-/* ── Settings Panel ─────────────────────────────────────────── */
+/* ── Settings Panel — reads chrome tokens from the modal scope ────── */
 sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
   /* Toolbar: search + filter */
   .sl-sp-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .slmodal-settingsPanel > div {
+    width: 40vw;
+    height: 80vh;
   }
 
   /* Search */
@@ -13,21 +18,27 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    gap: var(--space-2);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    border-radius: var(--radius-sm);
     padding: 0 10px;
-    height: 36px;
-    transition: border-color 0.15s, background 0.15s;
+    height: var(--tap-min);
+    transition:
+      box-shadow var(--dur-fast) var(--ease-standard),
+      background var(--dur-fast) var(--ease-standard);
+
+    &:hover {
+      background: var(--accent-tint-bg-hover);
+    }
 
     &:focus-within {
-      border-color: rgba(255, 255, 255, 0.18);
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--accent-tint-bg-hover);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
     }
 
     .sl-sp-search-icon {
-      color: rgba(255, 255, 255, 0.3);
+      color: var(--color-text-tertiary);
       flex-shrink: 0;
     }
 
@@ -36,13 +47,13 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       background: none;
       border: none;
       outline: none;
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 0.83rem !important;
-      font-weight: 400;
+      color: var(--color-text-primary);
+      font-size: var(--text-body-size) !important;
+      font-weight: var(--w-regular);
       min-width: 0;
 
       &::placeholder {
-        color: rgba(255, 255, 255, 0.25);
+        color: var(--color-text-secondary);
       }
     }
 
@@ -54,12 +65,12 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       border: none;
       padding: 0;
       cursor: pointer;
-      color: rgba(255, 255, 255, 0.3);
+      color: var(--color-text-tertiary);
       flex-shrink: 0;
-      transition: color 0.15s;
+      transition: color var(--dur-fast) var(--ease-standard);
 
       &:hover {
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--color-text-secondary);
       }
     }
   }
@@ -74,37 +85,38 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     display: flex;
     align-items: center;
     gap: 6px;
-    height: 36px;
-    padding: 0 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.82rem !important;
-    font-weight: 500;
+    height: var(--tap-min);
+    padding: 0 var(--space-3);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-medium);
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
     white-space: nowrap;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: rgba(255, 255, 255, 0.75);
+      background: var(--accent-tint-bg-hover);
+      color: var(--color-text-primary);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
     }
 
-    &.open {
-      background: rgba(255, 255, 255, 0.09);
-      border-color: rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.8);
+    &:active {
+      transform: scale(0.97);
     }
 
+    &.open,
     &.active {
-      border-color: rgba(29, 185, 84, 0.45);
-      color: rgba(29, 185, 84, 0.9);
-      background: rgba(29, 185, 84, 0.08);
-
-      &:hover {
-        background: rgba(29, 185, 84, 0.13);
-      }
+      background: var(--accent-tint-bg-hover);
+      color: var(--color-text-primary);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
     }
 
     .sl-sp-filter-icon {
@@ -119,7 +131,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
 
     .sl-sp-filter-chevron {
       flex-shrink: 0;
-      transition: transform 0.2s ease;
+      transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
 
       &.rotated {
         transform: rotate(180deg);
@@ -131,14 +143,18 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
-    min-width: 150px;
-    background: #1e1e1e;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 4px;
+    min-width: 160px;
+    background: var(--material-regular-bg);
+    -webkit-backdrop-filter: var(--material-regular-blur);
+    backdrop-filter: var(--material-regular-blur);
+    box-shadow:
+      var(--liquid-cast-soft),
+      inset 0 0 0 1px var(--hairline);
+    border-radius: var(--radius-md);
+    padding: var(--space-1);
     z-index: 100;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-    animation: sl-sp-menu-in 0.12s ease;
+    transform-origin: top right;
+    animation: sl-sp-menu-in 0.18s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   @keyframes sl-sp-menu-in {
@@ -155,27 +171,29 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
   .sl-sp-filter-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
     width: 100%;
     padding: 7px 10px;
     background: none;
     border: none;
     border-radius: 7px;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.82rem !important;
-    font-weight: 400;
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-regular);
     cursor: pointer;
     text-align: left;
-    transition: background 0.1s, color 0.1s;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.07);
-      color: rgba(255, 255, 255, 0.9);
+      background: var(--accent-tint-bg);
+      color: var(--color-text-primary);
     }
 
     &.sl-sp-filter-item--active {
-      color: rgba(255, 255, 255, 0.95);
-      font-weight: 500;
+      color: var(--color-text-primary);
+      font-weight: var(--w-medium);
     }
 
     .sl-sp-filter-item-check {
@@ -185,34 +203,45 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       width: 14px;
       height: 14px;
       flex-shrink: 0;
-      color: #1db954;
+      color: var(--color-text-primary);
     }
   }
+
+  /* Section title — bigger and louder than row labels (fixes the
+     inverted hierarchy where uppercase+tracking+gradient compensated
+     for being smaller than the items beneath). One quiet hairline
+     separates groups instead of a decorative gradient. */
   .sl-sp-section-title {
-    font-size: 0.7rem !important;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.3);
-    padding: 0 2px;
-    margin: 16px 0 6px;
+    font-size: var(--text-headline-size) !important;
+    font-weight: var(--w-semibold);
+    letter-spacing: -0.005em;
+    color: var(--color-text-primary);
+    padding: var(--space-4) 2px var(--space-2);
+    margin: var(--space-2) 0 var(--space-1);
+    border-top: 1px solid var(--hairline);
+
+    /* The very first section title sits flush against the toolbar — no
+       leading hairline, no extra top space. */
+    &:first-of-type,
+    .sl-sp-toolbar + & {
+      border-top: 0;
+      padding-top: var(--space-2);
+      margin-top: 0;
+    }
   }
 
   .sl-sp-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 11px 16px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    margin-bottom: 4px;
-    transition: background 0.15s;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background var(--dur-fast) var(--ease-standard);
     position: relative;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--accent-tint-bg);
     }
 
     &.sl-sp-row--disabled {
@@ -230,26 +259,31 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       .sl-sp-row-tooltip {
         position: absolute;
         bottom: calc(100% + 6px);
-        left: 50%;
-        transform: translateX(-50%) translateY(4px);
-        background: #232323;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.75);
-        font-size: 0.75rem !important;
-        font-weight: 400;
-        padding: 5px 10px;
-        border-radius: 7px;
+        right: 0;
+        transform: translateY(4px);
+        background: var(--material-regular-bg);
+        -webkit-backdrop-filter: var(--material-regular-blur);
+        backdrop-filter: var(--material-regular-blur);
+        box-shadow:
+          var(--liquid-cast-soft),
+          inset 0 0 0 1px var(--hairline);
+        color: var(--color-text-primary);
+        font-size: var(--text-caption-size) !important;
+        font-weight: var(--w-regular);
+        padding: 6px 10px;
+        border-radius: 8px;
         white-space: nowrap;
         pointer-events: none;
         opacity: 0;
-        transition: opacity 0.15s, transform 0.15s;
+        transition:
+          opacity var(--dur-fast) var(--ease-standard),
+          transform var(--dur-fast) var(--ease-standard);
         z-index: 200;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
       }
 
       &:hover .sl-sp-row-tooltip {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
       }
     }
 
@@ -261,16 +295,19 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       min-width: 0;
     }
 
+    /* Label sits below the section title in size and weight — restoring
+       hierarchy. Description is the quietest line. */
     .sl-sp-label {
-      font-size: 0.88rem !important;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.8);
+      font-size: var(--text-body-size) !important;
+      font-weight: var(--w-medium);
+      color: var(--color-text-primary);
     }
 
     .sl-sp-description {
-      font-size: 0.76rem !important;
-      font-weight: 400;
-      color: rgba(255, 255, 255, 0.35);
+      font-size: var(--text-caption-size) !important;
+      font-weight: var(--w-regular);
+      color: var(--color-text-secondary);
+      opacity: 0.85;
       line-height: 1.4;
     }
 
@@ -281,7 +318,13 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     }
   }
 
-  /* Toggle */
+  /* Toggle — iOS-style state contrast through *luminance opposition*: the
+     track and knob always sit on opposite ends of the brightness scale, so
+     they can never read as the same color. OFF is a dark recessed groove
+     with a bright cream knob; ON is a bright track with a pure-white knob
+     ringed by a dark hairline so it still pops against the bright track.
+     The shift in BOTH track and knob brightness is what signals state in
+     a monochrome system. */
   .sl-sp-toggle {
     position: relative;
     display: inline-flex;
@@ -300,58 +343,99 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     .sl-sp-toggle-track {
       width: 42px;
       height: 24px;
-      background: rgba(255, 255, 255, 0.12);
+      /* OFF: dark recessed groove. Reads as a slot cut into the modal,
+         not as another light surface fighting with the knob. */
+      background: rgba(0, 0, 0, 0.42);
+      box-shadow:
+        inset 0 1px 2px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.06);
       border-radius: 12px;
-      transition: background 0.2s ease;
+      transition:
+        background 0.22s cubic-bezier(0.23, 1, 0.32, 1),
+        box-shadow 0.22s cubic-bezier(0.23, 1, 0.32, 1);
       position: relative;
 
       &::after {
         content: "";
         position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 18px;
-        height: 18px;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.6);
-        transition: transform 0.2s ease, background 0.2s ease;
+        /* OFF knob: clearly brighter than the dark groove. */
+        background: rgba(245, 245, 245, 0.78);
+        box-shadow:
+          0 2px 5px rgba(0, 0, 0, 0.5),
+          0 0 0 0.5px rgba(0, 0, 0, 0.28);
+        transition:
+          transform 0.22s cubic-bezier(0.23, 1, 0.32, 1),
+          background 0.22s cubic-bezier(0.23, 1, 0.32, 1),
+          box-shadow 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+    }
+
+    &:hover .sl-sp-toggle-track {
+      background: rgba(0, 0, 0, 0.5);
+
+      &::after {
+        background: rgba(255, 255, 255, 0.9);
       }
     }
 
     input:checked + .sl-sp-toggle-track {
-      background: #1db954;
+      /* ON: lit track. Brighter than the off groove but deliberately not
+         pure white — that's reserved for the knob. */
+      background: rgba(255, 255, 255, 0.42);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.24);
 
       &::after {
         transform: translateX(18px);
-        background: #000000;
+        /* ON knob: pure white, ringed by a 1px dark hairline so it
+           remains visibly separate from the bright track. The hairline
+           is what guarantees the knob is never lost on white. */
+        background: #ffffff;
+        box-shadow:
+          0 2px 6px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(0, 0, 0, 0.18);
       }
+    }
+
+    &:hover input:checked + .sl-sp-toggle-track {
+      background: rgba(255, 255, 255, 0.52);
     }
   }
 
-  /* Select */
+  /* Select — flat tinted surface, no inner blur */
   .sl-sp-select {
-    background: rgba(255, 255, 255, 0.07);
-    color: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 5px 10px;
-    font-size: 0.82rem !important;
-    font-weight: 500;
+    background: var(--accent-tint-bg);
+    color: var(--color-text-primary);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-medium);
     cursor: pointer;
     outline: none;
-    transition: background 0.15s;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.11);
+      background: var(--accent-tint-bg-hover);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
     }
 
     option {
-      background: #1a1a1a;
-      color: #ffffff;
+      background: #ffffff;
+      color: rgba(0, 0, 0, 0.92);
     }
   }
 
-  /* Standalone tooltip */
+  /* Standalone tooltip — uses the shared material */
   .sl-sp-tooltip-wrap {
     position: relative;
     display: inline-flex;
@@ -361,19 +445,24 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       bottom: calc(100% + 6px);
       left: 50%;
       transform: translateX(-50%) translateY(4px);
-      background: #232323;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.75);
-      font-size: 0.75rem !important;
-      font-weight: 400;
-      padding: 5px 10px;
-      border-radius: 7px;
+      background: var(--material-regular-bg);
+      -webkit-backdrop-filter: var(--material-regular-blur);
+      backdrop-filter: var(--material-regular-blur);
+      box-shadow:
+        var(--liquid-cast-soft),
+        inset 0 0 0 1px var(--hairline);
+      color: var(--color-text-primary);
+      font-size: var(--text-footnote-size) !important;
+      font-weight: var(--w-regular);
+      padding: 6px 10px;
+      border-radius: 8px;
       white-space: nowrap;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.15s, transform 0.15s;
+      transition:
+        opacity var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard);
       z-index: 200;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
     }
 
     &:hover .sl-sp-tooltip-bubble {
@@ -382,24 +471,26 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     }
   }
 
-  /* Button */
+  /* Inline action button (Reset, Clear, etc.) — flat tinted surface */
   .sl-sp-btn {
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 7px 14px;
-    font-size: 0.82rem !important;
-    font-weight: 600;
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-semibold);
     cursor: pointer;
     letter-spacing: 0.01em;
-    transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
-    background: rgba(255, 59, 59, 0.12);
-    color: rgba(255, 100, 100, 0.9);
-    border: 1px solid rgba(255, 59, 59, 0.2) !important;
+    background: var(--accent-tint-bg);
+    color: var(--color-text-primary);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
 
     &:hover {
-      background: rgba(255, 59, 59, 0.2);
-      color: #ff6464;
-      box-shadow: 0 4px 14px rgba(255, 59, 59, 0.2);
+      background: var(--accent-tint-bg-hover);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
     }
 
     &:active {

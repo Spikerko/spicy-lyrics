@@ -9,10 +9,10 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    color: white;
+    color: var(--color-text-primary);
     transform: translate(-50%, -50%);
-    font-weight: 500;
-    opacity: .7;
+    font-weight: var(--w-semibold);
+    letter-spacing: -0.01em;
 
     transition:
       padding-right 0.4s,
@@ -25,6 +25,9 @@
     .notice-footer {
       font-size: clamp(0.95rem, 3.5cqw, 1.45rem);
       margin-top: 1cqh;
+      font-weight: var(--w-regular);
+      color: var(--color-text-secondary);
+      letter-spacing: 0;
       white-space: nowrap;
 
       a {
@@ -33,6 +36,7 @@
         isolation: isolate;
 
         cursor: pointer;
+        color: var(--color-text-primary);
 
         --hover-after-push: 3px;
 
@@ -51,7 +55,8 @@
             1.014 38.5%,
             0.994 46.3%,
             1
-          );
+          ),
+          color 0.2s ease;
 
         margin: 0px;
         padding-top: 2px;
@@ -71,7 +76,7 @@
 
           position-anchor: --anchor-notice-footer-anchor;
 
-          background: rgba(255, 255, 255, 0.65);
+          background: var(--hairline);
 
           transition: 800ms
             linear(
@@ -93,6 +98,7 @@
 
         &:hover {
           text-decoration: none !important;
+          color: var(--accent);
           margin-left: var(--hover-after-push);
           margin-right: var(--hover-after-push);
           padding-left: 10px;
@@ -100,7 +106,7 @@
         }
 
         &:hover::after {
-          background: rgba(255, 255, 255, 0.35);
+          background: rgba(29, 185, 84, 0.18);
           top: calc(anchor(top) - var(--hover-after-push));
           bottom: calc(anchor(bottom) - var(--hover-after-push));
           left: calc(anchor(left) - var(--hover-after-push));

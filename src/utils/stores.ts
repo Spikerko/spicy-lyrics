@@ -64,7 +64,7 @@ export const $popupLyricsAllowed = (() => {
   return store;
 })();
 export const $viewControlsPosition = persistAtom<string>("viewControlsPosition", "Top");
-export const $ttmlMakerMode = persistAtom<boolean>("ttmlMakerMode", false);
+export const $ttmlMakerMode = persistAtom<boolean>("ttmlMakerMode", true);
 export const $developerMode = persistAtom<boolean>("developerMode", false);
 export const $timelineOutsideMediaContent = persistAtom<boolean>("timelineOutsideMediaContent", true);
 

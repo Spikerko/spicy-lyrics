@@ -101,7 +101,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
   }
 
   return (
-    <div className="sl-ldb-upload-root slm">
+    <div className="sl-ldb-upload-root">
       <div className="sl-ldb-upload-header">
         <h2 className="sl-ldb-upload-title">Upload TTML</h2>
         <p className="sl-ldb-upload-subtitle">For: {songName}</p>

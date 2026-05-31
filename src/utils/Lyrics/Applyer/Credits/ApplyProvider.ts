@@ -2,7 +2,7 @@ const ProviderMap = {
     "spt": "Spotify",
     "aml": "Apple Music",
     "spl": "Spicy Lyrics",
-    "ldb": "Local Database",
+    "ldb": "Local DB",
 }
 
 export function ApplyLyricsProvider(data: any, LyricsContainer: HTMLElement): void {

@@ -1,0 +1,130 @@
+/*
+ * Spicy Lyrics — design tokens
+ * Apple HIG (base) + iOS Glass (overlays). Loaded before any other Spicy CSS.
+ * Lyric line/word/letter rendering is out of scope and never reads from this file.
+ */
+
+:root {
+  /* ─── Color: text ─────────────────────────────────────────────────────── */
+  --color-text-primary: hsla(0, 0%, 100%, 0.92);
+  --color-text-secondary: hsla(0, 0%, 100%, 0.6);
+  --color-text-tertiary: hsla(0, 0%, 100%, 0.35);
+  --color-text-quaternary: hsla(0, 0%, 100%, 0.18);
+  --color-text-on-fill: #000;
+
+  /* ─── Color: surfaces ─────────────────────────────────────────────────── */
+  --color-bg-elevated: rgba(28, 28, 32, 0.88);
+  --color-bg-overlay: rgba(0, 0, 0, 0.35);
+
+  /* ─── Color: status (muted; only tints icons / single text affordances) */
+  --color-status-danger: rgba(255, 110, 110, 0.78);
+  --color-status-info: rgba(120, 180, 255, 0.78);
+  --color-status-success: rgba(140, 220, 170, 0.78);
+  --color-status-warning: rgba(255, 195, 120, 0.82);
+
+  /* ─── Materials (Liquid Glass — translucent, lightly frosted) ─────────── */
+  --material-ultraThin-bg: rgba(0, 0, 0, 0.06);
+  --material-ultraThin-blur: blur(8px) saturate(1.5) brightness(1.04);
+
+  --material-regular-bg: rgba(0, 0, 0, 0.1);
+  --material-regular-blur: blur(12px) saturate(1.6) brightness(1.05);
+
+  --material-thick-bg: rgba(0, 0, 0, 0.12);
+  --material-thick-blur: blur(16px) saturate(1.7) brightness(1.06);
+
+  /* ─── Liquid edges (gloss outline — bright top AND bottom) ────────────── */
+  /* Both edges catch light — top is direct specular, bottom is refracted
+     bounce from the curved underside of a glass cylinder. The bevel runs
+     all the way around. No dark insets — that reads as a shadow stuck
+     inside the element, which kills the "glass" cue. */
+  --liquid-edge:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+  --liquid-edge-strong:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+
+  /* Ambient cast: tinted near-black so dark backgrounds don't get a black
+     halo. The tinted hue is the trick that makes shadows feel "from the
+     surface" rather than "stamped on the page". */
+  --liquid-cast: 0 16px 40px -8px rgba(8, 10, 18, 0.55),
+    0 4px 12px -2px rgba(8, 10, 18, 0.35);
+  --liquid-cast-soft: 0 10px 24px -6px rgba(8, 10, 18, 0.42),
+    0 2px 6px -1px rgba(8, 10, 18, 0.28);
+
+  /* On-material tokens — text/icons land on a translucent surface over a
+     dark page, so the legible color is still WHITE. Kept as aliases so
+     downstream rules that already reference them keep working. */
+  --on-material-text-primary: hsla(0, 0%, 100%, 0.92);
+  --on-material-text-secondary: hsla(0, 0%, 100%, 0.65);
+  --on-material-text-tertiary: hsla(0, 0%, 100%, 0.42);
+  --on-material-text-quaternary: hsla(0, 0%, 100%, 0.22);
+  --on-material-hairline: rgba(255, 255, 255, 0.12);
+  --on-material-hairline-strong: rgba(255, 255, 255, 0.2);
+  --on-material-tint-bg: rgba(255, 255, 255, 0.06);
+  --on-material-tint-bg-hover: rgba(255, 255, 255, 0.1);
+
+  /* ─── Typography ramp (SF Pro / system, sized in rem) ─────────────────── */
+  --text-title-size: 1.1rem;
+  --text-title-line: 1.25;
+  --text-headline-size: 0.9575rem;
+  --text-headline-line: 1.3;
+  --text-body-size: 0.875rem;
+  --text-body-line: 1.4;
+  --text-caption-size: 0.82rem;
+  --text-caption-line: 1.35;
+  --text-footnote-size: 0.76rem;
+  --text-footnote-line: 1.3;
+
+  --w-bold: 700;
+  --w-semibold: 600;
+  --w-medium: 500;
+  --w-regular: 400;
+
+  /* ─── Radii ───────────────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* ─── Spacing — 4px grid ──────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* ─── Borders / hairlines ─────────────────────────────────────────────── */
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+
+  /* ─── Shadows (tinted toward the page hue so they don't read pure black) */
+  --shadow-overlay:
+    0 14px 36px -6px rgba(8, 10, 18, 0.55),
+    0 0 0 1px var(--hairline);
+  --shadow-modal:
+    0 40px 88px -10px rgba(8, 10, 18, 0.7),
+    0 12px 24px -4px rgba(8, 10, 18, 0.4),
+    0 0 0 1px var(--hairline);
+
+  /* ─── Accent (neutral / iOS-mono — restraint over color) ──────────────── */
+  --accent: rgba(255, 255, 255, 0.95);
+  --accent-hover: #ffffff;
+  --accent-on-fill: #000;
+  /* "tint" is the soft active highlight (used for selected rows, badges) */
+  --accent-tint-bg: rgba(255, 255, 255, 0.06);
+  --accent-tint-bg-hover: rgba(255, 255, 255, 0.14);
+
+  /* ─── Tap targets ─────────────────────────────────────────────────────── */
+  --tap-min: 36px;
+  --tap-min-primary: 44px;
+
+  /* ─── Motion (for new usage; existing tuned curves preserved verbatim) ── */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 0.15s;
+  --dur-base: 0.25s;
+  --dur-slow: 0.4s;
+}

@@ -1,17 +1,15 @@
 // CSS Imports
+import "./css/tokens.css";
+import "./css/primitives.css";
 import "./css/default.css";
 import "./css/default.scss";
 import "./css/Simplebar.css";
 import "./css/ContentBox.css";
-// import "./css/SongMoreInfo.css";
 import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Loaders/LoaderContainer.css";
 import "./css/font-pack/font-pack.css";
-import "./css/ttml-profile/profile.css";
-
-import "./components/Utils/GlobalExecute.ts";
 
 import ApplyDynamicBackground, {
   GetStaticBackground,
@@ -23,6 +21,7 @@ import {
   $popupLyricsAllowed,
   $spicyLyricsVersion,
   $staticBackgroundMode,
+  $developerMode,
 } from "./utils/stores.ts";
 import Global from "./components/Global/Global.ts";
 import Platform from "./components/Global/Platform.ts";
@@ -51,7 +50,6 @@ import { ScrollSimplebar } from "./utils/Scrolling/Simplebar/ScrollSimplebar.ts"
 import { $fromVersion, $lastFetchedUri, $previousVersion, $sidebarStatus } from "./utils/uiState.ts";
 import { CheckForUpdates } from "./utils/version/CheckForUpdates.tsx";
 import { needsMigration, showMigrationModal } from "./utils/migration/DataMigration.tsx";
-import "./css/polyfills/tippy-polyfill.css";
 import "./css/settings-panel.css";
 import "./components/ReactComponents/LyricsManager/styles.css";
 import "./css/polyfills/generic-modal-polyfill.css";
@@ -68,13 +66,7 @@ import { openSettingsPanel } from "./utils/settings.ts";
 import { exposeToWindow } from "./utils/expose.ts";
 import Logger from "./utils/logger.ts";
 import Whentil from "./modules/Whentil.ts";
-
-/* 
-  upcoming feature leak..?
-
-  import { initCliSocket } from "./components/cli-sync/index.ts";
-  import "./components/cli-sync/socket/manager.ts";
-*/
+import App from "./utils/app.ts";
 
 async function main() {
   const appLogger = new Logger("App");
@@ -82,11 +74,11 @@ async function main() {
   const dynamicBgLogger = new Logger("Dynamic Background");
   const playbackLogger = new Logger("Playback");
 
-  //if (App.isDev()) {
-  appLogger.debug("Boot sequence");
-  exposeToWindow();
-  appLogger.debug("Window helpers exposed");
-  //}
+  if (App.isDev() || $developerMode.get()) {
+    appLogger.debug("Boot sequence");
+    exposeToWindow();
+    appLogger.debug("Window helpers exposed");
+  }
 
   await Platform.OnSpotifyReady;
 
@@ -293,7 +285,7 @@ async function main() {
         Registered: false,
         Button: new SpotifyPlayer.Playbar.Button(
           "Enter Fullscreen",
-          Icons.Fullscreen,
+          `<svg role="img" height="16" width="16" aria-hidden="true" viewBox="0 0 16 16" data-encore-id="icon" class="Svg-sc-ytk21e-0 Svg-img-16-icon"><path d="M6.064 10.229l-2.418 2.418L2 11v4h4l-1.647-1.646 2.418-2.418-.707-.707zM11 2l1.647 1.647-2.418 2.418.707.707 2.418-2.418L15 6V2h-4z"/></svg>`,
           async (self) => {
             if (isSpicySidebarMode) {
               await CloseSidebarLyrics();
@@ -1013,8 +1005,6 @@ async function main() {
             currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetId()}`
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics);
-            console.log('id', parsedLyrics.id);
-            console.log('id2', SpotifyPlayer.GetId());
             if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
               const refetchUri = SpotifyPlayer.GetUri();
               if (refetchUri) {

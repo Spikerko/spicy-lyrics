@@ -7,6 +7,7 @@ const EmitNotApplyed = () => {
   Global.Event.evoke(`${EventPrefix}not-apply`, null);
 };
 
+
 const EmitApply = (Type: string, Content: any) => {
   PageContainer?.querySelector(
     ".LyricsContainer .LyricsContent"

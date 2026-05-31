@@ -92,7 +92,7 @@ export default function LyricsDBPanel({ onUploadClick }: LyricsDBPanelProps) {
   }
 
   return (
-    <div className="sl-ldb-root slm">
+    <div className="sl-ldb-root">
       <div className="sl-ldb-toolbar">
         <SearchBar value={query} onChange={setQuery} placeholder="Search saved lyrics…" />
         <IconButton

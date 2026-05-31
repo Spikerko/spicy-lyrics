@@ -33,7 +33,7 @@ import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
 // Define the data structure for syllable lyrics
 interface SyllableData {
   Text: string;
-  RomanizedText?: string;
+  TransliteratedText?: string;
   StartTime: number;
   EndTime: number;
   IsPartOfWord?: boolean;
@@ -241,15 +241,15 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       const totalDuration = ConvertTime(lead.EndTime) - ConvertTime(lead.StartTime);
 
       const letterLength = (
-        UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
+        UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text
       ).split("").length;
 
-      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text);
+      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text);
 
       if (IfLetterCapable) {
         word = document.createElement("div");
         const letters = (
-          UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text
+          UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text
         ).split(""); // Split word into individual letters
 
         Emphasize(letters, word, lead);
@@ -268,7 +268,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         }
       } else {
         word.textContent =
-          UseRomanized && lead.RomanizedText !== undefined ? lead.RomanizedText : lead.Text;
+          UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text;
 
         if (!$simpleLyricsMode.get()) {
           word.style.setProperty("--gradient-position", `-20%`);
@@ -350,15 +350,15 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           const totalDuration = ConvertTime(bw.EndTime) - ConvertTime(bw.StartTime);
 
           const letterLength = (
-            UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text
+            UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text
           ).split("").length;
 
-          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text);
+          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text);
 
           if (IfLetterCapable) {
             bwE = document.createElement("div");
             const letters = (
-              UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text
+              UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text
             ).split(""); // Split word into individual letters
 
             Emphasize(letters, bwE, bw, true);
@@ -377,7 +377,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             }
           } else {
             bwE.textContent =
-              UseRomanized && bw.RomanizedText !== undefined ? bw.RomanizedText : bw.Text;
+              UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text;
 
             if (!$simpleLyricsMode.get()) {
               bwE.style.setProperty("--gradient-position", `0%`);

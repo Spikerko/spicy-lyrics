@@ -108,11 +108,8 @@ function migrateData() {
     settings["popupLyricsAllowed"] = !disablePopup;
   }
 
-  // Map old "devMode" to new "ttmlMakerMode" if present
-  const oldDevMode = readOld("devMode");
-  if (oldDevMode !== undefined) {
-    settings["ttmlMakerMode"] = oldDevMode;
-  }
+  // ttmlMakerMode is on by default and no longer user-toggleable, so the old
+  // "devMode" key is intentionally not migrated into it.
 
   const uiState: Record<string, any> = {};
   for (const key of OLD_UI_STATE_KEYS) {
@@ -149,7 +146,7 @@ export function showMigrationModal() {
   function renderMigrate() {
     flushSync(() => {
       reactRoot.render(
-        <div className="update-card-wrapper slm migration-card">
+        <div className="update-card-wrapper migration-card">
           <div className="udc-icon-wrap">
             <svg className="udc-migrate-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <ellipse cx="12" cy="5" rx="8" ry="3" stroke="currentColor" strokeWidth="1.75"/>
@@ -184,7 +181,7 @@ export function showMigrationModal() {
   function renderSuccess() {
     flushSync(() => {
       reactRoot.render(
-        <div className="update-card-wrapper slm migration-card">
+        <div className="update-card-wrapper migration-card">
           <div className="udc-icon-wrap">
             <svg className="udc-migrate-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ color: "#1db954" }}>
               <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

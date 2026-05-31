@@ -29,7 +29,7 @@ export interface StaticLyricsData {
   Type: string;
   Lines: Array<{
     Text: string;
-    RomanizedText?: string;
+    TransliteratedText?: string;
   }>;
   offline?: boolean;
   classes?: string;
@@ -79,7 +79,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     const lineElem = document.createElement("div");
 
     lineElem.textContent =
-      UseRomanized && line.RomanizedText !== undefined ? line.RomanizedText : line.Text;
+      UseRomanized && line.TransliteratedText !== undefined ? line.TransliteratedText : line.Text;
 
     if (isRtl(line.Text) && !lineElem.classList.contains("rtl")) {
       lineElem.classList.add("rtl");

@@ -7,7 +7,6 @@ import { LyricsObject, SimpleLyricsMode_LetterEffectsStrengthConfig, preHiddenDo
 import { BlurMultiplier, SidebarBlurMultiplier, timeOffset } from "../Shared.ts";
 import { setOnNewElementMounted } from "../../LyricsVirtualizer.ts";
 import { Spring } from "../../../../modules/Spring.ts";
-
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
 const getSLMAnimation = (duration: number) => {

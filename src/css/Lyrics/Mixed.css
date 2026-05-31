@@ -474,8 +474,8 @@
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo {
-  --font-size: calc(var(--DefaultLyricsSize) * 0.35);
-  font-size: var(--font-size) !important;
+  /* Sized relative to the parent's (inherited) font-size — see .Credits note. */
+  font-size: 0.35em !important;
   font-weight: 600;
   margin: 1cqw 0 0 !important;
   color: white;
@@ -486,7 +486,7 @@
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo {
-  --font-size: calc(var(--DefaultLyricsSize) * 0.5);
+  font-size: 0.5em !important;
 }
 
 /* #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent:has(.Credits.Active) .SongInfo {
@@ -586,6 +586,17 @@ body.SpicySidebarLyrics__Active
   .LyricsContainer
   .SpicyLyricsScrollContainer[data-lyrics-type="Static"] {
   --DefaultLyricsSize: clamp(0.9rem, calc(1cqw * 7), 2.8rem);
+}
+
+/* Popup (PiP) static lyrics: kept intentionally a touch smaller than synced
+   lines, but bumped well above the default static floor so they stay
+   readable in the small popup window. Specificity (1,5,0) beats the base
+   static rule above (1,4,0). */
+.spicy-pip-wrapper
+  #SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .SpicyLyricsScrollContainer[data-lyrics-type="Static"] {
+  --DefaultLyricsSize: clamp(1.4rem, calc(1cqw * 6), 2.3rem);
 }
 
 #SpicyLyricsPage.SpicyRenderer
@@ -914,9 +925,12 @@ body.SpicySidebarLyrics__Active
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .Credits {
-  --font-size: calc(var(--DefaultLyricsSize) * 0.47);
+  /* `em` is, by definition, relative to the parent element's font-size. The
+     parent (.SpicyLyricsScrollContainer) inherits font-size: var(--DefaultLyricsSize)
+     from .LyricsContent, so this scales with the lyrics without needing a
+     container-type on the scroll container (which would break its height). */
+  font-size: 0.47em !important;
   font-weight: 600 !important;
-  font-size: var(--font-size) !important;
   opacity: 0.6;
   margin: 1cqw 0 0 !important;
   scale: 1;
@@ -925,9 +939,9 @@ body.SpicySidebarLyrics__Active
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .LyricsProvider {
-  --font-size: calc(var(--DefaultLyricsSize) * 0.34);
+  /* Sized relative to the parent's (inherited) font-size — see .Credits note. */
+  font-size: 0.34em !important;
   font-weight: 600 !important;
-  font-size: var(--font-size) !important;
   opacity: 0.5;
   margin: .75cqw 1px 0 !important;
   scale: 1;

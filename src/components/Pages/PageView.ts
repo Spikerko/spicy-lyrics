@@ -58,8 +58,10 @@ import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
+import { openSettingsPanel } from "../../utils/settings.ts";
 import Logger from "../../utils/logger.ts";
 import Whentil from "../../modules/Whentil.ts";
+import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
 const controlsLogger = new Logger("View Controls");
@@ -76,6 +78,7 @@ export const Tooltips: {
   CinemaView: TippyInstance | null;
   NowBarSideToggle: TippyInstance | null;
   LyricsManager: TippyInstance | null;
+  Settings: TippyInstance | null;
 } = {
   Close: null,
   NowBarToggle: null,
@@ -83,6 +86,7 @@ export const Tooltips: {
   CinemaView: null,
   NowBarSideToggle: null,
   LyricsManager: null,
+  Settings: null,
 };
 
 const PageView = {
@@ -144,14 +148,6 @@ async function OpenPage(
   //const extractedColors = ((await Spicetify.colorExtractor(SpotifyPlayer.GetUri() ?? "spotify:track:31CsSZ9KlQmEu0JvWSkM3j")) as any) ?? { VIBRANT_NON_ALARMING: "#999999" };
   //const vibrantNonAlarmingColor = extractedColors?.VIBRANT_NON_ALARMING ?? "#999999";
   elem.innerHTML = `
-        <div class="NotificationContainer">
-            <div class="NotificationIcon"></div>
-            <div class="NotificationText">
-                <div class="NotificationTitle"></div>
-                <div class="NotificationDescription"></div>
-            </div>
-            <div class="NotificationCloseButton">X</div>
-        </div>
         <div class="ContentBox">
             <div class="NowBar">
                 <div class="CenteredView">
@@ -388,6 +384,9 @@ Global.Event.listen("lyrics:apply", ({ Type }: { Type: string }) => {
     //QueueForceScroll(); // Queue a force scroll instead of directly calling with true
     LyricsApplied = true;
   }
+
+  setTimeout(() => triggerRemeasureLV(), 1000);
+  setTimeout(() => triggerRemeasureLV(), 1500);
 });
 
 function AppendViewControls(ReAppend: boolean = false) {
@@ -443,7 +442,7 @@ function AppendViewControls(ReAppend: boolean = false) {
         ${
           NowBarObj.Open &&
           !isSpicySidebarMode
-            ? IsPIP ? "" : `<button id="NowBarSideToggle" class="ViewControl">${Icons.Fullscreen}</button>`
+            ? IsPIP ? "" : `<button id="NowBarSideToggle" class="ViewControl">${Icons.NowBarSideSwap}</button>`
             : ""
         }
         ${
@@ -469,6 +468,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             ? `<button id="LyricsManager" class="ViewControl">${Icons.LyricsManager}</button>`
             : ""
         }
+        ${IsPIP ? "" : `<button id="SettingsToggle" class="ViewControl">${Icons.Settings}</button>`}
         <button id="Close" class="ViewControl">${Icons.Close}</button>
     `;
 
@@ -749,6 +749,21 @@ function AppendViewControls(ReAppend: boolean = false) {
       }
     }
 
+    const settingsButton = elem.querySelector("#SettingsToggle");
+    if (settingsButton && !isPip) {
+      try {
+        Tooltips.Settings = Spicetify.Tippy(settingsButton, {
+          ...Spicetify.TippyProps,
+          content: `Spicy Lyrics Settings`,
+        });
+        settingsButton.addEventListener("click", () => {
+          openSettingsPanel();
+        });
+      } catch (err) {
+        controlsLogger.warn("Failed to setup Settings tooltip", err);
+      }
+    }
+
     const lyricsManagerButton = elem.querySelector("#LyricsManager");
     if (lyricsManagerButton && isTTMLMakerMode) {
       try {
@@ -771,115 +786,6 @@ function AppendViewControls(ReAppend: boolean = false) {
     }
   }
 }
-
-interface SpicyLyricsNotificationReturnObject {
-  cleanup: () => void;
-  close: () => void;
-  open: () => void;
-}
-
-export function SpicyLyrics_Notification({
-  icon,
-  metadata: { title, description },
-  type,
-  closeBtn,
-}: {
-  icon: string;
-  metadata: {
-    title: string;
-    description: string;
-  };
-  type?: "Danger" | "Information" | "Success" | "Warning";
-  closeBtn?: boolean;
-}): SpicyLyricsNotificationReturnObject {
-  const nonFunctionalReturnObject = {
-    cleanup: () => {},
-    close: () => {},
-    open: () => {},
-  };
-  if (!PageView.IsOpened) return nonFunctionalReturnObject;
-  const NotificationContainer = PageContainer?.querySelector(
-    ".NotificationContainer"
-  );
-  if (!NotificationContainer) return nonFunctionalReturnObject;
-  const Title = NotificationContainer.querySelector(
-    ".NotificationText .NotificationTitle"
-  );
-  const Description = NotificationContainer.querySelector(
-    ".NotificationText .NotificationDescription"
-  );
-  const Icon = NotificationContainer.querySelector(".NotificationIcon");
-  const CloseButton = NotificationContainer.querySelector(
-    ".NotificationCloseButton"
-  );
-
-  if (Title && title) {
-    Title.textContent = title;
-  }
-  if (Description && description) {
-    Description.textContent = description;
-  }
-  if (Icon && icon) {
-    Icon.innerHTML = icon;
-  }
-
-  const closeBtnHandler = () => {
-    NotificationContainer.classList.remove("Visible");
-    if (Title) {
-      Title.textContent = "";
-    }
-    if (Description) {
-      Description.textContent = "";
-    }
-    if (Icon) {
-      Icon.innerHTML = "";
-    }
-    if (CloseButton) {
-      CloseButton.classList.remove("Disabled");
-    }
-  };
-
-  NotificationContainer.classList.add(type ?? "Information");
-
-  const closeBtnA = closeBtn ?? true;
-
-  if (CloseButton) {
-    if (!closeBtnA) {
-      CloseButton.classList.add("Disabled");
-    } else {
-      CloseButton.addEventListener("click", closeBtnHandler);
-    }
-  }
-
-  return {
-    cleanup: () => {
-      if (closeBtnA && CloseButton) {
-        CloseButton.removeEventListener("click", closeBtnHandler);
-      }
-      NotificationContainer.classList.remove("Visible");
-      NotificationContainer.classList.remove(type ?? "Information");
-      if (Title) {
-        Title.textContent = "";
-      }
-      if (Description) {
-        Description.textContent = "";
-      }
-      if (Icon) {
-        Icon.innerHTML = "";
-      }
-      if (CloseButton) {
-        CloseButton.classList.remove("Disabled");
-      }
-    },
-    close: () => {
-      NotificationContainer.classList.remove("Visible");
-    },
-    open: () => {
-      NotificationContainer.classList.add("Visible");
-    },
-  };
-}
-
 
 // --- Reactive setting subscriptions ---
 

@@ -28,22 +28,17 @@ class LyricsVirtualizer {
   private _virtualizer: Virtualizer<HTMLElement, HTMLElement> | null = null;
   private _allElements: HTMLElement[] = [];
   // One positioning wrapper per line element. The wrapper gets position:absolute +
-  // translateY from the virtualizer; the .line element lives inside it so that any
-  // CSS `scale` applied to .line acts purely around the element's own center and
-  // does NOT interact with the virtualizer's translateY.  Without the wrapper,
-  // `scale` and `transform: translateY(N)` compose through transform-origin, causing
-  // elements to shift downward by an amount proportional to N (i.e. by 0.05×N for
-  // scale 1.05), which grows the further down the list the element sits.
+  // translateY from the virtualizer; the .line lives inside it so a CSS `scale` on
+  // .line acts around its own center instead of composing with translateY through
+  // transform-origin (which would shift elements down proportionally to translateY).
   private _wrappers: (HTMLElement | null)[] = [];
   private _mountedIndices = new Set<number>();
   private _virtualContainer: HTMLElement | null = null;
   private _scrollEl: HTMLElement | null = null;
 
-  // Optional callback invoked whenever a new element enters the viewport (is mounted
-  // for the first time in the current render pass). Used by the animator to
-  // invalidate its active-line blur cache so that newly visible elements immediately
-  // receive the correct --BlurAmount on the next frame rather than showing a stale
-  // value from a previous applyBlur run that skipped them while disconnected.
+  // Invoked when a new element is mounted. Used by the animator to invalidate its
+  // active-line blur cache so newly visible elements get the correct --BlurAmount
+  // next frame instead of a stale value from a run that skipped them while disconnected.
   private _onNewElementMounted: (() => void) | null = null;
 
   // Shared ResizeObserver — fires after every layout recalc for observed elements.
@@ -61,6 +56,11 @@ class LyricsVirtualizer {
   // Last observed clientWidth of the scroll element.
   private _containerWidth = 0;
 
+  // Last observed clientHeight of the scroll element. Lets the watchdog and the
+  // width observer detect height-only resizes (which change the visible window
+  // and the bottom spacer, but not individual item heights).
+  private _containerHeight = 0;
+
   // ResizeObserver dedicated to tracking clientWidth changes on the scroll element.
   private _widthObserver: ResizeObserver | null = null;
 
@@ -74,22 +74,26 @@ class LyricsVirtualizer {
   private _maid: Maid | null = null;
   private _lastVirtualWindowSignature = "";
 
-  // Pending verification rAF for scrollToIndex. Programmatic scroll lands on a
-  // position computed from the measurementsCache, but for items not yet mounted
-  // that cache is just _estimateSize. The first scroll after init (e.g. opening
-  // the lyrics page mid-song) routinely targets a stale position, the browser
-  // clamps scrollTop because totalSize was under-estimated, only items near the
-  // start mount, and the active line is invisible until a manual scroll/resize
-  // pumps the measurement cycle. We schedule a retry one frame after every
-  // scroll so the now-updated cache can re-compute the target until it stabilises.
+  // Pending verification rAF for scrollToIndex. Programmatic scroll targets a
+  // position from measurementsCache, but unmounted items only have _estimateSize,
+  // so the first scroll after init (e.g. mid-song open) lands on a stale, clamped
+  // position. We retry one frame after every scroll so the updated cache can
+  // re-compute the target until it stabilises.
   private _scrollVerifyRAF: ReturnType<typeof requestAnimationFrame> | null = null;
-  private static readonly _MAX_SCROLL_RETRIES = 8;
+  // Walk far targets (mid-song open) until the line is actually mounted; bounded so a
+  // pathological case can't loop forever (~0.5s at 60fps).
+  private static readonly _MAX_SCROLL_RETRIES = 30;
 
-  // Re-entry guard for _onVirtualizerChange. TanStack's resizeItem calls
-  // notify(false) → onChange synchronously when an item's size delta is
-  // non-zero, so v.measureElement() inside the mount loop can recurse back
-  // into _onVirtualizerChange. Without this guard, the outer loop's stale
-  // items snapshot overwrites correct transforms set by the inner call.
+  // True while a programmatic scrollToIndex is converging. During this window we
+  // disable TanStack's own scroll-position adjustment (see _setConverging) so we are
+  // the sole writer of scrollTop and the retry chain's "external scroll" abort only
+  // trips on a genuine user scroll.
+  private _converging = false;
+
+  // Re-entry guard for _onVirtualizerChange. TanStack's resizeItem calls onChange
+  // synchronously on a non-zero size delta, so v.measureElement() inside the mount
+  // loop can recurse back in; without this guard the outer loop's stale items
+  // snapshot would overwrite correct transforms set by the inner call.
   private _inOnChange = false;
   private _onChangePending = false;
 
@@ -165,6 +169,115 @@ class LyricsVirtualizer {
     }
   }
 
+  public remeasure(): void {
+    this._remeasureVisible();
+  }
+
+  // Push the live viewport size into TanStack's cached scrollRect when it has gone
+  // stale. TanStack writes scrollRect only from observeElementRect's ResizeObserver,
+  // which has no zero-guard: while hidden/occluded (Wayland) it caches a 0×0 rect and
+  // does not reliably re-fire on restore, so scrollRect stays {0,0} → getSize() 0 →
+  // calculateRange() null → the whole list unmounts and never comes back until a manual
+  // scroll. Nothing else repairs this, so we write the real size here; offsetWidth/Height
+  // matches TanStack's getRect() basis so we don't thrash its RO. Returns true on change.
+  private _syncScrollRect(): boolean {
+    const v = this._virtualizer;
+    const el = this._scrollEl;
+    if (!v || !el || document.hidden) return false;
+    const w = Math.round(el.offsetWidth);
+    const h = Math.round(el.offsetHeight);
+    if (w === 0 || h === 0) return false; // mirror the zero-width guards elsewhere
+    const r = v.scrollRect;
+    if (!r || Math.abs(r.width - w) >= 1 || Math.abs(r.height - h) >= 1) {
+      v.scrollRect = { width: w, height: h };
+      // Keep TanStack's offset aligned with the real scroll position so the recomputed
+      // window lands where the user actually is.
+      if (v.scrollOffset == null || Math.abs(v.scrollOffset - el.scrollTop) >= 1) {
+        v.scrollOffset = el.scrollTop;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  // Time-based fallback that self-heals layout drift the reactive observers miss.
+  // ResizeObserver notifications can be coalesced/dropped/delivered as a transient
+  // 0×0 size (Wayland, CPU lag, fast resizes), so the settle callback never lands and
+  // the list stays wedged (stale width or measurements) until a scroll fires
+  // _remeasureVisible(). This runs on a low-frequency Maid interval, does read-only
+  // layout queries, and only runs the same recovery when it finds drift — returning
+  // after the first acting branch to keep steady state at one reflow per tick.
+  private _selfHealCheck = (): void => {
+    const v = this._virtualizer;
+    const el = this._scrollEl;
+    if (!v || !el) return;
+    // While hidden/minimized/detached the container collapses to 0; measuring
+    // then would cache zeros that corrupt the layout on restore. Mirrors the
+    // zero-width guards in the resize and width observers.
+    if (document.hidden) return;
+    const clientWidth = el.clientWidth;
+    if (clientWidth === 0) return;
+    const clientHeight = el.clientHeight;
+
+    // 0. Viewport drift — TanStack's cached scrollRect can be stale-zero after a
+    // hidden/occluded cycle (Wayland) with no RO re-fire, emptying the virtual window.
+    // Repair it first and force a re-mount: the primary recovery for the "blank after
+    // tabbing back" bug. Being a setInterval (not rAF) it runs even when
+    // visibilitychange/focus never fire (occlusion-only on Wayland).
+    if (this._syncScrollRect()) {
+      virtualizerLogger.debug("Self-heal: refreshed stale TanStack scrollRect");
+      this._onVirtualizerChange(v);
+      return;
+    }
+
+    // 1. Width drift — stale width breaks gap padding (cqw) and the centering
+    // math, and today only recovers on scroll.
+    if (Math.abs(clientWidth - this._containerWidth) >= 1) {
+      virtualizerLogger.debug("Self-heal: width drift detected", {
+        previous: this._containerWidth,
+        current: clientWidth,
+      });
+      this._containerWidth = clientWidth;
+      this._containerHeight = clientHeight;
+      if (this._spacer) this._spacer.style.height = `${clientHeight / 2}px`;
+      this._remeasureVisible();
+      v._willUpdate();
+      return;
+    }
+
+    // 2. Height drift — changes the visible window and spacer but not item heights.
+    if (Math.abs(clientHeight - this._containerHeight) >= 1) {
+      virtualizerLogger.debug("Self-heal: height drift detected", {
+        previous: this._containerHeight,
+        current: clientHeight,
+      });
+      this._containerHeight = clientHeight;
+      if (this._spacer) this._spacer.style.height = `${clientHeight / 2}px`;
+      v._willUpdate();
+      return;
+    }
+
+    // 3. Measurement drift — a dropped per-wrapper _resizeObserver notification
+    // leaves a mounted wrapper's true height out of sync with the cached size.
+    // Read-only offsetHeight over the small mounted window (overscan 5).
+    for (const idx of this._mountedIndices) {
+      const wrapper = this._wrappers[idx];
+      if (!wrapper?.isConnected) continue;
+      const cached = (v.measurementsCache[idx] as { size: number } | undefined)?.size;
+      if (cached === undefined) continue;
+      if (Math.abs(wrapper.offsetHeight - cached) >= 1) {
+        virtualizerLogger.debug("Self-heal: measurement drift detected", {
+          index: idx,
+          cached,
+          measured: wrapper.offsetHeight,
+        });
+        this._remeasureVisible();
+        v._willUpdate();
+        return;
+      }
+    }
+  };
+
   private _onScrollEnd = (): void => {
     if (this._scrollEndTimer !== null) {
       clearTimeout(this._scrollEndTimer);
@@ -204,16 +317,15 @@ class LyricsVirtualizer {
 
     const containerWidth = scrollEl.clientWidth || virtualContainer.clientWidth || 0;
     this._containerWidth = containerWidth;
+    this._containerHeight = scrollEl.clientHeight;
     virtualizerLogger.debug("Initial container width resolved", containerWidth);
 
     this._resizeObserver = this._maid!.Give(new ResizeObserver((entries) => {
       const v = this._virtualizer;
       if (!v) return;
-      // When the window is minimized the scroll element collapses to 0×0.
-      // Every observed wrapper fires with 0 offsetHeight, and caching those
-      // zeros corrupts the measurements cache so that on restore all items
-      // land at start=0 and overlap. Guard here so measurements are only
-      // written when the container is actually rendered.
+      // When minimized the scroll element collapses to 0×0 and every wrapper fires
+      // with 0 offsetHeight; caching those zeros corrupts the cache so on restore all
+      // items land at start=0. Only write measurements when the container is rendered.
       if (this._scrollEl && this._scrollEl.clientWidth === 0) {
         virtualizerLogger.debug("Skipping resize measure: container width is zero");
         return;
@@ -265,9 +377,8 @@ class LyricsVirtualizer {
         });
       }
     }));
-    // Single observer on the virtual container (subtree) rather than one per element.
-    // Only mounted (visible) elements live inside virtualContainer, so this
-    // naturally scopes to elements where a gap update would actually matter.
+    // Single subtree observer on the virtual container rather than one per element:
+    // only mounted elements live there, so it scopes to where gap updates matter.
     this._classObserver.observe(virtualContainer, {
       subtree: true,
       attributes: true,
@@ -303,10 +414,12 @@ class LyricsVirtualizer {
           });
           this._containerWidth = settled;
           this._remeasureVisible();
-          v._willUpdate();
-        } else {
-          v._willUpdate();
         }
+        // The scroll element may not have had its final size when init() ran, so
+        // TanStack could have cached a 0/last-known rect. Push the settled size in and
+        // re-mount so the first paint isn't blank when opening the page.
+        this._syncScrollRect();
+        this._onVirtualizerChange(v);
       })
     });
 
@@ -317,9 +430,8 @@ class LyricsVirtualizer {
       this._scrollEl?.removeEventListener("scroll", this._onScrollDebounced);
     });
 
-    // Permanent bottom spacer — sized to half the viewport so that the last
-    // item can always be scrolled to center alignment without any temporary
-    // container-height inflation (which causes scrollbar flicker).
+    // Permanent bottom spacer at half the viewport height so the last item can be
+    // centered without temporary container-height inflation (which flickers the scrollbar).
     const spacer = document.createElement("div");
     spacer.style.flexShrink = "0";
     spacer.style.pointerEvents = "none";
@@ -340,14 +452,28 @@ class LyricsVirtualizer {
         return;
       }
       if (this._spacer) this._spacer.style.height = `${el.clientHeight / 2}px`;
-      if (Math.abs(newWidth - this._containerWidth) < 1) return;
+      if (Math.abs(newWidth - this._containerWidth) < 1) {
+        // Width unchanged, but a height-only resize (vertical-only window resize,
+        // PIP) still changes the visible window. The early return would otherwise
+        // swallow it until the watchdog catches up; respond immediately here.
+        if (Math.abs(el.clientHeight - this._containerHeight) >= 1) {
+          virtualizerLogger.debug("Container height changed (width stable)", {
+            previous: this._containerHeight,
+            next: el.clientHeight,
+          });
+          this._containerHeight = el.clientHeight;
+          v._willUpdate();
+        }
+        return;
+      }
       
       virtualizerLogger.info("Container width changed", {
         previous: this._containerWidth,
         next: newWidth,
       });
       this._containerWidth = newWidth;
-    
+      this._containerHeight = el.clientHeight;
+
       // Clear any existing timer
       if (this._resizeDebounceTimer !== null) {
         clearTimeout(this._resizeDebounceTimer);
@@ -364,10 +490,14 @@ class LyricsVirtualizer {
     }));
     this._widthObserver.observe(scrollEl);
 
-    // After a minimize/restore cycle TanStack's own observers re-trigger
-    // _onVirtualizerChange, but _mountedIndices is empty so _remeasureVisible
-    // is a no-op. Force a full remeasure pass once the browser has finished
-    // re-laying out the page so every re-mounted item gets correct heights.
+    // Watchdog catching drift within ~250ms when an observer notification above is
+    // coalesced/dropped/zero-sized. Registered on the Maid so destroy() tears it down.
+    const healInterval = setInterval(this._selfHealCheck, 250);
+    this._maid!.Give(() => clearInterval(healInterval));
+
+    // After a minimize/restore cycle _mountedIndices is empty, so the observers'
+    // re-triggered _remeasureVisible is a no-op. Force a full remeasure once the page
+    // has re-laid out so every re-mounted item gets correct heights.
     const _handleVisibilityRestore = () => {
       if (document.hidden) return;
       virtualizerLogger.debug("Visibility restored; forcing remeasure cycle");
@@ -378,8 +508,11 @@ class LyricsVirtualizer {
         if (w > 0 && Math.abs(w - this._containerWidth) >= 0.5) {
           this._containerWidth = w;
         }
+        // Push the live viewport size back into TanStack (its RO may have cached 0×0
+        // while hidden and not re-fired) and re-mount from the fresh rect.
+        this._syncScrollRect();
         this._remeasureVisible();
-        v._willUpdate();
+        this._onVirtualizerChange(v);
       });
     };
     document.addEventListener("visibilitychange", _handleVisibilityRestore);
@@ -465,22 +598,13 @@ class LyricsVirtualizer {
     for (const idx of toUnmount) {
       const wrapper = this._wrappers[idx];
       if (wrapper) {
-        // Sync the cached size to the line's CURRENT classList before removing
-        // the wrapper from the DOM. The wrapper's padding-bottom was sized to
-        // the gap in effect when the line was last rendered; in the meantime
-        // the animator may have flipped Active/Sung on the line, but the
-        // MutationObserver that normally keeps the padding in sync only fires
-        // for elements still in the virtualContainer subtree — and even then
-        // it's a microtask, so a class change made earlier in this same task
-        // (animator → onChange in one frame) hasn't been observed yet.
-        //
-        // Recomputing the gap from classList here makes the cache match what
-        // a remount would render, so a re-entry into the viewport doesn't
-        // misalign every following item by the stale dot-line height. We
-        // deliberately do NOT mutate the line's classList ourselves: the
-        // animator owns Active/Sung state, and stripping Active from a line
-        // that's still actively playing causes the line to flash collapsed
-        // for one animator frame on remount.
+        // Sync the cached size to the line's current classList before unmounting.
+        // The animator may have flipped Active/Sung since the wrapper was rendered,
+        // and the MutationObserver only fires for elements still in the subtree (and
+        // only as a microtask). Recomputing the gap here makes the cache match what a
+        // remount would render, so re-entry doesn't misalign following items by the
+        // stale dot-line height. We do NOT mutate classList — the animator owns
+        // Active/Sung, and stripping Active flashes the line collapsed on remount.
         const gap = this._itemGap(idx);
         const prevPad = parseFloat(wrapper.style.paddingBottom) || 0;
         if (Math.abs(prevPad - gap) >= 0.5) {
@@ -545,18 +669,12 @@ class LyricsVirtualizer {
   /**
    * Scroll the virtualizer to center (or align) a specific line index.
    *
-   * We bypass TanStack's built-in scrollToIndex() because its offset does not
-   * account for SpicyLyricsScrollContainer's margin-top. Instead we:
-   *  1. Read item.start / item.size from measurementsCache (public field,
-   *     populated for ALL items after the first getVirtualItems() call).
-   *  2. Measure the absolute containerOffset (virtual container top → scroll
-   *     element top at scrollPosition 0).
-   *  3. Compute the target scrollTop for the requested alignment.
-   *  4. Set scrollTop directly (always instant — smooth per-line scrolling
-   *     would fight with subsequent auto-scroll ticks).
-   *  5. Schedule a one-frame retry that re-reads the cache and re-scrolls if
-   *     measurements drifted or the browser clamped scrollTop. This converges
-   *     the position when the first call relied on estimates (mid-song open).
+   * Bypasses TanStack's scrollToIndex() (its offset ignores the scroll
+   * container's margin-top). We read item.start/size from measurementsCache,
+   * measure the absolute containerOffset, compute the target scrollTop, set it
+   * directly, then schedule a one-frame retry that re-reads the cache and
+   * re-scrolls if measurements drifted or the browser clamped scrollTop —
+   * converging when the first call relied on estimates (mid-song open).
    */
   scrollToIndex(
     index: number,
@@ -568,7 +686,23 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    this._setConverging(true);
     this._scrollToIndexWithRetry(index, align, instant, padding, 0, null);
+  }
+
+  // Toggle convergence mode. While converging we disable TanStack's
+  // shouldAdjustScrollPositionOnItemSizeChange hook, whose automatic scrollTop
+  // correction (for above-viewport items measured larger than estimate) writes
+  // scrollTop out from under our manual scroll and trips the retry's external-scroll
+  // guard — the root cause of the active line never centering on a mid-song open.
+  // Restored to the default heuristic on settle so steady-state scrolling keeps it.
+  private _setConverging(active: boolean): void {
+    if (active === this._converging) return;
+    this._converging = active;
+    const v = this._virtualizer;
+    if (v) {
+      v.shouldAdjustScrollPositionOnItemSizeChange = active ? () => false : undefined;
+    }
   }
 
   private _computeFinalScrollTop(
@@ -599,13 +733,22 @@ class LyricsVirtualizer {
     expectedScrollTop: number | null
   ): void {
     const v = this._virtualizer;
-    if (!v || !this._virtualContainer) return;
+    if (!v || !this._virtualContainer) {
+      this._setConverging(false);
+      return;
+    }
 
     const scrollEl = v.scrollElement;
-    if (!scrollEl) return;
+    if (!scrollEl) {
+      this._setConverging(false);
+      return;
+    }
 
     const viewportHeight = scrollEl.clientHeight;
-    if (!viewportHeight) return;
+    if (!viewportHeight) {
+      this._setConverging(false);
+      return;
+    }
 
     // If something else moved the scroll between our last set and this retry
     // (user scroll, another scrollTo call, etc), abandon the retry chain so we
@@ -619,6 +762,7 @@ class LyricsVirtualizer {
         actualScrollTop: scrollEl.scrollTop,
         retry,
       });
+      this._setConverging(false);
       return;
     }
 
@@ -684,29 +828,73 @@ class LyricsVirtualizer {
       scrollEl.classList.remove("InstantScroll");
     }
 
-    scrollEl.scrollTop = finalScrollTop;
+    // The scroll element has `scroll-behavior: smooth !important` (Simplebar.css),
+    // relaxed via `.InstantScroll` — but that class can race with style recalc. Under
+    // smooth behavior, re-issuing the scroll each retry restarts the eased animation so
+    // an in-range target crawls and never mounts. Passing explicit `behavior` to
+    // scrollTo() overrides the CSS outright, guaranteeing an instant jump.
+    scrollEl.scrollTo({
+      top: finalScrollTop,
+      behavior: instant ? "instant" : "auto",
+    });
     // Read back: the browser clamps scrollTop to (scrollHeight - clientHeight),
     // and the spacer-padded scrollHeight may not be tall enough on retry 0 when
     // most items are still estimated.
     const observedScrollTop = scrollEl.scrollTop;
+    const tanstackOffsetBefore = v.scrollOffset;
+
+    // Diagnostics: distinguishes a smooth-scroll stall, an unscrollable container,
+    // and the Wayland failure — a DOM/virtualizer offset desync (observedScrollTop
+    // moved but tanstackOffset did not, because the 'scroll' event never dispatched).
+    virtualizerLogger.debug("scrollToIndex applied", {
+      retry,
+      finalScrollTop: Math.round(finalScrollTop),
+      observedScrollTop: Math.round(observedScrollTop),
+      tanstackOffset: tanstackOffsetBefore == null ? null : Math.round(tanstackOffsetBefore),
+      scrollHeight: scrollEl.scrollHeight,
+      clientHeight: scrollEl.clientHeight,
+      maxScroll: scrollEl.scrollHeight - scrollEl.clientHeight,
+      virtualHeight: this._virtualContainer.offsetHeight,
+      scrollBehavior: getComputedStyle(scrollEl).scrollBehavior,
+      hasInstantScroll: scrollEl.classList.contains("InstantScroll"),
+      targetMounted: this._mountedIndices.has(index),
+    });
+
+    // Wayland quirk: a programmatic scrollTop write may not dispatch a 'scroll' event,
+    // so observeElementOffset never updates scrollOffset and the virtual window stays
+    // pinned to the old position while the DOM scrolled (blank lyrics until a manual
+    // scroll). Push the observed offset into the virtualizer and re-render so the right
+    // window mounts regardless. No-op where the event fires (offsets already match).
+    if (v.scrollOffset == null || Math.abs(v.scrollOffset - observedScrollTop) >= 1) {
+      v.scrollOffset = observedScrollTop;
+      this._onVirtualizerChange(v);
+    }
 
     if (retry < LyricsVirtualizer._MAX_SCROLL_RETRIES) {
       this._scrollVerifyRAF = requestAnimationFrame(() => {
         this._scrollVerifyRAF = null;
-        if (this._virtualizer !== v) return;
+        if (this._virtualizer !== v) {
+          this._setConverging(false);
+          return;
+        }
 
         const fresh = v.measurementsCache[index] as
           | { start: number; size: number }
           | undefined;
-        // Detect whether the cache moved item N's position/size since we read it.
-        // Newly-mounted items above N can shift its `start` even when N itself
-        // hasn't been measured.
+        // Did the cache move item N's position/size since we read it? Newly-mounted
+        // items above N can shift its `start` even if N itself wasn't measured.
         const drift = fresh
           ? Math.abs(fresh.start - itemStart) + Math.abs(fresh.size - itemSize)
           : 0;
         const wasClamped = Math.abs(observedScrollTop - finalScrollTop) > 1;
+        // By now the issued scroll has fired and onChange remounted the window, so
+        // this reflects the post-scroll state.
+        const targetMounted = this._mountedIndices.has(index);
 
-        if (drift >= 1 || wasClamped) {
+        // Keep walking until the target is mounted AND its position has stopped moving
+        // AND the browser is no longer clamping scrollTop, so a far (mid-song) target
+        // is reached. The external-scroll guard and _MAX_SCROLL_RETRIES bound it.
+        if (!targetMounted || drift >= 1 || wasClamped) {
           this._scrollToIndexWithRetry(
             index,
             align,
@@ -715,8 +903,12 @@ class LyricsVirtualizer {
             retry + 1,
             observedScrollTop
           );
+        } else {
+          this._setConverging(false);
         }
       });
+    } else {
+      this._setConverging(false);
     }
   }
 
@@ -730,12 +922,16 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    // Reset convergence so the next virtualizer instance doesn't inherit a stale `true`
+    // (which would make _setConverging(true) a no-op and never install the hook).
+    this._converging = false;
     this._maid?.Destroy();
     this._maid = null;
     this._scrollEl = null;
     this._resizeObserver = null;
     this._widthObserver = null;
     this._containerWidth = 0;
+    this._containerHeight = 0;
     this._classObserver = null;
     this._spacer = null;
 
@@ -793,4 +989,8 @@ export function destroyLyricsVirtualizer(): void {
 
 export function setOnNewElementMounted(cb: (() => void) | null): void {
   lyricsVirtualizer.setOnNewElementMounted(cb);
+}
+
+export function triggerRemeasureLV(): void {
+  lyricsVirtualizer.remeasure();
 }

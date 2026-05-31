@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import AppearanceSection from "./AppearanceSection.tsx";
 import BackgroundSection from "./BackgroundSection.tsx";
+import CacheSection from "./CacheSection.tsx";
 import DeveloperSection from "./DeveloperSection.tsx";
 import InterfaceSection from "./InterfaceSection.tsx";
 import LyricsSection from "./LyricsSection.tsx";
 import { FilterDropdown, SearchBar } from "./components.tsx";
 
-const SECTIONS = ["Background", "Lyrics Display", "Appearance", "Interface", "Developer"];
+const SECTIONS = ["Background", "Lyrics Display", "Appearance", "Interface", "Developer", "Cache"];
 
 export default function SettingsPanel() {
   const [query, setQuery] = useState("");
@@ -24,6 +25,7 @@ export default function SettingsPanel() {
       <AppearanceSection query={query} sectionFilter={sectionFilter} />
       <InterfaceSection query={query} sectionFilter={sectionFilter} />
       <DeveloperSection query={query} sectionFilter={sectionFilter} />
+      <CacheSection query={query} sectionFilter={sectionFilter} />
     </div>
   );
 }

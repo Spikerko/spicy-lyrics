@@ -7,142 +7,130 @@ import { PopupModal } from "../../components/Modal.ts";
 import { toast } from "sonner";
 
 let ShownUpdateNotice = false;
-let _transitioningModals = false;
+let WarningInFlight = false;
 
-function presentUpdateAvailable(currentVersion: any, latestVersion: any) {
-  toast(
+function startUpdate() {
+  Session.Navigate({ pathname: "/SpicyLyrics/Update" });
+}
+
+/**
+ * Non-blocking warning toast. Fires when the user dismisses any part of the
+ * update flow without acting on it. Carries an "Update now" action so the
+ * user can still recover. Deduped so a user clicking through multiple
+ * dismiss paths (e.g., toast X then modal close) doesn't get stacked
+ * warnings.
+ */
+function showUpdateDismissWarning() {
+  if (WarningInFlight) return;
+  WarningInFlight = true;
+  toast.warning(
     <div>
-      <div style={{ fontSize: "1.15rem", fontWeight: 600, lineHeight: 1.2 }}>
-        Spicy Lyrics {latestVersion?.Text || "update"} is available
+      <div style={{ fontSize: "var(--text-headline-size)", fontWeight: 600, lineHeight: 1.3 }}>
+        Continuing without updating?
       </div>
-      <div style={{ fontSize: "0.82rem", opacity: 0.6, marginTop: "3px" }}>
-        New lyrics features &amp; fixes.
+      <div style={{ fontSize: "var(--text-caption-size)", opacity: 0.75, marginTop: "2px", lineHeight: 1.4 }}>
+        Some lyrics sources and features are only available on the latest version.
       </div>
     </div>,
     {
-      duration: Infinity,
+      duration: 9000,
       action: {
-        label: "View ↗",
-        onClick: () => showUpdateModal(currentVersion, latestVersion),
-      },
-      style: {
-        background: "linear-gradient(135deg, #6c2ef2 0%, #3b0fa8 100%)",
-        border: "1px solid #9b5cf6",
-        color: "#f0e8ff",
-        minWidth: "340px",
-        maxWidth: "520px",
-        width: "clamp(340px, 50vw, 520px)",
+        label: "Update now",
+        onClick: startUpdate,
       },
       position: "bottom-right",
-      onDismiss: () => showDismissConfirmModal(currentVersion, latestVersion),
+      onDismiss: () => { WarningInFlight = false; },
+      onAutoClose: () => { WarningInFlight = false; },
     }
   );
 }
 
-function showDismissConfirmModal(currentVersion: any, latestVersion: any, asTransition: boolean = false) {
-  const div = document.createElement("div");
-  const reactRoot = ReactDOM.createRoot(div);
-  flushSync(() => {
-    reactRoot.render(
-      <div className="update-card-wrapper slm update-dismiss-confirm">
-        <div className="udc-icon-wrap">
-          <svg className="udc-warn-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M12 2.5L1.5 21h21L12 2.5Z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round"/>
-            <path d="M12 9.5v5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
-            <circle cx="12" cy="17.5" r="0.85" fill="currentColor"/>
-          </svg>
-        </div>
+function presentUpdateAvailable(currentVersion: any, latestVersion: any) {
+  let viewClicked = false;
 
-        <h2 className="uc-title">Outdated version?</h2>
-        <p className="uc-subtitle udc-desc">
-          Running an older version means you may miss new lyrics, bug fixes, and features.<br />
-          Some lyrics sources and capabilities are <strong>only available in the latest version</strong>.
-        </p>
-
-        <button
-          className="btn-update"
-          onClick={() => showUpdateModal(currentVersion, latestVersion, true)}
-        >
-          Update now
-        </button>
-        <button
-          className="btn-secondary"
-          onClick={() => PopupModal.hide()}
-        >
-          Update on restart
-        </button>
+  toast(
+    <div>
+      <div style={{ fontSize: "var(--text-headline-size)", fontWeight: 600, lineHeight: 1.3 }}>
+        Spicy Lyrics {latestVersion?.Text || "update"} is available
       </div>
-    );
-  });
-
-  const options = {
-    title: "Spicy Lyrics",
-    content: div,
-    onClose: () => reactRoot.unmount(),
-    closeOnOutsideClick: false,
-  };
-
-  if (asTransition) {
-    PopupModal.transition(options);
-  } else {
-    PopupModal.display(options);
-  }
+      <div style={{ fontSize: "var(--text-caption-size)", opacity: 0.65, marginTop: "2px" }}>
+        New lyrics features and fixes.
+      </div>
+    </div>,
+    {
+      duration: Infinity,
+      closeButton: true,
+      action: {
+        label: "View",
+        onClick: () => {
+          viewClicked = true;
+          showUpdateModal(currentVersion, latestVersion);
+        },
+      },
+      position: "bottom-right",
+      onDismiss: () => {
+        // Sonner fires onDismiss both on user X-click and after action
+        // follow-through. We only want to warn when the user truly walked
+        // away — viewClicked guards the action path.
+        if (!viewClicked) showUpdateDismissWarning();
+      },
+    }
+  );
 }
 
-function showUpdateModal(currentVersion: any, latestVersion: any, asTransition: boolean = false) {
+function showUpdateModal(currentVersion: any, latestVersion: any) {
   const div = document.createElement("div");
   const reactRoot = ReactDOM.createRoot(div);
+
+  // Single dismiss path used by the modal's X, outside-click, and the
+  // explicit "Later" button. Always warns; always closes.
+  const dismissWithWarning = () => {
+    showUpdateDismissWarning();
+    PopupModal.hide();
+  };
+
   flushSync(() => {
     reactRoot.render(
-      <div className="update-card-wrapper slm">
+      <div className="update-card-wrapper">
         <h2 className="uc-title">Update available</h2>
         <p className="uc-subtitle">A new version of Spicy Lyrics is ready to install.</p>
 
-        <div className="uc-divider" />
-
         <div className="uc-version-row">
           <span className="uc-ver">{currentVersion?.Text || "Current"}</span>
-          <span className="uc-arrow">→</span>
+          <span className="uc-arrow" aria-hidden="true">
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
           <span className="uc-ver new">{latestVersion?.Text || "Latest"}</span>
         </div>
 
-        <button
-          className="btn-update"
-          onClick={() => Session.Navigate({ pathname: "/SpicyLyrics/Update" })}
-        >
-          Update now
-        </button>
-        <button
-          className="btn-secondary"
-          onClick={() => {
-            _transitioningModals = true;
-            showDismissConfirmModal(currentVersion, latestVersion, true);
-            _transitioningModals = false;
-          }}
-        >
-          Update on restart
-        </button>
+        <div className="uc-actions">
+          <button
+            type="button"
+            className="btn-quiet"
+            onClick={dismissWithWarning}
+          >
+            Later
+          </button>
+          <button
+            type="button"
+            className="btn-update"
+            onClick={startUpdate}
+          >
+            Update now
+          </button>
+        </div>
       </div>
     );
   });
 
-  const options = {
+  PopupModal.display({
     title: "Spicy Lyrics",
     content: div,
     onClose: () => reactRoot.unmount(),
-    closeOnOutsideClick: false,
-    closeHandler: () => {
-      _transitioningModals = true;
-      showDismissConfirmModal(currentVersion, latestVersion, true);
-      _transitioningModals = false;
-    },
-  };
-
-  if (asTransition) {
-    PopupModal.transition(options);
-  } else {
-    PopupModal.display(options);
-  }
+    closeHandler: dismissWithWarning,
+  });
 }
 
 export async function CheckForUpdates(force: boolean = false) {

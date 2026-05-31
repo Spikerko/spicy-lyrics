@@ -170,8 +170,8 @@ API_TERMS.md
 .spicetify/
 
 __dev-scripts/
+_v6_b/
 
-# upcoming feature leak..?
 src/components/cli-sync
 
-settings.local.json
+.claude/settings.local.json

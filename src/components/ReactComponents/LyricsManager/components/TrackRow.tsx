@@ -76,15 +76,15 @@ export function TrackRow({ uri, track, loading, isCurrentlyPlaying, onPlay, onDo
       />
       <div className="sl-ldb-row__info">
         <div className="sl-ldb-row__title-row">
-          <span className="sl-ldb-row__title" title={title}>{title}</span>
           {isCurrentlyPlaying && (
-            <span className="sl-ldb-row__badge" title="Currently playing">
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M3 2.5L13 8L3 13.5V2.5Z" />
-              </svg>
-              Playing
-            </span>
+            <span
+              className="sl-ldb-row__playing-dot"
+              role="img"
+              aria-label="Currently playing"
+              title="Currently playing"
+            />
           )}
+          <span className="sl-ldb-row__title" title={title}>{title}</span>
         </div>
         {artists && <span className="sl-ldb-row__artists" title={artists}>{artists}</span>}
       </div>

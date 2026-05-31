@@ -13,6 +13,12 @@
   display: none;
 }
 
+@property --SL-LyricsContent_MaskTopPadding {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
 #SpicyLyricsPage .LyricsContainer .LyricsContent {
   --TextGlowDef: rgba(255, 255, 255, 0.15) 0px 0px 6px;
   --ActiveTextGlowDef: rgba(255, 255, 255, 0.4) 0px 0px 14px;
@@ -37,7 +43,7 @@
     180deg,
     transparent 0,
     transparent 16px,
-    var(--spice-sidebar) 64px,
+    var(--spice-sidebar) calc(64px + var(--SL-LyricsContent_MaskTopPadding)),
     var(--spice-sidebar) calc(100% - 64px),
     transparent calc(100% - 16px),
     transparent
@@ -47,7 +53,11 @@
   mask-image: var(--ImageMask);
   container-type: size;
   opacity: 1;
-  transition: opacity 0.25s;
+  transition: opacity 0.25s, --SL-LyricsContent_MaskTopPadding 0.5s;
+}
+
+#SpicyLyricsPage:not(.Fullscreen):has(.ViewControls .ViewControl:hover) .LyricsContainer .LyricsContent {
+  --SL-LyricsContent_MaskTopPadding: 32px;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent:has(.LyricsNotice) {
@@ -65,10 +75,11 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent {
-  /* CinemaView-like sizing tuned for the popup: comfortably large at the
-     default popup size, scales modestly with width, and is capped so very
-     wide popups don't end up with oversized text. */
-  --DefaultLyricsSize: clamp(2.4rem, calc(1cqw * 8), 3.5rem);
+  /* Compact sizing tuned for the popup: comfortably readable at the default
+     popup size (the floor dominates here, since the popup container is
+     narrow), scales with width, and is capped so very wide popups don't end
+     up with oversized text. */
+  --DefaultLyricsSize: clamp(1.7rem, calc(1cqw * 5.5), 2.6rem);
 }
 
 /* #SpicyLyricsPage.Fullscreen.MinimalLyricsMode .LyricsContainer .LyricsContent {
@@ -80,21 +91,13 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent
 }
 
 #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {
-  /* No container-type here — let the element size naturally from its children
-     (VirtualLyricsContainer + Credits). LyricsContent's container-type: size
-     context is sufficient for all cqw/cqh values used inside. */
   width: 100%;
-  /* border-box keeps total width at 100% when padding is applied (e.g. for NowBar
-     layout). Without this, content-box would make the element overflow the
-     Simplebar scroll container by the sum of padding-left + padding-right,
-     causing lyrics misalignment whenever the NowBar is open. */
   box-sizing: border-box;
   transition:
     padding-right 0.4s,
     padding-left 0.4s;
   display: flex;
   flex-direction: column;
-
   margin-bottom: 45cqh;
   margin-top: 25cqh;
 }

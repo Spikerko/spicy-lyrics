@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import { flushSync } from "react-dom";
 import { PopupModal } from "../components/Modal.ts";
@@ -14,7 +13,7 @@ export function OpenLyricsDBPanel() {
   });
 
   PopupModal.display({
-    title: "Local Lyrics Database",
+    title: "Local Lyrics DB",
     content: container,
     isLarge: true,
     onClose: () => root.unmount(),

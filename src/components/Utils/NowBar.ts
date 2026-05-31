@@ -262,10 +262,6 @@ function OpenNowBar(skipSaving: boolean = false) {
           const loopToggle = ControlsElement.querySelector(".LoopToggle");
           if (loopToggle) {
             loopToggle.classList.add("Enabled");
-            const loopSvg = ControlsElement.querySelector<HTMLElement>(".LoopToggle svg");
-            if (loopSvg) {
-              loopSvg.style.filter = "drop-shadow(0 0 5px white)";
-            }
           }
         }
 
@@ -273,10 +269,6 @@ function OpenNowBar(skipSaving: boolean = false) {
           const shuffleToggle = ControlsElement.querySelector(".ShuffleToggle");
           if (shuffleToggle) {
             shuffleToggle.classList.add("Enabled");
-            const shuffleSvg = ControlsElement.querySelector<HTMLElement>(".ShuffleToggle svg");
-            if (shuffleSvg) {
-              shuffleSvg.style.filter = "drop-shadow(0 0 5px white)";
-            }
           }
         }
 
@@ -1307,11 +1299,8 @@ Global.Event.listen("playback:playpause", (e: { data: { isPaused: boolean } }) =
 });
 
 Global.Event.listen("playback:loop", (e: string) => {
-  // console.log("Loop", e);
   if (Fullscreen.IsOpen) {
-    // console.log("Fullscreen Opened");
     if (ActivePlaybackControlsInstance) {
-      // console.log("ActivePlaybackControlsInstance - Exists");
       const PlaybackControls = ActivePlaybackControlsInstance.GetElement();
       const LoopButton = PlaybackControls.querySelector(".LoopToggle");
       if (!LoopButton) return;
@@ -1319,21 +1308,14 @@ Global.Event.listen("playback:loop", (e: string) => {
       const SVG = LoopButton.querySelector("svg");
       if (!SVG) return;
 
-      // First reset any inline styles
-      SVG.style.filter = "";
-
-      // Update loop icon
       if (e === "track") {
         SVG.innerHTML = Icons.LoopTrack;
       } else {
         SVG.innerHTML = Icons.Loop;
       }
 
-      // Toggle class for brightness
       if (e !== "none") {
         LoopButton.classList.add("Enabled");
-        // Apply drop-shadow directly via style
-        SVG.style.filter = "drop-shadow(0 0 5px white)";
       } else {
         LoopButton.classList.remove("Enabled");
       }
@@ -1342,26 +1324,14 @@ Global.Event.listen("playback:loop", (e: string) => {
 });
 
 Global.Event.listen("playback:shuffle", (e: string) => {
-  // console.log("Shuffle", e);
   if (Fullscreen.IsOpen) {
-    // console.log("Fullscreen Opened");
     if (ActivePlaybackControlsInstance) {
-      // console.log("ActivePlaybackControlsInstance - Exists");
       const PlaybackControls = ActivePlaybackControlsInstance.GetElement();
       const ShuffleButton = PlaybackControls.querySelector(".ShuffleToggle");
       if (!ShuffleButton) return;
 
-      const SVG = ShuffleButton.querySelector("svg");
-      if (!SVG) return;
-
-      // First reset any inline styles
-      SVG.style.filter = "";
-
-      // Toggle class for brightness
       if (e !== "none") {
         ShuffleButton.classList.add("Enabled");
-        // Apply drop-shadow directly via style
-        SVG.style.filter = "drop-shadow(0 0 5px white)";
       } else {
         ShuffleButton.classList.remove("Enabled");
       }

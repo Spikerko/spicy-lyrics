@@ -8,9 +8,10 @@ export function openSettingsPanel() {
   const root = ReactDOM.createRoot(container);
   root.render(React.createElement(SettingsPanel));
   PopupModal.display({
-    title: "Spicy Lyrics Settings",
+    title: "Settings",
     content: container,
     isLarge: true,
+    modalId: "settingsPanel",
     onClose: () => {
       root.unmount();
     },

@@ -43,7 +43,7 @@ export default function LyricsSection({ query, sectionFilter }: Props) {
           label="Simple Mode: Text Animation Style"
           description="How lyrics text transitions are rendered in Simple Lyrics Mode."
           disabled={!simpleLyricsMode}
-          disabledReason="Enable Simple Lyrics Mode to use this setting"
+          disabledReason="Enable Simple Lyrics Mode to modify this setting"
         >
           <Select
             value={simpleLyricsModeRenderingType}
