@@ -1,0 +1,290 @@
+/*
+ * Spicy Lyrics — primitives layer
+ * Reusable .sl-* classes that compose tokens. Components opt in by adding
+ * these classes alongside (or in place of) their bespoke ones.
+ * Loaded right after tokens.css. No layout selectors that could clash with
+ * lyric line/word/letter rendering.
+ */
+
+/* ─── Materials (Liquid Glass scale) ──────────────────────────────────── */
+/* Each tier composes blur+saturate from the token AND the refractive edge,
+   so a single class is enough to make any container feel like glass. */
+.sl-glass--ultraThin {
+  background: var(--material-ultraThin-bg);
+  -webkit-backdrop-filter: var(--material-ultraThin-blur);
+  backdrop-filter: var(--material-ultraThin-blur);
+  box-shadow: var(--liquid-edge);
+}
+
+.sl-glass--regular {
+  background: var(--material-regular-bg);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow: var(--liquid-edge);
+}
+
+.sl-glass--thick {
+  background: var(--material-thick-bg);
+  -webkit-backdrop-filter: var(--material-thick-blur);
+  backdrop-filter: var(--material-thick-blur);
+  box-shadow: var(--liquid-edge-strong);
+}
+
+/* True liquid glass surface — for elevated overlays that need to feel like
+   they're floating with weight. Pairs the heavy material with refractive
+   edges AND a tinted ambient cast in one class. */
+.sl-glass--liquid {
+  background: var(--material-thick-bg);
+  -webkit-backdrop-filter: var(--material-thick-blur);
+  backdrop-filter: var(--material-thick-blur);
+  box-shadow: var(--liquid-cast), var(--liquid-edge-strong);
+}
+
+/* ─── Card (translucent surface with refractive edge) ─────────────────── */
+.sl-card {
+  background: rgba(255, 255, 255, 0.03);
+  -webkit-backdrop-filter: blur(8px) saturate(1.4);
+  backdrop-filter: blur(8px) saturate(1.4);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px var(--hairline),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* ─── List row (spacing-only rhythm; no per-row border or fill) ──────── */
+.sl-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+
+.sl-list-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Separator (full-bleed hairline between rows in same group) ─────── */
+.sl-separator {
+  height: 1px;
+  background: var(--hairline);
+  border: 0;
+  margin: 0;
+}
+
+/* ─── Icon button (pill, glass-on-hover, no neighbour scaling) ───────── */
+.sl-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard);
+}
+
+.sl-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+}
+
+.sl-icon-btn:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────── */
+.sl-button--primary,
+.sl-button--secondary,
+.sl-button--destructive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-size);
+  font-weight: var(--w-semibold);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background-color 0.3s var(--ease-standard),
+    color 0.25s var(--ease-standard),
+    box-shadow 0.3s var(--ease-standard),
+    transform 0.12s ease;
+}
+
+.sl-button--primary {
+  background: rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  backdrop-filter: blur(12px) saturate(1.5);
+  color: var(--color-text-primary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.sl-button--primary:hover {
+  background: rgba(255, 255, 255, 0.21);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+    0 0 20px -4px rgba(255, 255, 255, 0.22);
+}
+
+.sl-button--secondary {
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(8px) saturate(1.4);
+  backdrop-filter: blur(8px) saturate(1.4);
+  color: var(--color-text-primary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 0 1px var(--hairline-strong),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.sl-button--secondary:hover {
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.16),
+    0 0 18px -4px rgba(255, 255, 255, 0.2);
+}
+
+.sl-button--destructive {
+  background: rgba(255, 59, 59, 0.12);
+  color: var(--color-status-danger);
+  box-shadow: inset 0 0 0 1px rgba(255, 59, 59, 0.2);
+}
+
+.sl-button--destructive:hover {
+  background: rgba(255, 59, 59, 0.2);
+  color: #ff8585;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 59, 59, 0.3),
+    0 4px 14px rgba(255, 59, 59, 0.2);
+}
+
+.sl-button--primary:active,
+.sl-button--secondary:active,
+.sl-button--destructive:active {
+  transform: scale(0.97);
+}
+
+/* ─── Toggle (iOS pill geometry) ──────────────────────────────────────── */
+.sl-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  width: 42px;
+  height: 24px;
+}
+
+.sl-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.sl-toggle-track {
+  width: 42px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  transition: background var(--dur-base) var(--ease-standard);
+  position: relative;
+}
+
+.sl-toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transition:
+    transform var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard);
+}
+
+.sl-toggle input:checked + .sl-toggle-track {
+  background: var(--accent);
+}
+
+.sl-toggle input:checked + .sl-toggle-track::after {
+  transform: translateX(18px);
+  background: var(--accent-on-fill);
+}
+
+/* ─── Select (hairline-only) ──────────────────────────────────────────── */
+.sl-select {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-primary);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--text-caption-size);
+  font-weight: var(--w-medium);
+  cursor: pointer;
+  outline: none;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+
+.sl-select:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Typography helpers (rare; prefer tokens directly on existing rules) */
+.sl-text-title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--w-semibold);
+  color: var(--color-text-primary);
+}
+
+.sl-text-headline {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-line);
+  font-weight: var(--w-semibold);
+  color: var(--color-text-primary);
+}
+
+.sl-text-body {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  font-weight: var(--w-medium);
+  color: var(--color-text-primary);
+}
+
+.sl-text-caption {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  font-weight: var(--w-regular);
+  color: var(--color-text-secondary);
+}
+
+.sl-text-footnote {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+  font-weight: var(--w-regular);
+  color: var(--color-text-tertiary);
+}

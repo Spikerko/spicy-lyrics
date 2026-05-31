@@ -1,75 +1,132 @@
-
-.GenericModal__overlay {
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     z-index: 999;
-}
-.GenericModal__overlay {
-    background-color: rgba(var(--spice-rgb-shadow), .7);
+    background-color: rgba(0, 0, 0, 0.45);
     bottom: 0;
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
     left: 0;
-    position: absolute;
+    position: fixed;
     right: 0;
     top: 0;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
     align-items: center;
-    -webkit-box-pack: center;
-    -ms-flex-pack: center;
     justify-content: center;
     overflow: hidden;
 }
 
-.main-embedWidgetGenerator-container {
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-box-direction: normal;
-    background-color: var(--spice-player);
-    border-radius: 8px;
-    -webkit-box-shadow: 0 4px 4px rgba(var(--spice-rgb-shadow), .3);
-    box-shadow: 0 4px 4px rgba(var(--spice-rgb-shadow), .3);
-    color: var(--spice-text);
-    -ms-flex-direction: column;
-    flex-direction: column;
-    max-height: 100vh;
+/* Surface lives on `.sl-modal::before`, NOT on `.sl-modal-container`.
+   `.sl-modal-container` is widely targeted by feature CSS (settings panel
+   transitions its `width`, ttml-profile overrides `overflow`, etc.). Putting
+   the surface + entrance transitions on a separately-owned ::before pseudo
+   isolates the modal chrome from feature-level overrides, and keeps any
+   blur outside the subtree of anything we fade with opacity.
+
+   IMPORTANT — backdrop-root rule: the modal's scale animation must NOT live
+   on `.sl-modal` itself. Per the CSS Filter Effects spec, an element with
+   `transform`/`scale` becomes a backdrop root, which makes any descendant
+   `backdrop-filter` blur nothing (it can only sample within its own
+   backdrop root). Scale is instead applied to `::before` + the container
+   together (see default.css). That keeps `.sl-modal` transform-free so
+   the ::before's blur samples the overlay + page below the modal.
+
+   Translucent dark glass plate. ~55% opaque + 40px blur means content
+   behind reads as soft color wash, not legible detail. */
+sl-generic-modal.SpicyLyricsModal .sl-modal {
     position: relative;
-    width: 664px;
-    z-index: 1;
 }
 
-.main-trackCreditsModal-header {
-    display: -webkit-box;
-    display: -ms-flexbox;
+sl-generic-modal.SpicyLyricsModal .sl-modal::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    background-color: rgba(22, 22, 22, 0.55);
+    -webkit-backdrop-filter: blur(40px) saturate(1.5);
+    backdrop-filter: blur(40px) saturate(1.5);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 0 1px var(--hairline-strong),
+        0 24px 64px -12px rgba(0, 0, 0, 0.45),
+        0 8px 16px -4px rgba(0, 0, 0, 0.28);
+    pointer-events: none;
+    z-index: 0;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-container-large,
+sl-generic-modal.SpicyLyricsModal .sl-modal-container {
     display: flex;
-    -webkit-box-pack: justify;
-    -ms-flex-pack: justify;
-    justify-content: space-between;
-    -webkit-box-align: baseline;
-    -ms-flex-align: baseline;
-    align-items: baseline;
-    border-bottom: 1px solid rgba(var(--spice-rgb-selected-row), .1);
-    padding: 32px 32px 12px;
-}
-
-.main-trackCreditsModal-mainSection {
-    overflow-y: scroll;
-    padding: 16px 32px 0;
-}
-
-.main-trackCreditsModal-originalCredits {
-    padding-bottom: 20px;
-}
-
-.main-trackCreditsModal-closeBtn {
+    flex-direction: column;
     background-color: transparent;
-    border: 0;
-    padding: 8px;
+    border-radius: var(--radius-lg);
+    color: var(--color-text-primary);
+    max-height: 90vh;
+    position: relative;
+    z-index: 1;
+    font-family: var(--encore-body-font-stack, var(--fallback-fonts, sans-serif));
 }
 
-.main-trackCreditsModal-closeBtn:focus, .main-trackCreditsModal-closeBtn:hover {
-    -webkit-transform: scale(1.1);
-    transform: scale(1.1);
+sl-generic-modal.SpicyLyricsModal .sl-modal-container-large {
+    width: 664px;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-container {
+    width: 420px;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--hairline);
+    padding: 20px 24px 16px;
+    gap: 12px;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-header h1 {
+    font-size: var(--text-title-size) !important;
+    font-weight: var(--w-semibold);
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+    text-transform: none;
+    margin: 0;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-main-section {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px 24px 24px;
+    transform: translate3d(0px, 0px, 0px);
+    will-change: transform;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-content {
+    display: flex;
+    flex-direction: column;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-close-btn {
+    background-color: transparent;
+    border: none;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background-color var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
+    flex-shrink: 0;
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-close-btn:hover {
+    background-color: var(--accent-tint-bg);
+    color: var(--color-text-primary);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-close-btn:active {
+    background-color: var(--accent-tint-bg-hover);
+    transform: scale(0.96);
 }

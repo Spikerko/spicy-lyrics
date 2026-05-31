@@ -1,4 +1,4 @@
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $currentLyricsType } from "../../../../utils/stores.ts";
 import { LyricsObject, type LyricsType } from "../../lyrics.ts";
 import { timeOffset } from "../Shared.ts";
 
@@ -17,9 +17,19 @@ interface _SyllableLead {
   [key: string]: any;
 }
 
+function getElementStatus(
+  currentTime: number,
+  startTime: number,
+  endTime: number
+): ElementStatus {
+  if (currentTime < startTime) return "NotSung";
+  if (currentTime >= endTime) return "Sung";
+  return "Active";
+}
+
 export function TimeSetter(PreCurrentPosition: number): void {
   const CurrentPosition = PreCurrentPosition + timeOffset;
-  const CurrentLyricsType = Defaults.CurrentLyricsType as ExtendedLyricsType;
+  const CurrentLyricsType = $currentLyricsType.get() as ExtendedLyricsType;
 
   if (!CurrentLyricsType || CurrentLyricsType === "None") return;
 
@@ -37,7 +47,7 @@ export function TimeSetter(PreCurrentPosition: number): void {
         total: line.EndTime - line.StartTime,
       };
 
-      if (lineTimes.start <= CurrentPosition && CurrentPosition <= lineTimes.end) {
+      if (getElementStatus(CurrentPosition, lineTimes.start, lineTimes.end) === "Active") {
         line.Status = "Active";
 
         // Check if Syllables exists
@@ -46,28 +56,16 @@ export function TimeSetter(PreCurrentPosition: number): void {
         const words = line.Syllables.Lead;
         for (let j = 0; j < words.length; j++) {
           const word = words[j];
-          if (word.StartTime <= CurrentPosition && CurrentPosition <= word.EndTime) {
-            word.Status = "Active";
-          } else if (word.StartTime >= CurrentPosition) {
-            word.Status = "NotSung";
-          } else if (word.EndTime <= CurrentPosition) {
-            word.Status = "Sung";
-          }
+          word.Status = getElementStatus(CurrentPosition, word.StartTime, word.EndTime);
 
           if (word?.LetterGroup) {
             for (let k = 0; k < word.Letters.length; k++) {
               const letter = word.Letters[k];
-              if (letter.StartTime <= CurrentPosition && CurrentPosition <= letter.EndTime) {
-                letter.Status = "Active";
-              } else if (letter.StartTime >= CurrentPosition) {
-                letter.Status = "NotSung";
-              } else if (letter.EndTime <= CurrentPosition) {
-                letter.Status = "Sung";
-              }
+              letter.Status = getElementStatus(CurrentPosition, letter.StartTime, letter.EndTime);
             }
           }
         }
-      } else if (lineTimes.start >= CurrentPosition) {
+      } else if (lineTimes.start > CurrentPosition) {
         line.Status = "NotSung";
 
         // Check if Syllables exists
@@ -116,22 +114,16 @@ export function TimeSetter(PreCurrentPosition: number): void {
         total: line.EndTime - line.StartTime,
       };
 
-      if (lineTimes.start <= CurrentPosition && CurrentPosition <= lineTimes.end) {
+      if (getElementStatus(CurrentPosition, lineTimes.start, lineTimes.end) === "Active") {
         line.Status = "Active";
         if (line.DotLine) {
           const leads = line.Syllables.Lead;
           for (let i = 0; i < leads.length; i++) {
             const dot = leads[i];
-            if (dot.StartTime <= CurrentPosition && CurrentPosition <= dot.EndTime) {
-              dot.Status = "Active";
-            } else if (dot.StartTime >= CurrentPosition) {
-              dot.Status = "NotSung";
-            } else if (dot.EndTime <= CurrentPosition) {
-              dot.Status = "Sung";
-            }
+            dot.Status = getElementStatus(CurrentPosition, dot.StartTime, dot.EndTime);
           }
         }
-      } else if (lineTimes.start >= CurrentPosition) {
+      } else if (lineTimes.start > CurrentPosition) {
         line.Status = "NotSung";
         if (line.DotLine) {
           const leads = line.Syllables.Lead;

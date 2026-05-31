@@ -1,7 +1,6 @@
 import { PageContainer } from "./../Pages/PageView.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
-import storage from "../../utils/storage.ts";
-import Defaults from "../Global/Defaults.ts";
+import { $currentLyricsData, $lockedMediaBox } from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import Fullscreen from "./Fullscreen.ts";
@@ -15,7 +14,7 @@ export const EnableCompactMode = () => {
   if (!SpicyLyricsPage) return;
 
   const isNoLyrics =
-    storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
+    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
   if (isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen || IsPIP)) {
     SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.remove(
       "Hidden"
@@ -31,7 +30,7 @@ export const EnableCompactMode = () => {
   NowBar.classList.remove("RightSide");
 
   if (!IsPIP) {
-    if (Defaults.CompactMode_LockedMediaBox) {
+    if ($lockedMediaBox.get()) {
       NowBar.classList.add("LockedMediaBox");
     } else {
       NowBar.classList.remove("LockedMediaBox");
@@ -48,7 +47,7 @@ export const DisableCompactMode = () => {
   if (!SpicyLyricsPage) return;
 
   const isNoLyrics =
-    storage.get("currentLyricsData")?.toString() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
+    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
   if (isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen || IsPIP)) {
     SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.add(
       "Hidden"
@@ -72,3 +71,17 @@ export const ToggleCompactMode = () => {
   if (CompactMode) DisableCompactMode();
   else EnableCompactMode();
 };
+
+$lockedMediaBox.listen((v) => {
+  if (!CompactMode) return;
+  const SpicyLyricsPage = PageContainer;
+  if (!SpicyLyricsPage) return;
+  if (IsPIP) return;
+  const NowBar = SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox .NowBar");
+  if (!NowBar) return;
+  if (v) {
+    NowBar.classList.add("LockedMediaBox");
+  } else {
+    NowBar.classList.remove("LockedMediaBox");
+  }
+});

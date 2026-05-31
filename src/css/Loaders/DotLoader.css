@@ -2,31 +2,33 @@
   width: 15px;
   aspect-ratio: 1;
   border-radius: 50%;
+  --dot-on: var(--color-text-primary);
+  --dot-off: var(--color-text-quaternary);
   animation: l5 1s infinite linear alternate;
 }
 @keyframes l5 {
   0% {
     box-shadow:
-      20px 0 #fff,
-      -20px 0 #ffffff22;
-    background: #fff;
+      20px 0 var(--dot-on),
+      -20px 0 var(--dot-off);
+    background: var(--dot-on);
   }
   33% {
     box-shadow:
-      20px 0 #fff,
-      -20px 0 #ffffff22;
-    background: #ffffff22;
+      20px 0 var(--dot-on),
+      -20px 0 var(--dot-off);
+    background: var(--dot-off);
   }
   66% {
     box-shadow:
-      20px 0 #ffffff22,
-      -20px 0 #fff;
-    background: #ffffff22;
+      20px 0 var(--dot-off),
+      -20px 0 var(--dot-on);
+    background: var(--dot-off);
   }
   100% {
     box-shadow:
-      20px 0 #ffffff22,
-      -20px 0 #fff;
-    background: #fff;
+      20px 0 var(--dot-off),
+      -20px 0 var(--dot-on);
+    background: var(--dot-on);
   }
 }

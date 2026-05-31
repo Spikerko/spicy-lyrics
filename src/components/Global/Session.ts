@@ -1,5 +1,5 @@
 import { Query } from "../../utils/API/Query.ts";
-import Defaults from "./Defaults.ts";
+import { $spicyLyricsVersion } from "../../utils/stores.ts";
 import Global from "./Global.ts";
 
 interface Location {
@@ -71,7 +71,7 @@ const Session = {
       };
     },
     GetCurrentVersion: (): VersionParsedData => {
-      return Session.SpicyLyrics.ParseVersion(Defaults.SpicyLyricsVersion);
+      return Session.SpicyLyrics.ParseVersion($spicyLyricsVersion.get());
     },
     GetLatestVersion: async (): Promise<VersionParsedData> => {
       const res = await Query([
