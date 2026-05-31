@@ -9,6 +9,7 @@ export default defineConfig({
   template: "extension",
   packageManager: "bun",
   cssId: "slstyles",
+  devModeVarName: "__SLdev__m",
   esbuildOptions: {
     legalComments: "inline",
   },

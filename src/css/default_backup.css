@@ -106,7 +106,7 @@ div.os-host:has(#SpicyLyricsPage) .ViewControls {
 .Root__right-sidebar:has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
   .main-nowPlayingView-coverArtContainer
-  div:has(video):after,
+  div:has(video)::after,
 .Root__right-sidebar:has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
   .main-nowPlayingView-coverArtContainer
@@ -856,7 +856,7 @@ UNUSED:
   fill: currentColor;
 }
 
-button:has(#SpicyLyricsPageSvg):after {
+button:has(#SpicyLyricsPageSvg)::after {
   transform: translateX(-370%) translateY(-40%) !important;
 }
 

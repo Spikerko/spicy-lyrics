@@ -44,19 +44,19 @@ aside .spicy-dynamic-bg {
 
 aside video {
   --sl_videocanvas_mask-stop: 25%;
-  filter: brightness(0.9);
+  filter: brightness(0.65);
   opacity: .95;
   mask-image: linear-gradient(to bottom, transparent -5%, black 15%, black var(--sl_videocanvas_mask-stop), transparent 100%);
   transition: --sl_videocanvas_mask-stop 1s cubic-bezier(0,0,0,1), filter 0.2s linear;
 }
 
-aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3) video,
-.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1) video {
+aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA) video,
+.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA) video {
   --sl_videocanvas_mask-stop: 80%;
 }
 
 aside video:hover {
-  filter: brightness(0.95);
+  filter: brightness(0.9);
 }
 
 .VideoPlayer__container video {

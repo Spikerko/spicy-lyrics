@@ -1,13 +1,12 @@
-import Defaults from "../../../../components/Global/Defaults.ts";
+import { $simpleLyricsMode } from "../../../../utils/stores.ts";
 import { ArabicPersianRegex } from "../../../Addons.ts";
-import storage from "../../../storage.ts";
 import { IdleEmphasisLyricsScale } from "../../Animator/Shared.ts";
 import { ConvertTime } from "../../ConvertTime.ts";
 import { CurrentLineLyricsObject, LyricsObject } from "../../lyrics.ts";
 
 const Substractions = {
-  StartTime: storage.get("simpleLyricsMode") === "true" ? -21 : 0,
-  EndTime: storage.get("simpleLyricsMode") === "true" ? -40 : 250,
+  StartTime: $simpleLyricsMode.get() ? -21 : 0,
+  EndTime: $simpleLyricsMode.get() ? -40 : 250,
 };
 
 interface LetterData {
@@ -68,7 +67,7 @@ export default function Emphasize(
       ...mcont,
     });
 
-    if (!Defaults.SimpleLyricsMode) {
+    if (!$simpleLyricsMode.get()) {
       letterElem.style.setProperty("--gradient-position", `-20%`);
     }
     letterElem.style.setProperty("--text-shadow-opacity", `0%`);

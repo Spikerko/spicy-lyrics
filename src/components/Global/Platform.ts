@@ -1,5 +1,3 @@
-import { Defer, Timeout } from "@spikerko/web-modules/Scheduler";
-
 // Spotify Types
 type TokenProviderResponse = {
   accessToken: string;
@@ -19,7 +17,7 @@ const OnSpotifyReady = new Promise<void>((resolve) => {
     SpotifyInternalFetch = Spotify.CosmosAsync;
 
     if (!SpotifyPlatform || !SpotifyInternalFetch) {
-      Defer(CheckForServices);
+      requestAnimationFrame(() => setTimeout(CheckForServices, 0));
       return;
     }
 
@@ -35,10 +33,10 @@ let accessTokenPromise: Promise<string> | undefined;
 
 const GetSpotifyAccessToken = (): Promise<string> => {
   if (tokenProviderResponse) {
-    const timeUntilRefresh = (tokenProviderResponse.expiresAtTime - Date.now()) / 1000;
+    const timeUntilRefresh = tokenProviderResponse.expiresAtTime - Date.now();
     if (timeUntilRefresh <= 2) {
       tokenProviderResponse = undefined;
-      accessTokenPromise = new Promise((resolve) => Timeout(timeUntilRefresh, resolve)).then(() => {
+      accessTokenPromise = new Promise((resolve) => setTimeout(resolve, timeUntilRefresh)).then(() => {
         accessTokenPromise = undefined;
         return GetSpotifyAccessToken();
       });

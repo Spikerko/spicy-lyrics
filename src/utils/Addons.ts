@@ -35,8 +35,8 @@ function BOTTOM_ApplyLyricsSpacer(Container: HTMLElement) {
 }
 
 function GetContainerHeight(Container: HTMLElement) {
-  //const style = globalThis.getComputedStyle(Container);
-  let height = 0; //parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+  const style = globalThis.getComputedStyle(Container);
+  let height = parseFloat(style.marginTop);
 
   for (const child of Array.from(Container.children)) {
     if (child instanceof HTMLElement) {

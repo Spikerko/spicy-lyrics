@@ -1,5 +1,10 @@
 :root {
   --bg-rotation-degree: 258deg;
+  /* --sltoaster-bottom-padding: 104px; */
+}
+
+:root:has(#SpicyLyricsPage.Fullscreen) {
+  --sltoaster-bottom-padding: 32px;
 }
 
 .main-nowPlayingView-contextItemInfo::before {
@@ -21,11 +26,18 @@
   user-select: none;
   -webkit-user-drag: none;
   opacity: 1;
-  transition: left 0.5s cubic-bezier(0.91, 0.04, 0.94, 0.98);
+  transition:
+    left 0.5s cubic-bezier(0.91, 0.04, 0.94, 0.98),
+    transform 0.6s cubic-bezier(0.78, 0, 0.22, 1);
+  will-change: transform;
+}
+
+#SpicyLyricsPage.frame_F_Exit {
+  transform: translateY(100%);
 }
 
 body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 #SpicyLyricsPage.UseSpicyFont,
@@ -45,14 +57,17 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 #SpicyLyricsPage .ViewControls {
   container-type: size;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   height: 5cqh;
   justify-content: center;
+  align-items: center;
   opacity: 1;
   transition: opacity 0.3s !important;
   z-index: 101;
-  --ViewControlSize: 100cqh;
+  --ViewControlSize: 110cqh;
 }
+
+
 
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   position: absolute;
@@ -68,25 +83,11 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
   top: 24px;
 }
 
-
-
-#SpicyLyricsPage:not(.Fullscreen) .ViewControls::before {
-  z-index: -1;
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.6;
+.Root:not(.global-nav) .Root__main-view #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
+  bottom: 36px;
+  top: unset;
 }
 
-#SpicyLyricsPage.ViewControlsPosition_Bottom:not(.Fullscreen) .ViewControls::before {
-  bottom: -24px;
-  background: linear-gradient(to top, var(--spice-main, #000000), transparent);
-}
-
-#SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls::before {
-  top: -24px;
-  background: linear-gradient(to bottom, var(--spice-main, #000000), transparent);
-}
 
 
 /* :root:has(.SpicyBG.BackgroundLayer)
@@ -110,7 +111,7 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
 }
 
 #SpicyLyricsPage:not(.Fullscreen):hover .ViewControls {
-  opacity: 0.45;
+  opacity: 0.7;
 }
 
 #SpicyLyricsPage:not(.Fullscreen) .ViewControls:hover {
@@ -120,25 +121,48 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
 #SpicyLyricsPage .ViewControls .ViewControl {
   --ViewControlHeight: var(--ViewControlSize, 100cqh);
   aspect-ratio: 1;
-  background: rgba(21, 22, 23, 0.72);
-  border: none;
+  background: var(--material-regular-bg);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  border: 0;
   border-radius: 100rem;
   display: flex;
   height: var(--ViewControlHeight);
   width: var(--ViewControlHeight);
   -webkit-app-region: no-drag;
   align-items: center;
-  color: hsla(0, 0%, 100%, 0.7);
+  color: var(--color-text-primary);
   justify-content: center;
   text-align: center;
   -webkit-box-align: center;
   -webkit-box-pack: center;
-  transition: scale 0.25s, opacity 0.2s;
-  transform-origin: center bottom;
+  box-shadow:
+    0 10px 24px -8px rgba(8, 10, 18, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  transition: scale 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+}
+
+#SpicyLyricsPage .ViewControls .ViewControl:hover {
+  scale: 1.015;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 14px 32px -8px rgba(8, 10, 18, 0.5),
+    0 0 22px -4px rgba(255, 255, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.24);
+}
+
+#SpicyLyricsPage .ViewControls .ViewControl:active {
+  scale: 0.94;
 }
 
 #SpicyLyricsPage .ViewControls:has(.ViewControl:hover) > .ViewControl:not(:hover) {
-  opacity: 0.75;
+  opacity: 0.78;
 }
 
 #SpicyLyricsPage .ViewControls .ViewControl svg:not(.NoFill) {
@@ -147,6 +171,10 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls 
 
 #SpicyLyricsPage .ViewControls .ViewControl svg.NoFill {
   fill: none !important;
+}
+
+#SpicyLyricsPage .ViewControls .ViewControl#Close svg {
+  scale: 1.15;
 }
 
 /* #SpicyLyricsPage:not(.Fullscreen, .NowBarSide__Right) .ViewControls:hover {
@@ -211,7 +239,7 @@ body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
   .main-nowPlayingView-coverArtContainer
-  div:has(video):after,
+  div:has(video)::after,
 .Root__right-sidebar:has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
   .main-nowPlayingView-coverArtContainer
@@ -246,9 +274,16 @@ body:not(.SpicyLyrics_StaticBackground)
   .Uw4tcZdmh7s4BMdgCCuu,
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section.main-nowPlayingView-aboutArtist .jHqD4CkJSTwpZihD {
+  .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent) {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
+}
+
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section.main-nowPlayingView-aboutArtistV2 .main-nowPlayingView-aboutArtistV2TextContent {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 
@@ -281,6 +316,10 @@ body:not(.SpicyLyrics_StaticBackground)
   transform: translateY(2px);
 }
 
+.Root:not(.global-nav) #SpicyLyricsPageSvg {
+  transform: translateY(0);
+}
+
 #SpicyLyrics_PopupLyricsButton svg {
   fill: var(--encore-icon-fill, currentColor);
   height: var(--encore-icon-height, var(--encore-graphic-size-decorative-base));
@@ -292,8 +331,12 @@ body.SpicySidebarLyrics__Active button:has(#SpicyLyricsPageSvg) {
   display: none !important;
 }
 
-button:has(#SpicyLyricsPageSvg):after {
+button:has(#SpicyLyricsPageSvg)::after {
   transform: translateX(-370%) translateY(-40%) !important;
+}
+
+button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-genericButton-buttonActiveDot)::after {
+  content: unset;
 }
 
 /* "Page Not Visible" fix */
@@ -341,89 +384,14 @@ body:not(:has(.Root__main-view-overlay .BeautifulLyricsPage:is(.Fullscreen)))
   height: calc(var(--ViewControlSize)* .4);
 } */
 
-.GenericModal__overlay {
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
   z-index: 999;
 }
 
-.SpicyLyricsDevToolsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 1cqh;
-}
-
-.SpicyLyricsDevToolsContainer .Setting {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingName {
-  font-size: 0.95rem !important;
-  font-weight: 400;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingValue {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingValue button {
-  background-color: white;
-  color: black;
-  border: none;
-  border-radius: 5px;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 0.9rem !important;
-  font-weight: 400;
-}
-
-.SpicyLyricsDevToolsContainer .Setting .SettingValue button:hover {
-  background-color: rgb(206, 206, 206);
-}
 
 /* .QdB2YtfEq0ks5O4QbtwX .WRGTOibB8qNEkgPNtMxq:has(#SpicyLyricsPage) *:not(#SpicyLyricsPage),
 .QdB2YtfEq0ks5O4QbtwX:has(#SpicyLyricsPage) .DJcMUKFwkFECf5ksmSfU {
   display: none !important;
-} */
-
-.WaitingForHeight {
-  opacity: 0 !important;
-}
-
-.SpicyLoader {
-  --bg-color: var(--spice-main);
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: z-index 0.34s;
-  background-color: var(--bg-color);
-  animation: SpicyLoader_FadeOut 0.34s forwards;
-}
-
-:root:has(.WaitingForHeight) .SpicyLoader {
-  z-index: 105;
-  animation: SpicyLoader_FadeIn 0.34s forwards;
-}
-
-/* .SpicyLoader::after {
-  content: "";
-  display: flex;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  background-color: #000000;
-  opacity: 0.5;
-  z-index: -1;
 } */
 
 body.SpicySidebarLyrics__Active .eguwzH_QWTBXry7hiNj3:has([id="settings.showFriendActivity"]),
@@ -480,92 +448,317 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none !important;
 }
 
-.GenericModal__overlay {
-  .main-trackCreditsModal-container:has(.update-card-wrapper){
-    width: min(35rem,60vw);
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
+  .sl-modal-container:has(.update-card-wrapper) {
+    width: min(28rem, 92vw);
   }
+
   .update-card-wrapper {
     display: flex;
-    gap: 8px;
+    gap: var(--space-3);
     flex-direction: column;
-    margin-inline: -12px;
-    padding: 16px 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    text-align: center;
-    background-color: #0d0d0d;
 
-    .header {
-      margin-bottom: 12px;
-      font-weight: bold;
-      color: #ffffff;
+    .uc-title {
+      font-size: 1.2rem !important;
+      font-weight: var(--w-semibold);
+      color: var(--color-text-primary);
+      line-height: 1.3;
+      letter-spacing: -0.015em;
+      margin: 0;
     }
 
-    button,
-    .card {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      padding: 12px 20px;
-      font-size: 18px !important;
-      font-weight: bold;
+    .uc-subtitle {
+      font-size: var(--text-body-size) !important;
+      color: var(--color-text-secondary);
+      margin: 0;
+      line-height: 1.45;
+    }
+
+    /* Kept only for the post-update success card (UpdateDialog.tsx).
+       The update-available flow no longer renders a divider — the
+       version row provides its own visual break. */
+    .uc-divider {
+      height: 1px;
+      background: var(--hairline);
+      margin: var(--space-1) 0;
+    }
+
+    /* Flat version display — no inner blur, no triple-inset highlight.
+       The accent token does the work; the headline matters more than
+       the chrome around it. */
+    .uc-version-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      padding: 14px var(--space-4);
+      background: var(--accent-tint-bg);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      border-radius: var(--radius-md);
+      margin: var(--space-1) 0 var(--space-2);
+
+      .uc-ver {
+        font-size: 1.05rem !important;
+        font-weight: var(--w-semibold);
+        color: var(--color-text-secondary);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+
+        &.new {
+          color: var(--color-text-primary);
+        }
+      }
+
+      .uc-arrow {
+        display: inline-flex;
+        align-items: center;
+        color: var(--color-text-tertiary);
+      }
+    }
+
+    /* New: horizontal action row replaces the stacked full-width pair.
+       Quiet "Later" sits left, primary "Update now" sits right. The
+       hierarchy is unambiguous and the visual weight matches the
+       importance of the choice. */
+    .uc-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-2);
+      margin-top: var(--space-1);
+    }
+
+    button {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 9px 18px;
+      font-size: var(--text-body-size) !important;
+      font-weight: var(--w-semibold);
       cursor: pointer;
       transition:
-        background-color 0.3s ease,
-        color 0.3s ease,
-        box-shadow 0.3s ease;
+        background-color 0.15s var(--ease-standard),
+        box-shadow 0.15s var(--ease-standard),
+        color 0.15s var(--ease-standard),
+        transform 0.12s ease;
+      letter-spacing: 0.01em;
+
+      &:active {
+        transform: scale(0.97);
+      }
     }
 
-    .version {
-      font-size: 24px !important;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    .btn-release {
-      background-color: #148c39;
-      color: #ffffff;
+    .btn-primary,
+    .btn-update {
+      background-color: var(--accent);
+      color: var(--accent-on-fill);
 
       &:hover {
-        background-color: #1db954;
-        box-shadow: 0 4px 12px rgba(29, 185, 84, 0.5);
+        background-color: var(--accent-hover);
+      }
+    }
+
+    /* Quiet text-style button. No background until hover. Used as the
+       "Later" affordance — it should let the user dismiss without
+       drawing attention to the act of dismissing. */
+    .btn-quiet {
+      background-color: transparent;
+      color: var(--color-text-secondary);
+      box-shadow: none;
+      padding: 9px 14px;
+
+      &:hover {
+        background-color: var(--accent-tint-bg);
+        color: var(--color-text-primary);
+      }
+    }
+
+    .btn-secondary {
+      background-color: var(--accent-tint-bg);
+      color: var(--color-text-primary);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      border: 0;
+
+      &:hover {
+        background-color: var(--accent-tint-bg-hover);
+        box-shadow: inset 0 0 0 1px var(--hairline-strong);
+      }
+    }
+
+    /* Data migration variant — centered icon-led message. */
+    &.migration-card {
+      align-items: center;
+      text-align: center;
+
+      .udc-icon-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: var(--accent-tint-bg);
+        box-shadow: inset 0 0 0 1px var(--hairline);
+        margin-bottom: 2px;
+        flex-shrink: 0;
+
+        .udc-migrate-svg {
+          width: 24px;
+          height: 24px;
+          color: var(--color-text-primary);
+        }
+      }
+
+      .udc-desc {
+        color: var(--color-text-secondary);
+        max-width: 22rem;
+        line-height: 1.55;
+      }
+
+      button {
+        width: 100%;
       }
     }
 
     .btn-discord {
-      background-color: #3b4cca;
+      background-color: #5865f2;
       color: #ffffff;
 
       &:hover {
-        background-color: #5865f2;
-        box-shadow: 0 4px 12px rgba(88, 101, 242, 0.5);
+        background-color: #6872f5;
       }
     }
 
     a {
-      color: var(--spice-button, #1db954);
-      font-weight: bold;
-      text-decoration: underline;
+      color: var(--color-text-primary);
+      font-weight: var(--w-semibold);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
     }
   }
 }
 
 
 
-.GenericModal:has(.slm),
-.GenericModal:has(.slm) .main-trackCreditsModal-container {
-  border-radius: 16px;
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
+  .dev-tools-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .dt-section-label {
+      font-size: var(--text-footnote-size) !important;
+      font-weight: var(--w-semibold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-tertiary);
+      padding: 0 2px;
+      margin-bottom: 4px;
+    }
+
+    .dt-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-md);
+      transition: background var(--dur-fast) var(--ease-standard);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .dt-setting-info {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+      }
+
+      .dt-setting-name {
+        font-size: var(--text-headline-size) !important;
+        font-weight: var(--w-semibold);
+        color: var(--color-text-primary);
+        white-space: nowrap;
+      }
+
+      .dt-setting-desc {
+        font-size: var(--text-caption-size) !important;
+        font-weight: var(--w-regular);
+        color: var(--color-text-tertiary);
+      }
+    }
+
+    .dt-btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      font-size: var(--text-caption-size) !important;
+      font-weight: var(--w-semibold);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.01em;
+      min-height: var(--tap-min);
+      transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+      width: 132px;
+
+      &:active {
+        transform: scale(0.97);
+      }
+
+      &.dt-btn-primary {
+        background-color: var(--accent);
+        color: var(--accent-on-fill);
+
+        &:hover {
+          background-color: var(--accent-hover);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        }
+      }
+
+      &.dt-btn-danger {
+        background-color: rgba(255, 255, 255, 0.06);
+        -webkit-backdrop-filter: blur(8px) saturate(1.4);
+        backdrop-filter: blur(8px) saturate(1.4);
+        color: var(--color-text-primary);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          inset 0 0 0 1px var(--hairline-strong),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+        border: 0;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.11);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.24),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.28),
+            inset 0 -1px 0 rgba(255, 255, 255, 0.16);
+        }
+      }
+    }
+  }
 }
 
-.main-trackCreditsModal-mainSection:has(.slm.scroll-x-hidden) {
+sl-generic-modal.SpicyLyricsModal .sl-modal,
+sl-generic-modal.SpicyLyricsModal .sl-modal .sl-modal-container {
+  border-radius: var(--radius-lg);
+}
+
+.sl-modal-main-section:has(.scroll-x-hidden) {
   overflow-x: hidden;
 }
 
 
-.Root__main-view:has(#SpicyLyricsPage) > :is(header, .main-topBar-container) {
+.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > header,
+.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > .main-topBar-container {
   display: none !important;
 }
 
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header {
+.sl-modal:has(.hidden-modal-header-style) .sl-modal-header {
   /* border-bottom: none !important;
   padding: 24px 46px 0px !important;
   margin-bottom: -40px !important;
@@ -575,27 +768,105 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   display: none;
 }
 
-/* .GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-originalCredits {
+/* .sl-modal:has(.slm.hidden-modal-header-style) .sl-modal-content {
   position: relative;
   z-index: 106;
 }
 
-.GenericModal:has(.slm.hidden-modal-header-style) .main-trackCreditsModal-header h1 {
+.sl-modal:has(.slm.hidden-modal-header-style) .sl-modal-header h1 {
   opacity: 0 !important;
   pointer-events: none !important;
   height: 0px !important;
   line-height: 0 !important;
 } */
 
-.Animated__GenericModal__overlay {
-  opacity: 0;
-  margin-bottom: -150px;
-  transition: opacity .3s, margin-bottom .3s;
+/* Modal enter/exit animation.
+
+   Why this is structured the way it is:
+   An ancestor with `opacity < 1` flattens its subtree into an off-screen
+   composited surface; any descendant `backdrop-filter` then has nothing to
+   sample and the blur only "snaps in" once opacity hits 1. So entry/exit
+   cannot ride on an opacity transition above the glass element.
+
+   Ownership split — every animated property lives on an element that no
+   other CSS file targets with `transition`, so feature-level rules
+   (settings-panel transitions container `width`, ttml-profile overrides
+   container `overflow`, etc.) cannot accidentally clobber the animation:
+     - overlay         : `background-color` — overlay tint fades.
+     - .sl-modal::before : `backdrop-filter` / `background-color` /
+                           `box-shadow` — the glass material itself fades,
+                           and it has no opacity-animated ancestors.
+     - .sl-modal-container > * : `opacity` on EVERY direct child — header,
+                                 main-section, and any future structural
+                                 child (footer, action bar, etc.) fade
+                                 together without per-element wiring.
+     - .sl-modal       : `scale` — does not flatten the subtree.            */
+
+/* Compound `.sl-modal-overlay.sl-modal-overlay-animated` to outrank the
+   polyfill rule on `.sl-modal-overlay` (loaded later, sets bg to the active
+   tint). Both selectors match the same element. */
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay.sl-modal-overlay-animated {
+  background-color: rgba(0, 0, 0, 0);
+  transition: background-color 0.22s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.Animated__GenericModal__overlay.Active {
-  opacity: 1;
-  margin-bottom: 0px;
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay.sl-modal-overlay-animated.Active {
+  background-color: rgba(0, 0, 0, 0.45);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated .sl-modal::before {
+  transition:
+    background-color 0.22s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.22s cubic-bezier(0.23, 1, 0.32, 1),
+    -webkit-backdrop-filter 0.22s cubic-bezier(0.23, 1, 0.32, 1),
+    backdrop-filter 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated:not(.Active) .sl-modal::before {
+  background-color: rgba(22, 22, 22, 0);
+  -webkit-backdrop-filter: blur(0px) saturate(1);
+  backdrop-filter: blur(0px) saturate(1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0),
+    inset 0 0 0 1px rgba(255, 255, 255, 0),
+    0 0 0 0 rgba(0, 0, 0, 0),
+    0 0 0 0 rgba(0, 0, 0, 0);
+  transform: scale(0.96);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated .sl-modal-container > *,
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated .sl-modal-container-large > * {
+  transition: opacity 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated:not(.Active) .sl-modal-container > *,
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated:not(.Active) .sl-modal-container-large > * {
+  opacity: 0;
+}
+
+/* Modal scale: 0.96 → 1 on enter (never from scale(0) — looks like it
+   appears from nowhere). Custom ease-out curve gives instant initial
+   movement, no overshoot.
+
+   The transform deliberately does NOT live on `.sl-modal`. Per the CSS
+   Filter Effects spec, an element with `transform` becomes a backdrop
+   root, which would prevent the `.sl-modal::before` backdrop-filter from
+   sampling anything below the modal — killing the visible blur. Instead,
+   transform is split across the two visible layers (::before glass plate
+   and the container holding the content). Both share the same layout box
+   and scale from the same center, so the modal still scales as a unit. */
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated .sl-modal::before,
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated .sl-modal-container,
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated .sl-modal-container-large {
+  transition: transform 0.22s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
+  transform: scale(0.96);
+}
+
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal::before,
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-container,
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-container-large {
+  transform: scale(1);
 }
 
 #SpicyLyricsPage .ContentBox.LyricsHidden .ViewControls #NowBarSideToggle {
@@ -620,18 +891,26 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage {
   }
 }
 
-.main-embedWidgetGenerator-container:has(.slm.h-92) {
-  --slm-height: 92vh;
-  height: var(--slm-height);
-}
-
-.main-embedWidgetGenerator-container:has(.slm.w-60) {
-  --slm-width: 60vw;
-  width: var(--slm-width);
-}
-
-
 .Root__right-sidebar aside {
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
+}
+
+
+.main-genericButton-button.main-genericButton-buttonActiveDot:after {
+  content: "";
+  background-color: var(--spice-button);
+  border-radius: 50%;
+  width: 4px;
+  height: 4px;
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%);
+  inline-size: 4px !important;
+}
+
+body.SpicySidebarLyrics__Active .Root__right-sidebar > div:first-of-type > :not(#SpicyLyricsPage) {
+  display: none;
 }

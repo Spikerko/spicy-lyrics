@@ -1,6 +1,9 @@
-import { type Giveable, Maid } from "@spikerko/web-modules/Maid";
+import { Maid } from "../modules/Maid";
+import Logger from "./logger";
 
-class IntervalManager implements Giveable {
+const intervalLogger = new Logger("Interval Manager");
+
+class IntervalManager {
   private maid: Maid;
   private callback: () => void;
   private duration: number; // Duration in milliseconds
@@ -28,12 +31,12 @@ class IntervalManager implements Giveable {
   // Starts the requestAnimationFrame loop
   public Start() {
     if (this.Destroyed) {
-      console.warn("Cannot start; IntervalManager has been destroyed.");
+      intervalLogger.warn("Cannot start; IntervalManager has been destroyed");
       return;
     }
 
     if (this.Running) {
-      console.warn("Interval is already running.");
+      intervalLogger.warn("Interval is already running");
       return;
     }
 
@@ -90,7 +93,7 @@ class IntervalManager implements Giveable {
   // Restarts the animation frame loop
   public Restart() {
     if (this.Destroyed) {
-      console.warn("Cannot restart; IntervalManager has been destroyed.");
+      intervalLogger.warn("Cannot restart; IntervalManager has been destroyed");
       return;
     }
 
@@ -101,7 +104,7 @@ class IntervalManager implements Giveable {
   // Fully cleans up the manager and makes it unusable
   public Destroy() {
     if (this.Destroyed) {
-      console.warn("IntervalManager is already destroyed.");
+      intervalLogger.warn("IntervalManager is already destroyed");
       return;
     }
 

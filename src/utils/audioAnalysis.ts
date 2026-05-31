@@ -1,5 +1,5 @@
-import { GetExpireStore } from "@spikerko/tools/Cache";
 import type { AudioAnalysisData } from "../components/DynamicBG/BackgroundAnimationController";
+import { GetExpireStore } from "../modules/Store";
 
 interface CachedAudioAnalysis {
     analysis?: AudioAnalysisData;

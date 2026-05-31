@@ -1,17 +1,14 @@
-import { Maid } from "@spikerko/web-modules/Maid";
-import { OnPreRender } from "@spikerko/web-modules/Scheduler";
-import Defaults from "../../components/Global/Defaults.ts";
+import { $lyricsContainerExists, $minimalLyricsMode } from "../stores.ts";
+import { $romanization } from "../uiState.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
-import storage from "../storage.ts";
 import { Lyrics } from "./Animator/Main.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
+import { Maid } from "../../modules/Maid.ts";
 
 export const ScrollingIntervalTime = Infinity;
 
-export const lyricsBetweenShow = storage.get("minimalLyricsMode") === "true" ? 5 : 3;
-
-export const endInterludeEarlierBy = 0;
+export const getLyricsBetweenShow = () => ($minimalLyricsMode.get() ? 5 : 3);
 
 export const SimpleLyricsMode_LetterEffectsStrengthConfig = {
   LongerThan: 1500,
@@ -164,7 +161,7 @@ export function ClearLyricsContentArrays() {
 // Using underscore prefix to indicate it's intentionally unused but kept for future use
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 /* const _LyricsInterval = new IntervalManager(THROTTLE_TIME, () => {
-  if (!Defaults.LyricsContainerExists) return;
+  if (!$lyricsContainerExists.get()) return;
   const progress = SpotifyPlayer.GetPosition();
   Lyrics.TimeSetter(progress);
   Lyrics.Animate(progress);
@@ -220,12 +217,12 @@ const LyricsInterval = () => {
     }
   } */
 
-  if (Defaults.LyricsContainerExists) {
+  if ($lyricsContainerExists.get()) {
     const progress = SpotifyPlayer.GetPosition();
     Lyrics.TimeSetter(progress);
     Lyrics.Animate(progress);
   }
-  OnPreRender(LyricsInterval);
+  requestAnimationFrame(LyricsInterval);
 };
 
 LyricsInterval();
@@ -337,11 +334,12 @@ export function removeLinesEvListener() {
   }
 }
 
-export let isRomanized = storage.get("romanization") === "true";
+export let isRomanized = $romanization.get();
 
 export const setRomanizedStatus = (val: boolean) => {
   isRomanized = val;
-  storage.set("romanization", val.toString());
+  $romanization.set(val);
 };
 
-export const SimpleLyricsMode_InterludeAddonTime = 2000;
+export const preHiddenDotLineMs = 500;
+export const getInterludeTimePadding = () => (preHiddenDotLineMs + 50) * -1;

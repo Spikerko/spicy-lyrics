@@ -1,0 +1,409 @@
+/* ── Local Lyrics Database Panel ────────────────────────────── */
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-ldb-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 4px 2px;
+
+  /* ── Toolbar ──────────────────────────────────────────────── */
+  .sl-ldb-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+    flex-shrink: 0;
+  }
+
+  /* ── List ────────────────────────────────────────────────── */
+  .sl-ldb-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding: 2px 6px 4px 2px;
+  }
+
+  /* ── Empty state ─────────────────────────────────────────── */
+  .sl-ldb-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: 72px 0;
+    font-size: var(--text-body-size) !important;
+    color: var(--color-text-secondary);
+    text-align: center;
+  }
+
+  /* ── Track row ───────────────────────────────────────────── */
+  .sl-ldb-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 10px var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background var(--dur-fast) var(--ease-standard);
+
+    &:hover {
+      background: var(--accent-tint-bg);
+    }
+
+    &.sl-ldb-row--skeleton {
+      pointer-events: none;
+    }
+
+    &.sl-ldb-row--playing {
+      background: var(--accent-tint-bg);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
+
+      &:hover {
+        background: var(--accent-tint-bg-hover);
+      }
+
+      .sl-ldb-row__title {
+        color: var(--color-text-primary);
+        font-weight: var(--w-semibold);
+      }
+    }
+
+    .sl-ldb-row__cover {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      object-fit: cover;
+      background: var(--accent-tint-bg-hover);
+    }
+
+    .sl-ldb-row__info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sl-ldb-row__title-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 0;
+    }
+
+    .sl-ldb-row__title {
+      font-size: var(--text-body-size) !important;
+      font-weight: var(--w-medium);
+      color: var(--color-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    /* "Now playing" dot — replaces the uppercase PLAYING pill badge.
+       A 6px dot in primary color says the same thing in a fraction of
+       the visual real estate. Gentle pulse signals motion without
+       being theatrical. */
+    .sl-ldb-row__playing-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 8px;
+      height: 8px;
+      flex-shrink: 0;
+
+      &::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 6px rgba(255, 255, 255, 0.4);
+        animation: sl-ldb-pulse 2s ease-in-out infinite;
+      }
+    }
+
+    @keyframes sl-ldb-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.55; transform: scale(0.92); }
+    }
+
+    .sl-ldb-row__artists {
+      font-size: var(--text-caption-size) !important;
+      font-weight: var(--w-regular);
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sl-ldb-row__actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+  }
+
+  /* ── Skeleton ────────────────────────────────────────────── */
+  .sl-ldb-skeleton {
+    background: var(--accent-tint-bg-hover);
+    border-radius: 4px;
+    animation: sl-ldb-shimmer 1.4s ease-in-out infinite;
+
+    &.sl-ldb-skeleton--title {
+      height: 12px;
+      width: 60%;
+      border-radius: 3px;
+    }
+
+    &.sl-ldb-skeleton--artist {
+      height: 10px;
+      width: 40%;
+      border-radius: 3px;
+      margin-top: 2px;
+    }
+  }
+
+  @keyframes sl-ldb-shimmer {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+}
+
+/* ── Icon button (shared) ──────────────────────────────────── */
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-ldb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-caption-size) !important;
+  font-weight: var(--w-semibold);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast) var(--ease-standard),
+    box-shadow var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    transform 0.12s ease;
+
+  /* Icon-only variant — no label, becomes a square */
+  &:not(:has(.sl-ldb-icon-btn__label)) {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .sl-ldb-icon-btn__icon {
+    display: flex;
+    align-items: center;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  /* Default — flat tinted surface, hairline border */
+  &.sl-ldb-icon-btn--default {
+    background: var(--accent-tint-bg);
+    color: var(--color-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+
+    &:hover:not(:disabled) {
+      background: var(--accent-tint-bg-hover);
+      color: var(--color-text-primary);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    }
+  }
+
+  /* Primary — solid accent fill, dark text on white. The only place in
+     the panel that uses the filled accent so it's unambiguous. */
+  &.sl-ldb-icon-btn--primary {
+    background: var(--accent);
+    color: var(--accent-on-fill);
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+
+    &:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+  }
+
+  /* Danger — real warm desaturated red. Tinted background + tinted
+     border + warm text gives a clear visual escalation from the
+     neutral default state, so the second click of a destructive
+     two-step lands on a surface that looks unmistakably different. */
+  &.sl-ldb-icon-btn--danger {
+    background: rgba(255, 110, 110, 0.1);
+    color: var(--color-status-danger);
+    box-shadow: inset 0 0 0 1px rgba(255, 110, 110, 0.22);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 110, 110, 0.16);
+      color: rgba(255, 130, 130, 0.92);
+      box-shadow: inset 0 0 0 1px rgba(255, 110, 110, 0.34);
+    }
+  }
+}
+
+/* ── Upload TTML Modal ───────────────────────────────────────── */
+sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-ldb-upload-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-2) 4px;
+
+  .sl-ldb-upload-header {
+    .sl-ldb-upload-title {
+      margin: 0 0 var(--space-1);
+      font-size: 1.2rem !important;
+      font-weight: var(--w-semibold);
+      color: var(--color-text-primary);
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+
+    .sl-ldb-upload-subtitle {
+      margin: 0;
+      font-size: var(--text-body-size) !important;
+      color: var(--color-text-secondary);
+    }
+  }
+
+  .sl-ldb-upload-file-section {
+    .sl-ldb-file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sl-ldb-file-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      height: var(--tap-min-primary);
+      padding: 0 18px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-tint-bg);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      color: var(--color-text-primary);
+      font-size: var(--text-body-size) !important;
+      font-weight: var(--w-medium);
+      cursor: pointer;
+      transition:
+        background var(--dur-fast) var(--ease-standard),
+        color var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      &:hover {
+        background: var(--accent-tint-bg-hover);
+        box-shadow: inset 0 0 0 1px var(--hairline-strong);
+      }
+    }
+  }
+
+  .sl-ldb-upload-mode-section {
+    display: flex;
+    gap: var(--space-3);
+
+    .sl-ldb-upload-mode-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      background: var(--accent-tint-bg);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      cursor: pointer;
+      text-align: left;
+      transition:
+        background 0.18s var(--ease-standard),
+        box-shadow 0.18s var(--ease-standard),
+        transform 0.12s ease;
+      border: 0;
+
+      &:hover {
+        background: var(--accent-tint-bg-hover);
+        box-shadow: inset 0 0 0 1px var(--hairline-strong);
+      }
+
+      &:active {
+        transform: scale(0.99);
+      }
+
+      /* Active — solid accent edge instead of a heavy fill. The selected
+         card stays calm; the unselected card dims to give the choice
+         visual weight. */
+      &.sl-ldb-upload-mode-card--active {
+        background: var(--accent-tint-bg-hover);
+        box-shadow:
+          inset 0 0 0 1.5px rgba(255, 255, 255, 0.6),
+          0 0 0 4px rgba(255, 255, 255, 0.06);
+
+        .sl-ldb-upload-mode-title {
+          color: var(--color-text-primary);
+        }
+      }
+
+      .sl-ldb-upload-mode-title {
+        font-size: var(--text-body-size) !important;
+        font-weight: var(--w-semibold);
+        color: var(--color-text-primary);
+      }
+
+      .sl-ldb-upload-mode-desc {
+        font-size: var(--text-caption-size) !important;
+        font-weight: var(--w-regular);
+        color: var(--color-text-secondary);
+        line-height: 1.4;
+      }
+    }
+
+    /* When one card is selected, fade the other so the choice is obvious. */
+    &:has(.sl-ldb-upload-mode-card--active) {
+      .sl-ldb-upload-mode-card:not(.sl-ldb-upload-mode-card--active) {
+        opacity: 0.5;
+
+        &:hover {
+          opacity: 0.85;
+        }
+      }
+    }
+  }
+
+  .sl-ldb-upload-actions {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
+    margin-top: var(--space-1);
+
+    /* Match the toolbar's button size — one component, one size. */
+    .sl-ldb-icon-btn {
+      height: 38px;
+      padding: 0 16px;
+      font-size: var(--text-body-size) !important;
+    }
+  }
+}

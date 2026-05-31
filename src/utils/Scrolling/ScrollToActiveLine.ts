@@ -1,4 +1,4 @@
-import Defaults from "../../components/Global/Defaults.ts";
+import { $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
@@ -12,6 +12,7 @@ import {
 } from "../Lyrics/lyrics.ts";
 import { ScrollIntoCenterViewCSS } from "../ScrollIntoView/Center.ts";
 import { ScrollIntoTopViewCSS } from "../ScrollIntoView/Top.ts";
+import { getLyricsVirtualizer, scrollLyricsToIndex } from "../Lyrics/LyricsVirtualizer.ts";
 
 // Define intersection types that include _LineIndex
 type LyricsLineWithIndex = LyricsLine & { _LineIndex: number };
@@ -85,7 +86,7 @@ function handleUserScroll(ScrollSimplebar: any | null) {
 
 // Initialization function for scroll events and observers
 export function InitializeScrollEvents(ScrollSimplebar: any) {
-  if (!Defaults.LyricsContainerExists) return;
+  if (!$lyricsContainerExists.get()) return;
   // --- NEW: Store instance and define handlers ---
   currentSimpleBarInstance = ScrollSimplebar;
   wheelHandler = () => handleUserScroll(currentSimpleBarInstance);
@@ -109,7 +110,7 @@ export function InitializeScrollEvents(ScrollSimplebar: any) {
 }
 
 const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition: number) => {
-  if (Defaults.CurrentLyricsType === "Static" || Defaults.CurrentLyricsType === "None" || !Lines)
+  if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None" || !Lines)
     return;
   // 1) gather all active lines
   const activeLines = Lines.map((line, idx) => ({ line, idx }))
@@ -144,8 +145,16 @@ const ScrollTo = (
   container: HTMLElement,
   element: HTMLElement,
   instantScroll: boolean = false,
-  type: "Center" | "Top" = "Center"
+  type: "Center" | "Top" = "Center",
+  lineIndex?: number
 ) => {
+  if (lineIndex !== undefined && getLyricsVirtualizer()) {
+    // instantScroll is effectively always true in the virtualizer path
+    // (we set scrollTop directly), but passing the flag keeps the intent
+    // explicit and allows a future smooth-scroll path if needed.
+    scrollLyricsToIndex(lineIndex, type === "Top" ? "start" : "center", instantScroll, type ==="Top" ? (IsPIP ? -50 : -85) : 30);
+    return;
+  }
   if (type === "Center") {
     ScrollIntoCenterViewCSS(container, element, -30, instantScroll);
   } else if (type === "Top") {
@@ -170,7 +179,6 @@ const GetScrollType = (): "Center" | "Top" => {
 const policyEventPreset = "policy:";
 
 let allowForceScrolling = true;
-let waitingForHeight = true;
 
 export const SetForceScrollingPolicy = (value: boolean) => {
   allowForceScrolling = value; // true = allow force scrolling, false = disallow force scrolling
@@ -180,20 +188,11 @@ export const GetForceScrollingPolicy = () => {
   return allowForceScrolling;
 };
 
-export const SetWaitingForHeight = (value: boolean) => {
-  waitingForHeight = value;
-  Global.Event.evoke(`${policyEventPreset}waiting-for-height`, value);
-};
-export const IsWaitingForHeight = () => {
-  return waitingForHeight;
-};
-
 export function ScrollToActiveLine(ScrollSimplebar: any) {
-  if (waitingForHeight) return;
-  if (Defaults.CurrentLyricsType === "Static" || Defaults.CurrentLyricsType === "None") return;
-  if (!Defaults.LyricsContainerExists) return;
+  if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None") return;
+  if (!$lyricsContainerExists.get()) return;
 
-  const currentType = Defaults.CurrentLyricsType as LyricsType;
+  const currentType = $currentLyricsType.get() as LyricsType;
   const Lines = LyricsObject.Types[currentType]?.Lines as LyricsLine[] | LyricsSyllable[];
   if (!Lines) return;
 
@@ -228,11 +227,13 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
       : currentLine?.HTMLElement;
     if (!scrollToLine) return;
     lastLine = scrollToLine;
+    const forceScrollLineIndex = allLinesSung ? Lines.length - 1 : currentLine?._LineIndex;
     ScrollTo(
       container,
       scrollToLine,
       shouldForceScroll || (lastPosition !== 0 && wasDrasticPositionChange(lastPosition ?? 0, Position)),
-      GetScrollType()
+      GetScrollType(),
+      forceScrollLineIndex
     );
     if (forceScrollQueued) {
       forceScrollQueued = false; // Reset the queue after using it
@@ -253,7 +254,8 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
       : currentLine?.HTMLElement;
     if (!scrollToLine) return;
     lastLine = scrollToLine;
-    ScrollTo(container, scrollToLine, false, GetScrollType());
+    const smoothScrollLineIndex = allLinesSung ? Lines.length - 1 : currentLine?._LineIndex;
+    ScrollTo(container, scrollToLine, false, GetScrollType(), smoothScrollLineIndex);
     if (smoothForceScrollQueued) {
       smoothForceScrollQueued = false; // Reset the queue after using it
     }
@@ -369,7 +371,13 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         lastViewportContainer = container;
       }
 
-      const isLineInViewport = lastIsLineInViewport;
+      // When virtualizer is active, detached (off-screen) elements have offsetTop=0,
+      // making the standard viewport check unreliable. Use isConnected as a proxy:
+      // mounted elements are near the current scroll position (within overscan), so
+      // treating them as "in viewport" is close enough. Detached elements mean the
+      // user scrolled far away — preserve the original no-scroll behavior.
+      const isLineInViewport =
+        lastIsLineInViewport || (getLyricsVirtualizer() !== null && LineElem.isConnected);
 
       const isSameLine = lastLine === LineElem;
 
@@ -424,7 +432,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         if (!isSameLine) {
           lastLine = LineElem;
           const Scroll = () => {
-            ScrollTo(container, LineElem, false, GetScrollType());
+            ScrollTo(container, LineElem, false, GetScrollType(), currentLine._LineIndex);
             scrolledToLastLine = false;
             scrolledToFirstLine = false;
           };
