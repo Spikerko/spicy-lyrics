@@ -39,10 +39,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
       return;
     }
 
-    if (uri.startsWith("spotify:local:")) {
-      toast.warning("Local TTML files are not available on local songs", { duration: 5000 });
-      return;
-    }
+    const cacheId = uri.startsWith("spotify:local:") ? uri : SpotifyPlayer.GetId();
 
     setUploading(true);
 
@@ -74,7 +71,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
           }
           const dataToSave = {
             ...result?.Result,
-            id: SpotifyPlayer.GetId(),
+            id: cacheId,
           };
           await ProcessLyrics(dataToSave);
           $currentLyricsData.set(JSON.stringify(dataToSave));
