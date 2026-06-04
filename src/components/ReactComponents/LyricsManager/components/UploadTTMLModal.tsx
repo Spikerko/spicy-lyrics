@@ -39,11 +39,6 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
       return;
     }
 
-    if (uri.startsWith("spotify:local:")) {
-      toast.warning("Local TTML files are not available on local songs", { duration: 5000 });
-      return;
-    }
-
     setUploading(true);
 
     const reader = new FileReader();
