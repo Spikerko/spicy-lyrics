@@ -9,6 +9,7 @@ import Logger from "../logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
+import { getLyricsIdentity } from "./identity.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -84,6 +85,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   }
 
   const trackId = uri.split(":")[2];
+  const lyricsIdentity = getLyricsIdentity(uri);
 
   if ($currentlyFetching.get()) {
     $currentlyFetching.set(false);
@@ -105,14 +107,14 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       if (savedLyricsData.includes("NO_LYRICS")) {
         const split = savedLyricsData.split(":");
         const id = split[1];
-        if (id === trackId) {
+        if (id === lyricsIdentity) {
           $currentlyFetching.set(false);
           return ["lyrics-not-found", 404];
         }
       } else {
         const lyricsData = JSON.parse(savedLyricsData);
-        // Return the stored lyrics if the ID matches the track ID
-        if (lyricsData?.id === trackId) {
+        // Return the stored lyrics if the identity matches the current track.
+        if (lyricsData?.id === lyricsIdentity) {
           presentLyrics(lyricsData);
           return [lyricsData, 200];
         }
@@ -126,7 +128,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   const localLyric = await LocalLyricsManager.get(uri);
   if (localLyric) {
-    const lyricsData = { ...localLyric, id: trackId };
+    const lyricsData = { ...localLyric, id: lyricsIdentity };
     $currentLyricsData.set(JSON.stringify(lyricsData));
     presentLyrics(lyricsData);
     return [lyricsData, 200];

@@ -97,7 +97,7 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
       break;
     }
     case "local-track": {
-      noticeContent = `Lyrics aren't available for local files`
+      noticeContent = `No TTML has been uploaded for this local song`
       break;
     }
     default:

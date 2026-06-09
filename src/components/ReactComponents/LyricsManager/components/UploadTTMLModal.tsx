@@ -7,6 +7,7 @@ import { ParseTTML } from "../../../../utils/Lyrics/manager/parseTTML";
 import { ProcessLyrics } from "../../../../utils/Lyrics/ProcessLyrics";
 import { $currentLyricsData } from "../../../../utils/stores";
 import { LocalLyricsManager } from "../../../../utils/Lyrics/manager";
+import { getLyricsIdentity } from "../../../../utils/Lyrics/identity";
 import { IconButton } from "./IconButton";
 import { ArrowLeftIcon, UploadIcon } from "./Icons";
 
@@ -36,11 +37,6 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
     const uri = SpotifyPlayer.GetUri();
     if (!uri) {
       toast.error("No track is currently playing.", { duration: 5000 });
-      return;
-    }
-
-    if (uri.startsWith("spotify:local:")) {
-      toast.warning("Local TTML files are not available on local songs", { duration: 5000 });
       return;
     }
 
@@ -74,7 +70,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
           }
           const dataToSave = {
             ...result?.Result,
-            id: SpotifyPlayer.GetId(),
+            id: getLyricsIdentity(uri),
           };
           await ProcessLyrics(dataToSave);
           $currentLyricsData.set(JSON.stringify(dataToSave));
