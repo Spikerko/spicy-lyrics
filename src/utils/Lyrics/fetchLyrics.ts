@@ -20,6 +20,7 @@ export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 13, {
 }, isDev as true);
 
 const lyricsPacker = new SLObjPack();
+const NO_LYRICS_PREFIX = "NO_LYRICS%3A";
 
 function setRomanizationClass(hasTransliterations: boolean | undefined): void {
   if (hasTransliterations) {
@@ -104,14 +105,13 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   if (savedLyricsData && !isDev) {
     try {
-      if (savedLyricsData.includes("NO_LYRICS")) {
-        const split = savedLyricsData.split(":");
-        const id = split[1];
-        if (id === lyricsIdentity) {
-          $currentlyFetching.set(false);
-          return ["lyrics-not-found", 404];
-        }
-      } else {
+      if (
+        savedLyricsData.startsWith(NO_LYRICS_PREFIX) &&
+        savedLyricsData.slice(NO_LYRICS_PREFIX.length) === lyricsIdentity
+      ) {
+        $currentlyFetching.set(false);
+        return null;
+      } else if (!savedLyricsData.startsWith(NO_LYRICS_PREFIX)) {
         const lyricsData = JSON.parse(savedLyricsData);
         // Return the stored lyrics if the identity matches the current track.
         if (lyricsData?.id === lyricsIdentity) {

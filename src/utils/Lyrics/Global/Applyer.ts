@@ -15,6 +15,7 @@ import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx"
 import { IsCompactMode } from "../../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../../components/Utils/Fullscreen.ts";
 import { SpotifyPlayer } from "../../../components/Global/SpotifyPlayer.ts";
+import { getLyricsIdentity } from "../identity.ts";
 
 /**
  * Union type for all lyrics data types
@@ -108,8 +109,8 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     $currentLyricsType.set("None");
 
     if (descriptor === "lyrics-not-found") {
-      const trackId = SpotifyPlayer.GetId() ?? "";
-      $currentLyricsData.set(`NO_LYRICS:${trackId}`);
+      const lyricsIdentity = getLyricsIdentity(SpotifyPlayer.GetUri() ?? "");
+      $currentLyricsData.set(`NO_LYRICS%3A${lyricsIdentity}`);
     } else {
       $currentLyricsData.set("");
     }
