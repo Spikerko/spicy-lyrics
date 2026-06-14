@@ -23,3 +23,23 @@
 #SpicyLyricsPage .LyricsContainer .loaderContainer:is(.active) + .LyricsContent {
   display: none;
 }
+
+/* Queued state (HTTP 503): stack the spinner above an explanatory message. */
+#SpicyLyricsPage .LyricsContainer .loaderContainer.queued {
+  flex-direction: column;
+  gap: 22px;
+  padding: 0 24px;
+}
+
+#SpicyLyricsPage .LyricsContainer .loaderContainer .loaderMessage {
+  max-width: min(340px, 80%);
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  color: var(--color-text-primary, #ffffff);
+  opacity: 0.92;
+  text-wrap: balance;
+}

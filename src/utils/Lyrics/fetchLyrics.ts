@@ -7,6 +7,7 @@ import { Query } from "../API/Query.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 import Logger from "../logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
+import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
 
@@ -35,6 +36,8 @@ function setRomanizationClass(hasTransliterations: boolean | undefined): void {
  * fetching flag. Used by every successful return path.
  */
 function presentLyrics(lyricsData: any): void {
+  // Lyrics are in hand — end any 503 retry loop that was running for this track.
+  LyricsQueueRetry.NotifyResolved(lyricsData?.uri);
   setRomanizationClass(lyricsData?.HasTransliterations);
   HideLoaderContainer();
   $currentLyricsType.set(lyricsData.Type);
@@ -209,6 +212,17 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
     status = lyricsQuery.httpStatus;
 
+    if (status === 503) {
+      // The server accepted the request but hasn't processed it yet — it's
+      // queued. Surface the queue loader immediately and hand off to the retry
+      // loop, which keeps polling with backoff (and survives page close / view
+      // swaps). We deliberately leave the loader up and return a sentinel so no
+      // error notice is rendered.
+      $currentlyFetching.set(false);
+      LyricsQueueRetry.HandleQueued(uri);
+      return ["lyrics-queued", 503];
+    }
+
     if (status !== 200) {
       if (status === 404) {
         HideLoaderContainer();
@@ -255,6 +269,10 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
 let ContainerShowLoaderTimeout: ReturnType<typeof setTimeout> | null = null;
 
+/** Default copy shown in the loader while a lyrics request is queued (HTTP 503). */
+export const LYRICS_QUEUE_MESSAGE =
+  "Your request is in the queue — hang tight, your lyrics are on the way!";
+
 /**
  * Show the loader container after a delay
  */
@@ -270,6 +288,35 @@ function ShowLoaderContainer(): void {
 }
 
 /**
+ * Immediately reveal the loader with a "request queued" message. Used for the
+ * HTTP 503 server-queue state, where we want instant feedback (no 2s delay)
+ * plus a note explaining the wait. Idempotent and safe to call when the page is
+ * closed (no-ops if there's no loader in the current DOM).
+ */
+export function ShowQueueLoader(message: string = LYRICS_QUEUE_MESSAGE): void {
+  const loaderContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .loaderContainer"
+  );
+  if (!loaderContainer) return;
+
+  // We're showing now, so cancel the delayed plain-loader reveal.
+  if (ContainerShowLoaderTimeout) {
+    clearTimeout(ContainerShowLoaderTimeout);
+    ContainerShowLoaderTimeout = null;
+  }
+
+  loaderContainer.classList.add("active", "queued");
+
+  let messageEl = loaderContainer.querySelector<HTMLElement>(".loaderMessage");
+  if (!messageEl) {
+    messageEl = document.createElement("div");
+    messageEl.className = "loaderMessage";
+    loaderContainer.appendChild(messageEl);
+  }
+  messageEl.textContent = message;
+}
+
+/**
  * Hide the loader container and clear any pending timeout
  */
 function HideLoaderContainer(): void {
@@ -281,7 +328,8 @@ function HideLoaderContainer(): void {
       clearTimeout(ContainerShowLoaderTimeout);
       ContainerShowLoaderTimeout = null;
     }
-    loaderContainer.classList.remove("active");
+    loaderContainer.classList.remove("active", "queued");
+    loaderContainer.querySelector(".loaderMessage")?.remove();
   }
 }
 

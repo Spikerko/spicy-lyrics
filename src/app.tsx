@@ -740,11 +740,6 @@ async function main() {
         }
       }
 
-      const songUri = event?.data?.item?.uri;
-      if (songUri) {
-        fetchLyrics(songUri).then(ApplyLyrics);
-      }
-
       const _staticBgMode = $staticBackgroundMode.get();
       if (
         _staticBgMode !== "off" &&
@@ -776,11 +771,6 @@ async function main() {
       }
     }
     Global.Event.listen("playback:songchange", onSongChange);
-
-    const initUri = SpotifyPlayer.GetUri();
-    if (initUri) {
-      fetchLyrics(initUri).then(ApplyLyrics);
-    }
 
     const _initStaticBgMode = $staticBackgroundMode.get();
     if (
