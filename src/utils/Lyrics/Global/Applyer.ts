@@ -8,7 +8,7 @@ import { EmitApply, EmitNotApplyed } from "../Applyer/OnApply.ts";
 import { ApplyStaticLyrics, type StaticLyricsData } from "../Applyer/Static.ts";
 import { ApplyLineLyrics } from "../Applyer/Synced/Line.ts";
 import { ApplySyllableLyrics } from "../Applyer/Synced/Syllable.ts";
-import { ClearLyricsPageContainer } from "../fetchLyrics.ts";
+import { ClearLyricsPageContainer, ShowQueueLoader } from "../fetchLyrics.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
@@ -60,6 +60,13 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
   let noticeContent: string | null = null;
 
   switch (descriptor) {
+    case "lyrics-queued": {
+      // HTTP 503: the lyrics server has queued our request. Keep the loader and
+      // queue message visible (LyricsQueueRetry drives the backoff retry loop)
+      // and render nothing else — the loop re-applies once it resolves.
+      ShowQueueLoader();
+      return;
+    }
     case "lyrics-not-found": {
       noticeContent = `We don't have any lyrics for this song`
       break;
@@ -108,8 +115,8 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     $currentLyricsType.set("None");
 
     if (descriptor === "lyrics-not-found") {
-      const trackId = SpotifyPlayer.GetId() ?? "";
-      $currentLyricsData.set(`NO_LYRICS:${trackId}`);
+      const uri = SpotifyPlayer.GetUri() ?? "";
+      $currentLyricsData.set(`NO_LYRICS:${uri}`);
     } else {
       $currentLyricsData.set("");
     }

@@ -740,11 +740,6 @@ async function main() {
         }
       }
 
-      const songUri = event?.data?.item?.uri;
-      if (songUri) {
-        fetchLyrics(songUri).then(ApplyLyrics);
-      }
-
       const _staticBgMode = $staticBackgroundMode.get();
       if (
         _staticBgMode !== "off" &&
@@ -776,11 +771,6 @@ async function main() {
       }
     }
     Global.Event.listen("playback:songchange", onSongChange);
-
-    const initUri = SpotifyPlayer.GetUri();
-    if (initUri) {
-      fetchLyrics(initUri).then(ApplyLyrics);
-    }
 
     const _initStaticBgMode = $staticBackgroundMode.get();
     if (
@@ -999,10 +989,10 @@ async function main() {
           const currentSongLyrics = $currentLyricsData.get();
           if (
             currentSongLyrics &&
-            currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetId()}`
+            currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetUri()}`
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics);
-            if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
+            if (parsedLyrics?.uri !== SpotifyPlayer.GetUri()) {
               const refetchUri = SpotifyPlayer.GetUri();
               if (refetchUri) {
                 fetchLyrics(refetchUri).then(ApplyLyrics);

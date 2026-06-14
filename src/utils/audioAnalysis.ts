@@ -36,11 +36,22 @@ function isAudioAnalysisData(data: unknown): data is AudioAnalysisData {
 }
 
 /**
- * Gets and validates the Spotify audio analysis for a given track ID.
- * * @param trackId The base62 Spotify track ID (e.g., '4uLU6hMCjMI75M1A2tKUQC')
+ * Gets and validates the Spotify audio analysis for a given track URI.
+ * * @param uri The Spotify track URI (e.g., 'spotify:track:4uLU6hMCjMI75M1A2tKUQC')
  * @returns The parsed AudioAnalysisData, or null if the fetch fails
  */
-export async function getDynamicAudioAnalysis(trackId: string): Promise<AudioAnalysisData | null> {
+export async function getDynamicAudioAnalysis(uri: string): Promise<AudioAnalysisData | null> {
+    if (!uri) {
+        return null;
+    }
+
+    // Local tracks aren't hosted by Spotify, so there's no audio analysis to
+    // load for them — skip the request entirely.
+    if (uri.startsWith("spotify:local:")) {
+        return null;
+    }
+
+    const trackId = uri.split(":")[2];
     if (!trackId) {
         return null;
     }

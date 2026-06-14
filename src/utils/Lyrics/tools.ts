@@ -31,7 +31,7 @@ export type SyllableLyrics = {
   Type: "Syllable";
   Content: SyllableVocalContent[];
   SongWriters?: string[];
-  id?: string;
+  uri?: string;
 };
 
 export type LineVocalContent = {
@@ -46,7 +46,7 @@ export type LineLyrics = {
   Type: "Line";
   Content: LineVocalContent[];
   SongWriters?: string[];
-  id?: string;
+  uri?: string;
 };
 
 export type StaticLine = {
@@ -56,7 +56,7 @@ export type StaticLine = {
 export type StaticLyrics = {
   Type: "Static";
   SongWriters?: string[];
-  id?: string;
+  uri?: string;
   Lines: StaticLine[];
   source?: string;
 };
@@ -76,7 +76,7 @@ export function convertToStaticLyrics(lyrics: AnyLyrics): StaticLyrics {
     Type: "Static",
     ...(input.SongWriters ? { SongWriters: input.SongWriters } : {}),
     Lines: [],
-    id: input.id ?? "",
+    uri: input.uri ?? "",
   };
 
   switch (format) {
@@ -177,7 +177,7 @@ export function convertToLineLyrics(lyrics: AnyLyrics): LineLyrics {
     ...(input as any), // Preserve other properties like SongWriters
     Type: "Line",
     Content: [],
-    id: input.id ?? "",
+    uri: input.uri ?? "",
   };
 
   switch (format) {
@@ -308,13 +308,13 @@ export function processStaticLyricsToClassicFormat(sourceLyrics: StaticLyrics) {
   const obj: {
     content: { text: string }[];
     type: string;
-    id: string;
+    uri: string;
     source: string;
     songwriters: string[];
   } = {
     content: [],
     type: lyrics.Type ?? "",
-    id: lyrics.id ?? "",
+    uri: lyrics.uri ?? "",
     source: lyrics.source ?? "",
     songwriters: Array.isArray(lyrics.SongWriters) ? lyrics.SongWriters : [],
   };

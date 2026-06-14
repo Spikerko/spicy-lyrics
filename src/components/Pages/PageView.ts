@@ -1,4 +1,5 @@
-import fetchLyrics from "../../utils/Lyrics/fetchLyrics.ts";
+import fetchLyrics, { ShowQueueLoader } from "../../utils/Lyrics/fetchLyrics.ts";
+import { LyricsQueueRetry } from "../../utils/Lyrics/LyricsQueueRetry.ts";
 import { $forceCompactMode, $isGlobalNav } from "../../utils/uiState.ts";
 import "../../css/Loaders/DotLoader.css";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
@@ -248,6 +249,12 @@ async function OpenPage(
   {
     const currentUri = Spicetify?.Player?.data?.item?.uri;
     if (currentUri) {
+      // If a 503 retry loop is already running for this track, re-show the
+      // queue loader right away so reopening the page / swapping views restores
+      // the queued state with no flash of empty content.
+      if (LyricsQueueRetry.IsRetryingFor(currentUri)) {
+        ShowQueueLoader();
+      }
       fetchLyrics(currentUri).then(ApplyLyrics);
     }
   }
@@ -408,7 +415,7 @@ function AppendViewControls(ReAppend: boolean = false) {
 
   if (ReAppend) elem.innerHTML = "";
   const isNoLyrics =
-    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
+    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetUri()}`;
   const isTTMLMakerMode = $ttmlMakerMode.get();
   elem.innerHTML = `
         ${
