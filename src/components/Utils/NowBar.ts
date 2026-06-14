@@ -1025,7 +1025,13 @@ function UpdateNowBar(force = false) {
 
   const previousCoverArt = MediaImageContainer.getAttribute("last-image");
   const previousCoverArtUrl = MediaImageContainer.getAttribute("last-image-url");
-  const finalUrl = `https://i.scdn.co/image/${coverArt.replace("spotify:image:", "")}`;
+  const isLocalCover = coverArt.startsWith("spotify:local");
+  // Only `spotify:image:` URIs live on scdn. Local URIs and already-absolute URLs
+  // (e.g. the `SongPlaceholderFull.png` fallback) must be used verbatim — blindly
+  // prefixing them produces `https://i.scdn.co/image/https://…` and a 404.
+  const finalUrl = coverArt.startsWith("spotify:image:")
+    ? `https://i.scdn.co/image/${coverArt.slice("spotify:image:".length)}`
+    : coverArt;
 
   // Avoid re-running if the artwork hasn't changed
   if (previousCoverArt === coverArt) {
@@ -1053,9 +1059,14 @@ function UpdateNowBar(force = false) {
     const updateToken = `${SpotifyPlayer.GetId() ?? ""}:${coverArt}`;
     MediaImageContainer.setAttribute("data-update-token", updateToken);
 
-    BlobURLMaker(finalUrl)
-      .then((blobUrl) => blobUrl ?? coverArt)
-      .catch(() => coverArt)
+    // Local files don't have a remote scdn URL to fetch; use the cover URL directly.
+    const displayUrlPromise = isLocalCover
+      ? Promise.resolve(finalUrl)
+      : BlobURLMaker(finalUrl)
+          .then((blobUrl) => blobUrl ?? coverArt)
+          .catch(() => coverArt);
+
+    displayUrlPromise
       .then((displayUrl) => {
         // If the container was removed or a newer update ran while we were loading, skip
         if (!MediaImageContainer.isConnected) return;
