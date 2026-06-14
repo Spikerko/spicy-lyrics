@@ -39,25 +39,25 @@ const LetterGlowMultiplier_Opacity = 185;
 
 const ScaleRange = [
   { Time: 0, Value: 0.95 },
-  { Time: 0.7, Value: 1.075 /* 1.025 */ },
+  { Time: 0.7, Value: 1.0505 /* 1.025 */ },
   { Time: 1, Value: 1 },
 ];
 
 const LetterScaleRange = [
   { Time: 0, Value: 0.95 },
-  { Time: 0.7, Value: 1.18 /* 1.025 */ },
+  { Time: 0.7, Value: 1.175 /* 1.025 */ },
   { Time: 1, Value: 1 },
 ];
 
 const SimpleLetterScaleRange = [
   { Time: 0, Value: 0.95 },
-  { Time: 0.7, Value: 1.095 },
+  { Time: 0.7, Value: 1.07 },
   { Time: 1, Value: 1 },
 ];
 
 const YOffsetRange = [
   { Time: 0, Value: 1 / 100 },
-  { Time: 0.9, Value: -(1 / 52.5) },
+  { Time: 0.9, Value: -(1 / 60) },
   { Time: 1, Value: 0 },
 ];
 
@@ -70,7 +70,7 @@ const GlowRange = [
 
 const SimpleYOffsetRange = [
   { Time: 0, Value: 1 / 100 },
-  { Time: 1, Value: -0.04 },
+  { Time: 1, Value: -0.033 },
 ];
 
 const ScaleSpline = GetSpline(ScaleRange);
@@ -83,14 +83,14 @@ let YOffsetSpline = GetSpline(
 
 const LetterYOffsetRange = [
   { Time: 0, Value: 1 / 100 },
-  { Time: 0.9, Value: -(1 / 50) },
+  { Time: 0.9, Value: -(1 / 56) },
   { Time: 1, Value: 0 },
 ];
 
 
 const SimpleLetterYOffsetRange = [
   { Time: 0, Value: 1 / 100 },
-  { Time: 0.9, Value: -(1 / 65) },
+  { Time: 0.9, Value: -(1 / 62) },
   { Time: 1, Value: 0 },
 ];
 
@@ -102,11 +102,16 @@ let LetterYOffsetSpline = GetSpline(
 const GlowSpline = GetSpline(GlowRange);
 
 const YOffsetDamping = 0.4;
-const YOffsetFrequency = 1.25;
-const ScaleDamping = 0.6;
-const ScaleFrequency = 0.7;
-const GlowDamping = 0.5;
-const GlowFrequency = 1;
+// const YOffsetFrequency = 1.25;
+// const ScaleDamping = 0.6;
+// const ScaleFrequency = 0.7;
+// const GlowDamping = 0.5;
+// const GlowFrequency = 1;
+const YOffsetFrequency = 1.45;
+const ScaleDamping = 0.64;
+const ScaleFrequency = 0.88;
+const GlowDamping = 0.56;
+const GlowFrequency = 1.18;
 
 const getDotOpacityRange = (simpleLyricsMode: boolean) => [
   // Controls element opacity
