@@ -318,6 +318,20 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     }
   }
 
+  /* Stacked row — the control drops onto its own full-width line beneath the
+     label. Used for wide controls (e.g. the position slider) that need the
+     horizontal room a side-by-side layout can't give them. */
+  .sl-sp-row--stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+
+    .sl-sp-control {
+      width: 100%;
+      flex-shrink: 1;
+    }
+  }
+
   /* Toggle — iOS-style state contrast through *luminance opposition*: the
      track and knob always sit on opposite ends of the brightness scale, so
      they can never read as the same color. OFF is a dark recessed groove
@@ -433,6 +447,141 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       background: #ffffff;
       color: rgba(0, 0, 0, 0.92);
     }
+  }
+
+  /* Bipolar position slider — a recessed groove (matching the toggle's dark
+     slot) with a fill that grows out from the centre tick toward the thumb,
+     plus a value readout and an inline Reset. */
+  .sl-sp-slider {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .sl-sp-slider-track-wrap {
+    position: relative;
+    height: 20px;
+    display: flex;
+    align-items: center;
+  }
+
+  .sl-sp-slider-track,
+  .sl-sp-slider-fill {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%);
+    border-radius: var(--radius-pill);
+    pointer-events: none;
+  }
+
+  .sl-sp-slider-track {
+    left: 0;
+    right: 0;
+    /* Light groove so the unfilled track reads against the dark modal
+       material instead of sinking into it. */
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .sl-sp-slider-fill {
+    background: var(--accent);
+  }
+
+  .sl-sp-slider-center {
+    position: absolute;
+    top: 50%;
+    width: 2px;
+    height: 12px;
+    transform: translate(-50%, -50%);
+    border-radius: 1px;
+    background: var(--hairline-strong);
+    pointer-events: none;
+  }
+
+  .sl-sp-slider-input {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    margin: 0;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+    z-index: 1;
+
+    &::-webkit-slider-runnable-track {
+      height: 4px;
+      background: transparent;
+    }
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      margin-top: -6px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(0, 0, 0, 0.18);
+      cursor: grab;
+      transition: transform 0.12s ease;
+    }
+
+    &:hover::-webkit-slider-thumb {
+      transform: scale(1.1);
+    }
+
+    &:active::-webkit-slider-thumb {
+      transform: scale(0.92);
+      cursor: grabbing;
+    }
+
+    &:focus-visible::-webkit-slider-thumb {
+      box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(0, 0, 0, 0.18),
+        0 0 0 4px var(--accent-tint-bg-hover);
+    }
+  }
+
+  .sl-sp-slider-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    min-height: 18px;
+  }
+
+  .sl-sp-slider-value {
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-semibold);
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sl-sp-slider-reset {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-medium);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-standard);
+
+    &:hover {
+      color: var(--color-text-primary);
+    }
+  }
+
+  .sl-sp-slider--disabled {
+    opacity: 0.45;
+    pointer-events: none;
   }
 
   /* Standalone tooltip — uses the shared material */

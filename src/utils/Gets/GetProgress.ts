@@ -1,3 +1,4 @@
+import { $playbackOffset } from "../stores.ts";
 import { SpotifyPlayer } from "./../../components/Global/SpotifyPlayer.ts";
 
 interface SyncedPosition {
@@ -18,7 +19,7 @@ let canSyncNonLocalTimestamp = SpotifyPlayer?.IsPlaying ? syncTimings.length : 0
 // Forward lead (ms) added to every position to compensate for audio-output
 // latency. A perceptual dial, not a correctness value: raise it if the sweep
 // lands behind the beat, lower it if it runs ahead.
-const PROGRESS_POSITION_OFFSET = 25;
+const PROGRESS_POSITION_OFFSET = 100;
 // Deltas within this window are treated as jitter and smoothed; larger deltas
 // (seeks/track changes) snap immediately. Kept well below any deliberate seek (>=1s).
 const JITTER_RESYNC_THRESHOLD = 500;
@@ -165,14 +166,21 @@ export default function GetProgress() {
   const now = Date.now();
   const deltaTime = now - StartedSyncAt;
 
+  // User-configured lyric sync offset (ms). Subtracted from the clock so the
+  // sign reads the way the setting is described: negative values run the clock
+  // ahead of the audio (lyrics appear earlier), positive values hold it back
+  // (lyrics are delayed). Applied in both play/pause branches so the active
+  // line doesn't jump when playback is paused. See $playbackOffset.
+  const playbackOffset = $playbackOffset.get();
+
   if (!Spicetify.Player.isPlaying()) {
     // Static when paused. The synced position already comes from getPositionState
     // (kept fresh by requestPositionSync), so return it directly.
-    return normalizeProgress(Position, false);
+    return normalizeProgress(Position - playbackOffset, false);
   }
 
   const FinalPosition = Position + deltaTime;
-  return normalizeProgress(FinalPosition + PROGRESS_POSITION_OFFSET, true);
+  return normalizeProgress(FinalPosition + PROGRESS_POSITION_OFFSET - playbackOffset, true);
 }
 
 // DEPRECATED

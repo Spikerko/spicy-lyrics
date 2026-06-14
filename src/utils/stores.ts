@@ -20,7 +20,7 @@ function saveSettingsBlob(obj: Record<string, any>) {
 function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
   const renames: Record<string, string> = {
     "skip-spicy-font": "skipSpicyFont",
-    "show_npv_dynamic_bg": "showNpvDynamicBg",
+    show_npv_dynamic_bg: "showNpvDynamicBg",
   };
   let changed = false;
   for (const [oldKey, newKey] of Object.entries(renames)) {
@@ -48,14 +48,18 @@ function persistAtom<T>(key: string, defaultValue: T) {
 // Setting atoms (persisted)
 export const $staticBackgroundMode = persistAtom<string>("staticBackgroundMode", "off");
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
-export const $simpleLyricsModeRenderingType = persistAtom<string>("simpleLyricsModeRenderingType", "calculate");
+export const $simpleLyricsModeRenderingType = persistAtom<string>(
+  "simpleLyricsModeRenderingType",
+  "calculate"
+);
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
 export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
 export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
 export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
-  const initial: boolean = _settings["popupLyricsAllowed"] !== undefined ? _settings["popupLyricsAllowed"] : true;
+  const initial: boolean =
+    _settings["popupLyricsAllowed"] !== undefined ? _settings["popupLyricsAllowed"] : true;
   const store = atom<boolean>(initial);
   store.listen((v) => {
     _settings["popupLyricsAllowed"] = v;
@@ -66,7 +70,12 @@ export const $popupLyricsAllowed = (() => {
 export const $viewControlsPosition = persistAtom<string>("viewControlsPosition", "Top");
 export const $ttmlMakerMode = persistAtom<boolean>("ttmlMakerMode", true);
 export const $developerMode = persistAtom<boolean>("developerMode", false);
-export const $timelineOutsideMediaContent = persistAtom<boolean>("timelineOutsideMediaContent", true);
+export const $timelineOutsideMediaContent = persistAtom<boolean>(
+  "timelineOutsideMediaContent",
+  true
+);
+// Playback timing offset in milliseconds (bipolar: negative = earlier, positive = later)
+export const $playbackOffset = persistAtom<number>("playbackOffset", 0);
 
 // Version atom — NOT persisted, set once at startup
 export const $spicyLyricsVersion = atom<string>(
