@@ -740,6 +740,11 @@ async function main() {
         }
       }
 
+      const songUri = event?.data?.item?.uri;
+      if (songUri) {
+        fetchLyrics(songUri).then(ApplyLyrics);
+      }
+
       const _staticBgMode = $staticBackgroundMode.get();
       if (
         _staticBgMode !== "off" &&

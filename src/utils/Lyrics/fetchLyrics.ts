@@ -52,6 +52,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   //if (!PageContainer) return;
   const LyricsContent =
     PageContainer?.querySelector(".LyricsContainer .LyricsContent") ?? undefined;
+  if (!LyricsContent) return;
   if (LyricsContent?.classList.contains("offline")) {
     LyricsContent.classList.remove("offline");
   }
