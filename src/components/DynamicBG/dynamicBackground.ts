@@ -213,7 +213,10 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
       return;
     }
 
-    const isLocalCover = currentImgCover.startsWith("spotify:local");
+    // `isLocalCover` (derived up top from the playing track's cover) applies to the
+    // static background too: GetStaticBackground returns either this track's local art
+    // or a remote `spotify:image:` header — never the opposite scheme — so reuse it
+    // here instead of re-deriving and shadowing the same flag.
     const finalUrl = isLocalCover
       ? currentImgCover
       : `https://i.scdn.co/image/${currentImgCover.replace("spotify:image:", "")}`;
@@ -261,15 +264,28 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
       return;
     }
 
-    if (existingElement) {
+    // Resolving can block for seconds (rasterizing a local cover waits up to
+    // LOCAL_COVER_DECODE_TIMEOUT_MS). If the track changed in the meantime, a newer
+    // invocation already owns this tag's instance — loading our now-stale cover into it
+    // would flash the previous track's art. Bail and let the newer invocation win.
+    const liveImgCover = SpotifyPlayer.GetCover("large") ?? "";
+    if (liveImgCover !== preCurrentImgCover) {
+      dynamicBgLogger.debug("Cover changed while resolving dynamic background; skipping stale apply", { tag });
+      return;
+    }
+
+    // Re-query the canvas rather than trusting the pre-await snapshot: a concurrent
+    // invocation may have disposed or replaced this tag's canvas while we were resolving.
+    const liveElement = element.querySelector<HTMLElement>(".spicy-dynamic-bg");
+    if (liveElement) {
       const kawarpInstance = KawarpMap.get(
         tag ?
           tag :
-          existingElement
+          liveElement
       )
 
       if (kawarpInstance) {
-        existingElement.setAttribute("data-cover-id", currentImgCover ?? "");
+        liveElement.setAttribute("data-cover-id", currentImgCover ?? "");
         await loadKawarpSource(kawarpInstance, kawarpSource);
         kawarpInstance.start();
         return;
