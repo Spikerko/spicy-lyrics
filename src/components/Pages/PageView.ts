@@ -408,7 +408,7 @@ function AppendViewControls(ReAppend: boolean = false) {
 
   if (ReAppend) elem.innerHTML = "";
   const isNoLyrics =
-    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetId()}`;
+    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetUri()}`;
   const isTTMLMakerMode = $ttmlMakerMode.get();
   elem.innerHTML = `
         ${

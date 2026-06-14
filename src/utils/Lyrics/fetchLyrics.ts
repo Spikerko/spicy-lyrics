@@ -13,7 +13,8 @@ import { SLObjPack } from "../objpack.ts";
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
 
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore", 13, {
+// recently updated key structure - changed name
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 1, {
   Unit: "Days",
   Duration: 3,
 }, isDev as true);
@@ -102,17 +103,18 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   if (savedLyricsData && !isDev) {
     try {
-      if (savedLyricsData.includes("NO_LYRICS")) {
-        const split = savedLyricsData.split(":");
-        const id = split[1];
-        if (id === trackId) {
+      if (savedLyricsData.startsWith("NO_LYRICS:")) {
+        // Sentinel format is `NO_LYRICS:<uri>`. The uri itself contains colons,
+        // so strip the prefix rather than splitting on ":".
+        const savedUri = savedLyricsData.slice("NO_LYRICS:".length);
+        if (savedUri === uri) {
           $currentlyFetching.set(false);
           return ["lyrics-not-found", 404];
         }
       } else {
         const lyricsData = JSON.parse(savedLyricsData);
-        // Return the stored lyrics if the ID matches the track ID
-        if (lyricsData?.id === trackId) {
+        // Return the stored lyrics if the URI matches the current track URI
+        if (lyricsData?.uri === uri) {
           presentLyrics(lyricsData);
           return [lyricsData, 200];
         }
@@ -126,7 +128,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   const localLyric = await LocalLyricsManager.get(uri);
   if (localLyric) {
-    const lyricsData = { ...localLyric, id: trackId };
+    const lyricsData = { ...localLyric, uri };
     $currentLyricsData.set(JSON.stringify(lyricsData));
     presentLyrics(lyricsData);
     return [lyricsData, 200];
@@ -149,7 +151,10 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
           $currentlyFetching.set(false);
           return ["lyrics-not-found", 404];
         }
-        const lyricsFromCache = lyricsFromCacheRes ?? {};
+        // Tag the cached payload with the current uri so the saved-data and
+        // re-fetch checks (which match on uri) recognise it — older cache
+        // entries predate the uri field.
+        const lyricsFromCache = { ...(lyricsFromCacheRes ?? {}), uri };
         $currentLyricsData.set(JSON.stringify(lyricsFromCache));
         presentLyrics(lyricsFromCache);
         return [{ ...lyricsFromCache, fromCache: true }, 200];
@@ -215,7 +220,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       return ["status-not-200", status];
     }
 
-    const lyrics = lyricsPacker.unpack(lyricsQuery.data);
+    const lyrics = lyricsPacker.unpack(lyricsQuery.data) as any;
 
     if (lyrics === null || lyrics === undefined || lyrics === "") {
       HideLoaderContainer();
@@ -225,6 +230,9 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
     await ProcessLyrics(lyrics);
 
+    // Stamp the uri so every match downstream (saved-data, re-fetch, cache)
+    // keys off the stable uri instead of the API-supplied id.
+    lyrics.uri = uri;
     $currentLyricsData.set(JSON.stringify(lyrics));
 
     if (LyricsStore) {

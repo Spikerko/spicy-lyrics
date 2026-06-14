@@ -999,10 +999,10 @@ async function main() {
           const currentSongLyrics = $currentLyricsData.get();
           if (
             currentSongLyrics &&
-            currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetId()}`
+            currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetUri()}`
           ) {
             const parsedLyrics = JSON.parse(currentSongLyrics);
-            if (parsedLyrics?.id !== SpotifyPlayer.GetId()) {
+            if (parsedLyrics?.uri !== SpotifyPlayer.GetUri()) {
               const refetchUri = SpotifyPlayer.GetUri();
               if (refetchUri) {
                 fetchLyrics(refetchUri).then(ApplyLyrics);

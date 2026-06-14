@@ -108,8 +108,8 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     $currentLyricsType.set("None");
 
     if (descriptor === "lyrics-not-found") {
-      const trackId = SpotifyPlayer.GetId() ?? "";
-      $currentLyricsData.set(`NO_LYRICS:${trackId}`);
+      const uri = SpotifyPlayer.GetUri() ?? "";
+      $currentLyricsData.set(`NO_LYRICS:${uri}`);
     } else {
       $currentLyricsData.set("");
     }
