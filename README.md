@@ -1,4 +1,4 @@
-# Spicy Lyrics
+# Spicy Lyrics Nobg
 
 ## Installation
 1. Make sure you have [Spicetify](https://spicetify.app) installed
