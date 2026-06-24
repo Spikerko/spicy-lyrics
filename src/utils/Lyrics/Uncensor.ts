@@ -11,14 +11,20 @@
  * lyrics are fetched.
  */
 
-// The word the provider censors, restored verbatim. Lowercase because the
-// censored token ("****") carries no case information of its own.
+// The word the provider censors, restored verbatim. Kept lowercase on purpose:
+// the censored token ("****") carries no case information, the word is lowercase
+// in the vast majority of its (mid-line) occurrences, and reliable line-start
+// detection isn't possible for Syllable lyrics (each syllable is a separate
+// Text). Consistent lowercase beats occasionally-wrong capitalisation.
 const RESTORED_WORD = "nigga";
 
-// A run of two or more asterisks — the form the provider emits in place of the
-// censored word. Matching 2+ tolerates length variation without touching
-// ordinary text (real lyrics don't contain asterisk runs).
-const CENSOR_PATTERN = /\*{2,}/g;
+// A standalone run of two or more asterisks — the form the provider emits
+// ("****", optionally next to punctuation or quotes). The negative classes
+// include `*` itself so the match must span the ENTIRE run AND not touch a
+// letter on either side. That leaves author-written partial censors like
+// `f***` or `f**k` completely untouched — without `*` in the lookbehind the
+// engine would still grab the trailing `**` of `f***` and corrupt it.
+const CENSOR_PATTERN = /(?<![A-Za-z*])\*{2,}(?![A-Za-z*])/g;
 
 /** Restore a single string. Cheap no-op when there's nothing to restore. */
 function restore(text: string): string {
