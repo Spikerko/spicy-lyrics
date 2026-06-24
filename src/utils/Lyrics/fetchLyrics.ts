@@ -10,6 +10,7 @@ import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
+import { uncensorLyrics } from "./Uncensor.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -242,6 +243,11 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
+
+    // The lyrics provider censors one specific word (rendering it as "****")
+    // before the data ever reaches the client. Restore it here — after fetch,
+    // before processing and caching — so lyrics display verbatim.
+    uncensorLyrics(lyrics);
 
     await ProcessLyrics(lyrics);
 
