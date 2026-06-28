@@ -1,5 +1,4 @@
 import { useStore } from "@nanostores/react";
-import React from "react";
 import { $showNpvDynamicBg, $staticBackgroundMode, $showLyricsBg } from "../../../utils/stores.ts";
 import { matches, Row, Select, SectionTitle, Toggle } from "./components.tsx";
 
@@ -16,10 +15,6 @@ export default function BackgroundSection({ query, sectionFilter }: Props) {
   const staticBackgroundMode = useStore($staticBackgroundMode);
   const showNpvDynamicBg = useStore($showNpvDynamicBg);
   const showLyricsBg = useStore($showLyricsBg);
-
-  React.useEffect(() => {
-    document.body.classList.toggle("spicy-no-lyrics-bg", !showLyricsBg);
-  }, [showLyricsBg]);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 

@@ -460,6 +460,27 @@ const reapplyPageBackground = () => {
 
 $staticBackgroundMode.listen(reapplyPageBackground);
 
+// Apply body class on startup based on persisted value
+document.body.classList.toggle("spicy-no-lyrics-bg", !$showLyricsBg.get());
+
+// React to toggle changes at runtime
+$showLyricsBg.listen((enabled) => {
+  document.body.classList.toggle("spicy-no-lyrics-bg", !enabled);
+  
+  const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
+  if (!contentBox) return;
+
+  if (!enabled) {
+    // Dispose all Kawarp instances and remove background elements
+    KawarpMap.forEach((kawarp) => kawarp.dispose());
+    KawarpMap.clear();
+    contentBox.querySelectorAll<HTMLElement>(".spicy-dynamic-bg").forEach((el) => el.remove());
+  } else {
+    // Re-trigger background on re-enable
+    void ApplyDynamicBackground(contentBox, "lpagebg");
+  }
+});
+
 Global.Event.listen("playback:progress", async (e) => {
   const songUri = SpotifyPlayer.GetUri();
   if (!songUri) {
