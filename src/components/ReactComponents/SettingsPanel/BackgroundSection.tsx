@@ -32,26 +32,36 @@ export default function BackgroundSection({ query, sectionFilter }: Props) {
   return (
     <>
       <SectionTitle>Background</SectionTitle>
-      {r1 && (
-        <Row label="Static Background" description="Pin the background to a fixed image or color instead of animating it.">
-          <Select
-            value={staticBackgroundMode}
-            options={bgModeOptions}
-            labels={bgModeLabels}
-            onChange={(v) => $staticBackgroundMode.set(v)}
-          />
-        </Row>
-      )}
-      {r2 && (
-        <Row label="Display Dynamic Background in Now Playing View" description="Show the animated background in the Now Playing panel.">
-          <Toggle checked={showNpvDynamicBg} onChange={(v) => $showNpvDynamicBg.set(v)} />
-        </Row>
-      )}
       {r3 && (
         <Row label="Show Lyrics Background" description="Show the dynamic background behind the lyrics view.">
           <Toggle checked={showLyricsBg} onChange={(v) => $showLyricsBg.set(v)} />
         </Row>
       )}
+{r1 && (
+  <Row
+    label="Static Background"
+    description="Pin the background to a fixed image or color instead of animating it."
+    disabled={!showLyricsBg}
+    disabledReason="Enable Show Lyrics Background first."
+  >
+    <Select
+      value={staticBackgroundMode}
+      options={bgModeOptions}
+      labels={bgModeLabels}
+      onChange={(v) => $staticBackgroundMode.set(v)}
+    />
+  </Row>
+)}
+{r2 && (
+  <Row
+    label="Display Dynamic Background in Now Playing View"
+    description="Show the animated background in the Now Playing panel."
+    disabled={!showLyricsBg}
+    disabledReason="Enable Show Lyrics Background first."
+  >
+    <Toggle checked={showNpvDynamicBg} onChange={(v) => $showNpvDynamicBg.set(v)} />
+  </Row>
+)}
     </>
   );
 }

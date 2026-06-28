@@ -8,6 +8,7 @@ import Kawarp, { type KawarpOptions } from "@kawarp/core";
 import { BackgroundAnimationController, type AudioAnalysisData } from "./BackgroundAnimationController.ts";
 import { getDynamicAudioAnalysis } from "../../utils/audioAnalysis.ts";
 import Logger from "../../utils/logger.ts";
+import { $staticBackgroundMode, $showLyricsBg } from "../../utils/stores.ts";
 
 const dynamicBgLogger = new Logger("Dynamic Background");
 
@@ -124,6 +125,7 @@ async function loadKawarpSource(kawarp: Kawarp, source: KawarpSource): Promise<v
 
 export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
+  if (!$showLyricsBg.get()) return;
   dynamicBgLogger.debug("Applying dynamic background", { tag });
   const preCurrentImgCover = SpotifyPlayer.GetCover("large") ?? "";
   // Local-file art is served via the `spotify:local:` scheme and isn't on scdn,
