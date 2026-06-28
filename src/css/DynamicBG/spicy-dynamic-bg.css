@@ -195,3 +195,7 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
 .NowPlayingView .main-nowPlayingView-headerCloseButton:focus {
   opacity: 1 !important;
 }
+
+body.spicy-no-lyrics-bg #SpicyLyricsPage .spicy-dynamic-bg {
+  display: none !important;
+}

@@ -8,6 +8,7 @@ import Kawarp, { type KawarpOptions } from "@kawarp/core";
 import { BackgroundAnimationController, type AudioAnalysisData } from "./BackgroundAnimationController.ts";
 import { getDynamicAudioAnalysis } from "../../utils/audioAnalysis.ts";
 import Logger from "../../utils/logger.ts";
+import { $staticBackgroundMode, $showLyricsBg } from "../../utils/stores.ts";
 
 const dynamicBgLogger = new Logger("Dynamic Background");
 
@@ -124,6 +125,7 @@ async function loadKawarpSource(kawarp: Kawarp, source: KawarpSource): Promise<v
 
 export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
+  if (!$showLyricsBg.get()) return;
   dynamicBgLogger.debug("Applying dynamic background", { tag });
   const preCurrentImgCover = SpotifyPlayer.GetCover("large") ?? "";
   // Local-file art is served via the `spotify:local:` scheme and isn't on scdn,
@@ -457,6 +459,27 @@ const reapplyPageBackground = () => {
 };
 
 $staticBackgroundMode.listen(reapplyPageBackground);
+
+// Apply body class on startup based on persisted value
+document.body.classList.toggle("spicy-no-lyrics-bg", !$showLyricsBg.get());
+
+// React to toggle changes at runtime
+$showLyricsBg.listen((enabled) => {
+  document.body.classList.toggle("spicy-no-lyrics-bg", !enabled);
+  
+  const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
+  if (!contentBox) return;
+
+  if (!enabled) {
+    // Dispose all Kawarp instances and remove background elements
+    KawarpMap.forEach((kawarp) => kawarp.dispose());
+    KawarpMap.clear();
+    contentBox.querySelectorAll<HTMLElement>(".spicy-dynamic-bg").forEach((el) => el.remove());
+  } else {
+    // Re-trigger background on re-enable
+    void ApplyDynamicBackground(contentBox, "lpagebg");
+  }
+});
 
 Global.Event.listen("playback:progress", async (e) => {
   const songUri = SpotifyPlayer.GetUri();
