@@ -1,5 +1,6 @@
 /* ── Settings Panel — reads chrome tokens from the modal scope ────── */
 sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
+
   /* Toolbar: search + filter */
   .sl-sp-toolbar {
     display: flex;
@@ -8,7 +9,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     margin-bottom: var(--space-4);
   }
 
-  .slmodal-settingsPanel > div {
+  .slmodal-settingsPanel>div {
     width: 40vw;
     height: 80vh;
   }
@@ -162,6 +163,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       opacity: 0;
       transform: translateY(-4px) scale(0.97);
     }
+
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
@@ -223,7 +225,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     /* The very first section title sits flush against the toolbar — no
        leading hairline, no extra top space. */
     &:first-of-type,
-    .sl-sp-toolbar + & {
+    .sl-sp-toolbar+& {
       border-top: 0;
       padding-top: var(--space-2);
       margin-top: 0;
@@ -397,7 +399,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       }
     }
 
-    input:checked + .sl-sp-toggle-track {
+    input:checked+.sl-sp-toggle-track {
       /* ON: lit track. Brighter than the off groove but deliberately not
          pure white — that's reserved for the knob. */
       background: rgba(255, 255, 255, 0.42);
@@ -417,12 +419,32 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       }
     }
 
-    &:hover input:checked + .sl-sp-toggle-track {
+    &:hover input:checked+.sl-sp-toggle-track {
       background: rgba(255, 255, 255, 0.52);
     }
   }
 
   /* Select — flat tinted surface, no inner blur */
+  .sl-sp-input {
+    background: var(--accent-tint-bg);
+    color: var(--color-text-primary);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-medium);
+    width: 100%;
+    outline: none;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard);
+
+    &:focus {
+      box-shadow: inset 0 0 0 1px var(--accent-strong), inset 0 0 0 1px color-mix(in srgb, var(--accent-strong) 25%, transparent);
+    }
+  }
+
   .sl-sp-select {
     background: var(--accent-tint-bg);
     color: var(--color-text-primary);

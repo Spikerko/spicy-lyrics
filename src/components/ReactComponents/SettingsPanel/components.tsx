@@ -55,6 +55,28 @@ export function Toggle({
   );
 }
 
+export function TextInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <input
+      className="sl-sp-input"
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.currentTarget.value)}
+    />
+  );
+}
+
 export function Select({
   value,
   options,
@@ -300,8 +322,8 @@ export function FilterDropdown({
   const portalTarget =
     open && typeof document !== "undefined"
       ? (document.querySelector(
-          "sl-generic-modal.SpicyLyricsModal .sl-modal-overlay"
-        ) as HTMLElement | null)
+        "sl-generic-modal.SpicyLyricsModal .sl-modal-overlay"
+      ) as HTMLElement | null)
       : null;
 
   return (

@@ -76,6 +76,8 @@ export const $timelineOutsideMediaContent = persistAtom<boolean>(
 );
 // Playback timing offset in milliseconds (bipolar: negative = earlier, positive = later)
 export const $playbackOffset = persistAtom<number>("playbackOffset", 0);
+export const $spotifyClientId = persistAtom<string>("spotifyClientId", "");
+export const $spotifyClientSecret = persistAtom<string>("spotifyClientSecret", "");
 
 // Version atom — NOT persisted, set once at startup
 export const $spicyLyricsVersion = atom<string>(
