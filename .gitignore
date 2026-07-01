@@ -177,3 +177,4 @@ src/components/cli-sync
 .claude/settings.local.json
 
 CHANGELOG.md
+package-lock.json
