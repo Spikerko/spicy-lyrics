@@ -55,28 +55,6 @@ export function Toggle({
   );
 }
 
-export function TextInput({
-  value,
-  onChange,
-  placeholder,
-  type = "text",
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <input
-      className="sl-sp-input"
-      type={type}
-      value={value}
-      placeholder={placeholder}
-      onChange={(e) => onChange(e.currentTarget.value)}
-    />
-  );
-}
-
 export function Select({
   value,
   options,
