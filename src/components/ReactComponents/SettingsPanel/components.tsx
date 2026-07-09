@@ -39,9 +39,11 @@ export function Row({
 export function Toggle({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="sl-sp-toggle">
@@ -49,6 +51,7 @@ export function Toggle({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.currentTarget.checked)}
+        disabled={disabled}
       />
       <span className="sl-sp-toggle-track" />
     </label>

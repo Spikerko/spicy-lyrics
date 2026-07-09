@@ -83,7 +83,11 @@ export default function AnnotationsSection({ query, sectionFilter }: Props) {
           description="Show line markers where annotations exist"
           disabled={!enabled}
         >
-          <Toggle checked={markersEnabled} onChange={(v) => $annotationMarkersEnabled.set(v)} />
+          <Toggle
+            checked={markersEnabled}
+            onChange={(v) => $annotationMarkersEnabled.set(v)}
+            disabled={!enabled}
+          />
         </Row>
       )}
 
@@ -125,7 +129,11 @@ export default function AnnotationsSection({ query, sectionFilter }: Props) {
           description="Log matcher decisions without logging Genius tokens"
           disabled={!enabled}
         >
-          <Toggle checked={debug} onChange={(v) => $annotationDebug.set(v)} />
+          <Toggle
+            checked={debug}
+            onChange={(v) => $annotationDebug.set(v)}
+            disabled={!enabled}
+          />
         </Row>
       )}
 

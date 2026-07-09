@@ -917,4 +917,9 @@ $ttmlMakerMode.listen((v) => {
   AppendViewControls(true);
 })
 
+$annotationsEnabled.listen(() => {
+  if (!PageContainer) return;
+  AppendViewControls(true);
+});
+
 export default PageView;

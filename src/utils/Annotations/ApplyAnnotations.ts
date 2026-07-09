@@ -231,9 +231,7 @@ async function applyAnnotations(payload: LyricsApplyPayload) {
     failureCount = 0;
     $currentAnnotations.set(anchored);
     setMarkersVisible($annotationMarkersEnabled.get());
-    if ($annotationMarkersEnabled.get()) {
-      renderMarkers(payload.Type as LyricsType, anchored);
-    }
+    renderMarkers(payload.Type as LyricsType, anchored);
     $annotationState.set({
       status: anchored.length > 0 ? "ready" : "empty",
       uri: track.uri,
