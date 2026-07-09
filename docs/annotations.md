@@ -6,14 +6,23 @@ URL that injects Genius authorization server-side.
 
 ## Setup
 
-1. Create a Genius API client at https://genius.com/api-clients.
-2. Copy the generated access token.
-3. Open Spicy Lyrics Settings -> Annotations.
-4. Enable Annotations and paste the Genius access token.
+A proxy URL is the recommended configuration. The Spotify client enforces
+browser cross-origin rules, and api.genius.com does not answer the CORS
+preflight that a direct `Authorization` header triggers — so direct token
+requests are typically blocked inside the client. A small proxy (for example a
+Cloudflare Worker) that accepts the encoded Genius API URL as its query input,
+adds authorization server-side, and returns CORS headers works reliably. No
+proxy URL is bundled or hardcoded.
 
-Alternatively, leave the token empty and enter a proxy URL that accepts the
-encoded Genius API URL as its query input and adds authorization on the server.
-No proxy URL is bundled or hardcoded.
+1. Deploy or obtain a Genius API proxy and copy its URL prefix
+   (e.g. `https://your-worker.example.workers.dev/?url=`).
+2. Open Spicy Lyrics Settings -> Annotations.
+3. Enable Annotations and paste the proxy URL.
+
+A direct Genius access token (from https://genius.com/api-clients) can be
+entered instead; it is used only if no proxy is set. If annotations show the
+warning state with a token configured, the client blocked the cross-origin
+request — use a proxy.
 
 ## Privacy
 

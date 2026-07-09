@@ -94,7 +94,7 @@ export default function AnnotationsSection({ query, sectionFilter }: Props) {
       {r4 && (
         <Row
           label="Genius Access Token"
-          description="Your Genius token is stored locally in this client's settings. It is not encrypted and is readable by other extensions. Prefer a proxy if you don't want a token stored client-side. Annotations are fetched only for the currently playing track; no listening history is sent to Genius."
+          description="Used only when no proxy is set. Direct token requests are often blocked by the client's cross-origin rules - if annotations show a warning, use a proxy instead. The token is stored locally in this client's settings, unencrypted and readable by other extensions. Annotations are fetched only for the currently playing track; no listening history is sent to Genius."
           disabled={!enabled}
           stacked
         >
@@ -110,7 +110,7 @@ export default function AnnotationsSection({ query, sectionFilter }: Props) {
       {r5 && (
         <Row
           label="Genius Proxy URL (optional)"
-          description="A proxy can avoid storing a Genius token client-side by injecting authorization server-side."
+          description="Recommended. Injects Genius authorization server-side and avoids the client's cross-origin restrictions. Takes the encoded Genius API URL as its query input."
           disabled={!enabled}
           stacked
         >
