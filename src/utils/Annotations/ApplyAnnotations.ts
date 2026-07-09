@@ -96,9 +96,15 @@ function extractOriginalLineTexts(
     let sourceIndex = 0;
     return LyricsObject.Types.Syllable.Lines.map((line, index) => {
       if (line.DotLine || line.BGLine) return { index, text: "" };
-      const text =
-        sourceLines[sourceIndex]?.Lead?.Syllables?.map((syllable: any) => syllable.Text).join("") ??
-        "";
+      const syllables = sourceLines[sourceIndex]?.Lead?.Syllables ?? [];
+      let text = "";
+      for (let i = 0; i < syllables.length; i++) {
+        const syllable = syllables[i];
+        text += syllable.Text;
+        if (i < syllables.length - 1 && !syllable.IsPartOfWord) {
+          text += " ";
+        }
+      }
       sourceIndex++;
       return { index, text };
     });
@@ -151,15 +157,23 @@ async function fetchRawAnnotations(
   return { match, raw };
 }
 
-async function applyAnnotations(payload: LyricsApplyPayload) {
+function clearAnnotationsUI() {
+  abortCurrentRequest();
   clearAllMarkers();
   $annotationOpen.set(null);
   $currentAnnotations.set([]);
+}
 
+async function applyAnnotations(payload: LyricsApplyPayload) {
   if (!$annotationsEnabled.get()) {
+    clearAnnotationsUI();
     $annotationState.set({ status: "idle" });
     return;
   }
+
+  clearAllMarkers();
+  $annotationOpen.set(null);
+  $currentAnnotations.set([]);
 
   const provider = getActiveProvider();
   if (!provider?.isConfigured()) {
@@ -194,10 +208,13 @@ async function applyAnnotations(payload: LyricsApplyPayload) {
   try {
     const { raw } = await fetchRawAnnotations(track, controller.signal);
     if (controller.signal.aborted || SpotifyPlayer.GetUri() !== track.uri) return;
+    if (!$annotationsEnabled.get()) return;
 
     const lines = extractOriginalLineTexts(payload.Type, payload.Content);
     const anchors = matchLineAnnotations(lines, raw);
     const anchored = joinAnchors(raw, anchors);
+
+    if (controller.signal.aborted || !$annotationsEnabled.get()) return;
 
     if ($annotationDebug.get()) {
       logger.debug(
@@ -297,6 +314,12 @@ export function initAnnotations() {
       !enabled
     );
   });
+  const enabledUnlisten = $annotationsEnabled.listen((enabled) => {
+    if (!enabled) {
+      clearAnnotationsUI();
+      $annotationState.set({ status: "idle" });
+    }
+  });
 
   window.addEventListener(
     "beforeunload",
@@ -305,6 +328,7 @@ export function initAnnotations() {
       Global.Event.unListen(notApplyId);
       Global.Event.unListen(songChangeId);
       markerPrefUnlisten();
+      enabledUnlisten();
       abortCurrentRequest();
       clearAllMarkers();
     },
