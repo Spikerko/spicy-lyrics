@@ -316,6 +316,65 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       align-items: center;
       flex-shrink: 0;
     }
+
+    .sl-sp-input {
+      width: min(320px, 100%);
+      min-height: 32px;
+      border: none;
+      outline: none;
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      background: var(--accent-tint-bg);
+      color: var(--color-text-primary);
+      font-size: var(--text-body-size) !important;
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      transition:
+        background var(--dur-fast) var(--ease-standard),
+        box-shadow var(--dur-fast) var(--ease-standard);
+
+      &::placeholder {
+        color: var(--color-text-secondary);
+      }
+
+      &:focus {
+        background: var(--accent-tint-bg-hover);
+        box-shadow: inset 0 0 0 1px var(--hairline-strong);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .sl-sp-secret-input {
+      display: flex;
+      width: min(360px, 100%);
+      gap: var(--space-2);
+      align-items: center;
+
+      .sl-sp-input {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .sl-sp-secret-toggle {
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      background: var(--accent-tint-bg);
+      color: var(--color-text-primary);
+      font-size: var(--text-caption-size) !important;
+      font-weight: var(--w-semibold);
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px var(--hairline);
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
   }
 
   /* Stacked row — the control drops onto its own full-width line beneath the

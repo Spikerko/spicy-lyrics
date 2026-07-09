@@ -84,6 +84,66 @@ export function Select({
   );
 }
 
+export function TextInput({
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: "text" | "password";
+  disabled?: boolean;
+}) {
+  return (
+    <input
+      className="sl-sp-input"
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      disabled={disabled}
+      spellCheck={false}
+      autoComplete="off"
+      onChange={(e) => onChange(e.currentTarget.value)}
+    />
+  );
+}
+
+export function SecretInput({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="sl-sp-secret-input">
+      <TextInput
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        type={visible ? "text" : "password"}
+        disabled={disabled}
+      />
+      <button
+        type="button"
+        className="sl-sp-secret-toggle"
+        disabled={disabled}
+        onClick={() => setVisible((current) => !current)}
+      >
+        {visible ? "Hide" : "Show"}
+      </button>
+    </div>
+  );
+}
+
 /**
  * Bipolar position slider — a snapping range control centred on a neutral
  * point with a negative axis to the left and a positive axis to the right.

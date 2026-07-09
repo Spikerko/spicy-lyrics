@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AppearanceSection from "./AppearanceSection.tsx";
+import AnnotationsSection from "./AnnotationsSection.tsx";
 import BackgroundSection from "./BackgroundSection.tsx";
 import CacheSection from "./CacheSection.tsx";
 import DeveloperSection from "./DeveloperSection.tsx";
@@ -11,6 +12,7 @@ import { FilterDropdown, SearchBar } from "./components.tsx";
 const SECTIONS = [
   "Background",
   "Lyrics Display",
+  "Annotations",
   "Playback",
   "Appearance",
   "Interface",
@@ -31,6 +33,7 @@ export default function SettingsPanel() {
 
       <BackgroundSection query={query} sectionFilter={sectionFilter} />
       <LyricsSection query={query} sectionFilter={sectionFilter} />
+      <AnnotationsSection query={query} sectionFilter={sectionFilter} />
       <PlaybackSection query={query} sectionFilter={sectionFilter} />
       <AppearanceSection query={query} sectionFilter={sectionFilter} />
       <InterfaceSection query={query} sectionFilter={sectionFilter} />
