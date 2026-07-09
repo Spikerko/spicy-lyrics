@@ -1,0 +1,257 @@
+#SpicyLyricsPage .LyricsContainer .LyricsContent.annotations-markers-off .spicy-annotation-marker {
+  display: none;
+}
+
+#SpicyLyricsPage .line.has-annotation {
+  position: relative;
+}
+
+#SpicyLyricsPage .spicy-annotation-marker {
+  position: absolute;
+  top: 0.1em;
+  inset-inline-end: -1.4em;
+  width: 1.1em;
+  height: 1.1em;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  opacity: 0.55;
+  cursor: pointer;
+  transition:
+    opacity var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-fast) var(--ease-standard);
+  pointer-events: auto;
+}
+
+#SpicyLyricsPage .line:hover .spicy-annotation-marker,
+#SpicyLyricsPage .line.Active .spicy-annotation-marker {
+  opacity: 0.9;
+  color: var(--color-text-secondary);
+}
+
+#SpicyLyricsPage .spicy-annotation-marker:hover {
+  opacity: 1;
+  color: var(--color-text-primary);
+  transform: scale(1.08);
+}
+
+#SpicyLyricsPage .spicy-annotation-marker[data-count]:not([data-count="1"])::after {
+  content: attr(data-count);
+  position: absolute;
+  top: -0.35em;
+  inset-inline-end: -0.35em;
+  font-size: 0.6em;
+  line-height: 1;
+  padding: 0.1em 0.28em;
+  border-radius: var(--radius-pill);
+  background: var(--accent-tint-bg);
+  color: var(--color-text-secondary);
+}
+
+#SpicyLyricsPage .LyricsContainer.HasRtlLines .spicy-annotation-marker {
+  inset-inline-end: auto;
+  inset-inline-start: -1.4em;
+}
+
+.ViewControl#AnnotationsToggle[data-state="warning"] {
+  color: var(--color-status-warning);
+}
+
+.ViewControl#AnnotationsToggle[data-state="active"] {
+  background: var(--accent-tint-bg);
+}
+
+.ViewControl#AnnotationsToggle[data-state="disabled"],
+.ViewControl#AnnotationsToggle[data-state="empty"] {
+  opacity: 0.4;
+}
+
+.spicy-annotation-card,
+.spicy-annotation-drawer {
+  color: var(--color-text-primary);
+  background: var(--material-regular-bg);
+  backdrop-filter: var(--material-regular-blur);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--liquid-edge), var(--shadow-overlay);
+  z-index: 999;
+}
+
+.spicy-annotation-card {
+  position: fixed;
+  width: min(360px, calc(100vw - var(--space-6)));
+  max-height: min(520px, calc(100vh - var(--space-6)));
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.spicy-annotation-card__header,
+.spicy-annotation-card__footer,
+.spicy-annotation-drawer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.spicy-annotation-card__eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption-size);
+  font-weight: var(--w-medium);
+}
+
+.spicy-annotation-card__fragment {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--text-body-size);
+  font-weight: var(--w-semibold);
+  line-height: 1.35;
+}
+
+.spicy-annotation-card__body {
+  margin: var(--space-4) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-body-size);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.spicy-annotation-card__close,
+.spicy-annotation-card__link,
+.spicy-annotation-card__pager button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent-tint-bg);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.spicy-annotation-card__close {
+  width: calc(var(--space-6) + var(--space-2));
+  height: calc(var(--space-6) + var(--space-2));
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.spicy-annotation-card__close svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+
+.spicy-annotation-card__link,
+.spicy-annotation-card__pager {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.spicy-annotation-card__link,
+.spicy-annotation-card__pager button {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-caption-size);
+  font-weight: var(--w-semibold);
+}
+
+.spicy-annotation-card__pager button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.spicy-annotation-card__pager span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption-size);
+}
+
+.spicy-annotation-drawer {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  bottom: var(--space-4);
+  width: min(360px, calc(100vw - var(--space-6)));
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.spicy-annotation-drawer__header h2 {
+  margin: 0;
+  font-size: var(--text-title-size);
+  font-weight: var(--w-semibold);
+}
+
+.spicy-annotation-drawer__list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.spicy-annotation-drawer__item {
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: transparent;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.spicy-annotation-drawer__item--active,
+.spicy-annotation-drawer__item:hover {
+  background: var(--accent-tint-bg);
+}
+
+.spicy-annotation-drawer__item span,
+.spicy-annotation-drawer__item small {
+  display: block;
+}
+
+.spicy-annotation-drawer__item span {
+  font-size: var(--text-body-size);
+  font-weight: var(--w-semibold);
+}
+
+.spicy-annotation-drawer__item small {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--text-caption-size);
+  line-height: 1.4;
+}
+
+@media (max-height: 560px) {
+  .spicy-annotation-card {
+    left: var(--space-3) !important;
+    right: var(--space-3);
+    top: auto !important;
+    bottom: var(--space-3);
+    width: auto;
+    max-height: 55vh;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spicy-annotation-card,
+  .spicy-annotation-drawer {
+    animation: spicy-annotation-enter var(--dur-base) var(--ease-standard);
+  }
+}
+
+@keyframes spicy-annotation-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
