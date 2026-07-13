@@ -547,6 +547,9 @@ async function main() {
     let lastNowPlayingBarElement: HTMLElement | null = null;
     let nowPlayingBarObserver: MutationObserver | null = null;
     let nowPlayingBarMutationTimeout: ReturnType<typeof setTimeout> | null = null;
+    // makes the next apply ignore the "cover unchanged" skip (set on a song change)
+    // kept across the debounce so a mutation reschedule doesn't lose it
+    let nowPlayingBarForcePending = false;
 
     const getNowPlayingBarElement = () =>
       document.querySelector<HTMLElement>(".Root__right-sidebar aside.NowPlayingView") ??
@@ -554,13 +557,16 @@ async function main() {
         `.Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)`
       );
 
-    const scheduleNowPlayingBarDynamicBackgroundApply = () => {
+    const scheduleNowPlayingBarDynamicBackgroundApply = (force = false) => {
+      if (force) nowPlayingBarForcePending = true;
       if (nowPlayingBarMutationTimeout) {
         clearTimeout(nowPlayingBarMutationTimeout);
       }
       nowPlayingBarMutationTimeout = setTimeout(() => {
         nowPlayingBarMutationTimeout = null;
-        void applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
+        const doForce = nowPlayingBarForcePending;
+        nowPlayingBarForcePending = false;
+        void applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"), doForce);
       }, 50);
     };
 
@@ -601,7 +607,9 @@ async function main() {
         kawarpInstance.dispose();
         KawarpMap.delete("npvbg");
       }
-      nowPlayingBar?.querySelector<HTMLElement>(".spicy-dynamic-bg")?.remove();
+      // remove all bg elements not just the first
+      // mode switches and the static cross-fade can leave a stale layer that blocks updates
+      nowPlayingBar?.querySelectorAll<HTMLElement>(".spicy-dynamic-bg").forEach((el) => el.remove());
       nowPlayingBar?.classList.remove("spicy-dynamic-bg-in-this");
       lastNowPlayingBarElement = null;
       lastImgUrl = null;
@@ -670,9 +678,10 @@ async function main() {
       }
     );
 
-    async function applyDynamicBackgroundToNowPlayingBar(coverUrl: string | undefined) {
+    async function applyDynamicBackgroundToNowPlayingBar(coverUrl: string | undefined, force = false) {
       if (!$showNpvDynamicBg.get()) return;
-      if (SpotifyPlayer.GetContentType() === "unknown" || SpotifyPlayer.IsDJ()) return;
+      // don't skip on IsDJ() here it's only true on DJ narration segments
+      // toggling on it flickered the bg, so DJ is handled by the cover-art check below
       if (!coverUrl) return;
       const nowPlayingBar = getNowPlayingBarElement();
       const topContainer = getTopContainerElement();
@@ -685,13 +694,36 @@ async function main() {
           return;
         }
         lastNowPlayingBarElement = nowPlayingBar;
-        if (coverUrl === lastImgUrl) return;
+
+        // no cover art means DJ is playing (it shows an "Up next" card)
+        // the CSS hides the bg then so skip building it here too, and don't clean up or it churns every DJ segment
+        // (only .NowPlayingView reaches this, #Desktop_PanelContainer_Id is null during DJ and cleaned above)
+        if (!nowPlayingBar.querySelector(".main-nowPlayingView-coverArtContainer")) {
+          return;
+        }
+
+        // Spotify can wipe our element when it re-renders the panel
+        // if the cover is unchanged but our element is gone re-add it, only skip if it's still there
+        const hasExistingBg = Boolean(nowPlayingBar.querySelector(".spicy-dynamic-bg"));
+        if (!force && coverUrl === lastImgUrl && hasExistingBg) return;
+
+        // element was wiped so drop the old Kawarp instance or the recreated canvas leaks a WebGL context
+        // (no Kawarp in color/static modes)
+        if (!hasExistingBg) {
+          const staleKawarp = KawarpMap.get("npvbg");
+          if (staleKawarp) {
+            staleKawarp.dispose();
+            KawarpMap.delete("npvbg");
+          }
+        }
 
         nowPlayingBar.classList.add("spicy-dynamic-bg-in-this");
 
-        await ApplyDynamicBackground(nowPlayingBar, "npvbg");
-
+        // set lastImgUrl before the await, appending the element wakes the observer which reschedules us
+        // doing it now lets that re-run short-circuit instead of firing a second color request
+        // a song change still refreshes via force
         lastImgUrl = coverUrl;
+        await ApplyDynamicBackground(nowPlayingBar, "npvbg");
       } catch (error) {
         dynamicBgLogger.error("Failed applying dynamic background to now playing bar", error);
       }
@@ -703,6 +735,13 @@ async function main() {
       } else {
         scheduleNowPlayingBarDynamicBackgroundApply();
       }
+    });
+
+    // rebuild the sidebar bg when the mode changes (canvas vs static/color element)
+    // tear the old one down first so it can't stay frozen on the old track
+    $staticBackgroundMode.listen(() => {
+      CleanupNowBarDynamicBgLets();
+      scheduleNowPlayingBarDynamicBackgroundApply();
     });
 
     startNowPlayingBarObserver();
@@ -762,7 +801,9 @@ async function main() {
       }
 
       try {
-        void scheduleNowPlayingBarDynamicBackgroundApply();
+        // force a refresh on song change so color mode re-fetches this track's colors
+        // even if the cover URL happens to match
+        void scheduleNowPlayingBarDynamicBackgroundApply(true);
       } catch (err) {
         dynamicBgLogger.error("Failed applying dynamic background to now playing bar", err);
       }
