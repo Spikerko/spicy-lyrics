@@ -18,7 +18,8 @@ const getDesktopPanelContainer = () =>
 const getRightSidebarParentContainer = () =>
   document.querySelector<HTMLElement>(".Root__right-sidebar > div:first-of-type") ??
   document.querySelector<HTMLElement>(".Root__right-sidebar .XOawmCGZcQx4cesyNfVO") ??
-  document.querySelector<HTMLElement>(".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a");
+  document.querySelector<HTMLElement>(".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a") ??
+  document.querySelector<HTMLElement>(".Root__right-sidebar");
 const getQueueContainerElement = () =>
   document.querySelector<HTMLElement>(
     ".Root__right-sidebar > div:first-of-type:has(.v5CVyjR4gInbbJpm, .RSJZvcFNF4XzkvK4S1F9)"
@@ -31,7 +32,9 @@ const getQueueContainerElement = () =>
   ) ??
   document.querySelector<HTMLElement>(
     ".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a:not(:has(.Ot1yAtVbjD2owYqmw6BK)):has(.main-nowPlayingView-mainContainer.main-actionBar-ActionBarContainer)"
-  );
+  ) ??
+  document.querySelector<HTMLElement>(".Root__right-sidebar > div:first-of-type") ??
+  document.querySelector<HTMLElement>(".Root__right-sidebar");
 const getDevicesContainerElement = () =>
   document.querySelector<HTMLElement>(
     ".Root__right-sidebar > div:first-of-type:has(.OINH5zA0pQyzffwo, .FNi2RAtuzIc9THq8HYIW):not(:has(.main-nowPlayingView-coverArtContainer))"
@@ -131,6 +134,8 @@ function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
   const parent = spicyLyricsEl.parentElement;
   if (!parent) return;
 
+  const openTime = Date.now();
+
   // Observe for removal of #SpicyLyricsPage
   spicyLyricsPageObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
@@ -150,6 +155,8 @@ function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
     for (const mutation of mutations) {
       for (const n of Array.from(mutation.addedNodes)) {
         if (n instanceof HTMLElement && n.tagName === "ASIDE") {
+          if (n.id === "SpicyLyricsPage" || n.querySelector("#SpicyLyricsPage")) continue;
+          if (Date.now() - openTime < 500) continue;
           cleanupSidebarLyricsObservers();
           cleanupFn();
           return;
@@ -161,8 +168,59 @@ function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
 }
 
 
+let resizerAbortController: AbortController | null = null;
+
+export function SetupResizerDragListener() {
+  if (resizerAbortController) {
+    resizerAbortController.abort();
+    resizerAbortController = null;
+  }
+
+  const resizer = document.querySelector<HTMLElement>(".LayoutResizer__resize-bar.LayoutResizer__inline-start");
+  const top = document.querySelector<HTMLElement>(".Root__top-container");
+  const right = document.querySelector<HTMLElement>(".Root__right-sidebar");
+  if (!resizer || !top || !right) return;
+
+  const controller = new AbortController();
+  resizerAbortController = controller;
+  const { signal } = controller;
+
+  let isDragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  resizer.addEventListener("pointerdown", (e: PointerEvent) => {
+    if (!isSpicySidebarMode) return;
+    isDragging = true;
+    startX = e.clientX;
+    startWidth = right.getBoundingClientRect().width;
+    try { resizer.setPointerCapture(e.pointerId); } catch (_err) {}
+    e.stopPropagation();
+    e.preventDefault();
+  }, { capture: true, signal });
+
+  resizer.addEventListener("pointermove", (e: PointerEvent) => {
+    if (!isDragging || !isSpicySidebarMode) return;
+    const deltaX = startX - e.clientX;
+    const newWidth = Math.max(280, Math.min(850, startWidth + deltaX));
+    top.style.setProperty("--right-sidebar-width", `${newWidth}px`, "important");
+    top.style.setProperty("grid-template-columns", `auto 1fr ${newWidth}px`, "important");
+  }, { capture: true, signal });
+
+  const stopDrag = (e: PointerEvent) => {
+    if (isDragging) {
+      isDragging = false;
+      try { resizer.releasePointerCapture(e.pointerId); } catch (_err) {}
+    }
+  };
+
+  resizer.addEventListener("pointerup", stopDrag, { capture: true, signal });
+  resizer.addEventListener("pointercancel", stopDrag, { capture: true, signal });
+}
+
 function runPageOpenWithCleanup(parentContainer: HTMLElement) {
   PageView.Open(parentContainer, true);
+  SetupResizerDragListener();
   // After opening, observe #SpicyLyricsPage for removal and cleanup
   // Use setTimeout to wait for DOM update
   setTimeout(() => {
