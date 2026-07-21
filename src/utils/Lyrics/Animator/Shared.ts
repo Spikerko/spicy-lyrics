@@ -3,7 +3,6 @@ const IdleEmphasisLyricsScale = 0.95;
 const timeOffset = 0;
 const DurationTimeOffset = 0;
 const BlurMultiplier = 1.25;
-const SidebarBlurMultiplier = 2.5;
 
 // Adjust blur levels in low-quality mode for better performance
 const WordBlurs = {
@@ -30,5 +29,4 @@ export {
   DurationTimeOffset,
   BlurMultiplier,
   WordBlurs,
-  SidebarBlurMultiplier,
 };

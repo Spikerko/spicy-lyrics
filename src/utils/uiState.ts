@@ -18,7 +18,6 @@ function saveUiStateBlob(obj: Record<string, any>) {
 
 function migrateUiStateKeys(blob: Record<string, any>): Record<string, any> {
   const renames: Record<string, string> = {
-    "sidebar-status": "sidebarStatus",
     "IsNowBarOpen": "isNowBarOpen",
     "NowBarSide": "nowBarSide",
     "ForceCompactMode": "forceCompactMode",
@@ -48,7 +47,6 @@ function persistAtom<T>(key: string, defaultValue: T) {
 }
 
 // UI state atoms (persisted, not settings-panel entries)
-export const $sidebarStatus = persistAtom<"open" | "closed">("sidebarStatus", "closed");
 export const $isNowBarOpen = persistAtom<boolean>("isNowBarOpen", false);
 export const $nowBarSide = persistAtom<"left" | "right">("nowBarSide", "left");
 export const $forceCompactMode = persistAtom<boolean>("forceCompactMode", false);
@@ -56,6 +54,7 @@ export const $romanization = persistAtom<boolean>("romanization", false);
 export const $fromVersion = persistAtom<string>("fromVersion", "");
 export const $lastFetchedUri = persistAtom<string | null>("lastFetchedUri", null);
 export const $previousVersion = persistAtom<string>("previousVersion", "");
+export const $npvLyricsOpen = persistAtom<boolean>("npvLyricsOpen", true);
 
 // Runtime (ephemeral) atoms
 export const $isGlobalNav = atom<boolean>(true);

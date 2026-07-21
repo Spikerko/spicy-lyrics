@@ -1,0 +1,165 @@
+/*
+ * Spicy Lyrics — NPV lyrics card
+ * Compact glass card injected into Spotify's right-sidebar Now Playing View.
+ * The card body hosts a full #SpicyLyricsPage in CardMode; overrides below
+ * compact the page's sizing for the narrow sidebar.
+ */
+
+#SpicyLyricsNPVCard {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  /* Same recipe as the other NPV sections (default.css): white tint + blur. */
+  background-color: var(--background-tinted-base, rgba(255, 255, 255, 0.07));
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  max-height: 350px;
+}
+
+#SpicyLyricsNPVCard .CardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4) 0 var(--space-4);
+  flex-shrink: 0;
+}
+
+#SpicyLyricsNPVCard .CardTitle {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--w-semibold);
+  color: var(--color-text-primary);
+}
+
+#SpicyLyricsNPVCard .CardControls {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* View-control look — the page's .ViewControl recipe restated with fixed
+   sizes (the original uses cqh units tied to the page container). */
+#SpicyLyricsNPVCard .CardControl {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-text-primary);
+  background: var(--material-regular-bg);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    scale 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.3s var(--ease-standard);
+}
+
+#SpicyLyricsNPVCard .CardControl:hover {
+  scale: 1.05;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#SpicyLyricsNPVCard .CardControl:active {
+  scale: 0.94;
+}
+
+#SpicyLyricsNPVCard .CardControl svg {
+  width: 22px;
+  height: 22px;
+  fill: none !important;
+}
+
+/* Body hosts the absolutely-positioned, container-type:size page. */
+#SpicyLyricsNPVCard .CardBody {
+  position: relative;
+  height: 225px;
+}
+
+/* Collapsed shell: header only. */
+#SpicyLyricsNPVCard.Collapsed .CardBody {
+  display: none;
+}
+
+#SpicyLyricsNPVCard.Collapsed .CardHeader {
+  padding: var(--space-2) var(--space-4);
+}
+
+/* ─── CardMode page overrides ─────────────────────────────────────────── */
+
+/* NowBar and ViewControls are skipped in CardMode, hide defensively. */
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .ContentBox .NowBar,
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .ViewControls {
+  display: none !important;
+}
+
+/* Side paddings tuned for the narrow sidebar (pattern: PiP overrides). */
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode {
+  --LyricsLeftSidePadding: clamp(0.75rem, 6cqw, 1.75rem) !important;
+  --LyricsRightSidePadding: clamp(0.75rem, 6cqw, 1.75rem) !important;
+}
+
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .ContentBox {
+  --default-font-size: clamp(0.4rem, calc(1cqw * 3), 1.2rem);
+}
+
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .LyricsContainer .LyricsContent {
+  --DefaultLyricsSize: clamp(1.85rem, calc(1cqw * 6), 2.8rem);
+  /* Tighter fade than the default mask (solid only from 64px down), so the
+     small top padding below still leaves the first line readable. */
+  --ImageMask: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 8px,
+    var(--spice-sidebar) calc(28px + var(--SL-LyricsContent_MaskTopPadding, 0px)),
+    var(--spice-sidebar) calc(100% - 28px),
+    transparent calc(100% - 8px),
+    transparent
+  );
+}
+
+/* Pull the lyrics up to the top of the card (default is margin-top: 25cqh);
+   keep a small padding so the fade mask doesn't swallow the first line. */
+#SpicyLyricsNPVCard
+  #SpicyLyricsPage.CardMode
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer {
+  margin-top: 0 !important;
+  padding-top: 24px !important;
+}
+
+/* Credits & community credits slightly bigger than their normal sizing
+   (bases: .Credits 0.47em, .SongInfo 0.35em, .LyricsProvider 0.34em in
+   Mixed.css — all !important, so match with higher specificity). */
+#SpicyLyricsNPVCard
+  #SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .Credits {
+  font-size: 0.62em !important;
+}
+
+#SpicyLyricsNPVCard
+  #SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .SongInfo {
+  font-size: 0.5em !important;
+}
+
+#SpicyLyricsNPVCard
+  #SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .LyricsProvider {
+  font-size: 0.45em !important;
+}

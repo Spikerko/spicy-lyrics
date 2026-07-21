@@ -90,7 +90,7 @@ aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: brightness(0.55) contrast(1.05) saturate(1.7) blur(28px);
+  filter: brightness(0.55) contrast(1.05) saturate(1.7);
   scale: 1.25;
   transform: translateX(0);
   will-change: transform, filter;
