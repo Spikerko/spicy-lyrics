@@ -151,12 +151,24 @@ function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
   spicyLyricsPageObserver.observe(parent, { childList: true });
 
   // Observe for new <aside> being added to the parent container
+  let graceTimer: ReturnType<typeof setTimeout> | null = null;
   spicySidebarAsideObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       for (const n of Array.from(mutation.addedNodes)) {
         if (n instanceof HTMLElement && n.tagName === "ASIDE") {
           if (n.id === "SpicyLyricsPage" || n.querySelector("#SpicyLyricsPage")) continue;
-          if (Date.now() - openTime < 500) continue;
+          const elapsed = Date.now() - openTime;
+          if (elapsed < 500) {
+            // Defer cleanup until grace window expires instead of dropping the event
+            if (graceTimer !== null) clearTimeout(graceTimer);
+            graceTimer = setTimeout(() => {
+              graceTimer = null;
+              cleanupSidebarLyricsObservers();
+              cleanupFn();
+            }, 500 - elapsed);
+            continue;
+          }
+          if (graceTimer !== null) { clearTimeout(graceTimer); graceTimer = null; }
           cleanupSidebarLyricsObservers();
           cleanupFn();
           return;
