@@ -168,7 +168,22 @@ function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
 }
 
 
+function cleanupGridOverride() {
+  const top = document.querySelector<HTMLElement>(".Root__top-container");
+  if (top) {
+    top.style.removeProperty("--right-sidebar-width");
+    top.style.removeProperty("grid-template-columns");
+  }
+}
+
 let resizerAbortController: AbortController | null = null;
+
+function teardownResizerDragListener() {
+  if (resizerAbortController) {
+    resizerAbortController.abort();
+    resizerAbortController = null;
+  }
+}
 
 export function SetupResizerDragListener() {
   if (resizerAbortController) {
@@ -313,6 +328,8 @@ export async function CloseSidebarLyrics(auto: boolean = false) {
   currentNPVWhentil = null;
   
   cleanupSidebarLyricsObservers();
+  cleanupGridOverride();
+  teardownResizerDragListener();
 
   // console.log("[Spicy Lyrics Debug] PageView.Destroy()");
   await PageView.Destroy();
@@ -376,6 +393,8 @@ export function SetupQueueButtonListener() {
         spicyLyricsPageObserver = null;
       }
       await PageView.Destroy();
+      cleanupGridOverride();
+      teardownResizerDragListener();
       appendClosed();
       isSpicySidebarMode = false;
       button.click();
