@@ -15,11 +15,19 @@ const getDesktopPanelContainer = () =>
   document.querySelector<HTMLElement>(
     `.Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)`
   );
-const getRightSidebarParentContainer = () =>
-  document.querySelector<HTMLElement>(".Root__right-sidebar > div:first-of-type") ??
-  document.querySelector<HTMLElement>(".Root__right-sidebar .XOawmCGZcQx4cesyNfVO") ??
-  document.querySelector<HTMLElement>(".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a") ??
-  document.querySelector<HTMLElement>(".Root__right-sidebar");
+const getRightSidebarParentContainer = () => {
+  const container =
+    document.querySelector<HTMLElement>(".Root__right-sidebar > div:first-of-type") ??
+    document.querySelector<HTMLElement>(".Root__right-sidebar .XOawmCGZcQx4cesyNfVO") ??
+    document.querySelector<HTMLElement>(".Root__right-sidebar .oXO9_yYs6JyOwkBn8E4a") ??
+    document.querySelector<HTMLElement>(".Root__right-sidebar");
+  // Fallback lands on .Root__right-sidebar itself which lacks position: relative,
+  // so absolute-positioned #SpicyLyricsPage would escape the sidebar bounds.
+  if (container?.classList.contains("Root__right-sidebar")) {
+    container.style.position = "relative";
+  }
+  return container;
+};
 const getQueueContainerElement = () =>
   document.querySelector<HTMLElement>(
     ".Root__right-sidebar > div:first-of-type:has(.v5CVyjR4gInbbJpm, .RSJZvcFNF4XzkvK4S1F9)"
@@ -185,6 +193,11 @@ function cleanupGridOverride() {
   if (top) {
     top.style.removeProperty("--right-sidebar-width");
     top.style.removeProperty("grid-template-columns");
+  }
+  // Remove the inline position: relative set by the fallback in getRightSidebarParentContainer
+  const sidebar = document.querySelector<HTMLElement>(".Root__right-sidebar");
+  if (sidebar) {
+    sidebar.style.removeProperty("position");
   }
 }
 
