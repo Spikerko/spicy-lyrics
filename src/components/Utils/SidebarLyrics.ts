@@ -114,8 +114,13 @@ let onOpen_wasThingOpen: string | undefined;
 // --- Helper to observe removal of #SpicyLyricsPage ---
 let spicyLyricsPageObserver: MutationObserver | null = null;
 let spicySidebarAsideObserver: MutationObserver | null = null;
+let graceTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function cleanupSidebarLyricsObservers() {
+  if (graceTimer !== null) {
+    clearTimeout(graceTimer);
+    graceTimer = null;
+  }
   if (spicyLyricsPageObserver) {
     try {
       spicyLyricsPageObserver.disconnect();
@@ -159,7 +164,7 @@ function observeSpicyLyricsPageRemoval(cleanupFn: () => void) {
   spicyLyricsPageObserver.observe(parent, { childList: true });
 
   // Observe for new <aside> being added to the parent container
-  let graceTimer: ReturnType<typeof setTimeout> | null = null;
+  graceTimer = null;
   spicySidebarAsideObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       for (const n of Array.from(mutation.addedNodes)) {
