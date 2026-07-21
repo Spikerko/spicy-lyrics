@@ -10,7 +10,6 @@ import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
 import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
-import { isSpicySidebarMode } from "./SidebarLyrics.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 import { IsCompactMode } from "./CompactMode.ts";
 import { Maid } from "../../modules/Maid.ts";
@@ -132,11 +131,6 @@ function OpenNowBar(skipSaving: boolean = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
   const spicyLyricsPage = PageContainer;
-  if (isSpicySidebarMode) {
-    spicyLyricsPage?.classList.add("NowBarStatus__Closed");
-    spicyLyricsPage?.classList.remove("NowBarStatus__Open");
-    return;
-  }
   UpdateNowBar(true);
   NowBar.classList.add("Active");
 

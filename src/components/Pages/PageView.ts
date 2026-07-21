@@ -1,6 +1,6 @@
 import fetchLyrics, { ShowQueueLoader } from "../../utils/Lyrics/fetchLyrics.ts";
 import { LyricsQueueRetry } from "../../utils/Lyrics/LyricsQueueRetry.ts";
-import { $forceCompactMode, $isGlobalNav } from "../../utils/uiState.ts";
+import { $forceCompactMode } from "../../utils/uiState.ts";
 import "../../css/Loaders/DotLoader.css";
 import { DestroyAllLyricsContainers } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import ApplyLyrics, {
@@ -49,19 +49,13 @@ import {
   ToggleNowBar,
   OpenNowBar,
 } from "../Utils/NowBar.ts";
-import {
-  CloseSidebarLyrics,
-  OpenSidebarLyrics,
-  isSpicySidebarMode,
-  cleanupSidebarLyricsObservers
-} from "../Utils/SidebarLyrics.ts";
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
+import { NPVCardOwnsPage, DeRenderNPVCard } from "../Utils/NPVLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
 import Logger from "../../utils/logger.ts";
-import Whentil from "../../modules/Whentil.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
@@ -118,19 +112,28 @@ export const GetPageRoot = () =>
 
 let PageResizeListener: ResizeObserver | null = null;
 export let PageContainer: HTMLElement | null = null;
+export let IsCardMode = false;
 
 async function OpenPage(
   AppendTo: HTMLElement | undefined = undefined,
-  isSidebarMode: boolean = false
+  options?: { cardMode?: boolean }
 ) {
 
   if (_IsPIP_after) {
     await ClosePopupLyrics();
     // After closing, open again with the same arguments
-    return OpenPage(AppendTo, isSidebarMode);
+    return OpenPage(AppendTo, options);
+  }
+
+  if (!options?.cardMode && NPVCardOwnsPage()) {
+    // The NPV card holds the global page; hand it over to the real requester.
+    await DeRenderNPVCard();
+    return OpenPage(AppendTo, options);
   }
 
   if (PageView.IsOpened) return;
+
+  IsCardMode = !!options?.cardMode;
   /* if (!HoverMode) {
         PageView.IsTippyCapable = false;
     } */
@@ -139,8 +142,8 @@ async function OpenPage(
 
   elem.classList.add("SpicyRenderer");
 
-  if (isSidebarMode) {
-    elem.classList.add("SidebarMode");
+  if (IsCardMode) {
+    elem.classList.add("CardMode");
   }
 
   /* if (HoverMode) {
@@ -230,7 +233,8 @@ async function OpenPage(
   const contentBox = elem.querySelector<HTMLElement>(
     ".ContentBox"
   );
-  if (contentBox) {
+  // Card mode stays transparent — the NPV's own dynamic background shows through.
+  if (contentBox && !IsCardMode) {
     try {
       ApplyDynamicBackground(contentBox, "lpagebg");
     } catch (err) {
@@ -259,19 +263,21 @@ async function OpenPage(
     }
   }
 
-  Session_OpenNowBar();
+  if (!IsCardMode) {
+    Session_OpenNowBar();
 
-  /* const ArtworkButton = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox .NowBar .Header .Artwork");
+    /* const ArtworkButton = document.querySelector<HTMLElement>("#SpicyLyricsPage .ContentBox .NowBar .Header .Artwork");
 
-    ArtworkButton.addEventListener("click", () => {
-        NowBar_SwapSides();
-    }) */
+      ArtworkButton.addEventListener("click", () => {
+          NowBar_SwapSides();
+      }) */
 
-  Session_NowBar_SetSide();
+    Session_NowBar_SetSide();
 
-  AppendViewControls();
+    AppendViewControls();
 
-  DisableCompactMode();
+    DisableCompactMode();
+  }
 
   PageResizeListener = new ResizeObserver(() => {
     if (!Fullscreen.IsOpen || !Fullscreen.CinemaViewOpen) return;
@@ -308,6 +314,8 @@ async function OpenPage(
   } else {
     elem?.classList.remove("episode-content-type");
   }
+
+  Global.Event.evoke("page:open", { cardMode: IsCardMode });
 }
 
 /* Global.Event.listen("playback:songchange", () => {
@@ -339,10 +347,6 @@ async function DestroyPage() {
 
   cleanupApplyLyricsAbortController();
 
-  if (isSpicySidebarMode) {
-    cleanupSidebarLyricsObservers();
-  }
-
   if (Fullscreen.IsOpen) await Fullscreen.Close();
   if (!PageContainer) return;
 
@@ -369,6 +373,7 @@ async function DestroyPage() {
     a?.destroy();
   });
   ScrollSimplebar?.unMount();
+  IsCardMode = false;
   Global.Event.evoke("page:destroy", null);
   PageView.IsTippyCapable = true;
   PageContainer = null;
@@ -397,6 +402,7 @@ Global.Event.listen("lyrics:apply", ({ Type }: { Type: string }) => {
 });
 
 function AppendViewControls(ReAppend: boolean = false) {
+  if (IsCardMode) return;
   if (!PageContainer) return;
   controlsLogger.debug("Append view controls");
   const elem = PageContainer.querySelector<HTMLElement>(
@@ -441,14 +447,12 @@ function AppendViewControls(ReAppend: boolean = false) {
         </button>
         ${
           !Fullscreen.IsOpen &&
-          !Fullscreen.CinemaViewOpen &&
-          !isSpicySidebarMode
+          !Fullscreen.CinemaViewOpen
             ? IsPIP ? "" : `<button id="NowBarToggle" class="ViewControl">${Icons.NowBar}</button>`
             : ""
         }
         ${
-          NowBarObj.Open &&
-          !isSpicySidebarMode
+          NowBarObj.Open
             ? IsPIP ? "" : `<button id="NowBarSideToggle" class="ViewControl">${Icons.NowBarSideSwap}</button>`
             : ""
         }
@@ -459,15 +463,6 @@ function AppendViewControls(ReAppend: boolean = false) {
                   ? Icons.Fullscreen
                   : Icons.CloseFullscreen
               }</button>`)
-            : ""
-        }
-        ${
-          !Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen && $isGlobalNav.get()
-            ? IsPIP ? "" : `<button id="SidebarModeToggle" class="ViewControl">${
-                isSpicySidebarMode
-                  ? Icons["panel-right-open"]
-                  : Icons["panel-right-close"]
-              }</button>`
             : ""
         }
         ${
@@ -530,11 +525,6 @@ function AppendViewControls(ReAppend: boolean = false) {
 
           if (Fullscreen.IsOpen) {
             await Fullscreen.Close();
-          }
-
-          if (isSpicySidebarMode) {
-            await CloseSidebarLyrics();
-            return;
           }
 
           Session.GoBack();
@@ -628,49 +618,6 @@ function AppendViewControls(ReAppend: boolean = false) {
         }
       }
 
-      const sidebarModeToggle = elem.querySelector("#SidebarModeToggle");
-      if (sidebarModeToggle) {
-        try {
-          if (!isPip) {
-            Tooltips.NowBarToggle = Spicetify.Tippy(sidebarModeToggle, {
-              ...Spicetify.TippyProps,
-              content: isSpicySidebarMode
-                ? `Switch to normal mode`
-                : `Switch to Sidebar Mode`,
-            });
-          }
-          sidebarModeToggle.addEventListener("click", () => {
-            (sidebarModeToggle as HTMLElement).style.pointerEvents = "none";
-            (sidebarModeToggle as HTMLElement).style.cursor = "not-allowed";
-            const page = PageContainer;
-            if (isSpicySidebarMode) {
-              page?.classList.add("SidebarTransition__Closing");
-              setTimeout(async () => {
-                await CloseSidebarLyrics();
-                Whentil.When(
-                  () => !isSpicySidebarMode,
-                  () => {
-                    Session.Navigate({ pathname: "/SpicyLyrics" });
-                  }
-                );
-              }, 495);
-            } else {
-              page?.classList.add("SidebarTransition__Opening");
-              setTimeout(() => {
-                Session.GoBack();
-                Whentil.When(
-                  () => !PageView.IsOpened,
-                  () => {
-                    OpenSidebarLyrics();
-                  }
-                );
-              }, 350);
-            }
-          });
-        } catch (err) {
-          controlsLogger.warn("Failed to setup Sidebar Mode tooltip", err);
-        }
-      }
     }
 
     const fullscreenBtn = elem.querySelector("#FullscreenToggle");
@@ -712,25 +659,7 @@ function AppendViewControls(ReAppend: boolean = false) {
           });
         }
         cinemaViewBtn.addEventListener("click", async () => {
-          if (isSpicySidebarMode) {
-            await CloseSidebarLyrics();
-            Whentil.When(
-              () => !isSpicySidebarMode,
-              () => {
-                Session.Navigate({ pathname: "/SpicyLyrics" });
-                Whentil.When(
-                  () => !!PageContainer,
-                  () => {
-                    setTimeout(() => {
-                      Fullscreen.Open(true);
-                    }, 100);
-                  }
-                );
-              }
-            );
-          } else {
-            Fullscreen.Open(true);
-          }
+          Fullscreen.Open(true);
         });
       } catch (err) {
         controlsLogger.warn("Failed to setup Cinema View tooltip", err);

@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "apple-design": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/apple-design/SKILL.md",
+      "computedHash": "0d19303902efa64eace10e6b183eb29ef3220d424c1a7fd1eafc52adde216932"
+    },
     "apple-ui-designer": {
       "source": "heyman333/atelier-ui",
       "sourceType": "github",
@@ -14,10 +20,16 @@
       "computedHash": "d823593e24d7493ab740db8f082cbe3b148ed29af9e804d11f5302ad79e4b96d"
     },
     "emil-design-eng": {
-      "source": "emilkowalski/skill",
+      "source": "emilkowalski/skills",
       "sourceType": "github",
       "skillPath": "skills/emil-design-eng/SKILL.md",
       "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
+    },
+    "find-animation-opportunities": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-animation-opportunities/SKILL.md",
+      "computedHash": "5c3ea721da792383aac5c10927548ad0d2ab56706ff553109ecf6f743091b01b"
     },
     "full-output-enforcement": {
       "source": "leonxlnx/taste-skill",
@@ -30,6 +42,12 @@
       "sourceType": "github",
       "skillPath": "skills/soft-skill/SKILL.md",
       "computedHash": "f730e4132775f13eea19e3dc39afc6bb453cfc0498872b127ad8f0d47cfd802d"
+    },
+    "improve-animations": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/improve-animations/SKILL.md",
+      "computedHash": "ff9991a8d6dabb24411daaf6de570e3b6826323459d514d90d7f6371bbdbdbe1"
     },
     "ios-glass-ui-designer": {
       "source": "heyman333/atelier-ui",
@@ -48,6 +66,12 @@
       "sourceType": "github",
       "skillPath": "skills/redesign-skill/SKILL.md",
       "computedHash": "47eced3e960a2c961d3cbee11fa1216264f589344b586a5cbd03967cd6b9c54b"
+    },
+    "review-animations": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/review-animations/SKILL.md",
+      "computedHash": "26bec85a9bfe7cfbfd500ff1ffebc7819ac0cef75cf068c4a97b5af865ccccf7"
     }
   }
 }

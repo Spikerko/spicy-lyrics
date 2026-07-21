@@ -124,6 +124,10 @@ async function loadKawarpSource(kawarp: Kawarp, source: KawarpSource): Promise<v
 
 export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
+  // The NPV lyrics card must stay transparent (the NPV's own background shows
+  // through) — covers every caller that re-applies the page bg (songchange,
+  // static-bg mode changes, etc.).
+  if (element.closest("#SpicyLyricsPage.CardMode")) return;
   dynamicBgLogger.debug("Applying dynamic background", { tag });
   const preCurrentImgCover = SpotifyPlayer.GetCover("large") ?? "";
   // Local-file art is served via the `spotify:local:` scheme and isn't on scdn,

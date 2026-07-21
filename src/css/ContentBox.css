@@ -71,17 +71,10 @@
   padding-right: var(--LyricsRightSidePadding) !important;
 }
 
-#SpicyLyricsPage:not(.SpicyRenderer).SidebarMode
-  .LyricsContainer
-  .LyricsContent {
-  padding-left: 0px !important;
-  padding-right: 0px !important;
-}
-
-#SpicyLyricsPage:not(.SpicyRenderer):not(.SidebarMode):has(.NowBar.Active)
+#SpicyLyricsPage:not(.SpicyRenderer):has(.NowBar.Active)
   .LyricsContainer
   .LyricsContent,
-#SpicyLyricsPage:not(.SpicyRenderer):not(.Fullscreen):not(.SidebarMode):has(
+#SpicyLyricsPage:not(.SpicyRenderer):not(.Fullscreen):has(
     .NowBar.Active
   )
   .LyricsContainer
@@ -99,12 +92,12 @@
   padding-left: calc(var(--LyricsRightSidePadding) * 1.45 - 2.5cqw) !important;
 }
 
-#SpicyLyricsPage:not(.SidebarMode):not(.CompactMode):has(.NowBar.Active) {
+#SpicyLyricsPage:not(.CompactMode):has(.NowBar.Active) {
   --LyricsLeftSidePadding: calc(50cqw - var(--NowBarRightSpacing) * 0.3);
   --LyricsRightSidePadding: calc(var(--NowBarLeftSpacing) * 0.35);
 }
 
-#SpicyLyricsPage:not(.Fullscreen):not(.CompactMode):not(.SidebarMode):has(
+#SpicyLyricsPage:not(.Fullscreen):not(.CompactMode):has(
     .NowBar.Active
   ) {
   --NowBarLeftSpacing: calc(

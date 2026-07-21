@@ -69,11 +69,6 @@
   font-weight: 700 !important;
 }
 
-body.SpicySidebarLyrics__Active #SpicyLyricsPage .LyricsContainer .LyricsContent {
-  --DefaultLyricsSize: clamp(2.1rem, calc(1cqw * 7), 3.5rem);
-  --vertical-gap: 0.95cqh;
-}
-
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent {
   /* Compact sizing tuned for the popup: comfortably readable at the default
      popup size (the floor dominates here, since the popup container is

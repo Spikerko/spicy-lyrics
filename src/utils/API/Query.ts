@@ -46,6 +46,7 @@ export async function Query(
       headers: {
         "Content-Type": "application/json",
         "SpicyLyrics-Version": clientVersion?.Text ?? "",
+        "X-mode": "2",
         ...headers,
       },
       body: JSON.stringify({

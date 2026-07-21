@@ -22,7 +22,6 @@ const OLD_SETTINGS_KEY_RENAMES: Record<string, string> = {
 };
 
 const OLD_UI_STATE_KEYS = [
-  "sidebar-status",
   "IsNowBarOpen",
   "NowBarSide",
   "ForceCompactMode",
@@ -33,7 +32,6 @@ const OLD_UI_STATE_KEYS = [
 ];
 
 const OLD_UI_STATE_KEY_RENAMES: Record<string, string> = {
-  "sidebar-status": "sidebarStatus",
   "IsNowBarOpen": "isNowBarOpen",
   "NowBarSide": "nowBarSide",
   "ForceCompactMode": "forceCompactMode",
