@@ -90,7 +90,9 @@ aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: brightness(0.55) contrast(1.05) saturate(1.7);
+  filter: brightness(0.55) contrast(1.05) saturate(1.7)
+    blur(var(--StaticBackgroundBlur, 0px));
+  /* The 1.25 upscale crops the transparent fringe blur samples in at the edges. */
   scale: 1.25;
   transform: translateX(0);
   will-change: transform, filter;

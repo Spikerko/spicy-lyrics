@@ -73,8 +73,8 @@
 }
 
 #SpicyLyricsNPVCard .CardControl svg {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   fill: none !important;
 }
 
@@ -91,6 +91,178 @@
 
 #SpicyLyricsNPVCard.Collapsed .CardHeader {
   padding: var(--space-2) var(--space-4);
+}
+
+/* ─── Expanded mode: card takes over the whole NPV panel ──────────────── */
+
+/* All takeover rules key off :has(.Expanded), so removing the card (teardown,
+   page handover, external removal) reverts the NPV automatically — no classes
+   on Spotify-owned elements to unwind. The .Root__right-sidebar scope covers
+   both aside.NowPlayingView and the #Desktop_PanelContainer_Id fallback. */
+/* Hide everything except the card and whatever wraps it — insertCard() may
+   fall back to prepending inside .main-nowPlayingView-content, so the card
+   is not always a direct child of the panel. */
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  :is(.main-nowPlayingView-panel, .main-nowPlayingView-content)
+  > :not(#SpicyLyricsNPVCard, :has(#SpicyLyricsNPVCard)) {
+  display: none;
+}
+
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-headerContainer {
+  display: none;
+}
+
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainWrapper:has(> .main-nowPlayingView-panel) {
+  padding: 0;
+}
+
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainContainer
+  .os-scrollbar {
+  display: none;
+}
+
+/* The panel's height is content-driven (it lives in a scroll container), so
+   height: 100% on the card resolves against an indefinite height and falls
+   back to content size. Force a definite height down the whole ancestor
+   chain — including the OverlayScrollbars wrappers — while expanded. */
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainContainer,
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainContainer
+  [data-overlayscrollbars-viewport],
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainContainer
+  .os-viewport,
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainContainer
+  .os-content,
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-mainWrapper,
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-panel,
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-content {
+  height: 100%;
+  padding-bottom: 0;
+}
+
+#SpicyLyricsNPVCard.Expanded {
+  position: relative;
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-radius: 0;
+  max-height: 100%;
+  height: 100%;
+}
+
+#SpicyLyricsNPVCard.Expanded .CardTitle {
+  display: none;
+}
+
+/* Float the controls over the lyrics body so it gets the full card height;
+   the top offset doubles as the header's breathing room. */
+#SpicyLyricsNPVCard.Expanded .CardHeader {
+  position: absolute;
+  top: var(--space-4, 16px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  justify-content: center;
+  padding: 0;
+}
+
+/* Center the controls while expanded (gap stays the compact default). */
+#SpicyLyricsNPVCard.Expanded .CardControls {
+  justify-content: center;
+}
+
+/* ── Expanded controls behave like the page's ViewControls (default.css):
+   hidden until the card is hovered, full opacity when hovered directly,
+   glow-on-hover buttons, and non-hovered siblings dimming. ── */
+#SpicyLyricsNPVCard.Expanded .CardHeader {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#SpicyLyricsNPVCard.Expanded:hover .CardHeader {
+  opacity: 0.7;
+}
+
+#SpicyLyricsNPVCard.Expanded .CardHeader:hover {
+  opacity: 1;
+}
+
+#SpicyLyricsNPVCard.Expanded .CardControl {
+  box-shadow:
+    0 10px 24px -8px rgba(8, 10, 18, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    scale 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#SpicyLyricsNPVCard.Expanded .CardControl:hover {
+  scale: 1.015;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 14px 32px -8px rgba(8, 10, 18, 0.5),
+    0 0 22px -4px rgba(255, 255, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.24);
+}
+
+#SpicyLyricsNPVCard.Expanded
+  .CardControls:has(.CardControl:hover)
+  > .CardControl:not(:hover) {
+  opacity: 0.78;
+}
+
+/* The card is a definite-height flex column here, so flexing the body works
+   where a bare height: 100% (percent of an indefinite height) did not. */
+#SpicyLyricsNPVCard.Expanded .CardBody {
+  height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Slightly wider side paddings than the compact card (extra .Expanded class
+   outweighs the base CardMode rule below). */
+#SpicyLyricsNPVCard.Expanded #SpicyLyricsPage.CardMode {
+  --LyricsLeftSidePadding: clamp(1rem, 8cqw, 2.25rem) !important;
+  --LyricsRightSidePadding: clamp(1rem, 8cqw, 2.25rem) !important;
+}
+
+/* Start the lyrics well down the card (the page container is
+   container-type: size, so cqh resolves against the card body). */
+#SpicyLyricsNPVCard.Expanded
+  #SpicyLyricsPage.CardMode
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer {
+  padding-top: 26.7cqh !important;
+}
+
+/* Larger type than the compact card. */
+#SpicyLyricsNPVCard.Expanded #SpicyLyricsPage.CardMode .ContentBox {
+  --default-font-size: clamp(0.5rem, calc(1cqw * 3.8), 1.5rem);
+}
+
+#SpicyLyricsNPVCard.Expanded
+  #SpicyLyricsPage.CardMode
+  .LyricsContainer
+  .LyricsContent {
+  --DefaultLyricsSize: clamp(2.2rem, calc(1cqw * 7.5), 3.6rem);
 }
 
 /* ─── CardMode page overrides ─────────────────────────────────────────── */
