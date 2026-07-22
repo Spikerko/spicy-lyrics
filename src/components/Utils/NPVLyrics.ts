@@ -12,7 +12,7 @@ import Global from "../Global/Global.ts";
 import { Icons } from "../Styling/Icons.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Whentil from "../../modules/Whentil.ts";
-import { $npvLyricsOpen } from "../../utils/uiState.ts";
+import { $npvLyricsExpanded, $npvLyricsOpen } from "../../utils/uiState.ts";
 import Logger from "../../utils/logger.ts";
 
 const cardLogger = new Logger("NPV Lyrics");
@@ -78,6 +78,7 @@ async function teardownCard(): Promise<void> {
   cardEl = null;
   cardBodyEl = null;
   lastToggleOpen = null;
+  lastExpanded = null;
 }
 
 function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
@@ -114,20 +115,97 @@ function setTooltip(target: Element, content: string, maidKey: string): void {
 }
 
 let lastToggleOpen: boolean | null = null;
+let lastExpanded: boolean | null = null;
 
-function refreshCollapsedUI(): void {
+const STATE_ANIM_MS = 350;
+const STATE_ANIM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+// FLIP morph instead of document.startViewTransition: view-transition
+// snapshots render in a viewport-anchored top layer, unclipped by the
+// sidebar, so the expanded card's true (scroll-clipped, near-viewport-tall)
+// rect bled over the rest of the UI. Animating the live element keeps the
+// stretch inside the sidebar's own clipping. The class flip happens
+// synchronously here; the follow-up debounced evaluate re-runs refreshCardUI
+// idempotently, so nothing jumps afterwards.
+function animateStateChange(mutate: () => void): void {
+  if (
+    !cardEl ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    mutate();
+    return;
+  }
+  const card = cardEl;
+  const buttons = Array.from(
+    card.querySelectorAll<HTMLElement>(".CardControl")
+  );
+  const firstCard = card.getBoundingClientRect();
+  const firstButtons = buttons.map((b) => b.getBoundingClientRect());
+
+  mutate();
+
+  const lastCard = card.getBoundingClientRect();
+  if (
+    firstCard.width === 0 ||
+    firstCard.height === 0 ||
+    lastCard.width === 0 ||
+    lastCard.height === 0
+  )
+    return;
+
+  // Stretch the card box from its old size to its new one (overflow: hidden
+  // clips the body while it grows/shrinks).
+  card.animate(
+    [
+      { width: `${firstCard.width}px`, height: `${firstCard.height}px` },
+      { width: `${lastCard.width}px`, height: `${lastCard.height}px` },
+    ],
+    { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
+  );
+
+  // Glide each control from its old spot (right cluster <-> centered).
+  buttons.forEach((button, i) => {
+    const first = firstButtons[i];
+    const last = button.getBoundingClientRect();
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    if (dx === 0 && dy === 0) return;
+    button.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+      { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
+    );
+  });
+}
+
+function refreshCardUI(): void {
   if (!cardEl) return;
   const open = $npvLyricsOpen.get();
+  // Defensive: never Expanded while Collapsed.
+  const expanded = open && $npvLyricsExpanded.get();
   cardEl.classList.toggle("Collapsed", !open);
-  // Only rewrite the button when the state actually changed — these DOM writes
-  // land inside the observed sidebar subtree and would otherwise re-trigger
-  // the observer on every evaluate.
-  if (lastToggleOpen === open) return;
-  lastToggleOpen = open;
-  const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
-  if (toggle) {
-    toggle.innerHTML = open ? Icons.Collapse : Icons.Uncollapse;
-    setTooltip(toggle, open ? "Hide Lyrics" : "Show Lyrics", "toggle-tip");
+  cardEl.classList.toggle("Expanded", expanded);
+  // Only rewrite the buttons when the state actually changed — these DOM
+  // writes land inside the observed sidebar subtree and would otherwise
+  // re-trigger the observer on every evaluate.
+  if (lastToggleOpen !== open) {
+    lastToggleOpen = open;
+    const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
+    if (toggle) {
+      toggle.innerHTML = open ? Icons.Collapse : Icons.Uncollapse;
+      setTooltip(toggle, open ? "Hide Lyrics" : "Show Lyrics", "toggle-tip");
+    }
+  }
+  if (lastExpanded !== expanded) {
+    lastExpanded = expanded;
+    const maximize = cardEl.querySelector<HTMLElement>("#NPVCardMaximize");
+    if (maximize) {
+      maximize.innerHTML = expanded ? Icons.Minimize : Icons.Maximize;
+      setTooltip(
+        maximize,
+        expanded ? "Exit Expanded" : "Expand Lyrics",
+        "maximize-tip"
+      );
+    }
   }
 }
 
@@ -139,6 +217,7 @@ function renderCardShell(npv: HTMLElement): boolean {
             <span class="CardTitle">Lyrics</span>
             <div class="CardControls">
                 <button id="NPVCardExpand" class="CardControl">${Icons.CinemaView}</button>
+                <button id="NPVCardMaximize" class="CardControl">${Icons.Maximize}</button>
                 <button id="NPVCardToggle" class="CardControl">${Icons.Collapse}</button>
             </div>
         </div>
@@ -159,15 +238,34 @@ function renderCardShell(npv: HTMLElement): boolean {
     setTooltip(expand, "Open Spicy Lyrics", "expand-tip");
   }
 
-  const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
-  if (toggle) {
-    toggle.addEventListener("click", () => {
-      // The atom listener drives the transition, keeping UI and persistence in sync.
-      $npvLyricsOpen.set(!$npvLyricsOpen.get());
+  const maximize = cardEl.querySelector<HTMLElement>("#NPVCardMaximize");
+  if (maximize) {
+    maximize.addEventListener("click", () => {
+      animateStateChange(() => {
+        const next = !$npvLyricsExpanded.get();
+        $npvLyricsExpanded.set(next);
+        // Expanding a collapsed card opens + expands in one step.
+        if (next && !$npvLyricsOpen.get()) $npvLyricsOpen.set(true);
+        refreshCardUI();
+      });
     });
   }
 
-  refreshCollapsedUI();
+  const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      animateStateChange(() => {
+        const open = $npvLyricsOpen.get();
+        // Collapsing an expanded card exits expanded mode for good — reopening
+        // shows the normal card again.
+        if (open && $npvLyricsExpanded.get()) $npvLyricsExpanded.set(false);
+        $npvLyricsOpen.set(!open);
+        refreshCardUI();
+      });
+    });
+  }
+
+  refreshCardUI();
   return true;
 }
 
@@ -187,7 +285,7 @@ async function reconcile(): Promise<void> {
       : "SHELL";
 
   if (desired === current) {
-    if (cardEl) refreshCollapsedUI();
+    if (cardEl) refreshCardUI();
     return;
   }
 
@@ -206,15 +304,15 @@ async function reconcile(): Promise<void> {
   }
 
   if (desired === "ACTIVE" && !cardOwnsPage && cardBodyEl) {
-    refreshCollapsedUI();
+    refreshCardUI();
     cardOwnsPage = true;
     await PageView.Open(cardBodyEl, { cardMode: true });
   } else if (desired === "SHELL" && cardOwnsPage) {
     cardOwnsPage = false;
     await PageView.Destroy();
-    refreshCollapsedUI();
+    refreshCardUI();
   } else {
-    refreshCollapsedUI();
+    refreshCardUI();
   }
 }
 
@@ -313,6 +411,7 @@ export function initNPVLyrics(): void {
   }
 
   watcherMaid.Give($npvLyricsOpen.listen(() => scheduleEvaluate()));
+  watcherMaid.Give($npvLyricsExpanded.listen(() => scheduleEvaluate()));
 
   Whentil.When(
     () =>

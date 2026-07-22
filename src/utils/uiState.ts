@@ -55,6 +55,7 @@ export const $fromVersion = persistAtom<string>("fromVersion", "");
 export const $lastFetchedUri = persistAtom<string | null>("lastFetchedUri", null);
 export const $previousVersion = persistAtom<string>("previousVersion", "");
 export const $npvLyricsOpen = persistAtom<boolean>("npvLyricsOpen", true);
+export const $npvLyricsExpanded = persistAtom<boolean>("npvLyricsExpanded", false);
 
 // Runtime (ephemeral) atoms
 export const $isGlobalNav = atom<boolean>(true);

@@ -277,6 +277,11 @@ async function OpenPage(
     AppendViewControls();
 
     DisableCompactMode();
+  } else if (IsCompactMode()) {
+    // A previous PiP/fullscreen open left the module flag set; the card page
+    // never enables compact mode, and a stale flag makes ScrollToActiveLine
+    // pin the active line to the top instead of centering it.
+    DisableCompactMode();
   }
 
   PageResizeListener = new ResizeObserver(() => {

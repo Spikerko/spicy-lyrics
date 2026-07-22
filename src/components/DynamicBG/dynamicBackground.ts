@@ -1,4 +1,4 @@
-import { $staticBackgroundMode } from "../../utils/stores.ts";
+import { $staticBackgroundBlur, $staticBackgroundMode } from "../../utils/stores.ts";
 import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
@@ -461,6 +461,15 @@ const reapplyPageBackground = () => {
 };
 
 $staticBackgroundMode.listen(reapplyPageBackground);
+
+// Blur is a pure paint change on the existing element, so push it straight into a
+// CSS var rather than tearing the background down and rebuilding it.
+const applyStaticBackgroundBlur = (blur: number) => {
+  document.documentElement.style.setProperty("--StaticBackgroundBlur", `${blur}px`);
+};
+
+applyStaticBackgroundBlur($staticBackgroundBlur.get());
+$staticBackgroundBlur.listen(applyStaticBackgroundBlur);
 
 Global.Event.listen("playback:progress", async (e) => {
   const songUri = SpotifyPlayer.GetUri();

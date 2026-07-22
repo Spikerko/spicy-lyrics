@@ -47,6 +47,8 @@ function persistAtom<T>(key: string, defaultValue: T) {
 
 // Setting atoms (persisted)
 export const $staticBackgroundMode = persistAtom<string>("staticBackgroundMode", "off");
+// Blur radius (px) applied to image-based static backgrounds — not the "color" mode.
+export const $staticBackgroundBlur = persistAtom<number>("staticBackgroundBlur", 0);
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
 export const $simpleLyricsModeRenderingType = persistAtom<string>(
   "simpleLyricsModeRenderingType",
