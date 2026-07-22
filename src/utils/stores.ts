@@ -56,6 +56,7 @@ export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", fals
 export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
 export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
 export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
+export const $allowScrollUp = persistAtom<boolean>("allowScrollUp", true);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
   const initial: boolean =
