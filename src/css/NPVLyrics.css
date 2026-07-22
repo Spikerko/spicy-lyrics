@@ -142,7 +142,9 @@
 .Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
   .main-nowPlayingView-mainWrapper,
 .Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
-  .main-nowPlayingView-panel {
+  .main-nowPlayingView-panel,
+.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+  .main-nowPlayingView-content {
   height: 100%;
   padding-bottom: 0;
 }
