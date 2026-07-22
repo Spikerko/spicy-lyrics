@@ -99,9 +99,12 @@
    page handover, external removal) reverts the NPV automatically — no classes
    on Spotify-owned elements to unwind. The .Root__right-sidebar scope covers
    both aside.NowPlayingView and the #Desktop_PanelContainer_Id fallback. */
+/* Hide everything except the card and whatever wraps it — insertCard() may
+   fall back to prepending inside .main-nowPlayingView-content, so the card
+   is not always a direct child of the panel. */
 .Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
-  .main-nowPlayingView-panel
-  > :not(#SpicyLyricsNPVCard) {
+  :is(.main-nowPlayingView-panel, .main-nowPlayingView-content)
+  > :not(#SpicyLyricsNPVCard, :has(#SpicyLyricsNPVCard)) {
   display: none;
 }
 
