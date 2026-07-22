@@ -464,12 +464,24 @@ $staticBackgroundMode.listen(reapplyPageBackground);
 
 // Blur is a pure paint change on the existing element, so push it straight into a
 // CSS var rather than tearing the background down and rebuilding it.
+//
+// The var goes on #SpicyLyricsPage itself, not just the root, because in PiP the
+// page lives in the popup's own document — that document's <html> never sees
+// anything we write here, so a root-only var falls back to 0px there.
 const applyStaticBackgroundBlur = (blur: number) => {
-  document.documentElement.style.setProperty("--StaticBackgroundBlur", `${blur}px`);
+  const value = `${blur}px`;
+  document.documentElement.style.setProperty("--StaticBackgroundBlur", value);
+  PageContainer?.style.setProperty("--StaticBackgroundBlur", value);
 };
 
 applyStaticBackgroundBlur($staticBackgroundBlur.get());
 $staticBackgroundBlur.listen(applyStaticBackgroundBlur);
+
+// A freshly opened page (PiP or otherwise) is a brand new element with no inline
+// var on it, so seed it from the current setting.
+Global.Event.listen("page:open", () => {
+  applyStaticBackgroundBlur($staticBackgroundBlur.get());
+});
 
 Global.Event.listen("playback:progress", async (e) => {
   const songUri = SpotifyPlayer.GetUri();
