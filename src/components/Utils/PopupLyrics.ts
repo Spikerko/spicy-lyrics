@@ -2,32 +2,50 @@
 import Session from "../Global/Session.ts";
 import PageView from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
-import { isSpicySidebarMode, CloseSidebarLyrics } from "./SidebarLyrics.ts"
+import { NPVCardOwnsPage, DeRenderNPVCard, RequestNPVCardEvaluate } from "./NPVLyrics.ts";
 
 export let IsPIP = false;
 export let _IsPIP_after = false;
+// True for the whole PiP setup flow. The NPV card treats it as "page busy" so
+// it can't re-take the pipeline during the long awaits (requestWindow, style
+// fetches) before IsPIP itself is set.
+export let IsPIPOpening = false;
 
 let currentPipWindow = null;
 let pipPageHideHandler: ((event: Event) => void) | null = null;
 
 export const OpenPopupLyrics = async () => {
+  IsPIPOpening = true;
+  try {
+    await OpenPopupLyricsFlow();
+  } finally {
+    IsPIPOpening = false;
+    // If the flow failed or was cancelled, no page event fires — nudge the
+    // card so it can come back.
+    RequestNPVCardEvaluate();
+  }
+};
+
+const OpenPopupLyricsFlow = async () => {
+  // If the NPV card owns the page, tear it down directly — the guard below
+  // would otherwise call Session.GoBack() and wrongly navigate the main view.
+  if (NPVCardOwnsPage()) await DeRenderNPVCard();
+
   if (PageView.IsOpened && !IsPIP) {
     if (Fullscreen.IsOpen) {
       // If in any fullscreen mode, close it first
       await Fullscreen.Close();
       Session.GoBack();
-    } else if (isSpicySidebarMode) {
-      await CloseSidebarLyrics();
     } else {
       await PageView.Destroy();
       Session.GoBack();
     }
 
-    OpenPopupLyrics();
+    await OpenPopupLyricsFlow();
     return;
   }
 
- 
+
 
   if (PageView.IsOpened) return;
 

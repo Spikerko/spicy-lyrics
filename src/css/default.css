@@ -36,10 +36,6 @@
   transform: translateY(100%);
 }
 
-body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
-  border-radius: var(--radius-sm);
-}
-
 #SpicyLyricsPage.UseSpicyFont,
 #SpicyLyricsPage.UseSpicyFont *,
 .SpicyLyricsFontPixel,
@@ -91,7 +87,6 @@ body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) {
 
 
 /* :root:has(.SpicyBG.BackgroundLayer)
-  body:not(.SpicySidebarLyrics__Active)
   #SpicyLyricsPage:not(.Fullscreen)
   .ViewControls,
 :root:has(.lucid-bg-wrapper) #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
@@ -105,10 +100,6 @@ body.player-floating:has(.glassify-bg) #SpicyLyricsPage:not(.Fullscreen) .ViewCo
 :root:has(.lucid-bg) #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
   bottom: 80px !important;
 } */
-
-body.SpicySidebarLyrics__Active #SpicyLyricsPage:not(.Fullscreen) .ViewControls {
-  --ViewControlSize: 90cqh;
-}
 
 #SpicyLyricsPage:not(.Fullscreen):hover .ViewControls {
   opacity: 0.7;
@@ -327,10 +318,6 @@ body:not(.SpicyLyrics_StaticBackground)
   transform: translateY(2px);
 }
 
-body.SpicySidebarLyrics__Active button:has(#SpicyLyricsPageSvg) {
-  display: none !important;
-}
-
 button:has(#SpicyLyricsPageSvg)::after {
   transform: translateX(-370%) translateY(-40%) !important;
 }
@@ -393,51 +380,6 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
 .QdB2YtfEq0ks5O4QbtwX:has(#SpicyLyricsPage) .DJcMUKFwkFECf5ksmSfU {
   display: none !important;
 } */
-
-body.SpicySidebarLyrics__Active .eguwzH_QWTBXry7hiNj3:has([id="settings.showFriendActivity"]),
-body.SpicySidebarLyrics__Active .x-settings-row:has([id="settings.showFriendActivity"]) {
-  display: none !important;
-}
-
-body.SpicySidebarLyrics__Active .Root__right-sidebar .XOawmCGZcQx4cesyNfVO > :not(#SpicyLyricsPage),
-body.SpicySidebarLyrics__Active
-  .Root__right-sidebar
-  .oXO9_yYs6JyOwkBn8E4a
-  > :not(#SpicyLyricsPage) {
-  display: none !important;
-}
-
-body.SpicySidebarLyrics__Active [data-testid="control-button-queue"] {
-  color: rgba(var(--spice-rgb-selected-row), 0.7) !important;
-}
-
-body.SpicySidebarLyrics__Active [data-testid="control-button-queue"]::after {
-  display: none !important;
-}
-
-body.SpicySidebarLyrics__Active #SpicyLyricsPage .NowBar {
-  display: none !important;
-}
-
-body.SpicySidebarLyrics__Active #SpicyLyricsPage {
-  --LyricsLeftSidePadding: 12cqw !important;
-  --LyricsRightSidePadding: 7.5cqw !important;
-}
-
-#SpicyLyricsPage.SidebarTransition__Opening {
-  left: 100%;
-}
-
-#SpicyLyricsPage.SidebarTransition__Closing {
-  left: -100%;
-}
-
-*:has(
-    > #SpicyLyricsPage.SidebarTransition__Opening,
-    > #SpicyLyricsPage.SidebarTransition__Closing
-  ) {
-  overflow: hidden !important;
-}
 
 #SpicyLyricsPage:not(.Lyrics_RomanizationAvailable) .ViewControls #RomanizationToggle,
 #SpicyLyricsPage:not(.SpicyRenderer) .ViewControls #RomanizationToggle {
@@ -911,6 +853,3 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-co
   inline-size: 4px !important;
 }
 
-body.SpicySidebarLyrics__Active .Root__right-sidebar > div:first-of-type > :not(#SpicyLyricsPage) {
-  display: none;
-}

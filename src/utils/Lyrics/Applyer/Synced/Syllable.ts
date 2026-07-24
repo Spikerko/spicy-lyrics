@@ -1,6 +1,5 @@
 import { $lyricsContainerExists, $minimalLyricsMode, $simpleLyricsMode } from "../../../../utils/stores.ts";
 import { PageContainer } from "../../../../components/Pages/PageView.ts";
-import { isSpicySidebarMode } from "../../../../components/Utils/SidebarLyrics.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
 import {
   ClearScrollSimplebar,
@@ -205,7 +204,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       nextLineStartTime !== 0 ? nextLineStartTime - line.Lead.EndTime : 0;
 
     const lineEndTime =
-      $minimalLyricsMode.get() || isSpicySidebarMode
+      $minimalLyricsMode.get()
         ? nextLineStartTime === 0
           ? line.Lead.EndTime
           : lineEndTimeAndNextLineStartTimeDistance < getLyricsBetweenShow() &&

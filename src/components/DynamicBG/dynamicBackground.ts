@@ -1,4 +1,4 @@
-import { $staticBackgroundMode } from "../../utils/stores.ts";
+import { $staticBackgroundBlur, $staticBackgroundMode } from "../../utils/stores.ts";
 import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
@@ -124,6 +124,10 @@ async function loadKawarpSource(kawarp: Kawarp, source: KawarpSource): Promise<v
 
 export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
+  // The NPV lyrics card must stay transparent (the NPV's own background shows
+  // through) — covers every caller that re-applies the page bg (songchange,
+  // static-bg mode changes, etc.).
+  if (element.closest("#SpicyLyricsPage.CardMode")) return;
   dynamicBgLogger.debug("Applying dynamic background", { tag });
   const preCurrentImgCover = SpotifyPlayer.GetCover("large") ?? "";
   // Local-file art is served via the `spotify:local:` scheme and isn't on scdn,
@@ -457,6 +461,27 @@ const reapplyPageBackground = () => {
 };
 
 $staticBackgroundMode.listen(reapplyPageBackground);
+
+// Blur is a pure paint change on the existing element, so push it straight into a
+// CSS var rather than tearing the background down and rebuilding it.
+//
+// The var goes on #SpicyLyricsPage itself, not just the root, because in PiP the
+// page lives in the popup's own document — that document's <html> never sees
+// anything we write here, so a root-only var falls back to 0px there.
+const applyStaticBackgroundBlur = (blur: number) => {
+  const value = `${blur}px`;
+  document.documentElement.style.setProperty("--StaticBackgroundBlur", value);
+  PageContainer?.style.setProperty("--StaticBackgroundBlur", value);
+};
+
+applyStaticBackgroundBlur($staticBackgroundBlur.get());
+$staticBackgroundBlur.listen(applyStaticBackgroundBlur);
+
+// A freshly opened page (PiP or otherwise) is a brand new element with no inline
+// var on it, so seed it from the current setting.
+Global.Event.listen("page:open", () => {
+  applyStaticBackgroundBlur($staticBackgroundBlur.get());
+});
 
 Global.Event.listen("playback:progress", async (e) => {
   const songUri = SpotifyPlayer.GetUri();

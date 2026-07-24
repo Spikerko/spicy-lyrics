@@ -40,5 +40,8 @@
   },
   "peerDependencies": {
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@spicemod/creator": "0.0.35"
   }
 }
