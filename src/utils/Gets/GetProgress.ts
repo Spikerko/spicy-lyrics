@@ -14,10 +14,21 @@ interface PredictedProgress {
 
 let syncedPosition: SyncedPosition | null = null;
 let predictedProgress: PredictedProgress | null = null;
-// Last *distinct* sample from the local position source, and when it first
-// appeared. See getLocalPosition for why the anchor is held rather than
-// refreshed on every poll.
-let lastLocalSample: { Position: number; SampledAt: number } | null = null;
+// Last *distinct* sample from the local position source, when it first
+// appeared, and the track it belongs to. See getLocalPosition for why the
+// anchor is held rather than refreshed on every poll.
+let lastLocalSample: {
+  Position: number;
+  SampledAt: number;
+  TrackUri: string | null;
+} | null = null;
+// Previous poll's reading of the player state, used only to spot a
+// discontinuity (seek/track change) in the state itself. See getLocalPosition.
+let lastStateReading: {
+  Position: number;
+  ReadAt: number;
+  WasPlaying: boolean;
+} | null = null;
 const syncTimings = [0.05, 0.1, 0.15, 0.75];
 let canSyncNonLocalTimestamp = SpotifyPlayer?.IsPlaying ? syncTimings.length : 0;
 // Forward lead (ms) added to every position to compensate for audio-output
@@ -34,6 +45,11 @@ const JITTER_RESYNC_THRESHOLD = 500;
 // steady-state offset. The clock advances on wall-clock time, so this only
 // cancels divergence and never adds lag.
 const JITTER_TIME_CONSTANT = 300;
+// How far the player state may move *non-continuously* between two polls (ms)
+// before it counts as a discontinuity that invalidates the held local anchor.
+// Sits above a deliberate seek (>=1s) so ordinary state-update noise never
+// discards a healthy anchor.
+const LOCAL_ANCHOR_RESYNC_THRESHOLD = 1000;
 
 function clampToTrack(position: number): number {
   const duration = SpotifyPlayer.GetDuration();
@@ -127,12 +143,65 @@ export const requestPositionSync = () => {
           // While paused the position legitimately holds still, so keep
           // re-anchoring — otherwise a long pause would build up a large
           // deltaTime that jumps the clock forward the instant playback resumes.
+          const isPlaying = Spicetify.Player.isPlaying();
+          const trackUri = SpotifyPlayer.GetUri() ?? null;
+
+          // A held anchor is only valid for the playback it was taken from. A
+          // track change, seek or context switch that happens to report the
+          // *same* millisecond as the held sample (on a stalling build both
+          // sides commonly sit at 0) would otherwise keep the pre-transition
+          // SampledAt and extrapolate the whole gap on top of the new position,
+          // running the lyrics to the end of the track.
+          //
+          // Second signal: the player state jumping non-continuously. While
+          // playing, positionAsOfTimestamp + (now - timestamp) advances at
+          // wall-clock rate whether or not the state is being refreshed, so
+          // comparing it against its own previous reading isolates real jumps.
+          // This is deliberately a jump detector and not a running agreement
+          // check between the two sources: a *persistent* offset between them
+          // would make an agreement check re-anchor on every poll, pinning the
+          // clock to a stalled sample — the exact freeze the hold prevents.
+          // A jump fires once, because the next poll's expectation is rebuilt
+          // from the post-jump reading.
+          const state = SpotifyPlatform.PlayerAPI._state;
+          const stateReading = state
+            ? isPlaying
+              ? state.positionAsOfTimestamp + (sampledAt - state.timestamp)
+              : state.positionAsOfTimestamp
+            : Number.NaN;
+
+          let stateJumped = false;
+          if (Number.isFinite(stateReading)) {
+            if (lastStateReading?.WasPlaying && isPlaying) {
+              const expected =
+                lastStateReading.Position + (sampledAt - lastStateReading.ReadAt);
+              stateJumped =
+                Math.abs(stateReading - expected) >
+                LOCAL_ANCHOR_RESYNC_THRESHOLD;
+            }
+            lastStateReading = {
+              Position: stateReading,
+              ReadAt: sampledAt,
+              WasPlaying: isPlaying,
+            };
+          }
+
+          const anchorIsStale =
+            lastLocalSample !== null &&
+            isPlaying &&
+            (lastLocalSample.TrackUri !== trackUri || stateJumped);
+
           if (
             !lastLocalSample ||
             lastLocalSample.Position !== sampled ||
-            !Spicetify.Player.isPlaying()
+            !isPlaying ||
+            anchorIsStale
           ) {
-            lastLocalSample = { Position: sampled, SampledAt: sampledAt };
+            lastLocalSample = {
+              Position: sampled,
+              SampledAt: sampledAt,
+              TrackUri: trackUri,
+            };
           }
 
           return {
