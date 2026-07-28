@@ -13,6 +13,8 @@ import { Icons } from "../Styling/Icons.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Whentil from "../../modules/Whentil.ts";
 import { $npvLyricsExpanded, $npvLyricsOpen } from "../../utils/uiState.ts";
+import { $currentLyricsData, $hideNpvLyricsWhenUnavailable } from "../../utils/stores.ts";
+import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import Logger from "../../utils/logger.ts";
 
 const cardLogger = new Logger("NPV Lyrics");
@@ -51,6 +53,22 @@ export function RequestNPVCardEvaluate(): void {
   scheduleEvaluate();
 }
 
+/**
+ * True when the lyrics pipeline has positively reported "no lyrics" for the
+ * track that's playing right now. `$currentLyricsData` carries the
+ * `NO_LYRICS:<uri>` sentinel Applyer writes on a 404, so a stale sentinel left
+ * over from the previous track no longer matches once the uri moves on — the
+ * card comes straight back for the next song without needing to be told.
+ */
+function hiddenForMissingLyrics(): boolean {
+  if (!$hideNpvLyricsWhenUnavailable.get()) return false;
+  const uri = SpotifyPlayer.GetUri();
+  if (!uri) return false;
+  const data = $currentLyricsData.get();
+  if (!data.startsWith("NO_LYRICS:")) return false;
+  return data.slice("NO_LYRICS:".length) === uri;
+}
+
 function desiredState(): CardState {
   const npv = getNPV();
   // closest("[inert]") covers the whole .Root__right-sidebar <-> aside chain
@@ -64,6 +82,7 @@ function desiredState(): CardState {
     Fullscreen.CinemaViewOpen ||
     Spicetify.Platform.History.location.pathname === "/SpicyLyrics";
   if (pageBusyElsewhere) return "DORMANT";
+  if (hiddenForMissingLyrics()) return "DORMANT";
   return $npvLyricsOpen.get() ? "ACTIVE" : "SHELL";
 }
 
@@ -403,6 +422,9 @@ export function initNPVLyrics(): void {
     "fullscreen:open",
     "fullscreen:exit",
     "platform:history",
+    // A new track invalidates any "no lyrics" hide — re-render and let the
+    // freshly opened page fetch decide whether it stays.
+    "playback:songchange",
   ]) {
     const id = Global.Event.listen(name, () => scheduleEvaluate());
     watcherMaid.Give(() => {
@@ -412,6 +434,11 @@ export function initNPVLyrics(): void {
 
   watcherMaid.Give($npvLyricsOpen.listen(() => scheduleEvaluate()));
   watcherMaid.Give($npvLyricsExpanded.listen(() => scheduleEvaluate()));
+  // The apply pipeline publishes the 404 sentinel (and clears it once real
+  // lyrics land) through $currentLyricsData, so this is both the hide and the
+  // un-hide trigger.
+  watcherMaid.Give($currentLyricsData.listen(() => scheduleEvaluate()));
+  watcherMaid.Give($hideNpvLyricsWhenUnavailable.listen(() => scheduleEvaluate()));
 
   Whentil.When(
     () =>

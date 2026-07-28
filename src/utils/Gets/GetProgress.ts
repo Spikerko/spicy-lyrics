@@ -14,6 +14,10 @@ interface PredictedProgress {
 
 let syncedPosition: SyncedPosition | null = null;
 let predictedProgress: PredictedProgress | null = null;
+// Last *distinct* sample from the local position source, and when it first
+// appeared. See getLocalPosition for why the anchor is held rather than
+// refreshed on every poll.
+let lastLocalSample: { Position: number; SampledAt: number } | null = null;
 const syncTimings = [0.05, 0.1, 0.15, 0.75];
 let canSyncNonLocalTimestamp = SpotifyPlayer?.IsPlaying ? syncTimings.length : 0;
 // Forward lead (ms) added to every position to compensate for audio-output
@@ -75,6 +79,12 @@ function normalizeProgress(position: number, isPlaying: boolean): number {
   } else {
     // Jitter — nudge toward the measured value with a frame-rate-independent
     // low-pass (see JITTER_TIME_CONSTANT).
+    //
+    // NOTE: this correction assumes `measured` advances in real time. Against a
+    // source that has stopped advancing, the pull settles at exactly -elapsed
+    // per frame and parks the clock ~JITTER_TIME_CONSTANT ms past the stalled
+    // value — a silent freeze. Keeping every branch of requestPositionSync
+    // self-extrapolating is what upholds that assumption.
     const alpha = 1 - Math.exp(-elapsed / JITTER_TIME_CONSTANT);
     predicted += error * alpha;
   }
@@ -94,14 +104,42 @@ export const requestPositionSync = () => {
     const getLocalPosition = () => {
       return SpotifyPlatform.PlayerAPI._contextPlayer
         .getPositionState({})
-        .then(({ position }: { position: number }) => ({
+        .then(({ position }: { position: number }) => {
           // getPositionState is async: the resolved position is current somewhere
           // between the request and now. Use the NTP-style round-trip midpoint as
           // the best jitter-free estimate of when the sample was taken (anchoring
           // to startedAt would over-extrapolate by the full, variable IPC latency).
-          StartedSyncAt: startedAt + (Date.now() - startedAt) / 2,
-          Position: Number(position),
-        }));
+          const sampledAt = startedAt + (Date.now() - startedAt) / 2;
+          const sampled = Number(position);
+
+          // Not every client refreshes getPositionState continuously — on some
+          // builds it only moves when the player emits a state change, so the
+          // same value comes back for hundreds of consecutive polls. Because
+          // GetProgress derives the clock from (Position + (now - StartedSyncAt)),
+          // re-anchoring StartedSyncAt on every poll pins deltaTime to ~0 and
+          // makes the clock a pure mirror of the source: if the source stalls,
+          // the lyrics stall with it. Holding the anchor from when the value
+          // *first* appeared lets deltaTime extrapolate through the gap, exactly
+          // as the non-local branch does with positionAsOfTimestamp/timestamp.
+          // A healthy source returns a new value every poll and so re-anchors
+          // every poll, leaving current behaviour untouched.
+          //
+          // While paused the position legitimately holds still, so keep
+          // re-anchoring — otherwise a long pause would build up a large
+          // deltaTime that jumps the clock forward the instant playback resumes.
+          if (
+            !lastLocalSample ||
+            lastLocalSample.Position !== sampled ||
+            !Spicetify.Player.isPlaying()
+          ) {
+            lastLocalSample = { Position: sampled, SampledAt: sampledAt };
+          }
+
+          return {
+            StartedSyncAt: lastLocalSample.SampledAt,
+            Position: lastLocalSample.Position,
+          };
+        });
     };
 
     const getNonLocalPosition = () => {
@@ -132,6 +170,12 @@ export const requestPositionSync = () => {
       .then((position: SyncedPosition) => {
         syncedPosition = position;
       })
+      // Without this the loop is one rejection away from stopping forever: the
+      // reschedule below lives in the success path, so a single failed poll
+      // would leave syncedPosition frozen with no way to recover.
+      .catch((error: unknown) => {
+        console.error("Sync Position: Poll failed, More Details:", error);
+      })
       .then(() => {
         const delay = isLocallyPlaying
           ? 1 / 60
@@ -143,6 +187,9 @@ export const requestPositionSync = () => {
       });
   } catch (error) {
     console.error("Sync Position: Fail, More Details:", error);
+    // A synchronous throw (a Platform API not ready or renamed) must not kill
+    // the loop either — retry on a slow cadence instead of hammering.
+    setTimeout(requestPositionSync, 1000);
   }
 };
 
