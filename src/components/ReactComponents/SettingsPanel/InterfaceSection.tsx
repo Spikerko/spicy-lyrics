@@ -1,5 +1,6 @@
 import { useStore } from "@nanostores/react";
 import {
+  $hideNpvLyricsWhenUnavailable,
   $lockedMediaBox,
   $popupLyricsAllowed,
   $timelineOutsideMediaContent,
@@ -21,6 +22,7 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
   const popupLyricsAllowed = useStore($popupLyricsAllowed);
   const viewControlsPosition = useStore($viewControlsPosition);
   const timelineOutsideMediaContent = useStore($timelineOutsideMediaContent);
+  const hideNpvLyricsWhenUnavailable = useStore($hideNpvLyricsWhenUnavailable);
   const isGlobalNav = useStore($isGlobalNav);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
@@ -29,8 +31,9 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
   const r3 = matches(query, "Disable Popup Lyrics Window", "Prevent lyrics from opening in a floating popup window.");
   const r4 = matches(query, "Lyrics Controls Position", "Where the lyrics view controls (play, scroll, etc.) appear.");
   const r5 = matches(query, "Timeline Outside Media Box", "Display the playback timeline outside the media box, in the NowBar header. Stays inside the media box in Compact Mode or PIP.");
+  const r6 = matches(query, "Hide NPV Lyrics When No Lyrics Are Available", "Remove the lyrics card from the Now Playing sidebar while the current song has no lyrics, instead of showing a notice. It comes back on the next song that has them.");
 
-  if (!r2 && !r3 && !r4 && !r5) return null;
+  if (!r2 && !r3 && !r4 && !r5 && !r6) return null;
 
   return (
     <>
@@ -77,6 +80,18 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
           <Toggle
             checked={timelineOutsideMediaContent}
             onChange={(v) => $timelineOutsideMediaContent.set(v)}
+          />
+        </Row>
+      )}
+
+      {r6 && (
+        <Row
+          label="Hide NPV Lyrics When No Lyrics Are Available"
+          description="Remove the lyrics card from the Now Playing sidebar while the current song has no lyrics, instead of showing a notice. It comes back on the next song that has them."
+        >
+          <Toggle
+            checked={hideNpvLyricsWhenUnavailable}
+            onChange={(v) => $hideNpvLyricsWhenUnavailable.set(v)}
           />
         </Row>
       )}
