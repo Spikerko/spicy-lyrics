@@ -2,7 +2,7 @@ import { useStore } from "@nanostores/react";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { $isGlobalNav } from "../../utils/uiState";
-import Logger from "../../utils/logger";
+import Logger from "../../utils/Logger";
 
 const toasterLogger = new Logger("Toaster");
 

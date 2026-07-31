@@ -5,7 +5,7 @@ import {
   observeElementOffset,
 } from "@tanstack/virtual-core";
 import { Maid } from "../../modules/Maid.ts";
-import Logger from "../logger.ts";
+import Logger from "../Logger.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
 // Gap is baked into each wrapper's padding-bottom so items can have

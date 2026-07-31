@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import Global from "../../components/Global/Global.ts";
-import Logger from "../logger.ts";
+import Logger from "../Logger.ts";
 import ApplyLyrics from "./Global/Applyer.ts";
 import fetchLyrics, { ShowQueueLoader } from "./fetchLyrics.ts";
 

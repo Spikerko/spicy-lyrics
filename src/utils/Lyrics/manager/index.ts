@@ -1,5 +1,5 @@
 import { dbPromise, ObjectStores } from "../../db";
-import Logger from "../../logger";
+import Logger from "../../Logger";
 import { ParseTTML } from "./parseTTML";
 
 const logger = new Logger("Local Lyrics Manager");
