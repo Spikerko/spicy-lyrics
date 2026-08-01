@@ -15,7 +15,7 @@ import Whentil from "../../modules/Whentil.ts";
 import { $npvLyricsExpanded, $npvLyricsOpen } from "../../utils/uiState.ts";
 import { $currentLyricsData, $hideNpvLyricsWhenUnavailable } from "../../utils/stores.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
-import Logger from "../../utils/logger.ts";
+import Logger from "../../utils/Logger.ts";
 
 const cardLogger = new Logger("NPV Lyrics");
 

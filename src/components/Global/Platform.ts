@@ -17,7 +17,12 @@ const OnSpotifyReady = new Promise<void>((resolve) => {
     SpotifyInternalFetch = Spotify.CosmosAsync;
 
     if (!SpotifyPlatform || !SpotifyInternalFetch) {
-      requestAnimationFrame(() => setTimeout(CheckForServices, 0));
+      // Plain setTimeout, not requestAnimationFrame: this poll has nothing to do with
+      // paint timing, and rAF stops firing entirely once the window is hidden. If the
+      // main window gets backgrounded before Spicetify's globals are ready, an rAF-gated
+      // retry here would wedge the whole extension's boot until the window is foregrounded
+      // again. setTimeout keeps retrying (throttled but not stopped) regardless.
+      setTimeout(CheckForServices, 0);
       return;
     }
 

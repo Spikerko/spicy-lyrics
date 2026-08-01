@@ -51,11 +51,12 @@ import {
 } from "../Utils/NowBar.ts";
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
+import { GetActiveWindow } from "../../utils/PipRuntime.ts";
 import { NPVCardOwnsPage, DeRenderNPVCard } from "../Utils/NPVLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
-import Logger from "../../utils/logger.ts";
+import Logger from "../../utils/Logger.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
@@ -329,7 +330,7 @@ async function OpenPage(
 }) */
 
 export const isSizeReadyToBeCompacted = () =>
-  window.matchMedia("(max-width: 70.812rem)").matches;
+  GetActiveWindow().matchMedia("(max-width: 70.812rem)").matches;
 
 export function Compactify(Element: HTMLElement | undefined = undefined) {
   if (!Fullscreen.IsOpen) return;

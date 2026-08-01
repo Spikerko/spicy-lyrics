@@ -1,5 +1,6 @@
 import { Maid } from "../modules/Maid";
-import Logger from "./logger";
+import Logger from "./Logger";
+import { RequestPipAnimationFrame, CancelPipAnimationFrame } from "./PipRuntime.ts";
 
 const intervalLogger = new Logger("Interval Manager");
 
@@ -67,10 +68,10 @@ class IntervalManager {
         this.lastTimestamp = this.duration === 0 ? null : timestamp; // Reset timestamp for immediate execution when duration is infinite
       }
 
-      this.animationFrameId = requestAnimationFrame(loop);
+      this.animationFrameId = RequestPipAnimationFrame(loop);
     };
 
-    this.animationFrameId = requestAnimationFrame(loop);
+    this.animationFrameId = RequestPipAnimationFrame(loop);
 
     // Register cleanup with the Maid
     this.maid.Give(() => this.Stop());
@@ -83,7 +84,7 @@ class IntervalManager {
       this.intervalId = null;
     }
     if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
+      CancelPipAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
     this.Running = false;

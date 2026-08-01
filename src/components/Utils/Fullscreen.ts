@@ -328,37 +328,42 @@ async function Close(isPip: boolean = false) {
         mainElement.style.removeProperty("display");
       }
 
-      // Apply exit animation and block all interaction for its duration
+      // Apply exit animation and block all interaction for its duration.
+      // Wrapped in try/finally: if anything below throws, pointer-events must
+      // still get released, otherwise the whole main window (title bar
+      // buttons included) is permanently unclickable.
       SpicyPage.classList.add("frame_F_Exit");
       document.body.style.pointerEvents = "none";
 
-      await new Promise(r => setTimeout(r, 650));
+      try {
+        await new Promise(r => setTimeout(r, 650));
 
-      TransferElement(SpicyPage, GetPageRoot() as HTMLElement);
-      SpicyPage.classList.remove("Fullscreen");
+        TransferElement(SpicyPage, GetPageRoot() as HTMLElement);
+        SpicyPage.classList.remove("Fullscreen");
 
-      // Kick off fullscreen exit immediately (no need to wait for animation)
-      const handleFullscreenExit = async () => {
-        await ExitFullscreenElement();
-        setTimeout(() => PageView.AppendViewControls(true), 50);
-      };
-      //setTimeout(() => {
-        handleFullscreenExit()
-      //}, !wasCinemaMode ? 70 : 0);
+        // Kick off fullscreen exit immediately (no need to wait for animation)
+        const handleFullscreenExit = async () => {
+          await ExitFullscreenElement();
+          setTimeout(() => PageView.AppendViewControls(true), 50);
+        };
+        //setTimeout(() => {
+          handleFullscreenExit()
+        //}, !wasCinemaMode ? 70 : 0);
 
-      const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
-      if (NoLyrics) {
-        SpicyPage
-          ?.querySelector(".ContentBox .LyricsContainer")
-          ?.classList.remove("Hidden");
-        SpicyPage
-          ?.querySelector<HTMLElement>(".ContentBox")
-          ?.classList.remove("LyricsHidden");
-        DeregisterNowBarBtn();
+        const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
+        if (NoLyrics) {
+          SpicyPage
+            ?.querySelector(".ContentBox .LyricsContainer")
+            ?.classList.remove("Hidden");
+          SpicyPage
+            ?.querySelector<HTMLElement>(".ContentBox")
+            ?.classList.remove("LyricsHidden");
+          DeregisterNowBarBtn();
+        }
+      } finally {
+        document.body.style.removeProperty("pointer-events");
+        SpicyPage.classList.remove("frame_F_Exit");
       }
-
-      document.body.style.removeProperty("pointer-events");
-      SpicyPage.classList.remove("frame_F_Exit");
 
       ResetLastLine();
 
