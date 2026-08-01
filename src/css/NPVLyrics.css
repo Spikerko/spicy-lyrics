@@ -79,9 +79,17 @@
 }
 
 /* Body hosts the absolutely-positioned, container-type:size page. */
+/* flex-shrink: 0 matters for the open/close morph: as a shrinkable flex item the
+   body absorbed the card's animated height, so every frame re-resolved the
+   page's cqw/cqh type scale, relaid out every mounted line, and re-triggered the
+   virtualizer's measure/mount cycle. Pinned, the body keeps its final size from
+   frame 0 and the card's `overflow: hidden` simply clips it into view — the
+   lyrics are laid out once. (.Expanded overrides this with `flex: 1 1 auto`,
+   where the body is meant to flex.) */
 #SpicyLyricsNPVCard .CardBody {
   position: relative;
   height: 225px;
+  flex-shrink: 0;
 }
 
 /* Collapsed shell: header only. */

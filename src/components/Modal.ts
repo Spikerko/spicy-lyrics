@@ -17,6 +17,8 @@ type ModalTransitionOptions = {
 	closeHandler?: (() => void) | null;
 	/** Optional class appended to `.sl-modal`. Replaces any previously set modalId class. */
 	modalId?: string | null;
+	/** Optional new header title. Omit to keep the current one. */
+	title?: string | null;
 };
 
 class _HTMLGenericModal extends HTMLElement {
@@ -68,7 +70,7 @@ class _HTMLGenericModal extends HTMLElement {
 	 * Instantly swap modal content without hiding/re-animating.
 	 * Use for modal-to-modal transitions where the frame should stay visible.
 	 */
-	transition({ content, onClose = null, closeHandler = null, modalId = null }: ModalTransitionOptions): void {
+	transition({ content, onClose = null, closeHandler = null, modalId = null, title = null }: ModalTransitionOptions): void {
 		if (typeof this._onClose === "function") {
 			this._onClose();
 		}
@@ -76,6 +78,10 @@ class _HTMLGenericModal extends HTMLElement {
 		const closeButton = this.querySelector(".sl-modal-close-btn");
 		if (closeButton) {
 			(closeButton as HTMLButtonElement).onclick = closeHandler ?? this.hide.bind(this);
+		}
+		if (typeof title === "string") {
+			const titleEl = this.querySelector(".sl-modal-title");
+			if (titleEl) titleEl.textContent = title;
 		}
 		this._applyModalId(modalId);
 		const main = this.querySelector("main");
