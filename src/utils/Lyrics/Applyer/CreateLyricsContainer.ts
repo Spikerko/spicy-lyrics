@@ -1,6 +1,7 @@
 import { QueueForceScroll } from "../../Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "../../Scrolling/Simplebar/ScrollSimplebar.ts";
 import { destroyLyricsVirtualizer } from "../LyricsVirtualizer.ts";
+import { RequestPipAnimationFrame } from "../../PipRuntime.ts";
 
 type LyricsContainerReturnObject = {
   Container: HTMLElement;
@@ -22,7 +23,7 @@ const CreateLyricsContainer = (): LyricsContainerReturnObject => {
   const currentIndex = lastMapIndex;
 
   const Resize = () => {
-    requestAnimationFrame(() => {
+    RequestPipAnimationFrame(() => {
       QueueForceScroll();
       ScrollSimplebar?.recalculate();
     });

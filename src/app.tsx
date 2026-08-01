@@ -1029,14 +1029,6 @@ async function main() {
 
   runThemeMatcher();
 
-  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
-    if (IsPIP) return;
-    if (Fullscreen.CinemaViewOpen) {
-      await Fullscreen.Close();
-      Session.GoBack();
-    }
-  });
-
   document.addEventListener("fullscreenchange", async () => {
     if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
       Fullscreen.CinemaViewOpen = true;
@@ -1045,20 +1037,35 @@ async function main() {
     }
   });
 
-  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.F11, async () => {
-    if (IsPIP) return;
-    if (Fullscreen.IsOpen) {
-      if (!Fullscreen.CinemaViewOpen) {
-        Fullscreen.CinemaViewOpen = true;
-        await ExitFullscreenElement();
-        PageView.AppendViewControls(true);
-      } else {
-        Fullscreen.CinemaViewOpen = false;
-        await EnterSpicyLyricsFullscreen();
-        PageView.AppendViewControls(true);
-      }
+  // Spicetify.Keyboard isn't guaranteed ready by Platform.OnSpotifyReady (that only
+  // waits on Platform/CosmosAsync), so wait for it explicitly instead of crashing main().
+  Whentil.When(
+    () => Spicetify.Keyboard,
+    () => {
+      Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
+        if (IsPIP) return;
+        if (Fullscreen.CinemaViewOpen) {
+          await Fullscreen.Close();
+          Session.GoBack();
+        }
+      });
+
+      Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.F11, async () => {
+        if (IsPIP) return;
+        if (Fullscreen.IsOpen) {
+          if (!Fullscreen.CinemaViewOpen) {
+            Fullscreen.CinemaViewOpen = true;
+            await ExitFullscreenElement();
+            PageView.AppendViewControls(true);
+          } else {
+            Fullscreen.CinemaViewOpen = false;
+            await EnterSpicyLyricsFullscreen();
+            PageView.AppendViewControls(true);
+          }
+        }
+      });
     }
-  });
+  );
 
   new Spicetify.Menu.Item(
 		"Spicy Lyrics Settings",

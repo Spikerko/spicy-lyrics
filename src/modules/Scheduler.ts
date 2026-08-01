@@ -1,3 +1,5 @@
+import { RequestPipAnimationFrame, CancelPipAnimationFrame } from "../utils/PipRuntime.ts";
+
 const SchedulerEnums = {
   timeout: 0,
   interval: 1,
@@ -29,7 +31,7 @@ const Interval =
 const OnPreRender =
   (cb: ScheduledCallback): Scheduled => [
     SchedulerEnums.raf,
-    requestAnimationFrame(cb),
+    RequestPipAnimationFrame(cb),
     { cancelled: false },
   ];
 
@@ -45,7 +47,7 @@ const Cancel = (scheduledItems: Scheduled | Array<Scheduled>) => {
 
     if (type === SchedulerEnums.timeout) window.clearTimeout(id);
     else if (type === SchedulerEnums.interval) window.clearInterval(id);
-    else if (type === SchedulerEnums.raf) cancelAnimationFrame(id);
+    else if (type === SchedulerEnums.raf) CancelPipAnimationFrame(id);
   }
 };
 
