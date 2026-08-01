@@ -5,7 +5,7 @@ import langs from "langs";
 import { RetrievePackage } from "../ImportPackage.ts";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
-import Logger from "../logger.ts";
+import Logger from "../Logger.ts";
 
 // Constants
 const RomajiConverter = new Kuroshiro();

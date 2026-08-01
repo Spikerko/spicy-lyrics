@@ -1,5 +1,5 @@
 import Platform from "../../components/Global/Platform.ts";
-import Logger from "../logger.ts";
+import Logger from "../Logger.ts";
 import {
   applyPingConfig,
   BACKOFF_BASE_MS,
