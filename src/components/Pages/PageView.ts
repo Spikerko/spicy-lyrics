@@ -21,8 +21,10 @@ import { ScrollSimplebar } from "../../utils/Scrolling/Simplebar/ScrollSimplebar
 import ApplyDynamicBackground, { KawarpMap } from "../DynamicBG/dynamicBackground.ts";
 import {
   $currentLyricsData,
+  $lineHoverBackground,
   $lyricsContainerExists,
   $minimalLyricsMode,
+  $showVolumeSlider,
   $simpleLyricsMode,
   $skipSpicyFont,
   $ttmlMakerMode,
@@ -55,7 +57,8 @@ import { NPVCardOwnsPage, DeRenderNPVCard } from "../Utils/NPVLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
-import Logger from "../../utils/logger.ts";
+import Logger from "../../utils/Logger.ts";
+import { ApplyExperimentClasses, onExperimentChange } from "../../utils/experiments.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
@@ -229,6 +232,18 @@ async function OpenPage(
   if ($minimalLyricsMode.get()) {
     elem.classList.add("MinimalLyricsMode");
   }
+
+  if (!$lineHoverBackground.get()) {
+    elem.classList.add("NoLineHoverBackground");
+  }
+
+  // Gates the raised .PlaybackControls / tightened .Heart offsets that make room for
+  // the volume band — without it, turning the setting off would leave a gap.
+  if ($showVolumeSlider.get()) {
+    elem.classList.add("ShowVolumeSlider");
+  }
+
+  ApplyExperimentClasses(elem);
 
   const contentBox = elem.querySelector<HTMLElement>(
     ".ContentBox"
@@ -746,9 +761,28 @@ $minimalLyricsMode.listen((v) => {
   if (uri) fetchLyrics(uri).then(ApplyLyrics);
 });
 
+// Purely a CSS toggle — no need to re-render the lyrics like the modes above do.
+$lineHoverBackground.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("NoLineHoverBackground", !v);
+});
+
 $skipSpicyFont.listen((v) => {
   if (!PageContainer) return;
   PageContainer.classList.toggle("UseSpicyFont", !v);
+});
+
+// Purely a CSS gate — NowBar.ts handles rebuilding the band itself.
+$showVolumeSlider.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("ShowVolumeSlider", v);
+});
+
+// Experiments own their CSS hook here; NowBar.ts handles the rebuild for the ones
+// that need one. Adding an experiment requires no change to this file.
+onExperimentChange(() => {
+  if (!PageContainer) return;
+  ApplyExperimentClasses(PageContainer);
 });
 
 $viewControlsPosition.listen((v) => {

@@ -13,9 +13,13 @@ import { Icons } from "../Styling/Icons.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Whentil from "../../modules/Whentil.ts";
 import { $npvLyricsExpanded, $npvLyricsOpen } from "../../utils/uiState.ts";
-import { $currentLyricsData, $hideNpvLyricsWhenUnavailable } from "../../utils/stores.ts";
+import {
+  $currentLyricsData,
+  $disableNpvLyrics,
+  $hideNpvLyricsWhenUnavailable,
+} from "../../utils/stores.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
-import Logger from "../../utils/logger.ts";
+import Logger from "../../utils/Logger.ts";
 
 const cardLogger = new Logger("NPV Lyrics");
 
@@ -31,6 +35,8 @@ const watcherMaid = new Maid();
 let evaluateTimer: ReturnType<typeof setTimeout> | null = null;
 let evaluating = false;
 let evaluateAgain = false;
+// Non-null while the card's open/close morph is running; see holdEvaluateUntilSettled.
+let stateAnimation: Animation | null = null;
 
 const getNPV = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
@@ -42,6 +48,17 @@ const getNPV = (): HTMLElement | null =>
 
 export function NPVCardOwnsPage(): boolean {
   return cardOwnsPage;
+}
+
+/**
+ * The injected card element, or null when no card is rendered.
+ *
+ * Exposed so the sidebar-wide observers elsewhere can skip mutations that
+ * originate inside the card (the lyrics pipeline mutates it constantly) with a
+ * plain `contains()` parent-pointer walk instead of re-matching a selector.
+ */
+export function GetNPVCardElement(): HTMLElement | null {
+  return cardEl;
 }
 
 export async function DeRenderNPVCard(): Promise<void> {
@@ -70,6 +87,7 @@ function hiddenForMissingLyrics(): boolean {
 }
 
 function desiredState(): CardState {
+  if ($disableNpvLyrics.get()) return "DORMANT";
   const npv = getNPV();
   // closest("[inert]") covers the whole .Root__right-sidebar <-> aside chain
   if (!npv || !npv.isConnected || npv.closest("[inert]")) return "DORMANT";
@@ -174,13 +192,17 @@ function animateStateChange(mutate: () => void): void {
 
   // Stretch the card box from its old size to its new one (overflow: hidden
   // clips the body while it grows/shrinks).
-  card.animate(
+  const morph = card.animate(
     [
       { width: `${firstCard.width}px`, height: `${firstCard.height}px` },
       { width: `${lastCard.width}px`, height: `${lastCard.height}px` },
     ],
     { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
   );
+  // Only the expanded body flexes with the animated card height (`flex: 1 1 auto`);
+  // the compact one is pinned and merely clipped, so it can render straight away
+  // rather than waiting out the morph.
+  if (card.classList.contains("Expanded")) holdEvaluateUntilSettled(morph);
 
   // Glide each control from its old spot (right cluster <-> centered).
   buttons.forEach((button, i) => {
@@ -357,10 +379,41 @@ async function evaluate(): Promise<void> {
 // PageView.Open) finish before conditions are re-read.
 function scheduleEvaluate(): void {
   if (evaluateTimer !== null) return;
+  // A morph is in flight — its settle handler re-schedules us. See
+  // holdEvaluateUntilSettled.
+  if (stateAnimation !== null) return;
   evaluateTimer = setTimeout(() => {
     evaluateTimer = null;
     void evaluate();
   }, 100);
+}
+
+/**
+ * Park pending evaluates until the card's size morph finishes.
+ *
+ * reconcile() runs the synchronous, DOM-heavy PageView.Open/Destroy. The 100ms
+ * debounce used to drop that squarely inside the 350ms morph — and because the
+ * card body is a `container-type: size` container whose type scale is cqw-derived,
+ * every animation frame re-resolved the lyrics' font sizes, relaid out every
+ * mounted line, and kicked the virtualizer's per-wrapper ResizeObserver into
+ * another measure/mount cycle. Letting the box settle first means the lyrics are
+ * built and measured once, against final dimensions.
+ */
+function holdEvaluateUntilSettled(animation: Animation): void {
+  if (evaluateTimer !== null) {
+    clearTimeout(evaluateTimer);
+    evaluateTimer = null;
+  }
+  stateAnimation = animation;
+  const settle = () => {
+    // A newer morph took over; it owns the re-schedule now.
+    if (stateAnimation !== animation) return;
+    stateAnimation = null;
+    scheduleEvaluate();
+  };
+  // finished rejects when the animation is cancelled (card torn down mid-morph);
+  // settle either way so we can never wedge with a stale hold.
+  animation.finished.then(settle, settle);
 }
 
 let observedSidebar: Element | null = null;
@@ -439,6 +492,8 @@ export function initNPVLyrics(): void {
   // un-hide trigger.
   watcherMaid.Give($currentLyricsData.listen(() => scheduleEvaluate()));
   watcherMaid.Give($hideNpvLyricsWhenUnavailable.listen(() => scheduleEvaluate()));
+  // Turning the card off tears it down live; turning it back on re-injects it.
+  watcherMaid.Give($disableNpvLyrics.listen(() => scheduleEvaluate()));
 
   Whentil.When(
     () =>

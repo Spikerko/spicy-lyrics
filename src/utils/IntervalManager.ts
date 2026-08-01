@@ -1,5 +1,5 @@
 import { Maid } from "../modules/Maid";
-import Logger from "./logger";
+import Logger from "./Logger";
 
 const intervalLogger = new Logger("Interval Manager");
 

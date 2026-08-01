@@ -620,6 +620,72 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     }
   }
 
+  /* ── Panel navigation (Settings ⇄ sub-panels) ─────────────────────────
+     The modal frame stays put; only its contents slide. Forward enters from
+     the right, back from the left, so the direction of travel reads at a
+     glance. Short and ease-out — this is navigation, not decoration. */
+  .sl-sp-page--forward {
+    animation: sl-sp-page-in-forward 0.22s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  .sl-sp-page--back {
+    animation: sl-sp-page-in-back 0.22s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  /* Sub-panel header — holds the back affordance above the rows. */
+  .sl-sp-subheader {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-3);
+  }
+
+  .sl-sp-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px 6px 8px;
+    cursor: pointer;
+    background: var(--accent-tint-bg);
+    color: var(--color-text-secondary);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    font-size: var(--text-caption-size) !important;
+    font-weight: var(--w-semibold);
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
+
+    svg {
+      transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    &:hover {
+      background: var(--accent-tint-bg-hover);
+      color: var(--color-text-primary);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    }
+
+    /* The chevron leads the way back. */
+    &:hover svg {
+      transform: translateX(-2px);
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+  }
+
+  .sl-sp-experiments-note {
+    color: var(--color-text-secondary);
+    font-size: var(--text-footnote-size) !important;
+    font-weight: var(--w-regular);
+    line-height: 1.45;
+    margin: 0 0 var(--space-4);
+  }
+
   /* Inline action button (Reset, Clear, etc.) — flat tinted surface */
   .sl-sp-btn {
     border: none;
@@ -644,6 +710,37 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
 
     &:active {
       transform: scale(0.97);
+    }
+  }
+}
+
+/* Small offsets — the panel is telling you which way you moved, not putting on
+   a show. Opacity carries most of the swap; the shift just gives it direction. */
+@keyframes sl-sp-page-in-forward {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+
+@keyframes sl-sp-page-in-back {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+/* Keep the fade (it explains that the content changed); drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes sl-sp-page-in-forward {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes sl-sp-page-in-back {
+    from {
+      opacity: 0;
     }
   }
 }

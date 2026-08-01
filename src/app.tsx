@@ -50,7 +50,7 @@ import "./css/polyfills/sonner-polyfill.css";
 import "./css/NPVLyrics.css";
 import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import { initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
+import { GetNPVCardElement, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
 import ReactDOM from "react-dom/client";
 import { PopupModal } from "./components/Modal.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
@@ -58,7 +58,7 @@ import "./utils/settings.ts";
 import SLToaster from "./components/ReactComponents/SLToaster.tsx";
 import { openSettingsPanel } from "./utils/settings.ts";
 import { exposeToWindow } from "./utils/expose.ts";
-import Logger from "./utils/logger.ts";
+import Logger from "./utils/Logger.ts";
 import Whentil from "./modules/Whentil.ts";
 import App from "./utils/app.ts";
 import { initSession } from "./utils/SessionManager/index.ts";
@@ -90,6 +90,7 @@ async function main() {
     });
     return () => Global.Event.unListen(id);
   });
+  
 
   Global.SetScope("fullscreen.onclose", (cb: any) => {
     const id = Global.Event.listen("fullscreen:exit", () => {
@@ -521,34 +522,43 @@ async function main() {
       if (!sidebar) return;
 
       nowPlayingBarObserver = new MutationObserver((mutations) => {
+        // Resolved once per callback, not once per record.
+        const card = GetNPVCardElement();
         const shouldReapply = mutations.some((mutation) => {
-          // Ignore mutations inside the NPV lyrics card — its animating
-          // lyrics constantly rewrite style attributes, which would reset
-          // the debounce below forever and starve the npvbg apply. The
-          // card's own insertion/removal still passes (targets its parent).
+          // Cheap type/attribute test first — the ancestor walk below only runs
+          // for records that would otherwise schedule a re-apply.
+          if (mutation.type === "attributes") {
+            const name = mutation.attributeName;
+            if (name !== "src" && name !== "class" && name !== "inert") return false;
+          } else if (mutation.type !== "childList") {
+            return false;
+          }
+          // Ignore mutations inside the NPV lyrics card — the lyrics pipeline
+          // mutates it constantly, which would reset the debounce below forever
+          // and starve the npvbg apply. The card's own insertion/removal still
+          // passes (that mutation targets the card's parent).
           const target = mutation.target;
           const targetElement =
             target instanceof Element ? target : target.parentElement;
-          if (targetElement?.closest("#SpicyLyricsNPVCard")) return false;
-          if (mutation.type === "childList") return true;
-          if (mutation.type !== "attributes") return false;
-          return (
-            mutation.attributeName === "src" ||
-            mutation.attributeName === "style" ||
-            mutation.attributeName === "class" ||
-            mutation.attributeName === "inert"
-          );
+          return !(card && targetElement && card.contains(targetElement));
         });
 
         if (!shouldReapply) return;
         scheduleNowPlayingBarDynamicBackgroundApply();
       });
 
+      // `style` is deliberately absent from the filter: the lyrics animator
+      // rewrites inline styles on every mounted word and letter each frame, and
+      // the card lives inside this observed subtree. Including it made Blink
+      // allocate a MutationRecord per write — hundreds per frame — that this
+      // callback then had to walk and discard. Cover swaps already arrive via
+      // the `playback:songchange` handler, and DOM-driven re-renders via
+      // `childList` / `src` / `class`.
       nowPlayingBarObserver.observe(sidebar, {
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ["src", "style", "class", "inert"],
+        attributeFilter: ["src", "class", "inert"],
       });
     };
 
@@ -911,6 +921,31 @@ async function main() {
         }
         lastShuffleType = ShuffleType;
       }).Start();
+    }
+
+    {
+      // Volume changes from anywhere (Spotify's own slider, media keys, another
+      // device, our own setVolume) arrive on this native emitter, so there's nothing
+      // to poll. `_events` is an undocumented internal — if Spotify ever drops it the
+      // guard degrades us to "the volume slider doesn't auto-update" rather than
+      // throwing during startup.
+      Whentil.When(
+        () => Spicetify.Platform?.PlaybackAPI,
+        () => {
+          try {
+            Spicetify.Platform.PlaybackAPI?._events?.addListener?.(
+              "volume",
+              (e: { data?: { volume?: number } }) => {
+                const volume = e?.data?.volume;
+                if (typeof volume !== "number") return;
+                Global.Event.evoke("playback:volume", volume);
+              }
+            );
+          } catch (err) {
+            console.error("Spicy Lyrics: couldn't listen for volume changes", err);
+          }
+        }
+      );
     }
 
     {

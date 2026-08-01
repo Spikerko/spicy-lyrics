@@ -7,7 +7,7 @@ import { PageContainer } from "../Pages/PageView.ts";
 import Kawarp, { type KawarpOptions } from "@kawarp/core";
 import { BackgroundAnimationController, type AudioAnalysisData } from "./BackgroundAnimationController.ts";
 import { getDynamicAudioAnalysis } from "../../utils/audioAnalysis.ts";
-import Logger from "../../utils/logger.ts";
+import Logger from "../../utils/Logger.ts";
 
 const dynamicBgLogger = new Logger("Dynamic Background");
 

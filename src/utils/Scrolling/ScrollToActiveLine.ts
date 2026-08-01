@@ -1,4 +1,4 @@
-import { $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
+import { $allowScrollUp, $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
@@ -21,6 +21,10 @@ type EnhancedLyricsItem = LyricsLineWithIndex | LyricsSyllableWithIndex;
 
 // Define proper types for variables
 let lastLine: HTMLElement | null = null;
+let lastLineIndex: number | null = null;
+// The lyrics array that lastLineIndex refers to. When the active lyrics swap
+// (new track / type change) this identity changes, invalidating the stale index.
+let lastLinesRef: LyricsLine[] | LyricsSyllable[] | null = null;
 let isUserScrolling = false;
 let lastUserScrollTime = 0;
 let lastPosition: number = 0;
@@ -228,6 +232,8 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
     if (!scrollToLine) return;
     lastLine = scrollToLine;
     const forceScrollLineIndex = allLinesSung ? Lines.length - 1 : currentLine?._LineIndex;
+    lastLineIndex = forceScrollLineIndex ?? null;
+    lastLinesRef = Lines;
     ScrollTo(
       container,
       scrollToLine,
@@ -255,6 +261,8 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
     if (!scrollToLine) return;
     lastLine = scrollToLine;
     const smoothScrollLineIndex = allLinesSung ? Lines.length - 1 : currentLine?._LineIndex;
+    lastLineIndex = smoothScrollLineIndex ?? null;
+    lastLinesRef = Lines;
     ScrollTo(container, scrollToLine, false, GetScrollType(), smoothScrollLineIndex);
     if (smoothForceScrollQueued) {
       smoothForceScrollQueued = false; // Reset the queue after using it
@@ -429,8 +437,14 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         }
         //}
         // Scroll if the line is different from the last auto-scrolled line
-        if (!isSameLine) {
+        const isScrollingUp =
+          lastLineIndex !== null &&
+          lastLinesRef === Lines &&
+          currentLine._LineIndex < lastLineIndex;
+        if (!isSameLine && (isScrollingUp ? $allowScrollUp.get() : true)) {
           lastLine = LineElem;
+          lastLineIndex = currentLine._LineIndex;
+          lastLinesRef = Lines;
           const Scroll = () => {
             ScrollTo(container, LineElem, false, GetScrollType(), currentLine._LineIndex);
             scrolledToLastLine = false;
@@ -463,6 +477,8 @@ export function QueueSmoothForceScroll() {
 
 export function ResetLastLine() {
   lastLine = null;
+  lastLineIndex = null;
+  lastLinesRef = null;
   lastViewportLine = null;
   lastViewportContainer = null;
   lastIsLineInViewport = false;

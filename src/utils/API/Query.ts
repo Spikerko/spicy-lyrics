@@ -1,6 +1,6 @@
 import Defaults from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
-import Logger from "../logger.ts";
+import Logger from "../Logger.ts";
 
 export type Query = {
   operation: string;

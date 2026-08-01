@@ -1,5 +1,5 @@
 import { openDB } from "idb";
-import Logger from "./logger";
+import Logger from "./Logger";
 
 const dbLogger = new Logger("Database");
 

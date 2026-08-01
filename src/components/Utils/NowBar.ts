@@ -2,14 +2,15 @@ import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
-import { $timelineOutsideMediaContent } from "../../utils/stores.ts";
+import { $showVolumeSlider, $timelineOutsideMediaContent } from "../../utils/stores.ts";
+import { onExperimentChange } from "../../utils/experiments.ts";
 import { $isNowBarOpen, $nowBarSide } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
-import Fullscreen, { CleanupMediaBox } from "./Fullscreen.ts";
+import Fullscreen, { CleanupMediaBox, SetControlsDragLock } from "./Fullscreen.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 import { IsCompactMode } from "./CompactMode.ts";
 import { Maid } from "../../modules/Maid.ts";
@@ -29,7 +30,17 @@ interface SongProgressBarInstance {
   GetElement: () => HTMLElement;
 }
 
+interface VolumeControlInstance {
+  Apply: () => void;
+  CleanUp: () => void;
+  GetElement: () => HTMLElement;
+  /** Render an externally-originated level without echoing it back to Spotify. */
+  SetVolume: (volume: number) => void;
+  IsDragging: () => boolean;
+}
+
 let ActivePlaybackControlsInstance: PlaybackControlsInstance | null = null;
+let ActiveVolumeControlInstance: VolumeControlInstance | null = null;
 const ActiveSongProgressBarInstance_Map = new Map<string, any>();
 let ActiveSetupSongProgressBarInstance: SongProgressBarInstance | null = null;
 
@@ -470,7 +481,12 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
           isDragging = true;
+          // .Dragging keeps the bar thickened and turns off the fill's eased glide
+          // so it tracks the pointer 1:1.
+          SliderBar.classList.add("Dragging");
           document.body.style.userSelect = "none"; // Prevent text selection during drag
+          // Keep the overlay visible if the pointer leaves the artwork mid-drag
+          SetControlsDragLock(true);
 
           // Add the event listeners for drag movement and end
           document.addEventListener("mousemove", handleDragMove);
@@ -529,6 +545,7 @@ function OpenNowBar(skipSaving: boolean = false) {
         const handleDragEnd = (event: MouseEvent | TouchEvent) => {
           if (!isDragging) return;
           isDragging = false;
+          SliderBar.classList.remove("Dragging");
           document.body.style.userSelect = ""; // Restore text selection
 
           // Remove the event listeners
@@ -567,6 +584,8 @@ function OpenNowBar(skipSaving: boolean = false) {
 
           // After seeking, update the timeline state to reflect the new position
           updateTimelineState();
+
+          SetControlsDragLock(false);
         };
 
         const timelineMaid = new Maid();
@@ -586,6 +605,12 @@ function OpenNowBar(skipSaving: boolean = false) {
           document.removeEventListener("touchmove", handleDragMove);
           document.removeEventListener("mouseup", handleDragEnd);
           document.removeEventListener("touchend", handleDragEnd);
+          if (isDragging) {
+            isDragging = false;
+            SliderBar.classList.remove("Dragging");
+            document.body.style.userSelect = "";
+            SetControlsDragLock(false);
+          }
         });
 
         // Run initial update
@@ -615,9 +640,219 @@ function OpenNowBar(skipSaving: boolean = false) {
         };
       };
 
+      const SetupVolumeControl = () => {
+        const VolumeElement = document.createElement("div");
+        VolumeElement.classList.add("VolumeControl");
+        // A vertical capsule in both progress-bar skins — same box, same drag axis.
+        // Only the paint differs, so both the fill (new skin) and the handle
+        // (legacy) are always present and CSS hides whichever doesn't apply.
+        VolumeElement.innerHTML = `
+                    <div class="VolumeFill"></div>
+                    <div class="Handle"></div>
+                    <div class="VolumeIcon">${Icons.Volume}</div>
+                `;
+
+        // Same trick the Heart uses — the SVG would otherwise swallow the clicks
+        // meant for the .VolumeIcon container.
+        const svgElement = VolumeElement.querySelector("svg");
+        if (svgElement) {
+          svgElement.style.pointerEvents = "none";
+          svgElement.querySelectorAll("path").forEach((path) => {
+            path.style.pointerEvents = "none";
+          });
+        }
+
+        const IconElement = VolumeElement.querySelector<HTMLElement>(".VolumeIcon");
+        if (!IconElement) {
+          console.error("Could not find VolumeControl elements");
+          return null;
+        }
+
+        const volumeMaid = new Maid();
+
+        let isDragging = false;
+        let currentLevel = 0;
+
+        const clamp = (value: number) => Math.max(0, Math.min(1, value));
+
+        // The glyph rests near the foot of the capsule (centered ~3cqh up a 32cqh
+        // track); once the fill's top edge clears it the icon sits on solid white,
+        // and .IconOnFill flips it from white to ink. Only the new skin acts on
+        // this class — the legacy skin's traveled colour keeps the glyph white.
+        const ICON_COVERED_LEVEL = 0.09;
+
+        // `getVolume()` returns 0 while muted and `toggleMute()` restores the previous
+        // level internally, so a single number drives both the bar and the icon —
+        // there's nothing to remember on our side and no `getMute()` call anywhere.
+        // Dragging to a genuine 0 therefore shows the muted icon, which is intended.
+
+        const render = (volume: number) => {
+          const level = clamp(volume);
+          currentLevel = level;
+          // One variable drives both skins: the new skin's fill scale and the
+          // legacy skin's gradient stop plus handle offset all read --VolumeLevel.
+          VolumeElement.style.setProperty("--VolumeLevel", level.toString());
+          VolumeElement.classList.toggle("IconOnFill", level >= ICON_COVERED_LEVEL);
+          VolumeElement.classList.toggle("Muted", level <= 0);
+          VolumeElement.classList.toggle("Low", level > 0 && level < 0.5);
+          VolumeElement.classList.toggle("High", level >= 0.5);
+        };
+
+        const commit = (volume: number) => {
+          const level = clamp(volume);
+          const wasMuted = currentLevel <= 0;
+          render(level);
+          try {
+            // Raising the bar out of a mute: lift the mute flag first, in case
+            // setVolume alone doesn't clear it.
+            if (wasMuted && level > 0) {
+              Spicetify.Player.setMute?.(false);
+            }
+            Spicetify.Player.setVolume(level);
+          } catch (err) {
+            console.error("Spicy Lyrics: couldn't set the volume", err);
+          }
+        };
+
+        const percentageFromEvent = (event: MouseEvent | TouchEvent) => {
+          let clientY: number;
+          if ("touches" in event && event.touches.length > 0) {
+            clientY = event.touches[0].clientY;
+          } else if ("changedTouches" in event && event.changedTouches.length > 0) {
+            clientY = event.changedTouches[0].clientY;
+          } else {
+            clientY = (event as MouseEvent).clientY;
+          }
+
+          const rect = VolumeElement.getBoundingClientRect();
+          if (rect.height === 0) return currentLevel;
+          return clamp(1 - (clientY - rect.top) / rect.height);
+        };
+
+        // Volume has no seek cost, so we commit live on every move instead of only
+        // on release like the timeline does. A plain click is covered too — mousedown
+        // starts the drag and immediately commits the position under the cursor.
+        const handleDragStart = (event: MouseEvent | TouchEvent) => {
+          // The glyph zone at the foot of the capsule is the mute button, not part
+          // of the track — starting a drag there would slam the volume to ~5% on
+          // every mute click.
+          if ((event.target as HTMLElement | null)?.closest?.(".VolumeIcon")) return;
+          isDragging = true;
+          // .Dragging keeps the capsule expanded and turns off the fill's eased
+          // glide so it tracks the pointer 1:1.
+          VolumeElement.classList.add("Dragging");
+          document.body.style.userSelect = "none";
+          // Keep the overlay from fading out when the pointer leaves the artwork
+          // while the fill is still held.
+          SetControlsDragLock(true);
+
+          document.addEventListener("mousemove", handleDragMove);
+          document.addEventListener("touchmove", handleDragMove);
+          document.addEventListener("mouseup", handleDragEnd);
+          document.addEventListener("touchend", handleDragEnd);
+
+          handleDragMove(event);
+        };
+
+        const handleDragMove = (event: MouseEvent | TouchEvent) => {
+          if (!isDragging) return;
+          commit(percentageFromEvent(event));
+        };
+
+        const handleDragEnd = (event: MouseEvent | TouchEvent) => {
+          if (!isDragging) return;
+          isDragging = false;
+          VolumeElement.classList.remove("Dragging");
+          document.body.style.userSelect = "";
+
+          document.removeEventListener("mousemove", handleDragMove);
+          document.removeEventListener("touchmove", handleDragMove);
+          document.removeEventListener("mouseup", handleDragEnd);
+          document.removeEventListener("touchend", handleDragEnd);
+
+          commit(percentageFromEvent(event));
+          SetControlsDragLock(false);
+        };
+
+        const iconHandler = () => {
+          try {
+            Spicetify.Player.toggleMute();
+          } catch (err) {
+            console.error("Spicy Lyrics: couldn't toggle mute", err);
+            return;
+          }
+
+          // The `volume` event normally drives the icon on its own; this one-shot
+          // resync covers the case where that internal emitter isn't available.
+          const resync = window.setTimeout(() => {
+            if (isDragging) return;
+            render(Spicetify.Player.getVolume() ?? 0);
+          }, 60);
+          volumeMaid.Give(() => clearTimeout(resync), "MuteResync");
+        };
+
+        const wheelHandler = (event: WheelEvent) => {
+          // Without this the lyrics underneath scroll along with the volume change.
+          event.preventDefault();
+          event.stopPropagation();
+          const step = 0.05;
+          commit(event.deltaY < 0 ? currentLevel + step : currentLevel - step);
+        };
+
+        VolumeElement.addEventListener("mousedown", handleDragStart);
+        VolumeElement.addEventListener("touchstart", handleDragStart);
+        IconElement.addEventListener("click", iconHandler);
+        VolumeElement.addEventListener("wheel", wheelHandler, { passive: false });
+
+        volumeMaid.Give(() => {
+          VolumeElement.removeEventListener("mousedown", handleDragStart);
+          VolumeElement.removeEventListener("touchstart", handleDragStart);
+          IconElement.removeEventListener("click", iconHandler);
+          VolumeElement.removeEventListener("wheel", wheelHandler);
+          document.removeEventListener("mousemove", handleDragMove);
+          document.removeEventListener("touchmove", handleDragMove);
+          document.removeEventListener("mouseup", handleDragEnd);
+          document.removeEventListener("touchend", handleDragEnd);
+          if (isDragging) {
+            isDragging = false;
+            VolumeElement.classList.remove("Dragging");
+            document.body.style.userSelect = "";
+            SetControlsDragLock(false);
+          }
+        });
+
+        // The `volume` event only fires on change, so seed the initial state here
+        // and let events drive it from then on.
+        render(Spicetify.Player.getVolume() ?? 0);
+
+        const cleanup = () => {
+          volumeMaid.Destroy();
+          if (VolumeElement.parentNode) {
+            VolumeElement.parentNode.removeChild(VolumeElement);
+          }
+        };
+
+        return {
+          Apply: () => {
+            AppendQueue.push(VolumeElement);
+          },
+          CleanUp: cleanup,
+          GetElement: () => VolumeElement,
+          SetVolume: (volume: number) => render(volume),
+          IsDragging: () => isDragging,
+        };
+      };
+
       ActivePlaybackControlsInstance = SetupPlaybackControls();
       if (ActivePlaybackControlsInstance) {
         ActivePlaybackControlsInstance.Apply();
+      }
+
+      if ($showVolumeSlider.get()) {
+        ActiveVolumeControlInstance = SetupVolumeControl();
+        if (ActiveVolumeControlInstance) {
+          ActiveVolumeControlInstance.Apply();
+        }
       }
 
       ActiveSetupSongProgressBarInstance = SetupSongProgressBar();
@@ -790,6 +1025,11 @@ function CleanUpActiveComponents() {
     // // console.log("Cleaned up SongProgressBar instance");
   }
 
+  if (ActiveVolumeControlInstance) {
+    ActiveVolumeControlInstance?.CleanUp();
+    ActiveVolumeControlInstance = null;
+  }
+
   if (ActiveSongProgressBarInstance_Map.size > 0) {
     ActiveSongProgressBarInstance_Map?.clear();
     // // console.log("Cleared SongProgressBar instance map");
@@ -809,6 +1049,9 @@ function CleanUpActiveComponents() {
 
     const timeline = MediaContent.querySelector(".Timeline");
     if (timeline) MediaContent.removeChild(timeline);
+
+    const volumeControl = MediaContent.querySelector(".VolumeControl");
+    if (volumeControl) MediaContent.removeChild(volumeControl);
   }
 
   // Also remove Timeline if it was placed in the Header
@@ -1356,6 +1599,16 @@ Global.Event.listen("playback:position", (e: number) => {
   }
 });
 
+Global.Event.listen("playback:volume", (volume: number) => {
+  if (!Fullscreen.IsOpen) return;
+  if (!$showVolumeSlider.get()) return;
+  if (!ActiveVolumeControlInstance) return;
+  // Every setVolume we issue echoes straight back as a volume event — applying it
+  // mid-drag would fight the handle under the cursor.
+  if (ActiveVolumeControlInstance.IsDragging()) return;
+  ActiveVolumeControlInstance.SetVolume(volume);
+});
+
 Global.Event.listen("fullscreen:exit", () => {
   CleanUpActiveComponents();
   CleanupMediaBox();
@@ -1381,6 +1634,24 @@ Global.Event.listen("compact-mode:disable", () => {
 
 $timelineOutsideMediaContent.subscribe(() => {
   RepositionTimeline();
+});
+
+// The band is built inside OpenNowBar's fullscreen block, so toggling the setting
+// has to rebuild the overlay components rather than just show/hide an element.
+// `.listen` (not `.subscribe`) — this must not fire on module load.
+$showVolumeSlider.listen(() => {
+  if (!Fullscreen.IsOpen) return;
+  CleanUpActiveComponents();
+  OpenNowBar(true);
+});
+
+// Experiments flagged `rebuildsNowBar` change the overlay's markup, not just its
+// CSS, so the components have to be rebuilt the same way the setting above does.
+onExperimentChange((experiment) => {
+  if (!experiment.rebuildsNowBar) return;
+  if (!Fullscreen.IsOpen) return;
+  CleanUpActiveComponents();
+  OpenNowBar(true);
 });
 
 export {
