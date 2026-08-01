@@ -64,6 +64,7 @@ export const $hideNpvLyricsWhenUnavailable = persistAtom<boolean>(
   true
 );
 export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
+export const $allowScrollUp = persistAtom<boolean>("allowScrollUp", true);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
   const initial: boolean =
