@@ -52,6 +52,11 @@
 
 #SpicyLyricsPage {
   --NowBarWidth: calc(min(30cqw, 52cqh) * 1.1);
+  --NowBarVerticalWidth: min(38cqw, 28cqh);
+  --NowBarVerticalSpacing: 4cqh;
+  --NowBarVerticalContentPadding: calc(
+    var(--NowBarVerticalWidth) + var(--NowBarVerticalSpacing) + 16cqh
+  );
   --NowBarRightSpacing: calc(var(--NowBarWidth) / 4);
   --NowBarLeftSpacing: calc(
     50cqw - var(--NowBarWidth) - var(--NowBarRightSpacing)
@@ -108,6 +113,20 @@
   );
 }
 
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode):has(
+    .NowBar.Active:is(.TopSide, .BottomSide)
+  ) {
+  --LyricsLeftSidePadding: 18cqw;
+  --LyricsRightSidePadding: 15.5cqw;
+}
+
+#SpicyLyricsPage:not(.SpicyRenderer):not(.CompactMode):not(.ForcedCompactMode):has(
+    .NowBar.Active:is(.TopSide, .BottomSide)
+  ) {
+  --LyricsLeftSidePadding: 10cqw;
+  --LyricsRightSidePadding: 8cqw;
+}
+
 #SpicyLyricsPage.CompactMode:has(.NowBar.Active),
 #SpicyLyricsPage.ForcedCompactMode:has(.NowBar.Active) {
   --NowBarLeftSpacing: 0px !important;
@@ -150,6 +169,57 @@
 
 #SpicyLyricsPage .ContentBox .NowBar.RightSide.Active {
   left: calc(100% - var(--NowBarWidth) - var(--NowBarLeftSpacing));
+}
+
+#SpicyLyricsPage .ContentBox .NowBar.TopSide,
+#SpicyLyricsPage .ContentBox .NowBar.BottomSide {
+  left: calc(50cqw - var(--NowBarVerticalWidth) / 2);
+  width: var(--NowBarVerticalWidth);
+  transition: top 0.4s;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar.TopSide {
+  top: calc(
+    (var(--NowBarVerticalWidth) + var(--NowBarVerticalSpacing) + 12cqh) * -1
+  );
+  padding-top: var(--NowBarVerticalSpacing);
+}
+
+#SpicyLyricsPage .ContentBox .NowBar.TopSide.Active {
+  top: 0;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar.BottomSide {
+  top: calc(100cqh + var(--NowBarVerticalSpacing));
+  padding-top: calc(
+    100cqh - var(--NowBarVerticalWidth) - var(--NowBarVerticalSpacing) - 6cqh
+  );
+}
+
+#SpicyLyricsPage .ContentBox .NowBar.BottomSide.Active {
+  top: 0;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar:is(.TopSide, .BottomSide) .Header .Metadata {
+  gap: 0.15cqw;
+  height: 10cqh;
+  margin: 2.5cqw 0 0;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.TopSide
+  .Header
+  .Metadata {
+  margin-top: 0.75cqw;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar:is(.TopSide, .BottomSide)
+  .Header:not(:has(> .Timeline))
+  .Metadata {
+  margin: 2.5cqw 0 0;
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox {
@@ -306,6 +376,29 @@
   padding: 0 3cqw 0 2.5cqw;
 }
 
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata {
+  gap: 0.35cqw;
+}
+
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata
+  .SongName,
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata
+  .Artists {
+  line-height: 1.1 !important;
+}
+
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName span.Clickable,
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span.Clickable {
   cursor: pointer;
@@ -352,6 +445,15 @@
     rgba(0, 0, 0, 0.2) 20%
   );
   padding-right: var(--ContentPadding);
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar:is(.Active.TopSide, .Active.BottomSide)
+  + .LyricsContainer
+  .loaderContainer {
+  --ContentPadding: 0;
+  background: rgba(0, 0, 0, 0.18);
 }
 
 #SpicyLyricsPage:has(.ContentBox.LyricsHidden) {
@@ -880,6 +982,14 @@
   gap: 0.6cqw;
 }
 
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .Header
+  > .Timeline {
+  padding-bottom: 0.75cqw;
+}
+
 #SpicyLyricsPage .MediaContent .Timeline {
   position: absolute;
   bottom: 0;
@@ -1372,6 +1482,74 @@
   .LyricsNotice {
   padding-right: var(--LyricsLeftSidePadding) !important;
   padding-left: calc(var(--LyricsRightSidePadding) * 1.45) !important;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.TopSide)
+  + .LyricsContainer
+  .LyricsContent
+  .simplebar-content-wrapper
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar.Active:is(.TopSide)
+  + .LyricsContainer
+  .LyricsContent
+  .LyricsNotice {
+  padding-top: 0 !important;
+  padding-left: var(--LyricsRightSidePadding) !important;
+  padding-right: var(--LyricsRightSidePadding) !important;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.BottomSide)
+  + .LyricsContainer
+  .LyricsContent
+  .simplebar-content-wrapper
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsPage:not(.CompactMode):not(.ForcedCompactMode)
+  .ContentBox
+  .NowBar.Active:is(.BottomSide)
+  + .LyricsContainer
+  .LyricsContent
+  .LyricsNotice {
+  padding-bottom: 0 !important;
+  padding-left: var(--LyricsRightSidePadding) !important;
+  padding-right: var(--LyricsRightSidePadding) !important;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.TopSide)
+  + .LyricsContainer {
+  justify-content: flex-end;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.TopSide)
+  + .LyricsContainer
+  .LyricsContent {
+  height: calc(100% - var(--NowBarVerticalContentPadding));
+  max-height: calc(100% - var(--NowBarVerticalContentPadding));
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.BottomSide)
+  + .LyricsContainer {
+  justify-content: flex-start;
+}
+
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.BottomSide)
+  + .LyricsContainer
+  .LyricsContent {
+  height: calc(100% - var(--NowBarVerticalContentPadding));
+  max-height: calc(100% - var(--NowBarVerticalContentPadding));
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart {

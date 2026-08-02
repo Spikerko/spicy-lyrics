@@ -48,7 +48,7 @@ function persistAtom<T>(key: string, defaultValue: T) {
 
 // UI state atoms (persisted, not settings-panel entries)
 export const $isNowBarOpen = persistAtom<boolean>("isNowBarOpen", false);
-export const $nowBarSide = persistAtom<"left" | "right">("nowBarSide", "left");
+export const $nowBarSide = persistAtom<"left" | "right" | "top" | "bottom">("nowBarSide", "left");
 export const $forceCompactMode = persistAtom<boolean>("forceCompactMode", false);
 export const $romanization = persistAtom<boolean>("romanization", false);
 export const $fromVersion = persistAtom<string>("fromVersion", "");

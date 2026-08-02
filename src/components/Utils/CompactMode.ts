@@ -23,11 +23,11 @@ export const EnableCompactMode = () => {
   }
 
   SpicyLyricsPage.classList.add("CompactMode", "NowBarSide__Left");
-  SpicyLyricsPage.classList.remove("NowBarSide__Right");
+  SpicyLyricsPage.classList.remove("NowBarSide__Right", "NowBarSide__Top", "NowBarSide__Bottom");
   const NowBar = SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox .NowBar");
   if (!NowBar) return;
   NowBar.classList.add("LeftSide");
-  NowBar.classList.remove("RightSide");
+  NowBar.classList.remove("RightSide", "TopSide", "BottomSide");
 
   if (!IsPIP) {
     if ($lockedMediaBox.get()) {

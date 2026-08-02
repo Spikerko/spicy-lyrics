@@ -57,6 +57,46 @@ export const NowBarObj = {
   Open: false,
 };
 
+type NowBarSide = "left" | "right" | "top" | "bottom";
+
+const NOW_BAR_SIDES: NowBarSide[] = ["left", "top", "right", "bottom"];
+const NOW_BAR_SIDE_CLASSES = ["LeftSide", "RightSide", "TopSide", "BottomSide"];
+const NOW_BAR_PAGE_SIDE_CLASSES = [
+  "NowBarSide__Left",
+  "NowBarSide__Right",
+  "NowBarSide__Top",
+  "NowBarSide__Bottom",
+];
+
+function isNowBarSide(side: string): side is NowBarSide {
+  return NOW_BAR_SIDES.includes(side as NowBarSide);
+}
+
+function nowBarSideClass(side: NowBarSide) {
+  return `${side[0].toUpperCase()}${side.slice(1)}Side`;
+}
+
+function nowBarPageSideClass(side: NowBarSide) {
+  return `NowBarSide__${side[0].toUpperCase()}${side.slice(1)}`;
+}
+
+function ApplyNowBarSide(side: string) {
+  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
+  if (!NowBar) return;
+
+  const spicyLyricsPage = PageContainer;
+  if (!spicyLyricsPage) return;
+
+  const nextSide = isNowBarSide(side) ? side : "left";
+  if (nextSide !== side) $nowBarSide.set(nextSide);
+
+  NowBar.classList.remove(...NOW_BAR_SIDE_CLASSES);
+  NowBar.classList.add(nowBarSideClass(nextSide));
+
+  spicyLyricsPage.classList.remove(...NOW_BAR_PAGE_SIDE_CLASSES);
+  spicyLyricsPage.classList.add(nowBarPageSideClass(nextSide));
+}
+
 /* const ActiveMarquees = new Map();
 
 /**
@@ -1439,32 +1479,12 @@ function UpdateNowBar(force = false) {
 
 
 function NowBar_SwapSides() {
-  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
-  if (!NowBar) return;
-
-  const spicyLyricsPage = PageContainer;
-  if (!spicyLyricsPage) return;
-
   const CurrentSide = $nowBarSide.get();
-  if (CurrentSide === "left") {
-    $nowBarSide.set("right");
-    NowBar.classList.remove("LeftSide");
-    NowBar.classList.add("RightSide");
-    spicyLyricsPage.classList.remove("NowBarSide__Left");
-    spicyLyricsPage.classList.add("NowBarSide__Right");
-  } else if (CurrentSide === "right") {
-    $nowBarSide.set("left");
-    NowBar.classList.remove("RightSide");
-    NowBar.classList.add("LeftSide");
-    spicyLyricsPage.classList.remove("NowBarSide__Right");
-    spicyLyricsPage.classList.add("NowBarSide__Left");
-  } else {
-    $nowBarSide.set("right");
-    NowBar.classList.remove("LeftSide");
-    NowBar.classList.add("RightSide");
-    spicyLyricsPage.classList.remove("NowBarSide__Left");
-    spicyLyricsPage.classList.add("NowBarSide__Right");
-  }
+  const currentIndex = NOW_BAR_SIDES.indexOf(CurrentSide);
+  const nextSide = NOW_BAR_SIDES[(currentIndex + 1) % NOW_BAR_SIDES.length];
+
+  $nowBarSide.set(nextSide);
+  ApplyNowBarSide(nextSide);
 
   setTimeout(() => {
     // console.log("Resizing Lyrics Container");
@@ -1475,30 +1495,7 @@ function NowBar_SwapSides() {
 }
 
 function Session_NowBar_SetSide() {
-  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
-  if (!NowBar) return;
-
-  const spicyLyricsPage = PageContainer;
-  if (!spicyLyricsPage) return;
-
-  const CurrentSide = $nowBarSide.get();
-  if (CurrentSide === "left") {
-    NowBar.classList.remove("RightSide");
-    NowBar.classList.add("LeftSide");
-    spicyLyricsPage.classList.remove("NowBarSide__Right");
-    spicyLyricsPage.classList.add("NowBarSide__Left");
-  } else if (CurrentSide === "right") {
-    NowBar.classList.remove("LeftSide");
-    NowBar.classList.add("RightSide");
-    spicyLyricsPage.classList.remove("NowBarSide__Left");
-    spicyLyricsPage.classList.add("NowBarSide__Right");
-  } else {
-    $nowBarSide.set("left");
-    NowBar.classList.remove("RightSide");
-    NowBar.classList.add("LeftSide");
-    spicyLyricsPage.classList.remove("NowBarSide__Right");
-    spicyLyricsPage.classList.add("NowBarSide__Left");
-  }
+  ApplyNowBarSide($nowBarSide.get());
   setTimeout(() => {
     // console.log("Resizing Lyrics Container");
     GetCurrentLyricsContainerInstance()?.Resize();
