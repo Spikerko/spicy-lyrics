@@ -42,9 +42,9 @@ export type Experiment = {
 export const EXPERIMENTS = [
   {
     id: "newProgressBarStyling",
-    label: "New ProgressBar Styling",
+    label: "New SliderBar Styling",
     description:
-      "Frosted glass progress and volume bars, where a solid fill replaces the handle. Turn off to go back to the previous look — an accent-coloured track with a handle. Only the styling changes; both bars keep their current size and position either way.",
+      "New glass-like style for the SliderBar. Disable to revert back to the original one.",
     default: true,
     pageClass: "Exp_NewProgressBar",
   },

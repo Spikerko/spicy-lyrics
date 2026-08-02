@@ -1,4 +1,4 @@
-import { $allowScrollUp, $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
+import { $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
@@ -21,10 +21,6 @@ type EnhancedLyricsItem = LyricsLineWithIndex | LyricsSyllableWithIndex;
 
 // Define proper types for variables
 let lastLine: HTMLElement | null = null;
-let lastLineIndex: number | null = null;
-// The lyrics array that lastLineIndex refers to. When the active lyrics swap
-// (new track / type change) this identity changes, invalidating the stale index.
-let lastLinesRef: LyricsLine[] | LyricsSyllable[] | null = null;
 let isUserScrolling = false;
 let lastUserScrollTime = 0;
 let lastPosition: number = 0;
@@ -113,36 +109,79 @@ export function InitializeScrollEvents(ScrollSimplebar: any) {
   }
 }
 
+/**
+ * How far ahead — counted in real lyric lines, background lines excluded — we
+ * look when deciding whether the highest active line may keep the anchor.
+ * Bump to 3 to let long lines hold the anchor for longer.
+ */
+const PIN_LOOKAHEAD = 2;
+
+/** Only Syllable lines carry BGLine; line-synced lyrics have no background lines. */
+const IsBGLine = (line: LyricsLine | LyricsSyllable): boolean =>
+  (line as LyricsSyllable).BGLine === true;
+
+/** Background lines belong to the lead line above them, and are never a scroll target. */
+const ResolveToLeadIndex = (Lines: LyricsLine[] | LyricsSyllable[], index: number): number => {
+  let i = index;
+  while (i > 0 && IsBGLine(Lines[i])) i--;
+  return i;
+};
+
+/** When the lead line at `leadIdx` and its background lines have all finished. */
+const GetGroupEndTime = (Lines: LyricsLine[] | LyricsSyllable[], leadIdx: number): number => {
+  let end = Lines[leadIdx].EndTime;
+  for (let i = leadIdx + 1; i < Lines.length && IsBGLine(Lines[i]); i++) {
+    if (Lines[i].EndTime > end) end = Lines[i].EndTime;
+  }
+  return end;
+};
+
+/** The PIN_LOOKAHEAD-th non-background line after `leadIdx`, or null past the end. */
+const GetLookaheadLine = (Lines: LyricsLine[] | LyricsSyllable[], leadIdx: number) => {
+  let remaining = PIN_LOOKAHEAD;
+  for (let i = leadIdx + 1; i < Lines.length; i++) {
+    if (IsBGLine(Lines[i])) continue;
+    if (--remaining === 0) return Lines[i];
+  }
+  return null;
+};
+
 const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition: number) => {
   if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None" || !Lines)
     return;
-  // 1) gather all active lines
-  const activeLines = Lines.map((line, idx) => ({ line, idx }))
-    .filter(
-      ({ line }) =>
-        typeof line.StartTime === "number" &&
-        typeof line.EndTime === "number" &&
-        line.StartTime <= ProcessedPosition &&
-        line.EndTime >= ProcessedPosition
-    )
-    .map(({ line, idx }) => ({ ...line, _LineIndex: idx }) as EnhancedLyricsItem); // Cast here
-
-  // 3) if zero or one, just return it (or undefined if none)
-  if (activeLines.length <= 1) {
-    return activeLines[0] || null;
+  // 1) gather the indices of all active lines. This runs every animation frame,
+  // so we keep indices rather than materialising a copy of each active line.
+  const activeIndices: number[] = [];
+  for (let i = 0; i < Lines.length; i++) {
+    const line = Lines[i];
+    if (
+      typeof line.StartTime === "number" &&
+      typeof line.EndTime === "number" &&
+      line.StartTime <= ProcessedPosition &&
+      line.EndTime >= ProcessedPosition
+    ) {
+      activeIndices.push(i);
+    }
   }
 
-  // more than one → check the span between first and last
-  const firstIdx = activeLines[0]._LineIndex;
-  const lastIdx = activeLines[activeLines.length - 1]._LineIndex;
+  if (activeIndices.length === 0) return null;
 
-  // 1) contiguous or off by only 1 → pick the first
-  if (lastIdx - firstIdx <= 1) {
-    return activeLines[0];
+  const enhance = (index: number) =>
+    ({ ...Lines[index], _LineIndex: index }) as EnhancedLyricsItem;
+
+  // The highest active line keeps the anchor as long as it (and its background
+  // lines) finish before the line PIN_LOOKAHEAD real lines further down starts.
+  const anchorIdx = ResolveToLeadIndex(Lines, activeIndices[0]);
+  const lookahead = GetLookaheadLine(Lines, anchorIdx);
+  if (lookahead === null || GetGroupEndTime(Lines, anchorIdx) <= lookahead.StartTime) {
+    return enhance(anchorIdx);
   }
 
-  // 2) "gap" bigger than 1 → pick the last
-  return activeLines[activeLines.length - 1];
+  // Anchor refused — fall back to the original heuristic: contiguous or off by
+  // only 1 → the first active line, a bigger gap → the last.
+  const firstIdx = activeIndices[0];
+  const lastIdx = activeIndices[activeIndices.length - 1];
+  return enhance(ResolveToLeadIndex(Lines, lastIdx - firstIdx <= 1 ? firstIdx : lastIdx));
 };
 
 const ScrollTo = (
@@ -232,8 +271,6 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
     if (!scrollToLine) return;
     lastLine = scrollToLine;
     const forceScrollLineIndex = allLinesSung ? Lines.length - 1 : currentLine?._LineIndex;
-    lastLineIndex = forceScrollLineIndex ?? null;
-    lastLinesRef = Lines;
     ScrollTo(
       container,
       scrollToLine,
@@ -261,8 +298,6 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
     if (!scrollToLine) return;
     lastLine = scrollToLine;
     const smoothScrollLineIndex = allLinesSung ? Lines.length - 1 : currentLine?._LineIndex;
-    lastLineIndex = smoothScrollLineIndex ?? null;
-    lastLinesRef = Lines;
     ScrollTo(container, scrollToLine, false, GetScrollType(), smoothScrollLineIndex);
     if (smoothForceScrollQueued) {
       smoothForceScrollQueued = false; // Reset the queue after using it
@@ -437,14 +472,8 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         }
         //}
         // Scroll if the line is different from the last auto-scrolled line
-        const isScrollingUp =
-          lastLineIndex !== null &&
-          lastLinesRef === Lines &&
-          currentLine._LineIndex < lastLineIndex;
-        if (!isSameLine && (isScrollingUp ? $allowScrollUp.get() : true)) {
+        if (!isSameLine) {
           lastLine = LineElem;
-          lastLineIndex = currentLine._LineIndex;
-          lastLinesRef = Lines;
           const Scroll = () => {
             ScrollTo(container, LineElem, false, GetScrollType(), currentLine._LineIndex);
             scrolledToLastLine = false;
@@ -477,8 +506,6 @@ export function QueueSmoothForceScroll() {
 
 export function ResetLastLine() {
   lastLine = null;
-  lastLineIndex = null;
-  lastLinesRef = null;
   lastViewportLine = null;
   lastViewportContainer = null;
   lastIsLineInViewport = false;

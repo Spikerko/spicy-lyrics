@@ -36,7 +36,7 @@ export default function ExperimentsPanel({ onBack }: { onBack: () => void }) {
 
       <p className="sl-sp-experiments-note">
         These features are still being shaped. Toggle one off if you prefer how things worked
-        before — everything here is safe to switch at any time.
+        before.
       </p>
 
       {EXPERIMENTS.map((exp) => (
