@@ -17,7 +17,7 @@ const Global = {
 
       if (i === keys.length - 1) {
         // If we're at the last key, assign the value
-        current[part] = current[part] ?? value; // Assign only if it doesn't already exist
+        current[part] = value;
       } else {
         // If the current part doesn't exist, initialize it as an object
         if (!current[part]) {
