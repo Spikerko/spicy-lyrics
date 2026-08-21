@@ -25,6 +25,15 @@ export interface QueryResultGetter {
 
 const queryLogger = new Logger("API Query");
 
+const SENSITIVE_HEADER_PATTERN = /auth|token|cookie|secret|key/i;
+
+function redactHeaders(headers: Record<string, string>): Record<string, string> {
+  const redacted: Record<string, string> = {};
+  for (const [name, value] of Object.entries(headers)) {
+    redacted[name] = SENSITIVE_HEADER_PATTERN.test(name) ? "[redacted]" : value;
+  }
+  return redacted;
+}
 
 export async function Query(
   queries: Query[],
@@ -37,7 +46,7 @@ export async function Query(
     queries,
     host,
     clientVersion: clientVersion?.Text,
-    headers,
+    headers: redactHeaders(headers),
   });
 
   try {
