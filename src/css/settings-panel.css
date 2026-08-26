@@ -712,6 +712,187 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       transform: scale(0.97);
     }
   }
+
+  /* ── Footer — links out, build identity in ────────────────────────────
+     Two columns: the actions the user can take on the left, the build's
+     identity (channel, wordmark, version) on the right. One quiet outlined
+     card, so it reads as a plinth under the settings rather than as yet
+     another settings group. */
+  .sl-sp-footer {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: var(--space-5);
+    margin-top: var(--space-6);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+  }
+
+  .sl-sp-footer-links {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-2);
+    flex: 1;
+    min-width: 0;
+    max-width: 300px;
+  }
+
+  /* Neutral by default; a platform sets --brand and takes over the tint,
+     the hairline and the label colour. */
+  .sl-sp-footer-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: var(--tap-min);
+    padding: 0 var(--space-3);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: var(--accent-tint-bg);
+    color: var(--color-text-primary);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    font-size: var(--text-body-size) !important;
+    font-weight: var(--w-semibold);
+    letter-spacing: 0.01em;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
+
+    &:hover {
+      background: var(--accent-tint-bg-hover);
+      box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    }
+
+    &:active {
+      transform: scale(0.985);
+    }
+
+    &.sl-sp-footer-link--brand {
+      background: rgba(var(--brand), 0.14);
+      box-shadow: inset 0 0 0 1px rgba(var(--brand), 0.35);
+      color: rgb(var(--brand));
+
+      &:hover {
+        background: rgba(var(--brand), 0.24);
+        box-shadow: inset 0 0 0 1px rgba(var(--brand), 0.55);
+      }
+    }
+  }
+
+  .sl-sp-footer-arrow {
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .sl-sp-footer-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    text-align: right;
+    /* Takes the room the capped link column leaves, so the wordmark — not a
+       void — is what sits between the buttons and the right edge. */
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sl-sp-footer-build {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-footnote-size) !important;
+    font-weight: var(--w-regular);
+    letter-spacing: 0.01em;
+  }
+
+  .sl-sp-footer-build-value {
+    color: var(--color-text-secondary);
+    font-weight: var(--w-medium);
+  }
+
+  .sl-sp-footer-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .sl-sp-footer-wordmark {
+    font-size: clamp(1.6rem, 3.2vw, 2.75rem) !important;
+    font-weight: var(--w-semibold);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+  }
+
+  .sl-sp-footer-version {
+    font-size: clamp(0.95rem, 1.35vw, 1.2rem) !important;
+    font-weight: var(--w-medium);
+    color: var(--color-text-secondary);
+    letter-spacing: 0.01em;
+  }
+
+  /* Status line under the wordmark: how this build stands against the
+     published one, then the version it actually is. The status is dropped
+     entirely when the check doesn't conclude — no claim beats a wrong one. */
+  .sl-sp-footer-status-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 22px;
+  }
+
+  .sl-sp-footer-status {
+    font-size: clamp(0.95rem, 1.35vw, 1.2rem) !important;
+    font-weight: var(--w-semibold);
+    letter-spacing: 0.01em;
+  }
+
+  .sl-sp-footer-status--latest {
+    color: var(--color-status-success);
+  }
+
+  .sl-sp-footer-status--outdated {
+    color: var(--color-status-warning);
+  }
+
+  .sl-sp-footer-sep {
+    color: var(--color-text-quaternary);
+    font-size: var(--text-body-size) !important;
+  }
+
+  /* Only ever shown next to "Outdated", so it carries the same warning hue
+     rather than competing with it. */
+  .sl-sp-footer-update {
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 3px 10px;
+    cursor: pointer;
+    background: rgba(255, 195, 120, 0.16);
+    color: var(--color-status-warning);
+    box-shadow: inset 0 0 0 1px rgba(255, 195, 120, 0.35);
+    font-size: var(--text-footnote-size) !important;
+    font-weight: var(--w-semibold);
+    letter-spacing: 0.01em;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
+
+    &:hover {
+      background: rgba(255, 195, 120, 0.26);
+      box-shadow: inset 0 0 0 1px rgba(255, 195, 120, 0.55);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+  }
 }
 
 /* Small offsets — the panel is telling you which way you moved, not putting on

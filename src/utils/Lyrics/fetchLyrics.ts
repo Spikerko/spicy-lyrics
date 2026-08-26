@@ -47,7 +47,69 @@ function presentLyrics(lyricsData: any): void {
   $currentlyFetching.set(false);
 }
 
-export default async function fetchLyrics(uri: string): Promise<[object | string, number] | null> {
+/**
+ * A lyrics fetch result: the descriptor (a lyrics payload, or a keyword naming
+ * the notice to show), the HTTP-ish status, and the uri the fetch was made for.
+ * The uri lets ApplyLyrics recognise — and drop — a result that only lands
+ * after the user has already skipped to another track.
+ */
+export type FetchLyricsResult = [object | string, number, string?] | null;
+
+/**
+ * The uri of the fetch currently in flight, or `null`.
+ *
+ * A second request for the SAME uri is de-duplicated — the one already running
+ * will paint. A request for a DIFFERENT uri supersedes it: the older fetch is
+ * left to finish, but its result carries its own uri, so ApplyLyrics drops it
+ * rather than painting the previous track's lyrics (or its "no lyrics" notice)
+ * over the new one.
+ */
+let inFlightUri: string | null = null;
+
+/**
+ * The uri of the most recent fetch request. Unlike `inFlightUri` this is never
+ * cleared, so a fetch that finishes *after* the one that superseded it still
+ * sees that it lost the race.
+ */
+let latestRequestedUri: string | null = null;
+
+/**
+ * True when the fetch for `uri` has been overtaken and its result must not be
+ * shown: a newer fetch for a different track was started, or the player has
+ * already moved on. Presenting it would paint the previous track's lyrics — or
+ * its "no lyrics" notice — over the track now playing, and stamp
+ * `$currentLyricsData` with the wrong track's payload.
+ */
+function isStaleFetch(uri: string): boolean {
+  if (latestRequestedUri !== null && latestRequestedUri !== uri) return true;
+  const currentUri = SpotifyPlayer.GetUri();
+  return currentUri != null && currentUri !== uri;
+}
+
+export default async function fetchLyrics(uri: string): Promise<FetchLyricsResult> {
+  if (inFlightUri === uri) {
+    lyricsLogger.debug("Fetch already in flight for this track, skipping", uri);
+    return null;
+  }
+
+  inFlightUri = uri;
+  latestRequestedUri = uri;
+  $currentlyFetching.set(true);
+
+  try {
+    const result = await runFetchLyrics(uri);
+    // Stamp the result with the uri it was requested for, so a late arrival can
+    // be told apart from a result for the track that's playing now.
+    return result ? [result[0], result[1], uri] : null;
+  } finally {
+    // Only release the lock if we still hold it — a newer fetch may have taken
+    // over while this one was awaiting.
+    if (inFlightUri === uri) inFlightUri = null;
+    $currentlyFetching.set(false);
+  }
+}
+
+async function runFetchLyrics(uri: string): Promise<[object | string, number] | null> {
   lyricsLogger.debug("Fetch requested", uri);
   //if (!PageContainer) return;
   const LyricsContent =
@@ -90,13 +152,6 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
 
   const trackId = uri.split(":")[2];
 
-  if ($currentlyFetching.get()) {
-    $currentlyFetching.set(false);
-    return null;
-  }
-
-  $currentlyFetching.set(true);
-
   if (LyricsContent) {
     LyricsContent.classList.add("HiddenTransitioned");
   }
@@ -133,6 +188,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
   const localLyric = await LocalLyricsManager.get(uri);
   if (localLyric) {
     const lyricsData = { ...localLyric, uri };
+    if (isStaleFetch(uri)) return [lyricsData, 200];
     $currentLyricsData.set(JSON.stringify(lyricsData));
     presentLyrics(lyricsData);
     return [lyricsData, 200];
@@ -159,6 +215,7 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
         // re-fetch checks (which match on uri) recognise it — older cache
         // entries predate the uri field.
         const lyricsFromCache = { ...(lyricsFromCacheRes ?? {}), uri };
+        if (isStaleFetch(uri)) return [{ ...lyricsFromCache, fromCache: true }, 200];
         $currentLyricsData.set(JSON.stringify(lyricsFromCache));
         presentLyrics(lyricsFromCache);
         return [{ ...lyricsFromCache, fromCache: true }, 200];
@@ -248,8 +305,9 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
     // Stamp the uri so every match downstream (saved-data, re-fetch, cache)
     // keys off the stable uri instead of the API-supplied id.
     lyrics.uri = uri;
-    $currentLyricsData.set(JSON.stringify(lyrics));
 
+    // The request already completed, so cache it either way — even if the user
+    // has skipped on, the next play of this track gets a cache hit.
     if (LyricsStore) {
       try {
         await LyricsStore.SetItem(trackId, lyrics);
@@ -258,6 +316,9 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       }
     }
 
+    if (isStaleFetch(uri)) return [{ ...lyrics, fromCache: false }, 200];
+
+    $currentLyricsData.set(JSON.stringify(lyrics));
     presentLyrics(lyrics);
     return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {

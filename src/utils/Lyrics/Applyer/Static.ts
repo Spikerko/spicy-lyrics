@@ -16,6 +16,7 @@ import {
   setRomanizedStatus,
 } from "../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "./CreateLyricsContainer.ts";
+import { StripZeroWidth } from "./Utils/StripZeroWidth.ts";
 import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "./Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "./Credits/ApplyLyricsCredits.ts";
@@ -78,8 +79,9 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   data.Lines.forEach((line) => {
     const lineElem = document.createElement("div");
 
-    lineElem.textContent =
-      UseRomanized && line.TransliteratedText !== undefined ? line.TransliteratedText : line.Text;
+    lineElem.textContent = StripZeroWidth(
+      UseRomanized && line.TransliteratedText !== undefined ? line.TransliteratedText : line.Text
+    );
 
     if (isRtl(line.Text) && !lineElem.classList.contains("rtl")) {
       lineElem.classList.add("rtl");

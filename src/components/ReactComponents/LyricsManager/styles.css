@@ -261,149 +261,167 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-ldb-icon-btn {
 }
 
 /* ── Upload TTML Modal ───────────────────────────────────────── */
+/* One screen, one gesture: pick the mode (or leave the default) and drop /
+   click the file — selecting the file performs the upload. */
 sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-ldb-upload-root {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: var(--space-2) 4px;
+  gap: var(--space-3);
+  padding: 2px 4px 4px;
 
-  .sl-ldb-upload-header {
-    .sl-ldb-upload-title {
-      margin: 0 0 var(--space-1);
-      font-size: 1.2rem !important;
-      font-weight: var(--w-semibold);
+  .sl-ldb-upload-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .sl-ldb-upload-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      color var(--dur-fast) var(--ease-standard);
+
+    &:hover:not(:disabled) {
+      background: var(--accent-tint-bg-hover);
       color: var(--color-text-primary);
-      line-height: 1.3;
-      letter-spacing: -0.01em;
     }
 
-    .sl-ldb-upload-subtitle {
-      margin: 0;
-      font-size: var(--text-body-size) !important;
-      color: var(--color-text-secondary);
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
   }
 
-  .sl-ldb-upload-file-section {
-    .sl-ldb-file-input {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
-      pointer-events: none;
-    }
+  /* Segmented mode switch — replaces the two full-width choice cards. */
+  .sl-ldb-upload-modes {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
 
-    .sl-ldb-file-label {
+    .sl-ldb-upload-mode {
       display: inline-flex;
       align-items: center;
-      gap: var(--space-2);
-      height: var(--tap-min-primary);
-      padding: 0 18px;
-      border-radius: var(--radius-sm);
-      background: var(--accent-tint-bg);
-      box-shadow: inset 0 0 0 1px var(--hairline);
-      color: var(--color-text-primary);
-      font-size: var(--text-body-size) !important;
+      gap: 6px;
+      height: 28px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: calc(var(--radius-sm) - 2px);
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: var(--text-caption-size) !important;
       font-weight: var(--w-medium);
       cursor: pointer;
+      white-space: nowrap;
       transition:
         background var(--dur-fast) var(--ease-standard),
-        color var(--dur-fast) var(--ease-standard),
-        box-shadow var(--dur-fast) var(--ease-standard);
+        color var(--dur-fast) var(--ease-standard);
+
+      &:hover:not(:disabled) {
+        color: var(--color-text-primary);
+      }
+
+      &.sl-ldb-upload-mode--active {
+        background: rgba(255, 255, 255, 0.14);
+        color: var(--color-text-primary);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+    }
+  }
+
+  .sl-ldb-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sl-ldb-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: 30px var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1.5px var(--hairline);
+    text-align: center;
+    cursor: pointer;
+    transition:
+      background var(--dur-fast) var(--ease-standard),
+      box-shadow var(--dur-fast) var(--ease-standard),
+      transform 0.12s ease;
+
+    &:hover {
+      background: var(--accent-tint-bg-hover);
+      box-shadow: inset 0 0 0 1.5px var(--hairline-strong);
+    }
+
+    &:active {
+      transform: scale(0.995);
+    }
+
+    &.sl-ldb-dropzone--dragging {
+      background: var(--accent-tint-bg-hover);
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.6),
+        0 0 0 4px rgba(255, 255, 255, 0.06);
+    }
+
+    &.sl-ldb-dropzone--busy {
+      pointer-events: none;
+      opacity: 0.75;
+    }
+
+    .sl-ldb-dropzone-icon {
+      display: inline-flex;
+      color: var(--color-text-primary);
+      opacity: 0.85;
+    }
+
+    .sl-ldb-dropzone-title {
+      font-size: var(--text-body-size) !important;
+      font-weight: var(--w-semibold);
+      color: var(--color-text-primary);
+    }
+
+    .sl-ldb-dropzone-sub {
+      font-size: var(--text-caption-size) !important;
+      color: var(--color-text-secondary);
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-
-      &:hover {
-        background: var(--accent-tint-bg-hover);
-        box-shadow: inset 0 0 0 1px var(--hairline-strong);
-      }
     }
   }
 
-  .sl-ldb-upload-mode-section {
-    display: flex;
-    gap: var(--space-3);
-
-    .sl-ldb-upload-mode-card {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      padding: 16px 18px;
-      border-radius: var(--radius-md);
-      background: var(--accent-tint-bg);
-      box-shadow: inset 0 0 0 1px var(--hairline);
-      cursor: pointer;
-      text-align: left;
-      transition:
-        background 0.18s var(--ease-standard),
-        box-shadow 0.18s var(--ease-standard),
-        transform 0.12s ease;
-      border: 0;
-
-      &:hover {
-        background: var(--accent-tint-bg-hover);
-        box-shadow: inset 0 0 0 1px var(--hairline-strong);
-      }
-
-      &:active {
-        transform: scale(0.99);
-      }
-
-      /* Active — solid accent edge instead of a heavy fill. The selected
-         card stays calm; the unselected card dims to give the choice
-         visual weight. */
-      &.sl-ldb-upload-mode-card--active {
-        background: var(--accent-tint-bg-hover);
-        box-shadow:
-          inset 0 0 0 1.5px rgba(255, 255, 255, 0.6),
-          0 0 0 4px rgba(255, 255, 255, 0.06);
-
-        .sl-ldb-upload-mode-title {
-          color: var(--color-text-primary);
-        }
-      }
-
-      .sl-ldb-upload-mode-title {
-        font-size: var(--text-body-size) !important;
-        font-weight: var(--w-semibold);
-        color: var(--color-text-primary);
-      }
-
-      .sl-ldb-upload-mode-desc {
-        font-size: var(--text-caption-size) !important;
-        font-weight: var(--w-regular);
-        color: var(--color-text-secondary);
-        line-height: 1.4;
-      }
-    }
-
-    /* When one card is selected, fade the other so the choice is obvious. */
-    &:has(.sl-ldb-upload-mode-card--active) {
-      .sl-ldb-upload-mode-card:not(.sl-ldb-upload-mode-card--active) {
-        opacity: 0.5;
-
-        &:hover {
-          opacity: 0.85;
-        }
-      }
-    }
+  .sl-ldb-spinner {
+    animation: sl-ldb-spin 0.8s linear infinite;
   }
+}
 
-  .sl-ldb-upload-actions {
-    display: flex;
-    gap: var(--space-2);
-    justify-content: flex-end;
-    margin-top: var(--space-1);
-
-    /* Match the toolbar's button size — one component, one size. */
-    .sl-ldb-icon-btn {
-      height: 38px;
-      padding: 0 16px;
-      font-size: var(--text-body-size) !important;
-    }
+@keyframes sl-ldb-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

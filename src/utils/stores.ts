@@ -86,6 +86,8 @@ export const $popupLyricsAllowed = (() => {
 })();
 export const $viewControlsPosition = persistAtom<string>("viewControlsPosition", "Top");
 export const $ttmlMakerMode = persistAtom<boolean>("ttmlMakerMode", true);
+// Last upload mode picked in the Local DB upload screen: "persistent" | "temporary".
+export const $ttmlUploadMode = persistAtom<string>("ttmlUploadMode", "persistent");
 export const $developerMode = persistAtom<boolean>("developerMode", false);
 export const $timelineOutsideMediaContent = persistAtom<boolean>(
   "timelineOutsideMediaContent",

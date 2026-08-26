@@ -93,7 +93,12 @@
     padding-left 0.4s;
   display: flex;
   flex-direction: column;
-  margin-bottom: 45cqh;
+  /* The virtualizer appends a permanent spacer of half the viewport height to the
+     scroll element — that is what actually lets the last line reach the centre.
+     This margin is only the small budget on top of it (centre scrolls add a +30px
+     offset, and the credits block below the lines already contributes height).
+     Anything larger is dead space that can be scrolled into past the credits. */
+  margin-bottom: 6cqh;
   margin-top: 25cqh;
 }
 

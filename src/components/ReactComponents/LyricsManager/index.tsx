@@ -41,6 +41,12 @@ export default function LyricsDBPanel({ onUploadClick }: LyricsDBPanelProps) {
 
   const filtered = uris.filter(matchesQuery);
 
+  // Pin the currently playing track to the top of the list.
+  const currentIndex = currentUri ? filtered.indexOf(currentUri) : -1;
+  if (currentIndex > 0) {
+    filtered.unshift(filtered.splice(currentIndex, 1)[0]);
+  }
+
   async function handleDownload(uri: string) {
     const ttml = await getRaw(uri);
     if (!ttml) {

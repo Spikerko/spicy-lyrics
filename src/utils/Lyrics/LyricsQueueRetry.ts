@@ -3,7 +3,7 @@ import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import Global from "../../components/Global/Global.ts";
 import Logger from "../Logger.ts";
 import ApplyLyrics from "./Global/Applyer.ts";
-import fetchLyrics, { ShowQueueLoader } from "./fetchLyrics.ts";
+import fetchLyrics, { ShowQueueLoader, type FetchLyricsResult } from "./fetchLyrics.ts";
 
 const queueLogger = new Logger("Lyrics Queue Retry");
 
@@ -18,7 +18,7 @@ function computeDelay(attempt: number): number {
   return Math.min(MAX_DELAY_MS, Math.round(scaled));
 }
 
-type FetchResult = [object | string, number] | null;
+type FetchResult = FetchLyricsResult;
 
 // `null` means the fetch was guarded/dropped (an overlapping fetch) — keep
 // waiting. The "lyrics-queued" descriptor means the server is still queuing us.

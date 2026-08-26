@@ -30,15 +30,12 @@ async function get(uri: string): Promise<any | null> {
       return null;
     }
 
-    const parsed = await ParseTTML(data);
-    if (parsed == null || typeof parsed !== "object") {
+    const parsed = ParseTTML(data);
+    if (parsed == null) {
       return null;
     }
 
-    const result = "Result" in parsed ? (parsed as Record<string, unknown>).Result : undefined;
-    return (result && typeof result === "object" && result !== null)
-      ? Object.assign({}, result as object, { source: "ldb" })
-      : null;
+    return Object.assign({}, parsed, { source: "ldb" });
   } catch (error) {
     logCaught("get", error, { uri });
     return null;

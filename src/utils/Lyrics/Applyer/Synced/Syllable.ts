@@ -21,6 +21,7 @@ import {
   setRomanizedStatus,
 } from "../../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyricsContainer.ts";
+import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "../Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
@@ -239,17 +240,18 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
       const totalDuration = ConvertTime(lead.EndTime) - ConvertTime(lead.StartTime);
 
-      const letterLength = (
+      const leadRenderText = StripZeroWidth(
         UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text
-      ).split("").length;
+      );
 
-      const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text);
+      const letterLength = leadRenderText.split("").length;
+
+      const IfLetterCapable =
+        letterLength > 0 && IsLetterCapable(letterLength, totalDuration) && !isRtl(leadRenderText);
 
       if (IfLetterCapable) {
         word = document.createElement("div");
-        const letters = (
-          UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text
-        ).split(""); // Split word into individual letters
+        const letters = leadRenderText.split(""); // Split word into individual letters
 
         Emphasize(letters, word, lead);
 
@@ -266,8 +268,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           word.style.transform = `translateY(calc(var(--DefaultLyricsSize) * 0.02))`;
         }
       } else {
-        word.textContent =
-          UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text;
+        word.textContent = leadRenderText;
 
         if (!$simpleLyricsMode.get()) {
           word.style.setProperty("--gradient-position", `-20%`);
@@ -348,17 +349,18 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
           const totalDuration = ConvertTime(bw.EndTime) - ConvertTime(bw.StartTime);
 
-          const letterLength = (
+          const bgRenderText = StripZeroWidth(
             UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text
-          ).split("").length;
+          );
 
-          const IfLetterCapable = IsLetterCapable(letterLength, totalDuration) && !isRtl(UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text);
+          const letterLength = bgRenderText.split("").length;
+
+          const IfLetterCapable =
+            letterLength > 0 && IsLetterCapable(letterLength, totalDuration) && !isRtl(bgRenderText);
 
           if (IfLetterCapable) {
             bwE = document.createElement("div");
-            const letters = (
-              UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text
-            ).split(""); // Split word into individual letters
+            const letters = bgRenderText.split(""); // Split word into individual letters
 
             Emphasize(letters, bwE, bw, true);
 
@@ -375,8 +377,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
               bwE.style.transform = `translateY(calc(var(--font-size) * 0.02))`;
             }
           } else {
-            bwE.textContent =
-              UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text;
+            bwE.textContent = bgRenderText;
 
             if (!$simpleLyricsMode.get()) {
               bwE.style.setProperty("--gradient-position", `0%`);

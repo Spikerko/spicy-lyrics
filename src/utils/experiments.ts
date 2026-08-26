@@ -48,6 +48,14 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_NewProgressBar",
   },
+  {
+    id: "duetLinePadding",
+    label: "Duet Line Padding",
+    description:
+      "Indents lyrics lines on the side they lean away from when a song has duet lines, so the two voices read as separate columns. Disable to give every line the same slight padding.",
+    default: true,
+    pageClass: "Exp_DuetLinePadding",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id` — what the UI iterates over. */
