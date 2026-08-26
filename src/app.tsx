@@ -62,6 +62,7 @@ import Logger from "./utils/Logger.ts";
 import Whentil from "./modules/Whentil.ts";
 import App from "./utils/app.ts";
 import { initSession } from "./utils/SessionManager/index.ts";
+import { ensurePersistence } from "./utils/db.ts";
 
 async function main() {
   const appLogger = new Logger("App");
@@ -108,6 +109,7 @@ async function main() {
   window._spicy_lyrics_metadata = {};
 
   void initSession();
+  void ensurePersistence();
 
   LoadFonts();
   ApplyFontPixel();

@@ -1,3 +1,5 @@
+import Logger from "./Logger.ts";
+
 // Define types for the event system
 type EventCallback = (...args: any[]) => void;
 type EventId = number;
@@ -6,6 +8,8 @@ type EventListeners = Map<EventId, EventCallback>;
 const eventRegistry = new Map<string, EventListeners>();
 
 let nextId = 1;
+
+const eventLogger = new Logger("Event Manager");
 
 const listen = (eventName: string, callback: EventCallback): EventId => {
   if (!eventRegistry.has(eventName)) {
@@ -37,7 +41,11 @@ const evoke = (eventName: string, ...args: any[]): void => {
   const listeners = eventRegistry.get(eventName);
   if (listeners) {
     for (const callback of listeners.values()) {
-      callback(...args);
+      try {
+        callback(...args);
+      } catch (error) {
+        eventLogger.error(`A listener for "${eventName}" threw`, error);
+      }
     }
   }
 };

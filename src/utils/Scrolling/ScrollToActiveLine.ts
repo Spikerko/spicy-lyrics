@@ -42,11 +42,6 @@ const wasDrasticPositionChange = (lastPosition: number, newPosition: number) => 
   return positionChange > 1000;
 };
 
-// Add focus event listener to reset state when window is focused
-window.addEventListener("focus", ResetLastLine);
-// Add resize event listener to reset state when window is resized
-window.addEventListener("resize", ResetLastLine);
-
 // Create ResizeObserver to monitor LyricsContent container dimensions
 const lyricsContentObserver = new ResizeObserver(() => {
   ResetLastLine();
@@ -87,6 +82,9 @@ function handleUserScroll(ScrollSimplebar: any | null) {
 // Initialization function for scroll events and observers
 export function InitializeScrollEvents(ScrollSimplebar: any) {
   if (!$lyricsContainerExists.get()) return;
+
+  window.addEventListener("focus", ResetLastLine);
+  window.addEventListener("resize", ResetLastLine);
   // --- NEW: Store instance and define handlers ---
   currentSimpleBarInstance = ScrollSimplebar;
   wheelHandler = () => handleUserScroll(currentSimpleBarInstance);
