@@ -169,9 +169,30 @@ const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition
   const enhance = (index: number) =>
     ({ ...Lines[index], _LineIndex: index }) as EnhancedLyricsItem;
 
+  // 2) collapse the active lines onto their lead groups. A background line that
+  // still has another active group below it is only the tail of a line we have
+  // already moved past — a sustained "oooh" outliving its own lead — so it is
+  // dropped rather than dragging the anchor back up. A background line with
+  // nothing active below it is kept: it may be leading into its own line, which
+  // starts later than the background vocal does.
+  let frontLead = -1;
+  for (const index of activeIndices) {
+    const lead = ResolveToLeadIndex(Lines, index);
+    if (lead > frontLead) frontLead = lead;
+  }
+
+  // Ascending and deduplicated — ResolveToLeadIndex is monotonic over
+  // activeIndices, so only the previous entry needs checking.
+  const activeLeads: number[] = [];
+  for (const index of activeIndices) {
+    const lead = ResolveToLeadIndex(Lines, index);
+    if (IsBGLine(Lines[index]) && lead < frontLead) continue;
+    if (activeLeads[activeLeads.length - 1] !== lead) activeLeads.push(lead);
+  }
+
   // The highest active line keeps the anchor as long as it (and its background
   // lines) finish before the line PIN_LOOKAHEAD real lines further down starts.
-  const anchorIdx = ResolveToLeadIndex(Lines, activeIndices[0]);
+  const anchorIdx = activeLeads[0];
   const lookahead = GetLookaheadLine(Lines, anchorIdx);
   if (lookahead === null || GetGroupEndTime(Lines, anchorIdx) <= lookahead.StartTime) {
     return enhance(anchorIdx);
@@ -179,9 +200,9 @@ const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition
 
   // Anchor refused — fall back to the original heuristic: contiguous or off by
   // only 1 → the first active line, a bigger gap → the last.
-  const firstIdx = activeIndices[0];
-  const lastIdx = activeIndices[activeIndices.length - 1];
-  return enhance(ResolveToLeadIndex(Lines, lastIdx - firstIdx <= 1 ? firstIdx : lastIdx));
+  const firstIdx = activeLeads[0];
+  const lastIdx = activeLeads[activeLeads.length - 1];
+  return enhance(lastIdx - firstIdx <= 1 ? firstIdx : lastIdx);
 };
 
 const ScrollTo = (

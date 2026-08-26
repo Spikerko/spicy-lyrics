@@ -979,19 +979,28 @@ async function main() {
           clearTimeout(lastTimeout);
           lastTimeout = undefined;
         }
-        lastTimeout = setTimeout(async () => {
+        lastTimeout = setTimeout(() => {
+          // Safety net: whatever is on screen belongs to `$currentLyricsData`.
+          // If that payload (or "no lyrics" sentinel) is for a different track
+          // than the one playing, the pipeline was raced — re-fetch so the
+          // playing track gets its own lyrics instead of the previous track's.
           const currentSongLyrics = $currentLyricsData.get();
-          if (
-            currentSongLyrics &&
-            currentSongLyrics !== `NO_LYRICS:${SpotifyPlayer.GetUri()}`
-          ) {
-            const parsedLyrics = JSON.parse(currentSongLyrics);
-            if (parsedLyrics?.uri !== SpotifyPlayer.GetUri()) {
-              const refetchUri = SpotifyPlayer.GetUri();
-              if (refetchUri) {
-                fetchLyrics(refetchUri).then(ApplyLyrics);
-              }
+          const refetchUri = SpotifyPlayer.GetUri();
+          if (!currentSongLyrics || !refetchUri) return;
+
+          let appliedUri: string | null = null;
+          if (currentSongLyrics.startsWith("NO_LYRICS:")) {
+            appliedUri = currentSongLyrics.slice("NO_LYRICS:".length);
+          } else {
+            try {
+              appliedUri = JSON.parse(currentSongLyrics)?.uri ?? null;
+            } catch {
+              appliedUri = null;
             }
+          }
+
+          if (appliedUri !== refetchUri) {
+            fetchLyrics(refetchUri).then(ApplyLyrics);
           }
         }, 1000);
       });
@@ -1064,13 +1073,30 @@ async function main() {
 
   runThemeMatcher();
 
-  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
-    if (IsPIP) return;
-    if (Fullscreen.CinemaViewOpen) {
-      await Fullscreen.Close();
-      Session.GoBack();
-    }
-  });
+  setTimeout(() => {
+    Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
+      if (IsPIP) return;
+      if (Fullscreen.CinemaViewOpen) {
+        await Fullscreen.Close();
+        Session.GoBack();
+      }
+    });
+
+    Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.F11, async () => {
+      if (IsPIP) return;
+      if (Fullscreen.IsOpen) {
+        if (!Fullscreen.CinemaViewOpen) {
+          Fullscreen.CinemaViewOpen = true;
+          await ExitFullscreenElement();
+          PageView.AppendViewControls(true);
+        } else {
+          Fullscreen.CinemaViewOpen = false;
+          await EnterSpicyLyricsFullscreen();
+          PageView.AppendViewControls(true);
+        }
+      }
+    });
+  }, 3000);
 
   document.addEventListener("fullscreenchange", async () => {
     if (!document.fullscreenElement && Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
@@ -1080,20 +1106,7 @@ async function main() {
     }
   });
 
-  Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.F11, async () => {
-    if (IsPIP) return;
-    if (Fullscreen.IsOpen) {
-      if (!Fullscreen.CinemaViewOpen) {
-        Fullscreen.CinemaViewOpen = true;
-        await ExitFullscreenElement();
-        PageView.AppendViewControls(true);
-      } else {
-        Fullscreen.CinemaViewOpen = false;
-        await EnterSpicyLyricsFullscreen();
-        PageView.AppendViewControls(true);
-      }
-    }
-  });
+  
 
   new Spicetify.Menu.Item(
 		"Spicy Lyrics Settings",

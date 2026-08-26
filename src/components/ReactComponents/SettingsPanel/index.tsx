@@ -4,6 +4,7 @@ import BackgroundSection from "./BackgroundSection.tsx";
 import CacheSection from "./CacheSection.tsx";
 import DeveloperSection from "./DeveloperSection.tsx";
 import ExperimentsSection from "./ExperimentsSection.tsx";
+import Footer from "./Footer.tsx";
 import InterfaceSection from "./InterfaceSection.tsx";
 import LyricsSection from "./LyricsSection.tsx";
 import PlaybackSection from "./PlaybackSection.tsx";
@@ -43,6 +44,8 @@ export default function SettingsPanel({ onOpenExperiments }: { onOpenExperiments
       />
       <DeveloperSection query={query} sectionFilter={sectionFilter} />
       <CacheSection query={query} sectionFilter={sectionFilter} />
+
+      <Footer />
     </div>
   );
 }

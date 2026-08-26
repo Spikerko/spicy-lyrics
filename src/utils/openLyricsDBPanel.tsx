@@ -40,6 +40,7 @@ function _openUpload() {
   });
 
   PopupModal.transition({
+    title: "Upload TTML",
     content: container,
     onClose: () => root.unmount(),
     closeHandler: _openDB,
@@ -55,6 +56,7 @@ function _openDB() {
   });
 
   PopupModal.transition({
+    title: "Local Lyrics DB",
     content: container,
     onClose: () => root.unmount(),
   });
