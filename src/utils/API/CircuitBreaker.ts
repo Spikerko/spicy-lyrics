@@ -93,7 +93,7 @@ export type BreakerLease = {
   kind: LeaseKind;
   /**
    * Identifies which probe holds the single slot. A lease whose token no longer
-   * matches has been superseded — see `releaseProbe`.
+   * matches has been superseded — see `claimSettle`.
    */
   probeToken?: number;
 };
@@ -135,22 +135,33 @@ function probeIsHeld(now: number): boolean {
 }
 
 /**
- * Hand the probe slot back, but only if this lease still owns it.
+ * Take ownership of a settle, handing the probe slot back if this lease holds it.
  *
- * A probe released as stale can be replaced while its request is still open. If
- * the original then settles, clearing the flag unconditionally would free the
- * replacement's slot and let a second probe onto the network beside it —
- * exactly what the single-probe guard exists to prevent.
+ * Returns false when the lease has been superseded — released as stale while its
+ * request was still open, with a replacement since granted. The caller must then
+ * leave breaker state alone entirely.
+ *
+ * Both halves matter. Freeing the slot would put a second probe on the network
+ * beside the replacement, which is what the single-probe guard exists to
+ * prevent. Letting the outcome through would be worse: a stale success would
+ * close the breaker and readmit session and update traffic while the replacement
+ * is still failing, and a stale failure would extend the window while the
+ * replacement is proving the origin healthy. Which of the two lands first is a
+ * race, so breaker state would depend on scheduling rather than on evidence.
+ * The replacement is the current probe and its verdict arrives within seconds;
+ * that is the one worth acting on.
  */
-function releaseProbe(lease: BreakerLease): void {
-  if (lease.kind === "normal") return;
+function claimSettle(lease: BreakerLease): boolean {
+  if (lease.kind === "normal") return true;
+
   if (lease.probeToken !== activeProbeToken) {
-    breakerLogger.info("Superseded probe settled, leaving the slot held");
-    return;
+    breakerLogger.info("Superseded probe settled, ignoring its outcome");
+    return false;
   }
 
   probeInFlight = false;
   activeProbeToken = 0;
+  return true;
 }
 
 /**
@@ -255,7 +266,7 @@ function grantProbe(kind: LeaseKind, now: number): BreakerLease {
  * the service is reachable, so the breaker closes completely.
  */
 export function SettleSuccess(lease: BreakerLease): void {
-  releaseProbe(lease);
+  if (!claimSettle(lease)) return;
   consecutiveFailures = 0;
 
   if (state.openUntil !== 0 || state.ladderIndex !== 0) {
@@ -273,7 +284,7 @@ export function SettleSuccess(lease: BreakerLease): void {
  * the origin's own guidance beats our ladder.
  */
 export function SettleFailure(lease: BreakerLease, retryAfterHeaderMs?: number): void {
-  releaseProbe(lease);
+  if (!claimSettle(lease)) return;
 
   // A lyrics probe never escalates: otherwise a user skipping tracks would push
   // their own client from the 2 minute rung to the 30 minute one.
