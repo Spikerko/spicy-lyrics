@@ -3,7 +3,8 @@ import { $currentLyricsData, $currentLyricsType, $currentlyFetching } from "../s
 import Platform from "../../components/Global/Platform.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
-import { Query } from "../API/Query.ts";
+import { Query, QueryHttpError, QueryNetworkError } from "../API/Query.ts";
+import { IsTripStatus, ServiceUnavailableError } from "../API/CircuitBreaker.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
 import Logger from "../Logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
@@ -15,7 +16,7 @@ const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
 
 // recently updated key structure - changed name
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 2, {
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 3, {
   Unit: "Days",
   Duration: 3,
 }, isDev as true);
@@ -257,7 +258,11 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
       ],
       {
         "SpicyLyrics-WebAuth": `Bearer ${Token}`,
-      }
+      },
+      // Someone is waiting on this, so it may pass even while the breaker is
+      // open (subject to the breaker's own cooldown) and doubles as the health
+      // check that closes it. This is the only caller allowed to set it.
+      { probe: true }
     );
 
     const lyricsQuery = queries.get("0");
@@ -286,6 +291,13 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
         HideLoaderContainer();
         $currentlyFetching.set(false);
         return ["lyrics-not-found", 404];
+      }
+      if (status === 429) {
+        // The server's own per-query rate limit. (A *transport* 429 never gets
+        // here — that trips the circuit breaker and throws.)
+        HideLoaderContainer();
+        $currentlyFetching.set(false);
+        return ["rate-limited", 429];
       }
       HideLoaderContainer();
       $currentlyFetching.set(false);
@@ -322,9 +334,38 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     presentLyrics(lyrics);
     return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {
-    lyricsLogger.error("Error fetching lyrics", error);
     $currentlyFetching.set(false);
     HideLoaderContainer();
+
+    // The request was never made: the circuit breaker is holding traffic back
+    // because the API is refusing us. That is a temporary pause, not a fault,
+    // and it deserves different copy from a genuine error.
+    if (error instanceof ServiceUnavailableError) {
+      lyricsLogger.warn("Lyrics request suppressed", error.message);
+      return ["service-unavailable", 0];
+    }
+
+    // Refused at the transport layer. A 429 here is the edge rate-limiting us
+    // rather than the server's own per-query limit, but it means the same thing
+    // to the user, so it gets the same wording.
+    if (error instanceof QueryHttpError) {
+      lyricsLogger.warn("Lyrics request refused", error.status);
+      if (error.status === 429) return ["rate-limited", 429];
+      if (IsTripStatus(error.status)) return ["service-unavailable", error.status];
+      return ["status-not-200", error.status];
+    }
+
+    // No readable response. The status is hidden from us (see QueryNetworkError),
+    // so we can't name the reason — but it is a service problem, not a fault in
+    // the extension, and saying "unknown error" here is misleading.
+    if (error instanceof QueryNetworkError) {
+      lyricsLogger.warn("Lyrics request never returned a readable response", error.cause);
+      return ["service-unavailable", 0];
+    }
+
+    // Anything left is a genuine fault in our own pipeline (unpacking, parsing,
+    // presenting) and should stay loud.
+    lyricsLogger.error("Error fetching lyrics", error);
     return ["unknown-error", 0];
   }
 }

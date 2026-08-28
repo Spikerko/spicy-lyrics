@@ -1,16 +1,31 @@
 import Platform from "../../components/Global/Platform.ts";
+import { ServiceUnavailableError } from "../API/CircuitBreaker.ts";
+import { fullJitter, jitter } from "../jitter.ts";
 import Logger from "../Logger.ts";
 import {
-  applyPingConfig,
+  basePingDelayMs,
   BACKOFF_BASE_MS,
   BACKOFF_MAX_MS,
+  PING_FAILURE_MAX_MS,
   pingDelayMs,
+  RECOVER_SPREAD_MS,
+  REFRESH_FAILURE_BASE_MS,
+  REFRESH_FAILURE_MAX_MS,
   refreshDelayMs,
 } from "./config.ts";
-import { opCreateSession, opPing, opPingConfig, opRefreshSession } from "./operations.ts";
+import { opCreateSession, opPing, opRefreshSession } from "./operations.ts";
 import { clearTk, getTk, markPing, setTk } from "./state.ts";
 import { SessionStatus, type OpResult } from "./types.ts";
 
+/**
+ * The rule every retry path in this class follows: **a failure delay is never
+ * shorter than the healthy interval.**
+ *
+ * Previously each one broke it — a failed refresh retried in 5s instead of 48
+ * minutes, a failed ping kept its normal cadence, and a dead session was
+ * recreated instantly — so a blocked client generated far more load than a
+ * healthy one, at exactly the moment the server could least afford it.
+ */
 export class SessionManager {
   private readonly logger = new Logger("SessionManager");
 
@@ -21,6 +36,8 @@ export class SessionManager {
   private ensurePromise: Promise<void> | null = null;
   private recreateBackoffMs = 0;
   private createBackoffMs = BACKOFF_BASE_MS;
+  private pingFailures = 0;
+  private refreshFailures = 0;
 
   async ensureSession(): Promise<void> {
     if (this.ensurePromise) return this.ensurePromise;
@@ -42,8 +59,6 @@ export class SessionManager {
 
   private async createLoop(): Promise<void> {
     while (!getTk()) {
-      await this.syncPingConfig();
-
       const token = await this.getSpotifyToken();
       if (!token) {
         await this.sleep(this.nextCreateDelay());
@@ -54,6 +69,14 @@ export class SessionManager {
       try {
         result = await opCreateSession(token);
       } catch (error) {
+        // While the breaker is open this throws without touching the network,
+        // so waiting out its window is what stops the loop from becoming a
+        // tight spin of fail-fast no-ops.
+        if (error instanceof ServiceUnavailableError) {
+          this.logger.info("createSession suppressed by breaker, waiting it out");
+          await this.sleep(error.retryAfterMs);
+          continue;
+        }
         this.logger.warn("createSession transport error", error);
         await this.sleep(this.nextCreateDelay());
         continue;
@@ -83,11 +106,9 @@ export class SessionManager {
     const tk = getTk();
     if (!tk) return;
 
-    await this.syncPingConfig();
-
     const token = await this.getSpotifyToken();
     if (!token) {
-      this.scheduleRefresh(BACKOFF_BASE_MS);
+      this.scheduleRefresh(this.nextRefreshFailureDelay());
       return;
     }
 
@@ -96,7 +117,7 @@ export class SessionManager {
       result = await opRefreshSession(tk, token);
     } catch (error) {
       this.logger.warn("refresh transport error", error);
-      this.scheduleRefresh(BACKOFF_BASE_MS);
+      this.scheduleRefresh(this.nextRefreshFailureDelay());
       return;
     }
 
@@ -105,6 +126,7 @@ export class SessionManager {
     if (status === SessionStatus.OK && result.data?.tk) {
       setTk(result.data.tk);
       this.resetRecreateBackoff();
+      this.refreshFailures = 0;
       this.scheduleRefresh();
       return;
     }
@@ -117,12 +139,12 @@ export class SessionManager {
 
     if (status === SessionStatus.UPSTREAM_ERROR) {
       this.logger.warn("refresh upstream unavailable, retrying with backoff");
-      this.scheduleRefresh(BACKOFF_BASE_MS);
+      this.scheduleRefresh(this.nextRefreshFailureDelay());
       return;
     }
 
     this.logger.warn("refresh non-ok status", status, result.data);
-    this.scheduleRefresh(BACKOFF_BASE_MS);
+    this.scheduleRefresh(this.nextRefreshFailureDelay());
   }
 
   private async pingTick(): Promise<void> {
@@ -134,7 +156,7 @@ export class SessionManager {
       result = await opPing(tk);
     } catch (error) {
       this.logger.warn("ping transport error", error);
-      this.schedulePing();
+      this.schedulePing(this.nextPingFailureDelay());
       return;
     }
 
@@ -143,6 +165,7 @@ export class SessionManager {
     if (status === SessionStatus.OK) {
       markPing(Date.now());
       this.resetRecreateBackoff();
+      this.pingFailures = 0;
       this.schedulePing();
       return;
     }
@@ -154,29 +177,17 @@ export class SessionManager {
     }
 
     this.logger.warn("ping non-ok status", status, result.data);
-    this.schedulePing();
+    this.schedulePing(this.nextPingFailureDelay());
   }
 
   private recover(): void {
     clearTk();
     this.clearTimers();
     const delay = this.nextRecreateDelay();
+    this.logger.info(`Recreating session in ${Math.round(delay / 1000)}s`);
     this.recoverTimer = setTimeout(() => {
       void this.ensureSession();
     }, delay);
-  }
-
-  private async syncPingConfig(): Promise<void> {
-    try {
-      const result = await opPingConfig();
-      if (result.httpStatus === SessionStatus.OK) {
-        applyPingConfig(result.data);
-      } else {
-        this.logger.warn("pingConfig non-ok status", result.httpStatus);
-      }
-    } catch (error) {
-      this.logger.warn("pingConfig fetch failed", error);
-    }
   }
 
   private async getSpotifyToken(): Promise<string | null> {
@@ -223,23 +234,44 @@ export class SessionManager {
     }
   }
 
+  /**
+   * Sessions die in correlated waves — a server restart or a deploy kills every
+   * one at once — so the first recovery is spread across a window rather than
+   * fired immediately. Nothing outside this class reads the session token, so
+   * the delay costs the user nothing.
+   */
   private nextRecreateDelay(): number {
-    const delay = this.recreateBackoffMs;
-    this.recreateBackoffMs =
-      this.recreateBackoffMs === 0
-        ? BACKOFF_BASE_MS
-        : Math.min(this.recreateBackoffMs * 2, BACKOFF_MAX_MS);
-    return delay;
+    if (this.recreateBackoffMs === 0) {
+      this.recreateBackoffMs = BACKOFF_BASE_MS;
+      return fullJitter(RECOVER_SPREAD_MS);
+    }
+
+    this.recreateBackoffMs = Math.min(this.recreateBackoffMs * 2, BACKOFF_MAX_MS);
+    return jitter(this.recreateBackoffMs, 0.3);
   }
 
   private resetRecreateBackoff(): void {
     this.recreateBackoffMs = 0;
   }
 
+  /** Doubles the healthy ping interval per failure: 5m, 10m, 20m, capped at 30m. */
+  private nextPingFailureDelay(): number {
+    const base = basePingDelayMs() * Math.pow(2, this.pingFailures);
+    this.pingFailures += 1;
+    return jitter(Math.min(base, PING_FAILURE_MAX_MS), 0.2);
+  }
+
+  /** 1m, 2m, 4m, 8m, capped at 15m — bounded by the TTL slack, see config.ts. */
+  private nextRefreshFailureDelay(): number {
+    const base = REFRESH_FAILURE_BASE_MS * Math.pow(2, this.refreshFailures);
+    this.refreshFailures += 1;
+    return jitter(Math.min(base, REFRESH_FAILURE_MAX_MS), 0.2);
+  }
+
   private nextCreateDelay(): number {
     const delay = this.createBackoffMs;
     this.createBackoffMs = Math.min(this.createBackoffMs * 2, BACKOFF_MAX_MS);
-    return delay;
+    return jitter(delay, 0.3);
   }
 
   private resetCreateBackoff(): void {

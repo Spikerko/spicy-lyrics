@@ -100,6 +100,16 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
       noticeContent = `Please go online to enjoy your lyrics experience!`
       break;
     }
+    case "service-unavailable": {
+      // The circuit breaker is holding requests back. Nothing is broken and the
+      // user needn't do anything — it retries on its own.
+      noticeContent = `Lyrics are temporarily unavailable — we'll keep trying`
+      break;
+    }
+    case "rate-limited": {
+      noticeContent = `You're going a little fast for us — give it a moment and try again`
+      break;
+    }
     case "status-not-200": {
       noticeContent = `A server error occurred`
       break;
