@@ -96,6 +96,11 @@ export type BreakerLease = {
    * matches has been superseded — see `claimSettle`.
    */
   probeToken?: number;
+  /**
+   * The breaker generation this lease was granted under. A settle from an older
+   * generation describes a state the breaker has already moved on from.
+   */
+  gen: number;
 };
 
 /** Thrown instead of making a request while the breaker is open. */
@@ -118,6 +123,13 @@ let probeStartedAt = 0;
 let probeSeq = 0;
 let activeProbeToken = 0;
 
+/**
+ * Bumped on every breaker transition (a trip, or a close). A lease carries the
+ * generation it was granted under, so a request still in flight across a
+ * transition can be told apart from one describing the current state.
+ */
+let generation = 0;
+
 /** True while a probe is outstanding and has not yet gone stale. */
 function probeIsHeld(now: number): boolean {
   if (!probeInFlight) return false;
@@ -137,30 +149,45 @@ function probeIsHeld(now: number): boolean {
 /**
  * Take ownership of a settle, handing the probe slot back if this lease holds it.
  *
- * Returns false when the lease has been superseded — released as stale while its
- * request was still open, with a replacement since granted. The caller must then
- * leave breaker state alone entirely.
+ * Returns false when the lease no longer describes the breaker's current view of
+ * the world, in which case the caller must leave breaker state alone. Nothing
+ * here times out a `fetch`, so both ways of getting there are reachable:
  *
- * Both halves matter. Freeing the slot would put a second probe on the network
- * beside the replacement, which is what the single-probe guard exists to
- * prevent. Letting the outcome through would be worse: a stale success would
- * close the breaker and readmit session and update traffic while the replacement
- * is still failing, and a stale failure would extend the window while the
- * replacement is proving the origin healthy. Which of the two lands first is a
- * race, so breaker state would depend on scheduling rather than on evidence.
- * The replacement is the current probe and its verdict arrives within seconds;
- * that is the one worth acting on.
+ * - **A superseded probe.** Released as stale while its request was still open,
+ *   with a replacement since granted. Freeing the slot would put a second probe
+ *   on the network beside the replacement, which is what the single-probe guard
+ *   exists to prevent.
+ * - **A stale generation.** The breaker tripped or closed after the lease was
+ *   granted, so the lease is evidence about a decision already taken. This
+ *   catches slow *normal* requests as well, which matters more than it sounds:
+ *   they are granted while the breaker is closed and they outnumber probes, so
+ *   the moment other failures trip the breaker there can be several of them
+ *   still outstanding. Any one settling late would otherwise close the breaker
+ *   and readmit background traffic while the health-check probe is still
+ *   failing, or re-trip it while that probe is proving the origin healthy.
+ *
+ * The current probe's verdict lands within seconds and is the one worth acting
+ * on. Without this, breaker state would follow whichever request happened to
+ * settle last rather than what the origin is actually doing.
  */
 function claimSettle(lease: BreakerLease): boolean {
-  if (lease.kind === "normal") return true;
+  if (lease.kind !== "normal") {
+    if (lease.probeToken !== activeProbeToken) {
+      breakerLogger.info("Superseded probe settled, ignoring its outcome");
+      return false;
+    }
 
-  if (lease.probeToken !== activeProbeToken) {
-    breakerLogger.info("Superseded probe settled, ignoring its outcome");
+    // The slot goes back even if the outcome is discarded below — this lease is
+    // finished either way, and holding it would block the next probe.
+    probeInFlight = false;
+    activeProbeToken = 0;
+  }
+
+  if (lease.gen !== generation) {
+    breakerLogger.info("Lease predates a breaker transition, ignoring its outcome");
     return false;
   }
 
-  probeInFlight = false;
-  activeProbeToken = 0;
   return true;
 }
 
@@ -248,7 +275,7 @@ export function Acquire(probeCandidate: boolean): BreakerLease {
     return grantProbe("halfOpen", now);
   }
 
-  return { kind: "normal" };
+  return { kind: "normal", gen: generation };
 }
 
 function grantProbe(kind: LeaseKind, now: number): BreakerLease {
@@ -258,7 +285,7 @@ function grantProbe(kind: LeaseKind, now: number): BreakerLease {
   state.lastProbeAt = now;
   store.SaveChanges();
   breakerLogger.info("Probe granted", kind);
-  return { kind, probeToken: activeProbeToken };
+  return { kind, probeToken: activeProbeToken, gen: generation };
 }
 
 /**
@@ -271,6 +298,7 @@ export function SettleSuccess(lease: BreakerLease): void {
 
   if (state.openUntil !== 0 || state.ladderIndex !== 0) {
     breakerLogger.info("Service reachable again, breaker closed");
+    generation += 1;
     state.openUntil = 0;
     state.ladderIndex = 0;
     store.SaveChanges();
@@ -307,6 +335,7 @@ function trip(retryAfterHeaderMs?: number): void {
   state.openUntil = now + pause;
   state.lastTripAt = now;
   state.ladderIndex = Math.min(state.ladderIndex + 1, LADDER_MS.length - 1);
+  generation += 1;
   consecutiveFailures = 0;
   store.SaveChanges();
 
@@ -349,6 +378,9 @@ export const BreakerDebug = {
     probeInFlight = false;
     probeStartedAt = 0;
     activeProbeToken = 0;
+    // Bumping the generation keeps anything still in flight from re-applying
+    // its outcome over the reset.
+    generation += 1;
     store.SaveChanges();
     breakerLogger.info("Breaker manually reset");
   },
