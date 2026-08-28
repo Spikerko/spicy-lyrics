@@ -89,7 +89,14 @@ type LeaseKind =
   /** Breaker still open, but a user is actively waiting on lyrics. */
   | "earlyProbe";
 
-export type BreakerLease = { kind: LeaseKind };
+export type BreakerLease = {
+  kind: LeaseKind;
+  /**
+   * Identifies which probe holds the single slot. A lease whose token no longer
+   * matches has been superseded — see `releaseProbe`.
+   */
+  probeToken?: number;
+};
 
 /** Thrown instead of making a request while the breaker is open. */
 export class ServiceUnavailableError extends Error {
@@ -108,6 +115,8 @@ export class ServiceUnavailableError extends Error {
 let consecutiveFailures = 0;
 let probeInFlight = false;
 let probeStartedAt = 0;
+let probeSeq = 0;
+let activeProbeToken = 0;
 
 /** True while a probe is outstanding and has not yet gone stale. */
 function probeIsHeld(now: number): boolean {
@@ -116,10 +125,32 @@ function probeIsHeld(now: number): boolean {
   if (now - probeStartedAt > PROBE_STALE_AFTER_MS) {
     breakerLogger.warn("Probe never settled, releasing the slot");
     probeInFlight = false;
+    // Drop the token too, so if the abandoned request does eventually settle it
+    // cannot free a slot that by then belongs to someone else.
+    activeProbeToken = 0;
     return false;
   }
 
   return true;
+}
+
+/**
+ * Hand the probe slot back, but only if this lease still owns it.
+ *
+ * A probe released as stale can be replaced while its request is still open. If
+ * the original then settles, clearing the flag unconditionally would free the
+ * replacement's slot and let a second probe onto the network beside it —
+ * exactly what the single-probe guard exists to prevent.
+ */
+function releaseProbe(lease: BreakerLease): void {
+  if (lease.kind === "normal") return;
+  if (lease.probeToken !== activeProbeToken) {
+    breakerLogger.info("Superseded probe settled, leaving the slot held");
+    return;
+  }
+
+  probeInFlight = false;
+  activeProbeToken = 0;
 }
 
 /**
@@ -212,10 +243,11 @@ export function Acquire(probeCandidate: boolean): BreakerLease {
 function grantProbe(kind: LeaseKind, now: number): BreakerLease {
   probeInFlight = true;
   probeStartedAt = now;
+  activeProbeToken = ++probeSeq;
   state.lastProbeAt = now;
   store.SaveChanges();
   breakerLogger.info("Probe granted", kind);
-  return { kind };
+  return { kind, probeToken: activeProbeToken };
 }
 
 /**
@@ -223,7 +255,7 @@ function grantProbe(kind: LeaseKind, now: number): BreakerLease {
  * the service is reachable, so the breaker closes completely.
  */
 export function SettleSuccess(lease: BreakerLease): void {
-  if (lease.kind !== "normal") probeInFlight = false;
+  releaseProbe(lease);
   consecutiveFailures = 0;
 
   if (state.openUntil !== 0 || state.ladderIndex !== 0) {
@@ -241,7 +273,7 @@ export function SettleSuccess(lease: BreakerLease): void {
  * the origin's own guidance beats our ladder.
  */
 export function SettleFailure(lease: BreakerLease, retryAfterHeaderMs?: number): void {
-  if (lease.kind !== "normal") probeInFlight = false;
+  releaseProbe(lease);
 
   // A lyrics probe never escalates: otherwise a user skipping tracks would push
   // their own client from the 2 minute rung to the 30 minute one.
@@ -305,6 +337,7 @@ export const BreakerDebug = {
     consecutiveFailures = 0;
     probeInFlight = false;
     probeStartedAt = 0;
+    activeProbeToken = 0;
     store.SaveChanges();
     breakerLogger.info("Breaker manually reset");
   },
