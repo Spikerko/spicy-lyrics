@@ -33,6 +33,14 @@ export interface QueryResultGetter {
 const queryLogger = new Logger("API Query");
 
 /**
+ * Hard deadline for a single `/query`, covering the response body as well as
+ * the headers. Generous next to a healthy round trip, and well inside the
+ * breaker's shortest pause, so a stalled request is recorded as a failure long
+ * before the next scheduled one goes out.
+ */
+const REQUEST_TIMEOUT_MS = 15_000;
+
+/**
  * The request reached the network and came back refused.
  *
  * Carries the transport status so callers can tell a rate limit apart from an
@@ -101,11 +109,19 @@ export async function Query(
     headers,
   });
 
+  // A request that never returns is worse than one that fails: it holds a probe
+  // slot, and during an overload it is the shape a stalled origin most often
+  // takes. `fetch` has no timeout of its own, so impose one — the abort surfaces
+  // as a rejection and counts against the breaker like any other refusal.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     let res: Response;
     try {
       res = await fetch(`${host}/query`, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           "SpicyLyrics-Version": clientVersion?.Text ?? "",
@@ -120,10 +136,10 @@ export async function Query(
         }),
       });
     } catch (error) {
-      // A network error, or a CORS failure — the edge blocked the preflight, or
-      // answered with an error page carrying no CORS headers. There is no status
-      // to inspect here, which is the shape a blocked request most often takes,
-      // so it counts on the rejection alone.
+      // A timeout, a network error, or a CORS failure — the edge blocked the
+      // preflight, or answered with an error page carrying no CORS headers.
+      // There is no status to inspect here, which is the shape a blocked request
+      // most often takes, so it counts on the rejection alone.
       SettleFailure(lease);
       throw new QueryNetworkError(error);
     }
@@ -145,7 +161,17 @@ export async function Query(
       throw new QueryHttpError(res.status);
     }
 
-    const data = await res.json();
+    let data: any;
+    try {
+      // Still under the same deadline: headers can arrive promptly and the body
+      // then stall. The lease is already settled — headers really did prove the
+      // origin reachable — so this only decides which error the caller sees.
+      data = await res.json();
+    } catch (error) {
+      if (controller.signal.aborted) throw new QueryNetworkError(error);
+      throw error;
+    }
+
     queryLogger.debug("Response data", data);
     const results: Map<string, QueryObjectResult> = new Map();
 
@@ -169,5 +195,7 @@ export async function Query(
   } catch (error) {
     queryLogger.error("Query error", error);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }

@@ -50,9 +50,10 @@ const PROBE_MIN_INTERVAL_MS = 30_000;
 /**
  * A probe still unsettled after this long is treated as abandoned.
  *
- * Nothing here times out a `fetch`, so without this guard a single hung request
- * would hold `probeInFlight` forever and the breaker could never close again for
- * the rest of the session.
+ * `Query` holds every request to a 15s deadline, so this is a backstop rather
+ * than the main defence — but it is the one that matters, because a probe slot
+ * left held forever would stop the breaker ever closing again for the rest of
+ * the session.
  */
 const PROBE_STALE_AFTER_MS = 60_000;
 
@@ -150,8 +151,9 @@ function probeIsHeld(now: number): boolean {
  * Take ownership of a settle, handing the probe slot back if this lease holds it.
  *
  * Returns false when the lease no longer describes the breaker's current view of
- * the world, in which case the caller must leave breaker state alone. Nothing
- * here times out a `fetch`, so both ways of getting there are reachable:
+ * the world, in which case the caller must leave breaker state alone. `Query`'s
+ * 15s timeout bounds how long a lease can stay open, but not the order in which
+ * two settles arrive, so both ways of getting there are reachable:
  *
  * - **A superseded probe.** Released as stale while its request was still open,
  *   with a replacement since granted. Freeing the slot would put a second probe
