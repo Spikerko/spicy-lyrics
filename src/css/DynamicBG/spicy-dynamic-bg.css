@@ -24,6 +24,8 @@ aside .spicy-dynamic-bg {
 .spicy-dynamic-bg-in-this {
   overflow: hidden;
   position: relative;
+  /* stacking context so the bg (z-index:0) stays below the lifted content (z-index:1) and scoped to this panel */
+  isolation: isolate;
 }
 
 /* Special styling for side panel */
@@ -78,7 +80,9 @@ div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after,
   display: none !important;
 }
 
-aside:has(.spicy-dynamic-bg) > div,
+/* lift the panel content above the background
+   exclude the bg elements themselves, color/static modes are <div>s that would otherwise get pulled into the content layer */
+aside:has(.spicy-dynamic-bg) > div:not(.spicy-dynamic-bg),
 aside:has(.spicy-dynamic-bg) .AAdBM1nhG73supMfnYX7,
 aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
   z-index: 1;
@@ -86,7 +90,7 @@ aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
 }
 
 /* Low quality mode styles - kept unchanged as requested */
-#SpicyLyricsPage .spicy-dynamic-bg.StaticBackground {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.StaticBackground {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -98,10 +102,10 @@ aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
   will-change: transform, filter;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.StaticBackground.transition_In {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.StaticBackground.transition_In {
   animation: SDB_StaticBG_T_IN forwards 850ms cubic-bezier(0.66, 0, 0.34, 1);
 }
-#SpicyLyricsPage .spicy-dynamic-bg.StaticBackground.transition_Out {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.StaticBackground.transition_Out {
   animation: SDB_StaticBG_T_OUT forwards 850ms cubic-bezier(0.66, 0, 0.34, 1);
 }
 
@@ -130,13 +134,21 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   display: none;
 }
 
+/* hide the sidebar bg during DJ (the panel shows an "Up next" card, no cover art)
+   keying on the missing cover-art container in CSS means no flicker no strip */
+.Root__right-sidebar
+  aside.spicy-dynamic-bg-in-this:not(:has(.main-nowPlayingView-coverArtContainer))
+  .spicy-dynamic-bg {
+  display: none !important;
+}
+
 .Root__right-sidebar
   aside#Desktop_PanelContainer_Id:has(.spicy-dynamic-bg)
   .main-buddyFeed-scrollBarContainer {
   z-index: 1;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.ColorBackground {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.ColorBackground {
   /* background-color: rgba(0, 0, 0, 0.25); */
   /* background: linear-gradient(var(--ColorBackgroundRotation), var(--DesaturatedColor), var(--VibrantColor), var(--DarkVibrantColor), var(--BaseColor), var(--DesaturatedColor)); */
   background-color: rgba(var(--MinContrastColor));
@@ -151,7 +163,7 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   initial-value: 0deg;
 } */
 
-#SpicyLyricsPage .spicy-dynamic-bg.ColorBackground::before {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.ColorBackground::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -163,7 +175,7 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   transition: background-color 1.5s;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.ColorBackground::after {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.ColorBackground::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -174,18 +186,24 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   z-index: 5;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.CanvasBackground {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.CanvasBackground {
   width: 100%;
   height: 100%;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.CanvasBackground video {
+:is(#SpicyLyricsPage, .spicy-dynamic-bg-in-this) .spicy-dynamic-bg.CanvasBackground video {
   width: 100%;
   height: 100%;
 }
 
 #SpicyLyricsPage .spicy-dynamic-bg.ColorBackground {
   z-index: -1 !important;
+}
+
+/* sidebar content is lifted to z-index:1 so the bg sits at 0
+   (-1 like the page would drop it behind the panel's opaque content and hide the color) */
+.spicy-dynamic-bg-in-this .spicy-dynamic-bg.ColorBackground {
+  z-index: 0 !important;
 }
 
 .NowPlayingView .main-nowPlayingView-headerCloseButton {

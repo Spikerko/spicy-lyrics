@@ -163,7 +163,9 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
         dynamicBg.style.setProperty("--OverlayColor", COLOR_BG_FALLBACK_RGB);
         element.appendChild(dynamicBg);
       }
-      cachedColorBackgroundEl = dynamicBg;
+      // keep this pointing at the page's color bg only
+      // the songchange flash below uses it and we don't want it flashing the sidebar element
+      if (tag !== "npvbg") cachedColorBackgroundEl = dynamicBg;
 
       // Local tracks aren't hosted on Spotify, so we can't derive dynamic colors
       // from their artwork — keep the plain black background instead.
@@ -447,7 +449,6 @@ Global.Event.listen("playback:playpause", (e: { data?: { isPaused?: boolean } })
   applyPlayPauseAnimationSpeed(!!e?.data?.isPaused);
 });
 
-// TODO: Make this also remove the NPV dynamic bg when we switch to staticBackground mode, as that should be removed.
 const reapplyPageBackground = () => {
   const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
   if (!contentBox) return;
