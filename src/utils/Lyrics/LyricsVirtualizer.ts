@@ -5,7 +5,7 @@ import {
   observeElementOffset,
 } from "@tanstack/virtual-core";
 import { Maid } from "../../modules/Maid.ts";
-import Logger from "../logger.ts";
+import Logger from "../Logger.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
 // Gap is baked into each wrapper's padding-bottom so items can have
@@ -846,19 +846,30 @@ class LyricsVirtualizer {
     // Diagnostics: distinguishes a smooth-scroll stall, an unscrollable container,
     // and the Wayland failure — a DOM/virtualizer offset desync (observedScrollTop
     // moved but tanstackOffset did not, because the 'scroll' event never dispatched).
-    virtualizerLogger.debug("scrollToIndex applied", {
-      retry,
-      finalScrollTop: Math.round(finalScrollTop),
-      observedScrollTop: Math.round(observedScrollTop),
-      tanstackOffset: tanstackOffsetBefore == null ? null : Math.round(tanstackOffsetBefore),
-      scrollHeight: scrollEl.scrollHeight,
-      clientHeight: scrollEl.clientHeight,
-      maxScroll: scrollEl.scrollHeight - scrollEl.clientHeight,
-      virtualHeight: this._virtualContainer.offsetHeight,
-      scrollBehavior: getComputedStyle(scrollEl).scrollBehavior,
-      hasInstantScroll: scrollEl.classList.contains("InstantScroll"),
-      targetMounted: this._mountedIndices.has(index),
-    });
+    //
+    // Gated on isEnabled rather than left to Logger.debug's own early return:
+    // arguments are evaluated at the call site, so building this payload cost a
+    // forced style recalc (getComputedStyle) plus five layout reads on EVERY
+    // retry — up to 31 per scroll — even with developer mode off. Sitting between
+    // the scrollTo() above and the measureElement() reads below, that turned the
+    // convergence chain into sustained layout thrash while the lyrics render.
+    if (virtualizerLogger.isEnabled) {
+      const scrollHeight = scrollEl.scrollHeight;
+      const clientHeight = scrollEl.clientHeight;
+      virtualizerLogger.debug("scrollToIndex applied", {
+        retry,
+        finalScrollTop: Math.round(finalScrollTop),
+        observedScrollTop: Math.round(observedScrollTop),
+        tanstackOffset: tanstackOffsetBefore == null ? null : Math.round(tanstackOffsetBefore),
+        scrollHeight,
+        clientHeight,
+        maxScroll: scrollHeight - clientHeight,
+        virtualHeight: this._virtualContainer.offsetHeight,
+        scrollBehavior: getComputedStyle(scrollEl).scrollBehavior,
+        hasInstantScroll: scrollEl.classList.contains("InstantScroll"),
+        targetMounted: this._mountedIndices.has(index),
+      });
+    }
 
     // Wayland quirk: a programmatic scrollTop write may not dispatch a 'scroll' event,
     // so observeElementOffset never updates scrollOffset and the virtual window stays

@@ -10,12 +10,16 @@ export interface OpResult {
   format: "text" | "json";
 }
 
-export interface PingConfigData {
+/**
+ * A `type` rather than an `interface` on purpose: only type aliases satisfy the
+ * `Record<string, unknown>` constraint on `GetInstantStore`, which persists this.
+ */
+export type PingConfigData = {
   pingIntervalMs: number;
   minPingIntervalMs: number;
   sessionTtlSeconds: number;
   refreshAtTtlFraction: number;
-}
+};
 
 export const SessionStatus = {
   OK: 200,

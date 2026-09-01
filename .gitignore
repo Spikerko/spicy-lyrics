@@ -177,4 +177,9 @@ src/components/cli-sync
 .claude/settings.local.json
 
 CHANGELOG.md
-package-lock.json
+
+VOLUME_SLIDER_PLAN.md
+
+api-backend/
+
+docs/

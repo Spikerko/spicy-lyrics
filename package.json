@@ -20,6 +20,7 @@
     "cubic-spline": "^3.0.3",
     "cyrillic-romanization": "^1.2.1",
     "d3-ease": "^3.0.1",
+    "fast-xml-parser": "^5.11.0",
     "franc-all": "^7.2.0",
     "idb": "^8.0.3",
     "kuroshiro": "^1.2.0",

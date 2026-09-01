@@ -82,7 +82,22 @@ const RunMediaBoxAnimation = () => {
   ControlsMaid.Give(Scheduler.OnPreRender(RunMediaBoxAnimation), "MediaBoxAnimation");
 };
 
+// While a slider handle is being dragged the pointer regularly leaves the MediaBox,
+// and `MediaBox_MouseOut` fires unconditionally — without this latch the controls
+// would fade out from under the cursor mid-drag.
+let controlsDragLock = false;
+
+export const SetControlsDragLock = (locked: boolean) => {
+  if (controlsDragLock === locked) return;
+  controlsDragLock = locked;
+  // Re-evaluate once the drag is over so the controls settle into whatever the
+  // hover state became while we were ignoring it.
+  if (!locked) ToggleControls(true);
+};
+
 const ToggleControls = (force: boolean = false) => {
+  if (controlsDragLock) return;
+
   const now = performance.now();
 
   const getControlsOpacityGoal = () => {
@@ -191,6 +206,7 @@ function CleanupMediaBox() {
   visualsApplied = false;
   mediaBoxHover = false;
   pageHover = false;
+  controlsDragLock = false;
 }
 
 function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = true) {

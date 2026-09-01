@@ -36,6 +36,11 @@ export default function Emphasize(
     letterElem.textContent = letter;
     letterElem.classList.add("letter");
     letterElem.classList.add("Emphasis");
+    // Whitespace inside an inline-block collapses to a 0px box, which glues
+    // multi-word syllables ("Watch this") together. Tag it so CSS can size it.
+    if (letter.trim().length === 0) {
+      letterElem.classList.add("SpaceLetter");
+    }
     const isLastLetter = index === letters.length - 1;
     // Calculate start and end time for each letter
     const letterStartTime = StartTime + index * letterDuration;

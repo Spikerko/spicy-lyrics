@@ -886,10 +886,75 @@
   padding: 5cqw 7cqw;
 }
 
+/* Geometry shared by both progress-bar skins — only the skin below differs. */
 #SpicyLyricsPage .Timeline .SliderBar {
+  --SliderProgress: 0.6;
+  border-radius: 100cqw;
+  flex-grow: 1;
+  position: relative;
+  width: auto;
+  cursor: pointer;
+  margin: 0 1.5cqw;
+}
+
+/* ── Skin A — glass capsule (experiment "newProgressBarStyling") ────────────
+   Same language as the volume capsule: frosted track, white fill that IS the
+   progress, no handle dot. */
+#SpicyLyricsPage.Exp_NewProgressBar .Timeline .SliderBar {
+  height: 2.2cqh;
+  overflow: hidden;
+  background: var(--material-regular-bg);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow:
+    0 6px 18px -8px rgba(8, 10, 18, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  transition: height 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* iOS-style thickening while engaged — the vertical twin of the volume capsule's
+   width growth. .Timeline centers its children, so the bar grows symmetrically. */
+#SpicyLyricsPage.Exp_NewProgressBar .Timeline .SliderBar:is(:hover, .Dragging) {
+  height: 3cqh;
+}
+
+#SpicyLyricsPage.Exp_NewProgressBar .Timeline .SliderBar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  transform: scaleX(var(--SliderProgress));
+  transform-origin: left;
+  transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Mid-drag the fill must track the pointer 1:1 — the eased glide is for playback
+   ticks and seeks only. */
+#SpicyLyricsPage.Exp_NewProgressBar .Timeline .SliderBar.Dragging::before {
+  transition: none;
+}
+
+/* The handle stays in the markup for the legacy skin; the fill replaces it here. */
+#SpicyLyricsPage.Exp_NewProgressBar .Timeline .SliderBar .Handle {
+  display: none;
+}
+
+/* The hoisted timeline's cq units resolve against the much taller NowBar container
+   rather than the square MediaBox, hence the smaller numbers for the same look. */
+#SpicyLyricsPage.Exp_NewProgressBar .Header > .Timeline .SliderBar {
+  height: 1.7cqh;
+}
+
+#SpicyLyricsPage.Exp_NewProgressBar .Header > .Timeline .SliderBar:is(:hover, .Dragging) {
+  height: 2.3cqh;
+}
+
+/* ── Skin B — legacy accent gradient + handle dot ──────────────────────────── */
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .Timeline .SliderBar {
   --TraveledColor: var(--accent);
   --RemainingColor: var(--color-text-quaternary);
-  --SliderProgress: 0.6;
   background: linear-gradient(
     90deg,
     var(--TraveledColor) 0,
@@ -897,18 +962,24 @@
     var(--RemainingColor) calc(100% * var(--SliderProgress)),
     var(--RemainingColor)
   );
-  border-radius: 100cqw;
   container-type: size;
-  flex-grow: 1;
-  position: relative;
-  width: auto;
   height: 1.3cqh;
-  cursor: pointer;
-  margin: 0 1.5cqw;
 }
 
-#SpicyLyricsPage .Header > .Timeline .SliderBar {
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .Header > .Timeline .SliderBar {
   height: 1cqh;
+}
+
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .Timeline .SliderBar .Handle {
+  aspect-ratio: 1;
+  background: #fff;
+  border-radius: 100cqw;
+  display: block;
+  height: 185cqh;
+  left: calc(100cqw * var(--SliderProgress));
+  position: absolute;
+  top: 54cqh;
+  transform: translate(-50%, -50%);
 }
 
 #SpicyLyricsPage .Timeline .Time {
@@ -928,16 +999,328 @@
   text-align: left;
 }
 
-#SpicyLyricsPage .Timeline .SliderBar .Handle {
+/* --- Volume capsule -------------------------------------------------------- */
+/* A vertical, Control-Center-style capsule on the right edge of the artwork,
+   vertically centered — the one region that is empty in both timeline states, so
+   nothing else has to move to make room for it. Deliberately no `container-type`
+   here: cq units inside resolve against the square .MediaBox like every other
+   overlay band, and the handle's `%` offsets resolve against the capsule itself.
+
+   Geometry is shared by both progress-bar skins — position, size and placement
+   are identical whichever way the experiment is set; only the skin below differs. */
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl {
+  --VolumeLevel: 0;
+  /* Both are read back by the legacy handle — its diameter scales off the width,
+     its travel off the height — so PiP's wider capsule adapts for free and the
+     box is described in exactly one place. */
+  --CapsuleWidth: 4cqw;
+  --CapsuleHeight: 32cqh;
+  position: absolute;
+  top: 50%;
+  right: 4.5cqw;
+  translate: 0 -50%;
+  width: var(--CapsuleWidth);
+  height: var(--CapsuleHeight);
+  z-index: 2;
+  border-radius: 100cqw;
+  cursor: pointer;
+}
+
+/* ── Skin A — glass capsule (experiment "newProgressBarStyling") ────────────
+   The white fill IS the slider: no track line, no handle. */
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl {
+  overflow: hidden;
+  background: var(--material-regular-bg);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow:
+    0 10px 24px -8px rgba(8, 10, 18, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  transition: width 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* iOS-style thickening while engaged. Width-anchored right, so it grows inward.
+   Skin A only — a handle dot alongside a growing track reads as two competing
+   affordances. */
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl:is(:hover, .Dragging) {
+  --CapsuleWidth: 5.4cqw;
+}
+
+#SpicyLyricsPage.Exp_NewProgressBar .VolumeControl .VolumeFill {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  transform: scaleY(var(--VolumeLevel));
+  transform-origin: bottom;
+  transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+}
+
+/* Mid-drag the fill must track the pointer 1:1 — the eased glide is only for
+   wheel steps, mute snaps and external volume changes. */
+#SpicyLyricsPage.Exp_NewProgressBar .VolumeControl.Dragging .VolumeFill {
+  transition: none;
+}
+
+/* Skin B draws the level as a background gradient instead. */
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .VolumeControl .VolumeFill {
+  display: none;
+}
+
+/* ── Skin B — legacy accent gradient + handle dot ──────────────────────────
+   The vertical twin of the old horizontal bar: a hard-stop gradient painted on
+   the track itself, so both ends stay perfectly rounded at any level and no fill
+   element is involved. Placement and height match Skin A exactly; only the track's
+   thickness differs, because a flat line and a frosted capsule want different
+   weights to read correctly.
+
+   .Fullscreen.ShowVolumeSlider are carried here only to out-specify the shared
+   geometry rule above, which would otherwise win --CapsuleWidth. */
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider:not(.Exp_NewProgressBar)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl {
+  /* The old bar was a 1.3cq-thick line, not a capsule — the glass skin's 4cqw is
+     thickness the frosted material needs to read as a material, and it looks
+     bloated with a flat fill. The handle scales off this, so it shrinks to match. */
+  --CapsuleWidth: 1.3cqw;
+  --TraveledColor: var(--accent);
+  --RemainingColor: var(--color-text-quaternary);
+  background: linear-gradient(
+    0deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--VolumeLevel)),
+    var(--RemainingColor) calc(100% * var(--VolumeLevel)),
+    var(--RemainingColor)
+  );
+}
+
+/* A 1.3cqw line is a hard thing to grab. Widen the hit area without touching the
+   paint — the pointer target is what the user aims at, not what they see. */
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .VolumeControl::after {
+  content: "";
+  position: absolute;
+  inset: 0 -2.5cqw;
+}
+
+/* Sized off the capsule width exactly as the old handle was sized off the bar's
+   thickness (1.85×), so it overhangs the track the same way — the capsule stays
+   `overflow: visible` in this skin to let it. Rides the top edge of the traveled
+   segment via transform rather than `bottom`, which keeps it off the layout path
+   and lets it glide with the same curve Skin A's fill uses. */
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .VolumeControl .Handle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: calc(var(--CapsuleWidth) * 1.85);
   aspect-ratio: 1;
   background: #fff;
-  border-radius: 100cqw;
-  display: block;
-  height: 185cqh;
-  left: calc(100cqw * var(--SliderProgress));
+  border-radius: 50%;
+  transform: translate(-50%, 50%)
+    translateY(calc(-1 * var(--CapsuleHeight) * var(--VolumeLevel)));
+  transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+}
+
+/* Mid-drag the handle must track the pointer 1:1, same as Skin A's fill. */
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .VolumeControl.Dragging .Handle {
+  transition: none;
+}
+
+/* Skin A replaces the handle with the fill. */
+#SpicyLyricsPage.Exp_NewProgressBar .VolumeControl .Handle {
+  display: none;
+}
+
+/* The mute button. Drags never start on it — see SetupVolumeControl. */
+#SpicyLyricsPage .VolumeControl .VolumeIcon {
   position: absolute;
-  top: 54cqh;
-  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  fill: #fff;
+  /* Above the track's hit-area expander so the click reaches the glyph. */
+  z-index: 1;
+  transition: fill 0.15s ease;
+}
+
+/* Skin A: inside the capsule, at its foot — the glass track is thick enough to
+   hold the glyph, and the fill sliding up behind it is the point. */
+#SpicyLyricsPage.Exp_NewProgressBar .VolumeControl .VolumeIcon {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 6cqh;
+}
+
+/* Skin B: below the track. The legacy bar is a thin line with a handle riding it —
+   there is no room inside, and the white handle passing behind a white glyph would
+   swallow it. This is where the old horizontal band put the icon, rotated. */
+#SpicyLyricsPage:not(.Exp_NewProgressBar) .VolumeControl .VolumeIcon {
+  top: calc(100% + 2cqh);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6cqw;
+  height: 5cqh;
+}
+
+/* The white fill has risen past the glyph, so flip it to ink. Skin A only —
+   Skin B's traveled segment is the accent colour, which the white glyph reads
+   against fine and dark ink would not. */
+#SpicyLyricsPage.Exp_NewProgressBar .VolumeControl.IconOnFill .VolumeIcon {
+  fill: rgba(0, 0, 0, 0.68);
+}
+
+#SpicyLyricsPage .VolumeControl .VolumeIcon svg {
+  height: 2.6cqh;
+  width: auto;
+  pointer-events: none;
+  transition: transform 0.16s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#SpicyLyricsPage .VolumeControl .VolumeIcon:active svg {
+  transform: scale(0.85);
+}
+
+#SpicyLyricsPage .VolumeControl #SpicyLyrics_VolumeWaveLow,
+#SpicyLyricsPage .VolumeControl #SpicyLyrics_VolumeWaveHigh,
+#SpicyLyricsPage .VolumeControl #SpicyLyrics_VolumeMute {
+  transition: opacity 0.18s ease;
+}
+
+/* The level alone decides the icon: 0 is muted, one threshold splits low from high. */
+#SpicyLyricsPage .VolumeControl #SpicyLyrics_VolumeMute {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .VolumeControl.Low #SpicyLyrics_VolumeWaveHigh {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .VolumeControl.Muted #SpicyLyrics_VolumeWaveLow,
+#SpicyLyricsPage .VolumeControl.Muted #SpicyLyrics_VolumeWaveHigh {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .VolumeControl.Muted #SpicyLyrics_VolumeMute {
+  opacity: 1;
+}
+
+/* PiP (~390px) and compact mode render the artwork small, which makes the track
+   skinny in absolute pixels — widen it relative to the box, mirroring the
+   .PlaybackControl overrides above. The inset is shared; the thickness is not,
+   since the two skins start from very different widths. */
+.spicy-pip-wrapper
+  #SpicyLyricsPage.Fullscreen.ShowVolumeSlider
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl,
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider:is(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl {
+  right: 4cqw;
+}
+
+.spicy-pip-wrapper
+  #SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl,
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar:is(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl {
+  --CapsuleWidth: 6.5cqw;
+}
+
+.spicy-pip-wrapper
+  #SpicyLyricsPage.Fullscreen.ShowVolumeSlider:not(.Exp_NewProgressBar)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl,
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider:not(.Exp_NewProgressBar):is(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl {
+  --CapsuleWidth: 2.2cqw;
+}
+
+.spicy-pip-wrapper
+  #SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl:is(:hover, .Dragging),
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar:is(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .VolumeControl:is(:hover, .Dragging) {
+  --CapsuleWidth: 8cqw;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .VolumeControl .VolumeIcon svg,
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) .VolumeControl .VolumeIcon svg {
+  height: 3.4cqh;
 }
 
 #SpicyLyricsPage.Fullscreen .Separator {

@@ -36,7 +36,12 @@ function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
 
 const _settings: Record<string, any> = migrateSettingsKeys(readSettingsBlob());
 
-function persistAtom<T>(key: string, defaultValue: T) {
+/**
+ * An atom backed by the settings blob. Exported so feature modules (e.g.
+ * `experiments.ts`) can register their own persisted settings without having to
+ * add a line here for every one.
+ */
+export function persistAtom<T>(key: string, defaultValue: T) {
   const store = atom<T>(_settings[key] !== undefined ? _settings[key] : defaultValue);
   store.listen((v) => {
     _settings[key] = v;
@@ -55,8 +60,18 @@ export const $simpleLyricsModeRenderingType = persistAtom<string>(
   "calculate"
 );
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
+// Tinted box drawn behind a lyrics line while the pointer is over it.
+export const $lineHoverBackground = persistAtom<boolean>("lineHoverBackground", true);
 export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
 export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
+// Never inject the lyrics card into the Now Playing sidebar at all.
+export const $disableNpvLyrics = persistAtom<boolean>("disableNpvLyrics", false);
+// Pull the whole NPV lyrics card out of the sidebar while the current track has
+// no lyrics, instead of leaving it up showing the "no lyrics" notice.
+export const $hideNpvLyricsWhenUnavailable = persistAtom<boolean>(
+  "hideNpvLyricsWhenUnavailable",
+  true
+);
 export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
@@ -71,11 +86,15 @@ export const $popupLyricsAllowed = (() => {
 })();
 export const $viewControlsPosition = persistAtom<string>("viewControlsPosition", "Top");
 export const $ttmlMakerMode = persistAtom<boolean>("ttmlMakerMode", true);
+// Last upload mode picked in the Local DB upload screen: "persistent" | "temporary".
+export const $ttmlUploadMode = persistAtom<string>("ttmlUploadMode", "persistent");
 export const $developerMode = persistAtom<boolean>("developerMode", false);
 export const $timelineOutsideMediaContent = persistAtom<boolean>(
   "timelineOutsideMediaContent",
   true
 );
+// Volume band below the playback controls in Fullscreen / Cinema View / Popup Lyrics.
+export const $showVolumeSlider = persistAtom<boolean>("showVolumeSlider", true);
 // Playback timing offset in milliseconds (bipolar: negative = earlier, positive = later)
 export const $playbackOffset = persistAtom<number>("playbackOffset", 0);
 

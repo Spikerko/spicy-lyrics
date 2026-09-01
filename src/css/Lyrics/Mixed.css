@@ -227,6 +227,13 @@
   display: inline-block;
 }
 
+/* A letter that is just whitespace collapses to a 0px inline-block, which glues
+   multi-word syllables together. Keep the space rendered and give it a floor. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letter.SpaceLetter {
+  white-space: pre;
+  min-width: 0.3ch;
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .word,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .letter,
@@ -596,12 +603,29 @@
   transform: translateY(calc(var(--DefaultLyricsSize) * 0)) !important;
 } */
 
+/* Exp_DuetLinePadding — how far a duet line is inset on the side it leans away
+   from. On, the inset is wide enough that the two voices read as separate
+   columns; off, duet lines keep the same slight padding every other line gets. */
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer.HasDuetLines {
+  --DuetLineInset: 5cqw;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_DuetLinePadding
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer.HasDuetLines {
+  --DuetLineInset: 15cqw;
+}
+
 #SpicyLyricsPage.SpicyRenderer
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer.HasDuetLines
   .line.OppositeAligned:not(.rtl) {
-  padding-left: 15cqw;
+  padding-left: var(--DuetLineInset);
 }
 
 #SpicyLyricsPage.SpicyRenderer
@@ -609,7 +633,7 @@
   .LyricsContent
   .SpicyLyricsScrollContainer.HasDuetLines
   .line:not(.OppositeAligned, .rtl) {
-  padding-right: 15cqw;
+  padding-right: var(--DuetLineInset);
 }
 
 #SpicyLyricsPage.SpicyRenderer
@@ -617,7 +641,7 @@
   .LyricsContent
   .SpicyLyricsScrollContainer.HasDuetLines.HasRtlLines
   .line.OppositeAligned.rtl {
-  padding-right: 15cqw;
+  padding-right: var(--DuetLineInset);
 }
 
 #SpicyLyricsPage.SpicyRenderer
@@ -625,7 +649,7 @@
   .LyricsContent
   .SpicyLyricsScrollContainer.HasDuetLines.HasRtlLines
   .line.rtl:not(.OppositeAligned) {
-  padding-left: 15cqw;
+  padding-left: var(--DuetLineInset);
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not(.HasDuetLines) .line {
@@ -835,7 +859,7 @@
   opacity: 1;
 }
 
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"]) .line:not(.musical-line)::before {
+#SpicyLyricsPage.SpicyRenderer:not(.NoLineHoverBackground) .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"]) .line:not(.musical-line)::before {
   content: "";
   position: absolute;
   top: 50%;
@@ -851,7 +875,7 @@
   transform-origin: center center;
 }
 
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"]) .line:hover::before {
+#SpicyLyricsPage.SpicyRenderer:not(.NoLineHoverBackground) .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"]) .line:hover::before {
   opacity: 1;
   scale: 1.05;
 }

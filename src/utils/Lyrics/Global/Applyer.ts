@@ -8,7 +8,7 @@ import { EmitApply, EmitNotApplyed } from "../Applyer/OnApply.ts";
 import { ApplyStaticLyrics, type StaticLyricsData } from "../Applyer/Static.ts";
 import { ApplyLineLyrics } from "../Applyer/Synced/Line.ts";
 import { ApplySyllableLyrics } from "../Applyer/Synced/Syllable.ts";
-import { ClearLyricsPageContainer, ShowQueueLoader } from "../fetchLyrics.ts";
+import { ClearLyricsPageContainer, ShowQueueLoader, type FetchLyricsResult } from "../fetchLyrics.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
@@ -38,10 +38,25 @@ export const cleanupApplyLyricsAbortController = () => {
  * Apply lyrics based on their type
  * @param lyrics - The lyrics data to apply
  */
-export default async function ApplyLyrics(lyricsContent: [object | string, number] | null): Promise<void> {
+export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Promise<void> {
   if (!PageContainer) return;
+  if (!lyricsContent) {
+    setBlurringLastLine(null);
+    return;
+  }
+
+  const [descriptor, _status, requestedUri] = lyricsContent;
+
+  // Fetching is async, so a result can land after the user has already skipped
+  // on. Applying it would paint the previous track's lyrics — or its "no
+  // lyrics" notice — over the new track, and the notice branch below would
+  // stamp the NO_LYRICS sentinel with the new track's uri, making every later
+  // fetch for that track short-circuit to "no lyrics" for good. Drop it and
+  // leave the current track's own apply to do the work.
+  const currentUri = SpotifyPlayer.GetUri();
+  if (requestedUri && currentUri && requestedUri !== currentUri) return;
+
   setBlurringLastLine(null);
-  if (!lyricsContent) return;
 
   cleanupApplyLyricsAbortController()
 
@@ -54,8 +69,6 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
   ClearLyricsPageContainer();
 
   CleanUpIsByCommunity();
-
-  const [descriptor, _status] = lyricsContent;
 
   let noticeContent: string | null = null;
 
@@ -87,6 +100,16 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
       noticeContent = `Please go online to enjoy your lyrics experience!`
       break;
     }
+    case "service-unavailable": {
+      // The circuit breaker is holding requests back. Nothing is broken and the
+      // user needn't do anything — it retries on its own.
+      noticeContent = `Lyrics are temporarily unavailable — we'll keep trying`
+      break;
+    }
+    case "rate-limited": {
+      noticeContent = `You're going a little fast for us — give it a moment and try again`
+      break;
+    }
     case "status-not-200": {
       noticeContent = `A server error occurred`
       break;
@@ -115,7 +138,9 @@ export default async function ApplyLyrics(lyricsContent: [object | string, numbe
     $currentLyricsType.set("None");
 
     if (descriptor === "lyrics-not-found") {
-      const uri = SpotifyPlayer.GetUri() ?? "";
+      // Key the sentinel off the uri the fetch was made for, never off whatever
+      // happens to be playing now — see the staleness check above.
+      const uri = requestedUri ?? currentUri ?? "";
       $currentLyricsData.set(`NO_LYRICS:${uri}`);
     } else {
       $currentLyricsData.set("");
