@@ -11,6 +11,7 @@ import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
+import { resolveLocalTrackUri } from "../SpotifyLocalTrackResolver.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -151,7 +152,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     return ["unknown-track", 400];
   }
 
-  const trackId = uri.split(":")[2];
+  const targetUri = await resolveLocalTrackUri(uri);
+  const trackId = targetUri.split(":")[2];
 
   if (LyricsContent) {
     LyricsContent.classList.add("HiddenTransitioned");
@@ -167,14 +169,14 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
         // Sentinel format is `NO_LYRICS:<uri>`. The uri itself contains colons,
         // so strip the prefix rather than splitting on ":".
         const savedUri = savedLyricsData.slice("NO_LYRICS:".length);
-        if (savedUri === uri) {
+        if (savedUri === targetUri) {
           $currentlyFetching.set(false);
           return ["lyrics-not-found", 404];
         }
       } else {
         const lyricsData = JSON.parse(savedLyricsData);
         // Return the stored lyrics if the URI matches the current track URI
-        if (lyricsData?.uri === uri) {
+        if (lyricsData?.uri === targetUri) {
           presentLyrics(lyricsData);
           return [lyricsData, 200];
         }
@@ -186,10 +188,9 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     }
   }
 
-  const localLyric = await LocalLyricsManager.get(uri);
+  const localLyric = await LocalLyricsManager.get(targetUri);
   if (localLyric) {
-    const lyricsData = { ...localLyric, uri };
-    if (isStaleFetch(uri)) return [lyricsData, 200];
+    const lyricsData = { ...localLyric, uri: targetUri };
     $currentLyricsData.set(JSON.stringify(lyricsData));
     presentLyrics(lyricsData);
     return [lyricsData, 200];
@@ -199,7 +200,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   // artist name), so they can't be looked up in LyricsStore or fetched from the
   // API. Bail out here — after LocalLyricsManager.get() (which serves any
   // user-uploaded TTML) but before the meaningless remote cache read.
-  if (uri.startsWith("spotify:local:")) {
+  if (targetUri.startsWith("spotify:local:")) {
     $currentlyFetching.set(false);
     return ["local-track", 400];
   }
@@ -215,8 +216,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
         // Tag the cached payload with the current uri so the saved-data and
         // re-fetch checks (which match on uri) recognise it — older cache
         // entries predate the uri field.
-        const lyricsFromCache = { ...(lyricsFromCacheRes ?? {}), uri };
-        if (isStaleFetch(uri)) return [{ ...lyricsFromCache, fromCache: true }, 200];
+        const lyricsFromCache = { ...(lyricsFromCacheRes ?? {}), uri: targetUri };
         $currentLyricsData.set(JSON.stringify(lyricsFromCache));
         presentLyrics(lyricsFromCache);
         return [{ ...lyricsFromCache, fromCache: true }, 200];
@@ -282,7 +282,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
       // swaps). We deliberately leave the loader up and return a sentinel so no
       // error notice is rendered.
       $currentlyFetching.set(false);
-      LyricsQueueRetry.HandleQueued(uri);
+      LyricsQueueRetry.HandleQueued(targetUri);
       return ["lyrics-queued", 503];
     }
 
@@ -316,7 +316,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
 
     // Stamp the uri so every match downstream (saved-data, re-fetch, cache)
     // keys off the stable uri instead of the API-supplied id.
-    lyrics.uri = uri;
+    lyrics.uri = targetUri;
+    $currentLyricsData.set(JSON.stringify(lyrics));
 
     // The request already completed, so cache it either way — even if the user
     // has skipped on, the next play of this track gets a cache hit.
