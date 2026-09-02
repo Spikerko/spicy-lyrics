@@ -11,6 +11,7 @@ import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
+import { uncensorLyrics } from "./Uncensor.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -311,6 +312,11 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
+
+    // The lyrics provider censors some words (rendering them as "****") before
+    // the data ever reaches the client. Restore them here — after fetch, before
+    // processing and caching — so the restored text is what gets cached too.
+    await uncensorLyrics(lyrics);
 
     await ProcessLyrics(lyrics);
 
