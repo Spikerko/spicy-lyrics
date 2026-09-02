@@ -244,10 +244,10 @@ export default async function fetchLyrics(uri: string): Promise<[object | string
       return ["lyrics-not-found", 404];
     }
 
-    // The lyrics provider censors one specific word (rendering it as "****")
-    // before the data ever reaches the client. Restore it here — after fetch,
-    // before processing and caching — so lyrics display verbatim.
-    uncensorLyrics(lyrics);
+    // The lyrics provider censors some words (rendering them as "****") before
+    // the data ever reaches the client. Restore them here — after fetch, before
+    // processing and caching — so the restored text is what gets cached too.
+    await uncensorLyrics(lyrics);
 
     await ProcessLyrics(lyrics);
 
