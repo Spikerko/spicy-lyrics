@@ -257,13 +257,21 @@ export const requestPositionSync = () => {
             localSourceHealth.LastChangeAt = sampledAt;
             localSourceHealth.ConsecutiveChanges = 0;
           }
+            if (
+              localSourceHealth.UsingState &&
+              localSourceHealth.ConsecutiveChanges >=
                 LOCAL_SOURCE_RECOVERY_STREAK
-              ) {
-                localSourceHealth.UsingState = false;
-              }
+            ) {
+              localSourceHealth.UsingState = false;
             } else if (stalled) {
               localSourceHealth.UsingState = true;
             }
+          } else if (localSourceHealth) {
+            // Paused playback can legitimately hold getPositionState. Reset the
+            // observation window so paused time does not count as a stall, while
+            // preserving the active source choice across the pause.
+            localSourceHealth.LastChangeAt = sampledAt;
+            localSourceHealth.ConsecutiveChanges = 0;
           }
           // A pause legitimately freezes getPositionState, so health is only
           // judged while playing — but the verdict carries across the pause.
