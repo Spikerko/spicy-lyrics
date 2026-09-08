@@ -250,9 +250,13 @@ export const requestPositionSync = () => {
             const stalled =
               sampledAt - localSourceHealth.LastChangeAt >
               LOCAL_SOURCE_STALL_TIMEOUT;
-            if (localSourceHealth.UsingState) {
-              if (
-                localSourceHealth.ConsecutiveChanges >=
+          } else if (localSourceHealth) {
+            // Paused playback can legitimately hold getPositionState. Reset the
+            // observation window so paused time does not count as a stall, while
+            // preserving the active source choice across the pause.
+            localSourceHealth.LastChangeAt = sampledAt;
+            localSourceHealth.ConsecutiveChanges = 0;
+          }
                 LOCAL_SOURCE_RECOVERY_STREAK
               ) {
                 localSourceHealth.UsingState = false;
