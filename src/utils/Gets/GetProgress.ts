@@ -22,6 +22,19 @@ let lastLocalSample: {
   SampledAt: number;
   TrackUri: string | null;
 } | null = null;
+// Whether getPositionState is actually refreshing on this client. Some builds
+// only move it when the player emits a state change and otherwise return the
+// same number for tens of seconds; on one measured client it went 72s without
+// moving. See pickLocalSource.
+// The previous poll's raw getPositionState reading. Tracked separately from the
+// anchor because the anchor may hold a state-derived value, and "did the source
+// move?" must stay a comparison between two readings of the same source.
+let lastRawLocalSample: number | null = null;
+let localSourceHealth: {
+  LastChangeAt: number;
+  ConsecutiveChanges: number;
+  UsingState: boolean;
+} | null = null;
 // Previous poll's reading of the player state, used only to spot a
 // discontinuity (seek/track change) in the state itself. See getLocalPosition.
 let lastStateReading: {
@@ -50,6 +63,17 @@ const JITTER_TIME_CONSTANT = 300;
 // Sits above a deliberate seek (>=1s) so ordinary state-update noise never
 // discards a healthy anchor.
 const LOCAL_ANCHOR_RESYNC_THRESHOLD = 1000;
+// How long getPositionState may return the same value while playing (ms) before
+// the source counts as stalled and the clock switches to the player state. A
+// client that refreshes it normally produces a new value every poll (~16ms), so
+// this only trips on a source that has genuinely stopped.
+const LOCAL_SOURCE_STALL_TIMEOUT = 500;
+// Consecutive polls with a *new* getPositionState value required to hand the
+// clock back to it. The two sources sit tens to hundreds of ms apart, so every
+// switch between them is a step the jitter filter then glides over — visible as
+// wobble. Hysteresis is what stops a source that moves once every few seconds
+// from causing that step each time it twitches.
+const LOCAL_SOURCE_RECOVERY_STREAK = 3;
 
 function clampToTrack(position: number): number {
   const duration = SpotifyPlayer.GetDuration();
@@ -183,6 +207,90 @@ export const requestPositionSync = () => {
               Position: stateReading,
               ReadAt: sampledAt,
               WasPlaying: isPlaying,
+            };
+          }
+
+          const rawChangedSinceLastPoll = lastRawLocalSample !== sampled;
+          lastRawLocalSample = sampled;
+
+          // Decide which source drives the clock this poll.
+          //
+          // getPositionState is the audio-side truth when it moves, so it stays
+          // the default. But when it stops moving, holding its last value can
+          // only extrapolate through the gap — it cannot correct a value that
+          // was already stale when it arrived (a seek or track change landing
+          // mid-stall), and that error then persists for the whole stall.
+          //
+          // The player state has no such failure mode: it is timestamped, so
+          // extrapolating it stays correct however rarely it is read. That is why
+          // it is the sole source in the non-local branch, and the fallback here.
+          //
+          // The switch is deliberately sticky. The two sources sit tens to
+          // hundreds of ms apart, so each handover is a step discontinuity that
+          // the jitter filter smooths into a visible glide. Requiring a run of
+          // genuinely fresh samples before handing the clock back keeps a source
+          // that twitches once every few seconds from stepping the clock each
+          // time. A client that refreshes normally satisfies the streak on its
+          // first polls and never leaves getPositionState.
+          if (isPlaying) {
+            const changed = rawChangedSinceLastPoll;
+            if (!localSourceHealth) {
+              localSourceHealth = {
+                LastChangeAt: sampledAt,
+                ConsecutiveChanges: changed ? 1 : 0,
+                UsingState: false,
+              };
+            } else {
+              localSourceHealth.ConsecutiveChanges = changed
+                ? localSourceHealth.ConsecutiveChanges + 1
+                : 0;
+              if (changed) localSourceHealth.LastChangeAt = sampledAt;
+            }
+
+            const stalled =
+              sampledAt - localSourceHealth.LastChangeAt >
+              LOCAL_SOURCE_STALL_TIMEOUT;
+          } else if (localSourceHealth) {
+            // Paused playback can legitimately hold getPositionState. Reset the
+            // observation window so paused time does not count as a stall, while
+            // preserving the active source choice across the pause.
+            localSourceHealth.LastChangeAt = sampledAt;
+            localSourceHealth.ConsecutiveChanges = 0;
+          }
+            if (
+              localSourceHealth.UsingState &&
+              localSourceHealth.ConsecutiveChanges >=
+                LOCAL_SOURCE_RECOVERY_STREAK
+            ) {
+              localSourceHealth.UsingState = false;
+            } else if (stalled) {
+              localSourceHealth.UsingState = true;
+            }
+          } else if (localSourceHealth) {
+            // Paused playback can legitimately hold getPositionState. Reset the
+            // observation window so paused time does not count as a stall, while
+            // preserving the active source choice across the pause.
+            localSourceHealth.LastChangeAt = sampledAt;
+            localSourceHealth.ConsecutiveChanges = 0;
+          }
+          // A pause legitimately freezes getPositionState, so health is only
+          // judged while playing — but the verdict carries across the pause.
+
+          if (
+            localSourceHealth?.UsingState &&
+            isPlaying &&
+            Number.isFinite(stateReading)
+          ) {
+            // The state is live and self-extrapolating, so re-anchor every poll:
+            // there is no stall to hold through, and holding would only add lag.
+            lastLocalSample = {
+              Position: stateReading,
+              SampledAt: sampledAt,
+              TrackUri: trackUri,
+            };
+            return {
+              StartedSyncAt: sampledAt,
+              Position: stateReading,
             };
           }
 
