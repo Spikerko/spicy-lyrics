@@ -696,7 +696,7 @@ function AppendViewControls(ReAppend: boolean = false) {
         if (!isPip) {
           Tooltips.NowBarSideToggle = Spicetify.Tippy(nowBarSideToggleBtn, {
             ...Spicetify.TippyProps,
-            content: `Swap NowBar Side`,
+            content: `Change NowBar Position`,
           });
         }
         nowBarSideToggleBtn.addEventListener("click", () => NowBar_SwapSides());
