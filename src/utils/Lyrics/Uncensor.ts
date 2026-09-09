@@ -19,8 +19,11 @@
  * than on line or word position, it survives the two sources disagreeing about
  * where lines break.
  *
- * If the lookup fails — offline, track not on LRCLIB, no confident match — we
- * fall back to FALLBACK_WORD, which is the previous behaviour.
+ * If the lookup cannot answer — offline, track not on LRCLIB, no confident
+ * match — the censor run is left exactly as it arrived. Substituting a likely
+ * word would reintroduce the very failure this module exists to remove: a wrong
+ * word reads as ordinary English and is invisible to the reader, whereas the
+ * asterisks are honest about not knowing.
  */
 
 import Logger from "../logger.ts";
@@ -30,14 +33,6 @@ const uncensorLogger = new Logger("Lyrics Uncensor");
 
 /** A standalone run of two or more asterisks — the provider's censor token. */
 const CENSOR_RUN = /\*{2,}/g;
-
-/**
- * Used only when LRCLIB cannot tell us the real word. It is the provider's most
- * frequently censored token, so it is the best available guess — but it IS a
- * guess, which is exactly the flaw this module exists to fix. A failed lookup
- * is reported in the logs rather than silently papered over.
- */
-const FALLBACK_WORD = "nigga";
 
 /** Word tokens, keeping intra-word apostrophes intact. */
 const WORD_TOKEN = /[^\W_]+(?:['’][^\W_]+)*/gu;
@@ -232,25 +227,27 @@ function recover(stream: (string | null)[], reference: string[]): Map<number, st
 function applyRecovered(
   fields: CensoredField[],
   recovered: Map<number, string>
-): { restored: number; guessed: number } {
+): { restored: number; unresolved: number } {
   let restored = 0;
-  let guessed = 0;
+  let unresolved = 0;
 
   for (const field of fields) {
     let slot = 0;
-    field.owner[field.key] = (field.owner[field.key] as string).replace(CENSOR_RUN, () => {
+    field.owner[field.key] = (field.owner[field.key] as string).replace(CENSOR_RUN, (run) => {
       const word = recovered.get(field.slots[slot]);
       slot += 1;
       if (word !== undefined) {
         restored += 1;
         return word;
       }
-      guessed += 1;
-      return FALLBACK_WORD;
+      // Returning the run itself rather than a fixed "****" keeps its original
+      // length, so nothing about what arrived is lost.
+      unresolved += 1;
+      return run;
     });
   }
 
-  return { restored, guessed };
+  return { restored, unresolved };
 }
 
 /**
@@ -267,11 +264,11 @@ export async function uncensorLyrics(lyrics: any): Promise<void> {
 
   const reference = await fetchReference();
   const recovered = reference ? recover(stream, reference) : new Map<number, string>();
-  const { restored, guessed } = applyRecovered(fields, recovered);
+  const { restored, unresolved } = applyRecovered(fields, recovered);
 
   uncensorLogger.info("Restored censored words", {
     restoredFromLrclib: restored,
-    fellBackToDefault: guessed,
+    leftCensored: unresolved,
     hadReference: reference !== null,
   });
 }
