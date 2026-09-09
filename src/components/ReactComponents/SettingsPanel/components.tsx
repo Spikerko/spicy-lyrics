@@ -300,8 +300,8 @@ export function FilterDropdown({
   const portalTarget =
     open && typeof document !== "undefined"
       ? (document.querySelector(
-          "sl-generic-modal.SpicyLyricsModal .sl-modal-overlay"
-        ) as HTMLElement | null)
+        "sl-generic-modal.SpicyLyricsModal .sl-modal-overlay"
+      ) as HTMLElement | null)
       : null;
 
   return (
