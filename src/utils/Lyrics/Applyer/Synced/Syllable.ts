@@ -22,6 +22,7 @@ import {
 } from "../../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyricsContainer.ts";
 import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
+import { PickDisplayText } from "../Utils/PickDisplayText.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "../Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
@@ -29,7 +30,7 @@ import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
 import Emphasize from "../Utils/Emphasize.ts";
 import { IsLetterCapable } from "../Utils/IsLetterCapable.ts";
 import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
-import { HasLyricsText, IsEmptySyllableGroup, RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
+import { HasRenderableText, IsEmptySyllableGroup, RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
 
 // Define the data structure for syllable lyrics
 interface SyllableData {
@@ -234,7 +235,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     let currentWordGroup: HTMLSpanElement | null = null;
 
-    line.Lead.Syllables.filter((lead) => HasLyricsText(lead.Text)).forEach((lead, iL, aL) => {
+    line.Lead.Syllables.filter(HasRenderableText).forEach((lead, iL, aL) => {
       let word = document.createElement("span");
 
       if (isRtl(lead.Text) && !lineElem.classList.contains("rtl")) {
@@ -244,7 +245,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       const totalDuration = ConvertTime(lead.EndTime) - ConvertTime(lead.StartTime);
 
       const leadRenderText = StripZeroWidth(
-        UseRomanized && lead.TransliteratedText !== undefined ? lead.TransliteratedText : lead.Text
+        PickDisplayText(lead, UseRomanized)
       );
 
       const letterLength = leadRenderText.split("").length;
@@ -343,7 +344,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
 
-        bg.Syllables.filter((bw) => HasLyricsText(bw.Text)).forEach((bw, bI, bA) => {
+        bg.Syllables.filter(HasRenderableText).forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
           if (isRtl(bw.Text) && !lineE.classList.contains("rtl")) {
@@ -353,7 +354,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           const totalDuration = ConvertTime(bw.EndTime) - ConvertTime(bw.StartTime);
 
           const bgRenderText = StripZeroWidth(
-            UseRomanized && bw.TransliteratedText !== undefined ? bw.TransliteratedText : bw.Text
+            PickDisplayText(bw, UseRomanized)
           );
 
           const letterLength = bgRenderText.split("").length;

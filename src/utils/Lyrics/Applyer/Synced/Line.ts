@@ -21,6 +21,7 @@ import {
 } from "../../lyrics.ts";
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyricsContainer.ts";
 import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
+import { PickDisplayText } from "../Utils/PickDisplayText.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "../Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
@@ -181,7 +182,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
   content.forEach((line, index, arr) => {
     const lineElem = document.createElement("div");
     lineElem.textContent = StripZeroWidth(
-      UseRomanized && line.TransliteratedText !== undefined ? line.TransliteratedText : line.Text
+      PickDisplayText(line, UseRomanized)
     );
     lineElem.classList.add("line");
 
