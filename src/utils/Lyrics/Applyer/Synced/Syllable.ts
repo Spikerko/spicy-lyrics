@@ -29,6 +29,7 @@ import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
 import Emphasize from "../Utils/Emphasize.ts";
 import { IsLetterCapable } from "../Utils/IsLetterCapable.ts";
 import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
+import { HasLyricsText, IsEmptySyllableGroup, RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
 
 // Define the data structure for syllable lyrics
 interface SyllableData {
@@ -84,9 +85,11 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
     return;
   }
 
-  const hasOppositeAligned = data.Content.some(item => item.OppositeAligned === true);
+  const content = RemoveEmptyLyricsLines(data.Content);
+
+  const hasOppositeAligned = content.some(item => item.OppositeAligned === true);
   LyricsContainer.classList.toggle("HasDuetLines", hasOppositeAligned);
-  const hasRtlLines = data.Content.some(line =>
+  const hasRtlLines = content.some(line =>
     line.Lead.Syllables.some(syllable => isRtl(syllable.Text)) ||
     line.Background?.some(bg => bg.Syllables.some(syllable => isRtl(syllable.Text))) === true
   );
@@ -119,7 +122,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     SetWordArrayInCurentLine();
 
-    if (data.Content[0].OppositeAligned) {
+    if (content[0]?.OppositeAligned) {
       musicalLine.classList.add("OppositeAligned");
     }
 
@@ -195,7 +198,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
     musicalLine.appendChild(dotGroup);
     lineElements.push(musicalLine);
   }
-  data.Content.forEach((line, index, arr) => {
+  content.forEach((line, index, arr) => {
     const lineElem = document.createElement("div");
     lineElem.classList.add("line");
 
@@ -231,7 +234,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     let currentWordGroup: HTMLSpanElement | null = null;
 
-    line.Lead.Syllables.forEach((lead, iL, aL) => {
+    line.Lead.Syllables.filter((lead) => HasLyricsText(lead.Text)).forEach((lead, iL, aL) => {
       let word = document.createElement("span");
 
       if (isRtl(lead.Text) && !lineElem.classList.contains("rtl")) {
@@ -320,7 +323,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
     });
 
     if (line.Background) {
-      line.Background.forEach((bg) => {
+      line.Background.filter((bg) => !IsEmptySyllableGroup(bg)).forEach((bg) => {
         const lineE = document.createElement("div");
         lineE.classList.add("line", "bg-line");
 
@@ -340,7 +343,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
 
-        bg.Syllables.forEach((bw, bI, bA) => {
+        bg.Syllables.filter((bw) => HasLyricsText(bw.Text)).forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
           if (isRtl(bw.Text) && !lineE.classList.contains("rtl")) {
@@ -561,7 +564,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
     console.warn("LyricsStylingContainer not found");
   }
 
-  EmitApply(data.Type, data.Content);
+  EmitApply(data.Type, content);
 
   setRomanizedStatus(UseRomanized);
 }

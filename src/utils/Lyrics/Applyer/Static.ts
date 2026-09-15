@@ -22,6 +22,7 @@ import { ApplyIsByCommunity } from "./Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
 import { ApplyLyricsProvider } from "./Credits/ApplyProvider.ts";
+import { RemoveEmptyLyricsLines } from "../EmptyLines.ts";
 
 /**
  * Interface for static lyrics data
@@ -60,8 +61,10 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     return;
   }
 
+  const lines = RemoveEmptyLyricsLines(data.Lines);
+
   LyricsContainer.classList.remove("HasDuetLines");
-  const hasRtlLines = data.Lines.some(line => isRtl(line.Text));
+  const hasRtlLines = lines.some(line => isRtl(line.Text));
   LyricsContainer.classList.toggle("HasRtlLines", hasRtlLines);
 
   LyricsContainer.setAttribute("data-lyrics-type", "Static");
@@ -76,7 +79,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
 
   const lineElements: HTMLElement[] = [];
 
-  data.Lines.forEach((line) => {
+  lines.forEach((line) => {
     const lineElem = document.createElement("div");
 
     lineElem.textContent = StripZeroWidth(
@@ -137,7 +140,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     }
   }
 
-  EmitApply(data.Type, data.Lines);
+  EmitApply(data.Type, lines);
 
   setRomanizedStatus(UseRomanized);
 }

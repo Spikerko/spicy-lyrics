@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import Logger from '../../Logger.ts';
+import { HasLyricsText } from '../EmptyLines.ts';
 
 const ttmlLogger = new Logger("TTML Parser");
 
@@ -511,6 +512,8 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
         divp.forEach((p) => {
           if (p == null) return;
           const text = getLineText(p) ?? "";
+          if (!HasLyricsText(text)) return;
+
           const line: ParsedStaticLine = {
             Text: text.trim(),
           };
@@ -581,9 +584,9 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
       };
 
       const timedDivs = divs.filter((div) => div["itunes:songPart"] !== "Instrumental");
-      lineLyrics.Content = timedDivs.flatMap((div) =>
-        toArray(div.p).filter((p) => p != null).map(buildLine),
-      );
+      lineLyrics.Content = timedDivs
+        .flatMap((div) => toArray(div.p).filter((p) => p != null).map(buildLine))
+        .filter((line) => HasLyricsText(line.Text));
 
       const firstDiv = timedDivs[0] ?? divs[0];
       const lastDiv = timedDivs[timedDivs.length - 1] ?? divs[divs.length - 1];
@@ -727,11 +730,7 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
                 bgVocal.HasTransliterations = true;
               }
 
-              if (
-                bgVocal.Syllables.length === 0 &&
-                bgVocal.TransliteratedText === undefined &&
-                bgVocal.TranslatedText === undefined
-              ) {
+              if (!bgVocal.Syllables.some((syllable) => HasLyricsText(syllable.Text))) {
                 return;
               }
 
@@ -758,10 +757,10 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
           }
 
           const isEmpty =
-            vocal.Lead.Syllables.length === 0 &&
-            (vocal.Background === undefined || vocal.Background.length === 0) &&
-            vocal.Lead.TransliteratedText === undefined &&
-            vocal.Lead.TranslatedText === undefined;
+            !vocal.Lead.Syllables.some((syllable) => HasLyricsText(syllable.Text)) &&
+            !(vocal.Background ?? []).some((background) =>
+              background.Syllables.some((syllable) => HasLyricsText(syllable.Text)),
+            );
 
           if (isEmpty) {
             skippedEmptyLines++;

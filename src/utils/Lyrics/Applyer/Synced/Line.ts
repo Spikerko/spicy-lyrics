@@ -26,6 +26,7 @@ import { ApplyIsByCommunity } from "../Credits/ApplyIsByCommunity.tsx";
 import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
 import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
+import { RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
 
 // Define the data structure for lyrics
 interface LyricsLineData {
@@ -64,9 +65,11 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
     return;
   }
 
-  const hasOppositeAligned = data.Content.some(item => item.OppositeAligned === true);
+  const content = RemoveEmptyLyricsLines(data.Content);
+
+  const hasOppositeAligned = content.some(item => item.OppositeAligned === true);
   LyricsContainer.classList.toggle("HasDuetLines", hasOppositeAligned);
-  const hasRtlLines = data.Content.some(line => isRtl(line.Text));
+  const hasRtlLines = content.some(line => isRtl(line.Text));
   LyricsContainer.classList.toggle("HasRtlLines", hasRtlLines);
 
   LyricsContainer.setAttribute("data-lyrics-type", "Line");
@@ -98,7 +101,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
 
     SetWordArrayInCurentLine_LINE_SYNCED();
 
-    if (data.Content[0].OppositeAligned) {
+    if (content[0]?.OppositeAligned) {
       musicalLine.classList.add("OppositeAligned");
     }
 
@@ -175,7 +178,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
     lineElements.push(musicalLine);
   }
 
-  data.Content.forEach((line, index, arr) => {
+  content.forEach((line, index, arr) => {
     const lineElem = document.createElement("div");
     lineElem.textContent = StripZeroWidth(
       UseRomanized && line.TransliteratedText !== undefined ? line.TransliteratedText : line.Text
@@ -330,7 +333,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
     console.warn("LyricsStylingContainer not found");
   }
 
-  EmitApply(data.Type, data.Content);
+  EmitApply(data.Type, content);
 
   setRomanizedStatus(UseRomanized);
 }
