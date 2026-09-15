@@ -205,7 +205,10 @@ body:not(.SpicyLyrics_StaticBackground)
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-content {
+  .main-nowPlayingView-content,
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section > div {
   background: transparent;
 }
 
@@ -255,9 +258,6 @@ body:not(.SpicyLyrics_StaticBackground)
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type="button"])),
-body:not(.SpicyLyrics_StaticBackground)
-  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew
   .CvxzmyND_aGd2RR8ZoSr,
 body:not(.SpicyLyrics_StaticBackground)
@@ -265,7 +265,19 @@ body:not(.SpicyLyrics_StaticBackground)
   .Uw4tcZdmh7s4BMdgCCuu,
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent) {
+  .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent),
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .aN6RjOsDo5DSOGDMRF2G {
+    background-color: transparent !important;
+}
+
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type="button"])),
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-aboutArtist {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
 }

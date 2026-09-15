@@ -6,6 +6,7 @@ import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { Query, QueryHttpError, QueryNetworkError } from "../API/Query.ts";
 import { IsTripStatus, ServiceUnavailableError } from "../API/CircuitBreaker.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
+import { IsEmptyLyrics } from "./EmptyLines.ts";
 import Logger from "../Logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
@@ -16,7 +17,7 @@ const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
 
 // recently updated key structure - changed name
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 4, {
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 5, {
   Unit: "Days",
   Duration: 3,
 }, isDev as true);
@@ -353,6 +354,16 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     }
 
     await ProcessLyrics(lyrics);
+
+    // Pruning blank lines can empty out a payload the API still counted as a
+    // hit. Nothing would render, so treat it as a miss rather than caching and
+    // publishing an empty lyrics card.
+    if (IsEmptyLyrics(lyrics)) {
+      lyricsLogger.warn("Lyrics payload had no renderable lines after pruning");
+      HideLoaderContainer();
+      $currentlyFetching.set(false);
+      return ["lyrics-not-found", 404];
+    }
 
     // Stamp the uri so every match downstream (saved-data, re-fetch, cache)
     // keys off the stable uri instead of the API-supplied id.

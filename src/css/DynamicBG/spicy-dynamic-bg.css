@@ -42,28 +42,38 @@ aside .spicy-dynamic-bg {
   initial-value: 80%;
 }
 
-aside video {
+aside video,
+.main-nowPlayingView-canvasVisualEnhancement div:has(> img) {
   --sl_videocanvas_mask-stop: 25%;
   filter: brightness(0.65);
-  opacity: .95;
+  opacity: .9;
   mask-image: linear-gradient(to bottom, transparent -5%, black 15%, black var(--sl_videocanvas_mask-stop), transparent 100%);
   transition: --sl_videocanvas_mask-stop 1s cubic-bezier(0,0,0,1), filter 0.2s linear;
+  margin-top: -25px;
 }
 
-aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA) video,
-.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA) video {
-  --sl_videocanvas_mask-stop: 80%;
+.main-nowPlayingView-coverArtContainer:has(video),
+.main-nowPlayingView-coverArtContainer:has(.main-nowPlayingView-canvasVisualEnhancement img) {
+  margin-top: 25px !important;
 }
 
-aside video:hover {
+aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA) :is(video, .main-nowPlayingView-canvasVisualEnhancement div:has(> img)),
+.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA) :is(video) {
+  --sl_videocanvas_mask-stop: 80% !important;
+}
+
+aside video:hover,
+.main-nowPlayingView-canvasVisualEnhancement div:has(> img):hover {
   filter: brightness(0.9);
 }
 
-.VideoPlayer__container video {
+.VideoPlayer__container video,
+.main-nowPlayingView-canvasVisualEnhancement img {
   filter: none !important;
   -webkit-mask-image: none !important;
   mask-image: none !important;
 }
+
 
 .main-nowPlayingView-coverArtContainer :is(div, .E08D6ucrHuPJYzzGO7HG):has(video)::before,
 .main-nowPlayingView-coverArtContainer :is(div, .E08D6ucrHuPJYzzGO7HG):has(video)::after,
@@ -73,8 +83,8 @@ div.UUydeXMsXVZofB0YAOgm:has(.main-trackInfo-container)::before,
 div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::before,
 div.UUydeXMsXVZofB0YAOgm:has(.main-trackInfo-container)::after,
 div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after,
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video)::before,
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video)::after {
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img)::before,
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img)::after {
   display: none !important;
 }
 

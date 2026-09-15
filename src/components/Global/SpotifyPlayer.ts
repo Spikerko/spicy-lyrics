@@ -308,6 +308,7 @@ export const SpotifyPlayer = {
       set active(bool: boolean) {
         this._active = bool;
         this.element.classList.toggle("main-genericButton-buttonActive", bool);
+        this.element.classList.toggle("ZfsMQKTLl695iPvUo3GK", bool);
         this.element.classList.toggle(
           "main-genericButton-buttonActiveDot",
           bool
@@ -351,14 +352,17 @@ export const SpotifyPlayer = {
         ) ??
         document.querySelector<HTMLElement>(
           ".main-nowPlayingBar-extraControls .main-genericButton-button"
+        ) ??
+        document.querySelector<HTMLElement>(
+          `.main-nowPlayingBar-extraControls [data-testid="pip-toggle-button"]`
         );
       if (!sibling) {
         setTimeout(addClassname, 300, element);
         return;
       }
       for (const className of Array.from(sibling.classList)) {
-        if (!className.startsWith("main-genericButton"))
-          element.classList.add(className);
+        if (className.startsWith("main-genericButton") || className === "ZfsMQKTLl695iPvUo3GK") continue;
+        element.classList.add(className);
       }
     }
 

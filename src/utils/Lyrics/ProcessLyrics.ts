@@ -6,6 +6,7 @@ import { RetrievePackage } from "../ImportPackage.ts";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
 import Logger from "../Logger.ts";
+import { StripEmptyLyricsLines } from "./EmptyLines.ts";
 
 // Constants
 const RomajiConverter = new Kuroshiro();
@@ -305,6 +306,8 @@ export const ProcessLyrics = async (lyrics: any) => {
   // but we still romanize any entry that's missing one — partial API data should
   // not leave gaps.
   const hadApiTransliterations = lyrics.HasTransliterations === true;
+
+  StripEmptyLyricsLines(lyrics);
 
   const { francText, scriptText, entries } = gatherText(lyrics);
 
