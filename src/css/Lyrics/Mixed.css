@@ -83,6 +83,17 @@
       calc(var(--gradient-position) + 20% + var(--gradient-offset))
   );
 }
+
+/* Syllable words paint their own gradient. A gradient clipped to their parent
+   paints the same glyphs again while the words move. */
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer[data-lyrics-type="Syllable"]
+  .line.Active {
+  background-image: none;
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung .word,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.NotSung .letter {
