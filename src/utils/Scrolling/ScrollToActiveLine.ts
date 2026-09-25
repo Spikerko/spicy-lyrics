@@ -1,4 +1,9 @@
-import { $currentLyricsType, $lyricsContainerExists } from "../../utils/stores.ts";
+import {
+  $currentLyricsType,
+  $lyricsContainerExists,
+  $scrollLeadEnabled,
+  $scrollLeadMs,
+} from "../../utils/stores.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
@@ -266,7 +271,11 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
 
   //if (Spicetify.Platform.History.location.pathname === "/SpicyLyrics") {
   const Position = SpotifyPlayer.GetPosition();
-  const PositionOffset = 0;
+  // Early scroll: pick the scroll target as if the clock were this far ahead, so
+  // the list starts moving before the line lights up instead of snapping to it
+  // the moment it does. Only the target changes — line states (Status) still
+  // follow the real position.
+  const PositionOffset = $scrollLeadEnabled.get() ? Math.max(0, $scrollLeadMs.get()) : 0;
   const ProcessedPosition = Position + PositionOffset;
   const currentLine = GetScrollLine(Lines, ProcessedPosition) as EnhancedLyricsItem | null;
 

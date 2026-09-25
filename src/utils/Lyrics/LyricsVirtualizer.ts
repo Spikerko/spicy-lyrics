@@ -5,7 +5,9 @@ import {
   observeElementOffset,
 } from "@tanstack/virtual-core";
 import { Maid } from "../../modules/Maid.ts";
+import { Spring } from "../../modules/Spring.ts";
 import Logger from "../Logger.ts";
+import { $smoothScrolling } from "../stores.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
 // Gap is baked into each wrapper's padding-bottom so items can have
@@ -23,6 +25,12 @@ const ESTIMATE: Record<string, number> = {
 };
 
 const virtualizerLogger = new Logger("Lyrics Virtualizer");
+
+// Smooth-scroll spring. Critically damped, so it never overshoots the line, and
+// settles in ~0.7s. A retarget mid-flight keeps the current velocity, which is
+// what makes back-to-back line changes read as one continuous glide.
+const SMOOTH_SCROLL_FREQUENCY = 1.1;
+const SMOOTH_SCROLL_DAMPING = 1;
 
 class LyricsVirtualizer {
   private _virtualizer: Virtualizer<HTMLElement, HTMLElement> | null = null;
@@ -96,6 +104,20 @@ class LyricsVirtualizer {
   // snapshot would overwrite correct transforms set by the inner call.
   private _inOnChange = false;
   private _onChangePending = false;
+
+  // Smooth-scroll state (see _smoothScrollToIndex). The spring persists across
+  // scrolls so its velocity can carry over into the next target.
+  private _smoothSpring: Spring | null = null;
+  private _smoothRAF: ReturnType<typeof requestAnimationFrame> | null = null;
+  private _smoothTarget: {
+    index: number;
+    align: "start" | "center" | "end" | "auto";
+    padding: number;
+  } | null = null;
+  private _smoothLastTs: number | null = null;
+  private _smoothLastPosition: number | null = null;
+  // The scrollTop we last wrote; anything else moving it means the user took over.
+  private _smoothLastWritten: number | null = null;
 
   setOnNewElementMounted(cb: (() => void) | null): void {
     this._onNewElementMounted = cb;
@@ -686,8 +708,160 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    if (!instant && $smoothScrolling.get()) {
+      this._smoothScrollToIndex(index, align, padding);
+      return;
+    }
+    this._stopSmoothScroll();
     this._setConverging(true);
     this._scrollToIndexWithRetry(index, align, instant, padding, 0, null);
+  }
+
+  // Where item N sits in the virtual container. Unmeasured items fall back to an
+  // average-size estimate; callers re-read this as measurements land.
+  private _getItemRect(
+    v: Virtualizer<HTMLElement, HTMLElement>,
+    index: number
+  ): { start: number; size: number } {
+    const cached = v.measurementsCache[index] as
+      | { start: number; end: number; size: number }
+      | undefined;
+    if (cached) return { start: cached.start, size: cached.size };
+
+    // gap is always 0 — baked into each wrapper's padding-bottom.
+    const count = this._allElements.length;
+    const totalSize = v.getTotalSize();
+    const avgItemSize = count > 1 ? totalSize / count : totalSize;
+    return { start: index * avgItemSize, size: this._estimateSize(index) };
+  }
+
+  /**
+   * Spring-driven alternative to the native smooth scroll. Each frame re-reads
+   * the target line's position (items mounting above it shift it while we
+   * travel), so this converges on far targets the same way the retry chain
+   * does, without needing it. Calling again mid-flight just retargets.
+   */
+  private _smoothScrollToIndex(
+    index: number,
+    align: "start" | "center" | "end" | "auto",
+    padding: number
+  ): void {
+    const v = this._virtualizer;
+    const scrollEl = v?.scrollElement;
+    if (!v || !scrollEl || !this._virtualContainer) return;
+
+    const animating = this._smoothRAF !== null;
+    if (!this._smoothSpring) {
+      this._smoothSpring = new Spring(
+        scrollEl.scrollTop,
+        SMOOTH_SCROLL_FREQUENCY,
+        SMOOTH_SCROLL_DAMPING
+      );
+    } else if (!animating) {
+      // Starting fresh: begin at rest from wherever the list actually is.
+      this._smoothSpring.SetGoal(scrollEl.scrollTop, true);
+    }
+
+    this._smoothTarget = { index, align, padding };
+    // We are the only scrollTop writer until the glide settles — see _setConverging.
+    this._setConverging(true);
+
+    if (!animating) {
+      this._smoothLastTs = null;
+      this._smoothLastPosition = null;
+      this._smoothLastWritten = null;
+      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+    }
+  }
+
+  private _smoothStep = (ts: number): void => {
+    this._smoothRAF = null;
+    const v = this._virtualizer;
+    const target = this._smoothTarget;
+    const spring = this._smoothSpring;
+    const scrollEl = v?.scrollElement;
+    if (!v || !target || !spring || !scrollEl || !this._virtualContainer) {
+      this._stopSmoothScroll();
+      return;
+    }
+
+    // Wheel, scrollbar drag, keyboard: the user moved the list, so let go.
+    if (
+      this._smoothLastWritten !== null &&
+      Math.abs(scrollEl.scrollTop - this._smoothLastWritten) > 2
+    ) {
+      virtualizerLogger.debug("Smooth scroll cancelled: external scroll detected");
+      this._stopSmoothScroll();
+      return;
+    }
+
+    const viewportHeight = scrollEl.clientHeight;
+    if (!viewportHeight) {
+      this._stopSmoothScroll();
+      return;
+    }
+
+    // All layout reads first, then the single write below.
+    const item = this._getItemRect(v, target.index);
+    const containerRect = this._virtualContainer.getBoundingClientRect();
+    const scrollElRect = scrollEl.getBoundingClientRect();
+    const containerOffset = containerRect.top - scrollElRect.top + scrollEl.scrollTop;
+    const maxScroll = Math.max(0, scrollEl.scrollHeight - viewportHeight);
+    const goal = Math.min(
+      maxScroll,
+      this._computeFinalScrollTop(
+        item.start,
+        item.size,
+        viewportHeight,
+        containerOffset,
+        target.align,
+        target.padding
+      )
+    );
+
+    spring.SetGoal(goal);
+    const dt =
+      this._smoothLastTs === null ? 1 / 60 : Math.min((ts - this._smoothLastTs) / 1000, 0.05);
+    this._smoothLastTs = ts;
+    const position = spring.Step(dt);
+
+    // `behavior: "instant"` overrides the element's CSS scroll-behavior: smooth,
+    // which would otherwise ease every per-frame write and fight the spring.
+    scrollEl.scrollTo({ top: position, behavior: "instant" });
+    const observed = scrollEl.scrollTop;
+    this._smoothLastWritten = observed;
+
+    // Same Wayland guard as the retry chain: a programmatic write may not
+    // dispatch 'scroll', so push the offset into TanStack ourselves.
+    if (v.scrollOffset == null || Math.abs(v.scrollOffset - observed) >= 1) {
+      v.scrollOffset = observed;
+      this._onVirtualizerChange(v);
+    }
+
+    const moved =
+      this._smoothLastPosition === null ? Infinity : Math.abs(position - this._smoothLastPosition);
+    this._smoothLastPosition = position;
+    const settled =
+      Math.abs(observed - goal) < 1 && moved < 0.1 && this._mountedIndices.has(target.index);
+
+    if (settled) {
+      this._stopSmoothScroll();
+    } else {
+      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+    }
+  };
+
+  private _stopSmoothScroll(): void {
+    const wasActive = this._smoothRAF !== null || this._smoothTarget !== null;
+    if (this._smoothRAF !== null) {
+      cancelAnimationFrame(this._smoothRAF);
+      this._smoothRAF = null;
+    }
+    this._smoothTarget = null;
+    this._smoothLastTs = null;
+    this._smoothLastPosition = null;
+    this._smoothLastWritten = null;
+    if (wasActive) this._setConverging(false);
   }
 
   // Toggle convergence mode. While converging we disable TanStack's
@@ -766,24 +940,7 @@ class LyricsVirtualizer {
       return;
     }
 
-    let itemStart: number;
-    let itemSize: number;
-
-    const cached = v.measurementsCache[index] as
-      | { start: number; end: number; size: number }
-      | undefined;
-
-    if (cached) {
-      itemStart = cached.start;
-      itemSize = cached.size;
-    } else {
-      // gap is always 0 — baked into each wrapper's padding-bottom.
-      const count = this._allElements.length;
-      const totalSize = v.getTotalSize();
-      const avgItemSize = count > 1 ? totalSize / count : totalSize;
-      itemStart = index * avgItemSize;
-      itemSize = this._estimateSize(index);
-    }
+    const { start: itemStart, size: itemSize } = this._getItemRect(v, index);
 
     const containerRect = this._virtualContainer.getBoundingClientRect();
     const scrollElRect = scrollEl.getBoundingClientRect();
@@ -933,6 +1090,8 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    this._stopSmoothScroll();
+    this._smoothSpring = null;
     // Reset convergence so the next virtualizer instance doesn't inherit a stale `true`
     // (which would make _setConverging(true) a no-op and never install the hook).
     this._converging = false;
