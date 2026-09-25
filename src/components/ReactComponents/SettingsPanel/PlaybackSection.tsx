@@ -54,7 +54,7 @@ export default function PlaybackSection({ query, sectionFilter }: Props) {
       {r2 && (
         <Row
           label="Seek Fade-in Compensation"
-          description="Clicking a line jumps 300ms before it, so Spotify's fade-in doesn't cut off the start. Disable to jump exactly to the line."
+          description="Clicking a line jumps 300ms before it, so Spotify's fade-in doesn't cut off the start. Best for rap or fast-paced songs."
         >
           <Toggle
             checked={seekFadeCompensation}

@@ -25,12 +25,12 @@ export default function ScrollingSection({ query, sectionFilter }: Props) {
   const r2 = matches(
     query,
     "Early Scroll Time",
-    "How long before a line becomes active the lyrics start scrolling to it."
+    "How early the next line is scrolled to, before it becomes active."
   );
   const r3 = matches(
     query,
     "Smooth Scrolling",
-    "Glide between lines with a softer, spring-based scroll."
+    "Makes the lyrics scroll smoothly."
   );
 
   if (!r1 && !r2 && !r3) return null;
@@ -51,7 +51,7 @@ export default function ScrollingSection({ query, sectionFilter }: Props) {
       {r2 && (
         <Row
           label="Early Scroll Time"
-          description="How long before a line becomes active the lyrics start scrolling to it."
+          description="How early the next line is scrolled to, before it becomes active."
           disabled={!scrollLeadEnabled}
           disabledReason="Enable Early Scroll to modify this setting"
           stacked
@@ -72,7 +72,7 @@ export default function ScrollingSection({ query, sectionFilter }: Props) {
       {r3 && (
         <Row
           label="Smooth Scrolling"
-          description="Glide between lines with a softer, spring-based scroll. Disable to use the standard browser scroll."
+          description="Makes the lyrics scroll smoothly."
         >
           <Toggle checked={smoothScrolling} onChange={(v) => $smoothScrolling.set(v)} />
         </Row>

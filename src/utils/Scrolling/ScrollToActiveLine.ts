@@ -3,6 +3,7 @@ import {
   $lyricsContainerExists,
   $scrollLeadEnabled,
   $scrollLeadMs,
+  $smoothScrolling,
 } from "../../utils/stores.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
@@ -509,7 +510,11 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
             scrolledToLastLine = false;
             scrolledToFirstLine = false;
           };
+          // Leaving a "•••" interlude: normally wait for it to collapse first.
+          // With Smooth Scrolling the rows glide as it collapses, so scrolling at
+          // the same moment makes the two read as one motion instead of two.
           if (
+            !$smoothScrolling.get() &&
             Lines[currentLine._LineIndex - 1] &&
             Lines[currentLine._LineIndex - 1].DotLine === true
           ) {
