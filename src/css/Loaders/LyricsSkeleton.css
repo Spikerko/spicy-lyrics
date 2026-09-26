@@ -14,6 +14,10 @@
 
   position: absolute;
   inset: 0;
+  /* Same box as .LyricsContent, which is also a size container: the lines'
+     cqh/cqw offsets resolve against it, not the page. They differ whenever the
+     LyricsContainer is shorter than the page (compact mode). */
+  container-type: size;
   z-index: 10;
   pointer-events: none;
   opacity: 0;
@@ -37,9 +41,8 @@
   --SkeletonLineSize: clamp(1.85rem, calc(1cqw * 6), 2.8rem);
 }
 
-/* The card is short: start the bars at the top, with only the bottom fade. */
+/* The card is short: only the bottom fade. */
 #SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .LyricsContainer .LyricsSkeleton .SkeletonLines {
-  padding-top: 1.25rem;
   -webkit-mask-image: linear-gradient(180deg, #000 0, #000 72%, transparent 97%);
   mask-image: linear-gradient(180deg, #000 0, #000 72%, transparent 97%);
 }
@@ -54,6 +57,10 @@
   gap: calc(var(--SkeletonLineSize) * 0.62);
   box-sizing: border-box;
   height: 100%;
+  /* Matches .SpicyLyricsScrollContainer's default offset and side padding, so
+     the bars sit where the lines will land. Every variant that moves the lines
+     (compact mode, PiP, minimal mode, NowBar on the right, the NPV card) lists
+     .SkeletonLines in the same rule, next to the scroll container. */
   padding: 25cqh var(--LyricsRightSidePadding, 8cqw) 0 var(--LyricsLeftSidePadding, 10cqw);
   overflow: hidden;
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 64px, #000 72%, transparent 97%);

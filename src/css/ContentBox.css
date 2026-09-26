@@ -1369,7 +1369,14 @@
   .NowBar.Active:is(.RightSide)
   + .LyricsContainer
   .LyricsContent
-  .LyricsNotice {
+  .LyricsNotice,
+/* The loading skeleton mirrors the lines' padding (LyricsSkeleton.css). */
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.RightSide)
+  + .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
   padding-right: var(--LyricsLeftSidePadding) !important;
   padding-left: calc(var(--LyricsRightSidePadding) * 1.45) !important;
 }
@@ -1620,7 +1627,11 @@
   .LyricsContainer
   .LyricsContent
   .simplebar-content-wrapper
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode)
+  .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
   padding-top: 5cqh !important;
 }
 
@@ -2032,7 +2043,8 @@
   .LyricsContainer
   .LyricsContent
   .simplebar-content-wrapper
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLines {
   padding-top: 14.5cqh !important;
 }
 

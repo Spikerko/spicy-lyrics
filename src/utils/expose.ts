@@ -6,6 +6,7 @@ import { OpenLyricsDBPanel } from "./openLyricsDBPanel";
 import { DeepFreeze } from "./utils";
 import { triggerSpicyLyricsFakeUpdate } from "./version/CheckForUpdates";
 import { BreakerDebug } from "./API/CircuitBreaker";
+import { showUpdatedDialog } from "../components/ReactComponents/UpdateDialog.tsx";
 import GetProgress from "./Gets/GetProgress";
 
 export function exposeToWindow() {
@@ -32,6 +33,7 @@ export function exposeToWindow() {
         testing: {
             autoUpdate: {
                 triggerFakeUpdate: triggerSpicyLyricsFakeUpdate,
+                showUpdatedDialog: (fromVersion: string, toVersion: string) => showUpdatedDialog(fromVersion, toVersion),
             },
             getProgress: () => GetProgress(),
         },

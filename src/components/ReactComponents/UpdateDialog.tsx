@@ -1,45 +1,27 @@
 import React from "react";
+import { NoticeLink, showNotice } from "./NoticeDialog.tsx";
 
-interface UpdateDialogProps {
-  fromVersion: string;
-  spicyLyricsVersion: string;
+const DISCORD_URL = "https://discord.com/invite/uqgXU5wh8j";
+
+export const releaseNotesUrl = (version: string) =>
+  `https://github.com/Spikerko/spicy-lyrics/releases/tag/${encodeURIComponent(version)}`;
+
+export function showUpdatedDialog(fromVersion: string, toVersion: string) {
+  showNotice({
+    title: `Updated to ${toVersion}`,
+    content: [
+      <p className="sl-notice-text">
+        You were on <span className="sl-notice-version">{fromVersion}</span>. The release notes list everything that
+        changed.
+      </p>,
+      <p className="sl-notice-text sl-notice-text--quiet">
+        Something broke after the update? Tell us on <NoticeLink href={DISCORD_URL}>Discord</NoticeLink>.
+      </p>,
+    ],
+    primary: {
+      label: "Read release notes",
+      onClick: () => window.open(releaseNotesUrl(toVersion), "_blank"),
+    },
+    secondaryLabel: "Close",
+  });
 }
-
-const UpdateDialog: React.FC<UpdateDialogProps> = ({ fromVersion, spicyLyricsVersion }) => {
-  return (
-    <div className="update-card-wrapper">
-      <h2 className="uc-title">Spicy Lyrics updated!</h2>
-      <p className="uc-subtitle">You're running the latest version.</p>
-
-      <div className="uc-divider" />
-
-      {(fromVersion || spicyLyricsVersion) && (
-        <div className="uc-version-row">
-          {fromVersion && <span className="uc-ver">{fromVersion}</span>}
-          {fromVersion && spicyLyricsVersion && <span className="uc-arrow">→</span>}
-          {spicyLyricsVersion && <span className="uc-ver new">{spicyLyricsVersion}</span>}
-        </div>
-      )}
-
-      <button
-        className="btn-primary"
-        onClick={() =>
-          window.open(
-            `https://github.com/Spikerko/spicy-lyrics/releases/tag/${spicyLyricsVersion}`,
-            "_blank"
-          )
-        }
-      >
-        See what's new →
-      </button>
-      <button
-        className="btn-discord"
-        onClick={() => window.open("https://discord.com/invite/uqgXU5wh8j", "_blank")}
-      >
-        Join the Discord
-      </button>
-    </div>
-  );
-};
-
-export default UpdateDialog;

@@ -83,12 +83,18 @@ div.UUydeXMsXVZofB0YAOgm:has(.main-trackInfo-container)::before,
 div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::before,
 div.UUydeXMsXVZofB0YAOgm:has(.main-trackInfo-container)::after,
 div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after,
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::before,
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) div:has(> .main-nowPlayingView-coverArtVisualEnhancement) :not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::after {
+/* Everything under the visual enhancement's parent, reached through the
+   enhancement and its following siblings rather than div:has(> …): an ancestor
+   :has() with a featureless subject made Blink restyle the whole document on
+   any DOM change. The enhancement is its parent's first child. */
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::before,
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::after {
   display: none !important;
 }
 
-aside:has(.spicy-dynamic-bg) > div,
+/* Was aside:has(.spicy-dynamic-bg) > div — same specificity, and the aside
+   carries this class exactly while it holds the background. */
+aside.spicy-dynamic-bg-in-this > div,
 aside:has(.spicy-dynamic-bg) .AAdBM1nhG73supMfnYX7,
 aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
   z-index: 1;
