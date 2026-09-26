@@ -65,7 +65,10 @@
   mask-image: none;
 }
 
-#SpicyLyricsPage .LyricsContainer .LyricsContent:not(:has(.LyricsNotice)) * {
+/* Everything but the notice, instead of `.LyricsContent:not(:has(.LyricsNotice)) *`:
+   an ancestor :has() with a `*` subject made Blink restyle the whole document on
+   any DOM change. The notice replaces the lyrics, so nothing else here holds text. */
+#SpicyLyricsPage .LyricsContainer .LyricsContent *:not(.LyricsNotice, .LyricsNotice *) {
   font-weight: 700 !important;
 }
 
@@ -126,6 +129,14 @@ body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsConten
   .LyricsContent
   .SpicyLyricsScrollContainer {
   margin-top: 40cqh;
+}
+
+/* The loading skeleton mirrors the lines' offset (LyricsSkeleton.css). */
+#SpicyLyricsPage.Fullscreen.MinimalLyricsMode
+  .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
+  padding-top: 40cqh;
 }
 
 body:has(.Root:not(.global-nav)) #SpicyLyricsPage.Fullscreen.MinimalLyricsMode

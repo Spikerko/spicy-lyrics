@@ -35,8 +35,9 @@ const watcherMaid = new Maid();
 let evaluateTimer: ReturnType<typeof setTimeout> | null = null;
 let evaluating = false;
 let evaluateAgain = false;
-// Non-null while the card's open/close morph is running; see holdEvaluateUntilSettled.
-let stateAnimation: Animation | null = null;
+// Non-null while the card's open/close or expand/collapse morph is running;
+// see holdEvaluateUntilSettled.
+let stateAnimation: Promise<unknown> | null = null;
 
 const getNPV = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
@@ -113,9 +114,22 @@ async function teardownCard(): Promise<void> {
   cardMaid?.CleanUp();
   cardMaid = null;
   cardEl = null;
+  // A queued toggle belongs to this card; don't let it land on a replacement.
+  pendingMutate = null;
+  document.body.classList.remove("SpicyLyrics_NPVCardExpanded");
   cardBodyEl = null;
   lastToggleOpen = null;
   lastExpanded = null;
+}
+
+// The expanded body class hides the NPV's other content, so it must not outlive
+// a card that Spotify's React removed. Called from the observers, which run
+// before the next paint; reconcile's teardown would only follow after the
+// evaluate debounce.
+function clearExpandedIfDetached(): void {
+  if (cardEl && !cardEl.isConnected) {
+    document.body.classList.remove("SpicyLyrics_NPVCardExpanded");
+  }
 }
 
 function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
@@ -157,20 +171,20 @@ let lastExpanded: boolean | null = null;
 const STATE_ANIM_MS = 350;
 const STATE_ANIM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-// FLIP morph instead of document.startViewTransition: view-transition
+// Open/close morph. FLIP instead of document.startViewTransition: view-transition
 // snapshots render in a viewport-anchored top layer, unclipped by the
 // sidebar, so the expanded card's true (scroll-clipped, near-viewport-tall)
 // rect bled over the rest of the UI. Animating the live element keeps the
 // stretch inside the sidebar's own clipping. The class flip happens
 // synchronously here; the follow-up debounced evaluate re-runs refreshCardUI
 // idempotently, so nothing jumps afterwards.
-function animateStateChange(mutate: () => void): void {
+function animateStateChange(mutate: () => void): Animation | null {
   if (
     !cardEl ||
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ) {
     mutate();
-    return;
+    return null;
   }
   const card = cardEl;
   const buttons = Array.from(
@@ -188,10 +202,12 @@ function animateStateChange(mutate: () => void): void {
     lastCard.width === 0 ||
     lastCard.height === 0
   )
-    return;
+    return null;
 
   // Stretch the card box from its old size to its new one (overflow: hidden
   // clips the body while it grows/shrinks).
+  // The compact body is pinned (flex-shrink: 0) and merely clipped, so the
+  // lyrics can render straight away rather than waiting out the morph.
   const morph = card.animate(
     [
       { width: `${firstCard.width}px`, height: `${firstCard.height}px` },
@@ -199,10 +215,6 @@ function animateStateChange(mutate: () => void): void {
     ],
     { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
   );
-  // Only the expanded body flexes with the animated card height (`flex: 1 1 auto`);
-  // the compact one is pinned and merely clipped, so it can render straight away
-  // rather than waiting out the morph.
-  if (card.classList.contains("Expanded")) holdEvaluateUntilSettled(morph);
 
   // Glide each control from its old spot (right cluster <-> centered).
   buttons.forEach((button, i) => {
@@ -216,6 +228,91 @@ function animateStateChange(mutate: () => void): void {
       { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
     );
   });
+  return morph;
+}
+
+const MORPH_CLASSES = [
+  "SpicyLyrics_NPVMorph",
+  "SpicyLyrics_NPVMorphIn",
+  "SpicyLyrics_NPVMorphOut",
+];
+let activeMorph: ViewTransition | null = null;
+// The update callback of a morph that hasn't run yet. startViewTransition
+// defers it a frame, so a click in that window would read the old state (the
+// stores and the Expanded class) and morph in the wrong direction.
+let pendingMutate: (() => void) | null = null;
+
+// Apply a queued morph's state change now, so the next click sees it.
+function flushPendingMorph(): void {
+  pendingMutate?.();
+}
+
+// The morph's clipping comes from nested view-transition groups (Chromium 140+).
+// Without them the card's snapshot is a top-level group and bleeds over the UI.
+const supportsNestedViewTransitions =
+  typeof document.startViewTransition === "function" &&
+  CSS.supports("view-transition-group", "nearest");
+
+// Entering/leaving expanded mode can't use the FLIP morph above: the body
+// flexes with the card there, and the page is a `container-type: size`
+// container with a cqw type scale, so every frame of a height animation
+// re-resolved the lyrics' styles and relaid out every line (60–100ms a frame).
+// A view transition lays the new state out once and morphs snapshots instead.
+// NPVLyrics.css names the NPV panel as the outer group with the card and its
+// controls nested inside, so the morph stays clipped to the sidebar — the
+// unclipped top-layer snapshots were why this used FLIP originally.
+// Nothing here may read layout or computed style: the lyrics dirty both every
+// frame, so any read forces a full relayout before the first capture.
+function morphExpandedState(mutate: () => void): void {
+  flushPendingMorph();
+  const card = cardEl;
+  if (
+    !card ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    mutate();
+    return;
+  }
+  if (!supportsNestedViewTransitions) {
+    // The FLIP morph, janky here but contained. Only the expanded body flexes
+    // with the animated height, so park the lyrics until it settles.
+    const morph = animateStateChange(mutate);
+    if (morph && card.classList.contains("Expanded")) {
+      holdEvaluateUntilSettled(morph.finished);
+    }
+    return;
+  }
+  const root = document.documentElement;
+  root.classList.remove(...MORPH_CLASSES);
+  root.classList.add(
+    "SpicyLyrics_NPVMorph",
+    card.classList.contains("Expanded")
+      ? "SpicyLyrics_NPVMorphOut"
+      : "SpicyLyrics_NPVMorphIn"
+  );
+  // Runs once: from the callback, or from a later click's flush — the skipped
+  // transition still invokes its callback afterwards, which is then a no-op.
+  // Dropped if Spotify removed the card first: refreshCardUI would re-add the
+  // expanded body class and hide the NPV with no card to show.
+  const run = () => {
+    if (pendingMutate !== run) return;
+    pendingMutate = null;
+    if (cardEl !== card || !card.isConnected) return;
+    mutate();
+  };
+  pendingMutate = run;
+  const transition = document.startViewTransition(run);
+  activeMorph = transition;
+  // The stores flip inside the update callback, a frame from now; park the
+  // evaluate they trigger until the morph is over.
+  holdEvaluateUntilSettled(transition.finished);
+  const settle = () => {
+    // A newer morph skipped this one and still needs the names.
+    if (activeMorph !== transition) return;
+    activeMorph = null;
+    root.classList.remove(...MORPH_CLASSES);
+  };
+  transition.finished.then(settle, settle);
 }
 
 function refreshCardUI(): void {
@@ -225,6 +322,9 @@ function refreshCardUI(): void {
   const expanded = open && $npvLyricsExpanded.get();
   cardEl.classList.toggle("Collapsed", !open);
   cardEl.classList.toggle("Expanded", expanded);
+  // NPVLyrics.css hides the card's wrapper siblings off this, for when the card
+  // is nested inside .main-nowPlayingView-content.
+  document.body.classList.toggle("SpicyLyrics_NPVCardExpanded", expanded);
   // Only rewrite the buttons when the state actually changed — these DOM
   // writes land inside the observed sidebar subtree and would otherwise
   // re-trigger the observer on every evaluate.
@@ -282,7 +382,7 @@ function renderCardShell(npv: HTMLElement): boolean {
   const maximize = cardEl.querySelector<HTMLElement>("#NPVCardMaximize");
   if (maximize) {
     maximize.addEventListener("click", () => {
-      animateStateChange(() => {
+      morphExpandedState(() => {
         const next = !$npvLyricsExpanded.get();
         $npvLyricsExpanded.set(next);
         // Expanding a collapsed card opens + expands in one step.
@@ -295,7 +395,12 @@ function renderCardShell(npv: HTMLElement): boolean {
   const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
   if (toggle) {
     toggle.addEventListener("click", () => {
-      animateStateChange(() => {
+      flushPendingMorph();
+      // Hiding an expanded card also leaves expanded mode.
+      const morph = cardEl?.classList.contains("Expanded")
+        ? morphExpandedState
+        : animateStateChange;
+      morph(() => {
         const open = $npvLyricsOpen.get();
         // Collapsing an expanded card exits expanded mode for good — reopening
         // shows the normal card again.
@@ -405,21 +510,27 @@ function scheduleEvaluate(): void {
  * another measure/mount cycle. Letting the box settle first means the lyrics are
  * built and measured once, against final dimensions.
  */
-function holdEvaluateUntilSettled(animation: Animation): void {
+function holdEvaluateUntilSettled(finished: Promise<unknown>): void {
   if (evaluateTimer !== null) {
     clearTimeout(evaluateTimer);
     evaluateTimer = null;
   }
-  stateAnimation = animation;
+  stateAnimation = finished;
   const settle = () => {
     // A newer morph took over; it owns the re-schedule now.
-    if (stateAnimation !== animation) return;
+    if (stateAnimation !== finished) return;
     stateAnimation = null;
-    scheduleEvaluate();
+    // Skip the debounce: the box has settled, and an expand from the closed
+    // state would otherwise sit empty for another 100ms before the lyrics mount.
+    if (evaluateTimer !== null) {
+      clearTimeout(evaluateTimer);
+      evaluateTimer = null;
+    }
+    void evaluate();
   };
   // finished rejects when the animation is cancelled (card torn down mid-morph);
   // settle either way so we can never wedge with a stale hold.
-  animation.finished.then(settle, settle);
+  finished.then(settle, settle);
 }
 
 let observedSidebar: Element | null = null;
@@ -428,6 +539,7 @@ function attachSidebarObserver(): void {
   const sidebar = document.querySelector(".Root__right-sidebar");
   if (!sidebar || sidebar === observedSidebar) return;
   const observer = new MutationObserver((records) => {
+    clearExpandedIfDetached();
     // Ignore mutations inside our own card (the synced lyrics pipeline
     // mutates it constantly); the card's removal itself still passes, since
     // that mutation targets the card's parent.
@@ -459,6 +571,7 @@ function attachWatchers(): void {
   const watchRoot =
     topContainer ?? document.querySelector(".Root") ?? document.body;
   const topObserver = new MutationObserver(() => {
+    clearExpandedIfDetached();
     if (!observedSidebar || !observedSidebar.isConnected) {
       observedSidebar = null;
       attachSidebarObserver();

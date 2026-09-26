@@ -48,14 +48,15 @@ import { needsMigration, showMigrationModal } from "./utils/migration/DataMigrat
 import "./css/settings-panel.css";
 import "./components/ReactComponents/LyricsManager/styles.css";
 import "./css/polyfills/generic-modal-polyfill.css";
+import "./css/NoticeDialog.css";
 import "./css/polyfills/sonner-polyfill.css";
 import "./css/NPVLyrics.css";
-import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
+import { showUpdatedDialog } from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import { GetNPVCardElement, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
 import ReactDOM from "react-dom/client";
-import { PopupModal } from "./components/Modal.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { guardSpicetifyScrollingFix } from "./utils/scrollFixGuard.ts";
 import "./utils/settings.ts";
 import SLToaster from "./components/ReactComponents/SLToaster.tsx";
 import { openSettingsPanel } from "./utils/settings.ts";
@@ -78,6 +79,8 @@ async function main() {
   }
 
   await Platform.OnSpotifyReady;
+
+  guardSpicetifyScrollingFix();
 
   if (needsMigration()) {
     showMigrationModal();
@@ -513,22 +516,11 @@ async function main() {
       }
     );
 
+    // A fresh install has no previous version, and there is nothing to announce.
     const fromVersion = $fromVersion.get();
-    if (fromVersion !== $spicyLyricsVersion.get()) {
-      const div = document.createElement("div");
-      const reactRoot = ReactDOM.createRoot(div);
-      reactRoot.render(
-        <UpdateDialog fromVersion={fromVersion} spicyLyricsVersion={$spicyLyricsVersion.get()} />
-      );
-
-      PopupModal.display({
-        title: "Spicy Lyrics",
-        content: div,
-        isLarge: true,
-        onClose: () => {
-          reactRoot.unmount();
-        }
-      });
+    const toVersion = $spicyLyricsVersion.get();
+    if (fromVersion && toVersion && fromVersion !== toVersion) {
+      showUpdatedDialog(fromVersion, toVersion);
     }
 
     $fromVersion.set($spicyLyricsVersion.get());
@@ -614,6 +606,16 @@ async function main() {
       });
     };
 
+    // CSS gates on this body class rather than body:has(aside.spicy-dynamic-bg-in-this),
+    // which made every DOM change a candidate for a full-document restyle.
+    // Derived from the live aside so a React-swapped aside can't leave it stale.
+    const syncNPVDynamicBackgroundClass = () => {
+      document.body.classList.toggle(
+        "SpicyLyrics_NPVDynamicBackground",
+        Boolean(document.querySelector("aside.spicy-dynamic-bg-in-this"))
+      );
+    };
+
     const CleanupNowBarDynamicBgLets = () => {
       const nowPlayingBar = getNowPlayingBarElement() ?? lastNowPlayingBarElement;
 
@@ -624,6 +626,7 @@ async function main() {
       }
       nowPlayingBar?.querySelector<HTMLElement>(".spicy-dynamic-bg")?.remove();
       nowPlayingBar?.classList.remove("spicy-dynamic-bg-in-this");
+      syncNPVDynamicBackgroundClass();
       lastNowPlayingBarElement = null;
       lastImgUrl = null;
     };
@@ -692,6 +695,8 @@ async function main() {
     );
 
     async function applyDynamicBackgroundToNowPlayingBar(coverUrl: string | undefined) {
+      // Up front so the early returns below can't leave it stale after an aside swap.
+      syncNPVDynamicBackgroundClass();
       if (!$showNpvDynamicBg.get()) return;
       if (SpotifyPlayer.GetContentType() === "unknown" || SpotifyPlayer.IsDJ()) return;
       if (!coverUrl) return;
@@ -713,6 +718,7 @@ async function main() {
         if (coverUrl === lastImgUrl) return;
 
         nowPlayingBar.classList.add("spicy-dynamic-bg-in-this");
+        syncNPVDynamicBackgroundClass();
 
         await ApplyDynamicBackground(nowPlayingBar, "npvbg");
 

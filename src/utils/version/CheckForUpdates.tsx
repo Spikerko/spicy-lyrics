@@ -1,10 +1,9 @@
 import React from "react";
-import { flushSync } from "react-dom";
 import { isDev } from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
-import ReactDOM from "react-dom/client";
-import { PopupModal } from "../../components/Modal.ts";
 import { toast } from "sonner";
+import { NoticeLink, showNotice } from "../../components/ReactComponents/NoticeDialog.tsx";
+import { releaseNotesUrl } from "../../components/ReactComponents/UpdateDialog.tsx";
 
 let ShownUpdateNotice = false;
 let WarningInFlight = false;
@@ -15,121 +14,81 @@ function startUpdate() {
 
 /**
  * Non-blocking warning toast. Fires when the user dismisses any part of the
- * update flow without acting on it. Carries an "Update now" action so the
+ * update flow without acting on it. Carries an "Update" action so the
  * user can still recover. Deduped so a user clicking through multiple
  * dismiss paths (e.g., toast X then modal close) doesn't get stacked
  * warnings.
  */
-function showUpdateDismissWarning() {
+function showUpdateDismissWarning(currentVersion: any) {
   if (WarningInFlight) return;
   WarningInFlight = true;
-  toast.warning(
-    <div>
-      <div style={{ fontSize: "var(--text-headline-size)", fontWeight: 600, lineHeight: 1.3 }}>
-        Continuing without updating?
-      </div>
-      <div style={{ fontSize: "var(--text-caption-size)", opacity: 0.75, marginTop: "2px", lineHeight: 1.4 }}>
-        Some lyrics sources and features are only available on the latest version.
-      </div>
-    </div>,
-    {
-      duration: 9000,
-      action: {
-        label: "Update now",
-        onClick: startUpdate,
-      },
-      position: "bottom-right",
-      onDismiss: () => { WarningInFlight = false; },
-      onAutoClose: () => { WarningInFlight = false; },
-    }
-  );
+  toast.warning(currentVersion?.Text ? `Staying on ${currentVersion.Text}` : "Staying on this version", {
+    description: "Some lyrics sources and features need the latest version. Updating reloads Spotify.",
+    duration: 9000,
+    action: {
+      label: "Update",
+      onClick: startUpdate,
+    },
+    position: "bottom-right",
+    onDismiss: () => { WarningInFlight = false; },
+    onAutoClose: () => { WarningInFlight = false; },
+  });
 }
 
 function presentUpdateAvailable(currentVersion: any, latestVersion: any) {
   let viewClicked = false;
 
-  toast(
-    <div>
-      <div style={{ fontSize: "var(--text-headline-size)", fontWeight: 600, lineHeight: 1.3 }}>
-        Spicy Lyrics {latestVersion?.Text || "update"} is available
-      </div>
-      <div style={{ fontSize: "var(--text-caption-size)", opacity: 0.65, marginTop: "2px" }}>
-        New lyrics features and fixes.
-      </div>
-    </div>,
-    {
-      duration: Infinity,
-      closeButton: true,
-      action: {
-        label: "View",
-        onClick: () => {
-          viewClicked = true;
-          showUpdateModal(currentVersion, latestVersion);
-        },
+  toast(latestVersion?.Text ? `Spicy Lyrics ${latestVersion.Text} is out` : "A Spicy Lyrics update is out", {
+    description: currentVersion?.Text ? `You're on ${currentVersion.Text}.` : undefined,
+    duration: Infinity,
+    closeButton: true,
+    action: {
+      label: "Details",
+      onClick: (event) => {
+        viewClicked = true;
+        // The dialog grows out of the toast, so it reads as the same notice opening up.
+        const toastEl = (event.currentTarget as HTMLElement).closest("[data-sonner-toast]");
+        showUpdateModal(currentVersion, latestVersion, toastEl?.getBoundingClientRect());
       },
-      position: "bottom-right",
-      onDismiss: () => {
-        // Sonner fires onDismiss both on user X-click and after action
-        // follow-through. We only want to warn when the user truly walked
-        // away — viewClicked guards the action path.
-        if (!viewClicked) showUpdateDismissWarning();
-      },
-    }
-  );
+    },
+    position: "bottom-right",
+    onDismiss: () => {
+      // Sonner fires onDismiss both on user X-click and after action
+      // follow-through. We only want to warn when the user truly walked
+      // away; viewClicked guards the action path.
+      if (!viewClicked) showUpdateDismissWarning(currentVersion);
+    },
+  });
 }
 
-function showUpdateModal(currentVersion: any, latestVersion: any) {
-  const div = document.createElement("div");
-  const reactRoot = ReactDOM.createRoot(div);
-
-  // Single dismiss path used by the modal's X, outside-click, and the
-  // explicit "Later" button. Always warns; always closes.
-  const dismissWithWarning = () => {
-    showUpdateDismissWarning();
-    PopupModal.hide();
-  };
-
-  flushSync(() => {
-    reactRoot.render(
-      <div className="update-card-wrapper">
-        <h2 className="uc-title">Update available</h2>
-        <p className="uc-subtitle">A new version of Spicy Lyrics is ready to install.</p>
-
-        <div className="uc-version-row">
-          <span className="uc-ver">{currentVersion?.Text || "Current"}</span>
-          <span className="uc-arrow" aria-hidden="true">
-            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-          <span className="uc-ver new">{latestVersion?.Text || "Latest"}</span>
-        </div>
-
-        <div className="uc-actions">
-          <button
-            type="button"
-            className="btn-quiet"
-            onClick={dismissWithWarning}
-          >
-            Later
-          </button>
-          <button
-            type="button"
-            className="btn-update"
-            onClick={startUpdate}
-          >
-            Update now
-          </button>
-        </div>
-      </div>
+function showUpdateModal(currentVersion: any, latestVersion: any, origin?: DOMRect) {
+  const current = currentVersion?.Text;
+  const latest = latestVersion?.Text;
+  const content = [
+    <p className="sl-notice-text">
+      {current && (
+        <>
+          You're on <span className="sl-notice-version">{current}</span>.{" "}
+        </>
+      )}
+      Updating reloads Spotify, which takes a few seconds.
+    </p>,
+  ];
+  if (latest) {
+    content.push(
+      <p className="sl-notice-text sl-notice-text--quiet">
+        See what changed in the <NoticeLink href={releaseNotesUrl(latest)}>release notes</NoticeLink>.
+      </p>
     );
-  });
+  }
 
-  PopupModal.display({
-    title: "Spicy Lyrics",
-    content: div,
-    onClose: () => reactRoot.unmount(),
-    closeHandler: dismissWithWarning,
+  showNotice({
+    title: latest ? `Version ${latest} is out` : "An update is out",
+    content,
+    primary: { label: "Update and reload", onClick: startUpdate },
+    secondaryLabel: "Not now",
+    onDismiss: () => showUpdateDismissWarning(currentVersion),
+    origin,
   });
 }
 

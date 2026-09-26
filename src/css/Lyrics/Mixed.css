@@ -492,19 +492,15 @@
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo {
-  /* Sized relative to the parent's (inherited) font-size — see .Credits note. */
-  font-size: 0.35em !important;
+  /* Sizing scheme: see the .Credits note. */
+  font-size: clamp(0.75rem, 3.3cqw, max(0.35em, 0.9375rem)) !important;
   font-weight: 600;
-  margin: 1cqw 0 0 !important;
+  margin: max(1cqw, 0.5em) 0 0 !important;
   color: white;
   scale: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.29cqw;
-}
-
-.spicy-pip-wrapper #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo {
-  font-size: 0.5em !important;
+  gap: 0.3em;
 }
 
 /* #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent:has(.Credits.Active) .SongInfo {
@@ -514,33 +510,22 @@
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Uploader,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Maker {
-  --font-size: calc(var(--DefaultLyricsSize) * 0.33);
-  font-size: var(--font-size) !important;
+  font-size: 1em !important;
   display: flex;
   flex-direction: row;
   align-items: center;
 }
 
+/* Avatars are sized in `em` so they stay proportional to the name beside them. */
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Uploader img,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Maker img {
-  width: 24px;
-  height: 24px;
+  width: 1.3em;
+  height: 1.3em;
   border-radius: 50%;
-  margin-left: 0.2cqw;
+  margin-left: 0.3em;
+  vertical-align: middle;
   position: relative;
-  top: 6px;
-}
-
-.spicy-pip-wrapper #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Uploader,
-.spicy-pip-wrapper #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Maker {
-  --font-size: calc(var(--DefaultLyricsSize) * 0.45);
-  margin-left: 0.45cqw;
-}
-
-.spicy-pip-wrapper #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Uploader img,
-.spicy-pip-wrapper #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .Maker img {
-  width: 18px;
-  height: 18px;
+  top: -0.08em;
 }
 
 /* #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .Credits.Active {
@@ -835,25 +820,28 @@
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .Credits {
-  /* `em` is, by definition, relative to the parent element's font-size. The
-     parent (.SpicyLyricsScrollContainer) inherits font-size: var(--DefaultLyricsSize)
-     from .LyricsContent, so this scales with the lyrics without needing a
-     container-type on the scroll container (which would break its height). */
-  font-size: 0.47em !important;
+  /* Follows the .LyricsContent width (`cqw`, it's a size container), capped at
+     a ratio of the lyrics size. `em` is the parent's font-size, which the
+     scroll container inherits as var(--DefaultLyricsSize) from .LyricsContent.
+     A plain `em` ratio doesn't work in narrow views (sidebar card, popup): the
+     lyrics sit at their clamp floor there, which left the credits oversized.
+     The rem inside max() keeps that cap from undercutting the cqw value when
+     the lyrics are small. .SongInfo and .LyricsProvider follow the same scheme. */
+  font-size: clamp(0.8rem, 3.7cqw, max(0.47em, 1rem)) !important;
   font-weight: 600 !important;
   opacity: 0.6;
-  margin: 1cqw 0 0 !important;
+  margin: max(1cqw, 0.5em) 0 0 !important;
   scale: 1;
   color: white;
 }
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .LyricsProvider {
-  /* Sized relative to the parent's (inherited) font-size — see .Credits note. */
-  font-size: 0.34em !important;
+  /* Sizing scheme: see the .Credits note. */
+  font-size: clamp(0.7rem, 3cqw, max(0.34em, 0.875rem)) !important;
   font-weight: 600 !important;
   opacity: 0.5;
-  margin: .75cqw 1px 0 !important;
+  margin: max(.75cqw, 0.4em) 1px 0 !important;
   scale: 1;
   color: white;
 }

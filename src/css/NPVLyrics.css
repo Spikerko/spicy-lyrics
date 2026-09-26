@@ -102,14 +102,28 @@
 
 /* ─── Expanded mode: card takes over the whole NPV panel ──────────────── */
 
-/* All takeover rules key off :has(.Expanded), so removing the card (teardown,
-   page handover, external removal) reverts the NPV automatically — no classes
-   on Spotify-owned elements to unwind. The .Root__right-sidebar scope covers
+/* Takeover rules key off the card's .Expanded (via :has() or from the card
+   itself), so removing the card (teardown, page handover, external removal)
+   reverts the NPV automatically — no classes on Spotify-owned elements to
+   unwind beyond one body class cleared on teardown. The .Root__right-sidebar scope covers
    both aside.NowPlayingView and the #Desktop_PanelContainer_Id fallback. */
 /* Hide everything except the card and whatever wraps it — insertCard() may
    fall back to prepending inside .main-nowPlayingView-content, so the card
    is not always a direct child of the panel. */
-.Root__right-sidebar:has(#SpicyLyricsNPVCard.Expanded)
+/* Written without `.Root__right-sidebar:has(…) … > :not(…)`: an ancestor :has()
+   with a featureless subject made Blink restyle the whole document on every
+   DOM change. The card's own siblings are reached from the card, so these still
+   revert the moment the card goes away. */
+.Root__right-sidebar
+  :is(.main-nowPlayingView-panel, .main-nowPlayingView-content)
+  > :has(~ #SpicyLyricsNPVCard.Expanded),
+.Root__right-sidebar
+  :is(.main-nowPlayingView-panel, .main-nowPlayingView-content)
+  > #SpicyLyricsNPVCard.Expanded ~ *,
+/* Card nested deeper inside the panel or content: hide the wrapper's siblings.
+   The body class mirrors .Expanded while the card is connected (NPVLyrics.ts). */
+body.SpicyLyrics_NPVCardExpanded
+  .Root__right-sidebar
   :is(.main-nowPlayingView-panel, .main-nowPlayingView-content)
   > :not(#SpicyLyricsNPVCard, :has(#SpicyLyricsNPVCard)) {
   display: none;
@@ -256,7 +270,12 @@
   #SpicyLyricsPage.CardMode
   .LyricsContainer
   .LyricsContent
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsNPVCard.Expanded
+  #SpicyLyricsPage.CardMode
+  .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
   padding-top: 26.7cqh !important;
 }
 
@@ -270,6 +289,109 @@
   .LyricsContainer
   .LyricsContent {
   --DefaultLyricsSize: clamp(2.2rem, calc(1cqw * 7.5), 3.6rem);
+}
+
+/* ─── Expand/collapse view transition (morphExpandedState) ────────────── */
+
+/* Names only exist while html.SpicyLyrics_NPVMorph is set, so nothing else
+   that starts a view transition picks them up. The root is left uncaptured:
+   the rest of the app keeps rendering live instead of cross-fading with
+   itself. */
+html.SpicyLyrics_NPVMorph {
+  view-transition-name: none;
+}
+
+/* The panel is the outer group; its snapshot carries the cover art and other
+   sections, which cross-fade out/in while the card morphs over them. */
+html.SpicyLyrics_NPVMorph .Root__right-sidebar aside:has(#SpicyLyricsNPVCard) {
+  view-transition-name: spicy-npv-panel;
+}
+
+html.SpicyLyrics_NPVMorph #SpicyLyricsNPVCard {
+  view-transition-name: spicy-npv-card;
+  view-transition-group: nearest;
+}
+
+/* The controls glide between the corner cluster and the centered row
+   instead of cross-fading as part of the card's snapshot. */
+html.SpicyLyrics_NPVMorph #SpicyLyricsNPVCard #NPVCardExpand {
+  view-transition-name: spicy-npv-ctl-expand;
+  view-transition-group: nearest;
+}
+
+html.SpicyLyrics_NPVMorph #SpicyLyricsNPVCard #NPVCardMaximize {
+  view-transition-name: spicy-npv-ctl-maximize;
+  view-transition-group: nearest;
+}
+
+html.SpicyLyrics_NPVMorph #SpicyLyricsNPVCard #NPVCardToggle {
+  view-transition-name: spicy-npv-ctl-toggle;
+  view-transition-group: nearest;
+}
+
+html.SpicyLyrics_NPVMorph::view-transition-group(*),
+html.SpicyLyrics_NPVMorph::view-transition-image-pair(*),
+html.SpicyLyrics_NPVMorph::view-transition-old(*),
+html.SpicyLyrics_NPVMorph::view-transition-new(*) {
+  animation-duration: 450ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Keep the card inside the sidebar, like the live element is. */
+html.SpicyLyrics_NPVMorph::view-transition-group-children(spicy-npv-panel) {
+  overflow: clip;
+}
+
+/* The two snapshots differ wildly in height; clip both to the morphing box
+   rather than letting the taller one spill past it. The rounded corners are
+   animated here rather than read off the card in JS (see morphExpandedState). */
+html.SpicyLyrics_NPVMorph::view-transition-image-pair(spicy-npv-card) {
+  overflow: clip;
+  animation-name: spicy-npv-morph-radius;
+  animation-fill-mode: both;
+}
+
+html.SpicyLyrics_NPVMorphOut::view-transition-image-pair(spicy-npv-card) {
+  animation-direction: reverse;
+}
+
+@keyframes spicy-npv-morph-radius {
+  from {
+    border-radius: var(--radius-lg);
+  }
+  to {
+    border-radius: 0;
+  }
+}
+
+/* Swap the card's contents early: a full-length cross-fade leaves both
+   layouts' lyrics ghosting over each other for most of the morph.
+   old/new inherit animation-direction from the image-pair, so the reversed
+   radius above has to be undone here. */
+html.SpicyLyrics_NPVMorph::view-transition-old(spicy-npv-card) {
+  animation-name: spicy-npv-morph-fade-out;
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-direction: normal;
+}
+
+html.SpicyLyrics_NPVMorph::view-transition-new(spicy-npv-card) {
+  animation-name: spicy-npv-morph-fade-in;
+  animation-duration: 260ms;
+  animation-timing-function: ease-out;
+  animation-direction: normal;
+}
+
+@keyframes spicy-npv-morph-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes spicy-npv-morph-fade-in {
+  from {
+    opacity: 0;
+  }
 }
 
 /* ─── CardMode page overrides ─────────────────────────────────────────── */
@@ -311,36 +433,14 @@
   #SpicyLyricsPage.CardMode
   .LyricsContainer
   .LyricsContent
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsNPVCard
+  #SpicyLyricsPage.CardMode
+  .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
   margin-top: 0 !important;
   padding-top: 24px !important;
-}
-
-/* Credits & community credits slightly bigger than their normal sizing
-   (bases: .Credits 0.47em, .SongInfo 0.35em, .LyricsProvider 0.34em in
-   Mixed.css — all !important, so match with higher specificity). */
-#SpicyLyricsNPVCard
-  #SpicyLyricsPage.SpicyRenderer
-  .LyricsContainer
-  .LyricsContent
-  .Credits {
-  font-size: 0.62em !important;
-}
-
-#SpicyLyricsNPVCard
-  #SpicyLyricsPage.SpicyRenderer
-  .LyricsContainer
-  .LyricsContent
-  .SongInfo {
-  font-size: 0.5em !important;
-}
-
-#SpicyLyricsNPVCard
-  #SpicyLyricsPage.SpicyRenderer
-  .LyricsContainer
-  .LyricsContent
-  .LyricsProvider {
-  font-size: 0.45em !important;
 }
 
 
