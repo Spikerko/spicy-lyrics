@@ -5,7 +5,7 @@
 
 Spicy Lyrics replaces Spotify's lyrics view with animated lyrics, dynamic backgrounds, romanization, and customization options. It is an open-source extension for the Spotify desktop client, built on [Spicetify](https://spicetify.app).
 
-![Extension Example](./previews/page.gif)
+![Extension Example](./previews/wide_home.webp)
 
 **Links:** [Guides](https://guides.spicylyrics.org/s/guides) · [FAQ](https://guides.spicylyrics.org/s/tools/doc/faq-anGSiKrnmX) · [Status](https://status.spicylyrics.org/) · [Discord](https://discord.gg/lyrc) · [Developers Platform](https://developers.spicylyrics.org)
 
@@ -179,21 +179,6 @@ Install the font on your computer, then:
 4. In Spicy Lyrics settings, enable **Use System Font** under **Appearance**.
 
 This changes Spotify's whole interface font, not only the lyrics. Disable the snippet if characters go missing or layouts break.
-
-</details>
-
-<details>
-<summary><strong>Can I hide Spotify's default Lyrics button?</strong></summary>
-
-Add this through **Marketplace → Snippets → Add CSS**:
-
-```css
-[data-testid="lyrics-button"] {
-  display: none;
-}
-```
-
-Spotify updates can break this selector. If the button comes back, the snippet needs updating.
 
 </details>
 

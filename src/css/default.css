@@ -314,6 +314,12 @@ body:not(.SpicyLyrics_StaticBackground)
   border: 1px solid hsla(0, 0%, 100%, 0.5);
 }
 
+/* Mirrors Spotify's .main-nowPlayingBar-lyricsButton rule, which our buttons no longer carry. */
+.SpicyLyrics_PlaybarButton {
+  flex-shrink: 0;
+  padding: 0;
+}
+
 #SpicyLyricsPageSvg {
   fill: currentColor;
   transform: translateY(2px);
