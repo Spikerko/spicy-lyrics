@@ -12,12 +12,12 @@ import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
+import { IsLyricsSkeletonEnabled, ShowLyricsSkeleton } from "./LyricsSkeleton.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
 
-// recently updated key structure - changed name
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 5, {
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 6, {
   Unit: "Days",
   Duration: 3,
 }, isDev as true);
@@ -88,6 +88,14 @@ function isStaleFetch(uri: string): boolean {
   return currentUri != null && currentUri !== uri;
 }
 
+/**
+ * Hide the loader on behalf of the fetch for `uri` — unless that fetch has been
+ * overtaken, in which case the loader belongs to the newer fetch.
+ */
+function hideLoaderFor(uri: string): void {
+  if (!isStaleFetch(uri)) HideLoaderContainer();
+}
+
 export default async function fetchLyrics(uri: string): Promise<FetchLyricsResult> {
   if (inFlightUri === uri) {
     lyricsLogger.debug("Fetch already in flight for this track, skipping", uri);
@@ -154,6 +162,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
 
   const trackId = uri.split(":")[2];
 
+  if (IsLyricsSkeletonEnabled()) ShowLyricsSkeleton();
+
   if (LyricsContent) {
     LyricsContent.classList.add("HiddenTransitioned");
   }
@@ -183,7 +193,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     } catch (error) {
       lyricsCacheLogger.error("Error parsing saved lyrics data", error);
       $currentlyFetching.set(false);
-      HideLoaderContainer();
+      hideLoaderFor(uri);
     }
   }
 
@@ -235,7 +245,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     return ["offline", 400];
   }
 
-  ShowLoaderContainer();
+  ShowLoaderContainer(uri);
 
   // Fetch new lyrics if no match in localStorage
   /* const lyricsApi = storage.get("customLyricsApi") ?? Defaults.LyricsContent.api.url;
@@ -309,12 +319,18 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
 
     if (!lyricsQuery) {
       lyricsLogger.error("Lyrics query not found");
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
 
     status = lyricsQuery.httpStatus;
+
+    if (status === 503 && isStaleFetch(uri)) {
+      // The user already moved on. Entering the queued state now would put the
+      // queue loader up over the new track, with nothing left to take it down.
+      return ["lyrics-queued", 503];
+    }
 
     if (status === 503) {
       // The server accepted the request but hasn't processed it yet — it's
@@ -329,18 +345,18 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
 
     if (status !== 200) {
       if (status === 404) {
-        HideLoaderContainer();
+        hideLoaderFor(uri);
         $currentlyFetching.set(false);
         return ["lyrics-not-found", 404];
       }
       if (status === 429) {
         // The server's own per-query rate limit. (A *transport* 429 never gets
         // here — that trips the circuit breaker and throws.)
-        HideLoaderContainer();
+        hideLoaderFor(uri);
         $currentlyFetching.set(false);
         return ["rate-limited", 429];
       }
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["status-not-200", status];
     }
@@ -348,7 +364,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     const lyrics = lyricsPacker.unpack(lyricsQuery.data) as any;
 
     if (lyrics === null || lyrics === undefined || lyrics === "") {
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
@@ -360,7 +376,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     // publishing an empty lyrics card.
     if (IsEmptyLyrics(lyrics)) {
       lyricsLogger.warn("Lyrics payload had no renderable lines after pruning");
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
@@ -386,7 +402,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {
     $currentlyFetching.set(false);
-    HideLoaderContainer();
+    hideLoaderFor(uri);
 
     // The request was never made: the circuit breaker is holding traffic back
     // because the API is refusing us. That is a temporary pause, not a fault,
@@ -430,15 +446,21 @@ export const LYRICS_QUEUE_MESSAGE =
 /**
  * Show the loader container after a delay
  */
-function ShowLoaderContainer(): void {
+function ShowLoaderContainer(uri: string): void {
+  // The skeleton went up when the fetch started; it replaces the spinner.
+  if (IsLyricsSkeletonEnabled()) return;
   const loaderContainer = PageContainer?.querySelector<HTMLElement>(
     ".LyricsContainer .loaderContainer"
   );
-  if (loaderContainer) {
-    ContainerShowLoaderTimeout = setTimeout(() => {
-      loaderContainer.classList.add("active");
-    }, 2000);
-  }
+  if (!loaderContainer) return;
+  // One pending reveal at a time. Overwriting the handle used to orphan the
+  // previous track's timer, which then fired after this track's hide.
+  if (ContainerShowLoaderTimeout) clearTimeout(ContainerShowLoaderTimeout);
+  ContainerShowLoaderTimeout = setTimeout(() => {
+    ContainerShowLoaderTimeout = null;
+    if (isStaleFetch(uri) || inFlightUri !== uri) return;
+    loaderContainer.classList.add("active");
+  }, 2000);
 }
 
 /**
@@ -448,6 +470,10 @@ function ShowLoaderContainer(): void {
  * closed (no-ops if there's no loader in the current DOM).
  */
 export function ShowQueueLoader(message: string = LYRICS_QUEUE_MESSAGE): void {
+  if (IsLyricsSkeletonEnabled()) {
+    ShowLyricsSkeleton(message);
+    return;
+  }
   const loaderContainer = PageContainer?.querySelector<HTMLElement>(
     ".LyricsContainer .loaderContainer"
   );
@@ -473,15 +499,15 @@ export function ShowQueueLoader(message: string = LYRICS_QUEUE_MESSAGE): void {
 /**
  * Hide the loader container and clear any pending timeout
  */
-function HideLoaderContainer(): void {
+export function HideLoaderContainer(): void {
+  if (ContainerShowLoaderTimeout) {
+    clearTimeout(ContainerShowLoaderTimeout);
+    ContainerShowLoaderTimeout = null;
+  }
   const loaderContainer = PageContainer?.querySelector<HTMLElement>(
     ".LyricsContainer .loaderContainer"
   );
   if (loaderContainer) {
-    if (ContainerShowLoaderTimeout) {
-      clearTimeout(ContainerShowLoaderTimeout);
-      ContainerShowLoaderTimeout = null;
-    }
     loaderContainer.classList.remove("active", "queued");
     loaderContainer.querySelector(".loaderMessage")?.remove();
   }

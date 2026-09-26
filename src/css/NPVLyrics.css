@@ -342,3 +342,8 @@
   .LyricsProvider {
   font-size: 0.45em !important;
 }
+
+
+body.SpicyLyrics_NPVCardEnabled .main-nowPlayingView-panel .main-nowPlayingView-section[data-testid="lyrics-npv-section"] {
+  display: none !important;
+}

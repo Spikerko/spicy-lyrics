@@ -72,7 +72,9 @@ export const $hideNpvLyricsWhenUnavailable = persistAtom<boolean>(
   "hideNpvLyricsWhenUnavailable",
   true
 );
-export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
+// Hide Spotify's own lyrics button in the playback bar (ours is left alone).
+export const $removeSpotifyLyricsButton = persistAtom<boolean>("removeSpotifyLyricsButton", false);
+export const $lockedMediaBox =persistAtom<boolean>("lockedMediaBox", false);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
   const initial: boolean =

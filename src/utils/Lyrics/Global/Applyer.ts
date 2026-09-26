@@ -8,13 +8,19 @@ import { EmitApply, EmitNotApplyed } from "../Applyer/OnApply.ts";
 import { ApplyStaticLyrics, type StaticLyricsData } from "../Applyer/Static.ts";
 import { ApplyLineLyrics } from "../Applyer/Synced/Line.ts";
 import { ApplySyllableLyrics } from "../Applyer/Synced/Syllable.ts";
-import { ClearLyricsPageContainer, ShowQueueLoader, type FetchLyricsResult } from "../fetchLyrics.ts";
+import {
+  ClearLyricsPageContainer,
+  HideLoaderContainer,
+  ShowQueueLoader,
+  type FetchLyricsResult,
+} from "../fetchLyrics.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
 import { IsCompactMode } from "../../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../../components/Utils/Fullscreen.ts";
 import { SpotifyPlayer } from "../../../components/Global/SpotifyPlayer.ts";
+import { HideLyricsSkeleton, IsLyricsSkeletonEnabled, PaintLyricsSkeleton } from "../LyricsSkeleton.ts";
 
 /**
  * Union type for all lyrics data types
@@ -26,6 +32,7 @@ export type LyricsData = {
 
 
 let currentAbortController: AbortController | null = null;
+let applyToken = 0;
 
 export const cleanupApplyLyricsAbortController = () => {
   if (currentAbortController) {
@@ -56,6 +63,19 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
   const currentUri = SpotifyPlayer.GetUri();
   if (requestedUri && currentUri && requestedUri !== currentUri) return;
 
+  // Every apply takes a token, so one parked on the skeleton frame below can
+  // tell that any later apply — notice or lyrics — has already painted.
+  const token = ++applyToken;
+
+  // Building the lyrics DOM blocks the main thread; get the skeleton on screen
+  // first. Another apply, or a track change, may land while we wait a frame.
+  if (typeof descriptor === "object" && IsLyricsSkeletonEnabled()) {
+    await PaintLyricsSkeleton();
+    if (token !== applyToken || !PageContainer) return;
+    const liveUri = SpotifyPlayer.GetUri();
+    if (requestedUri && liveUri && requestedUri !== liveUri) return;
+  }
+
   setBlurringLastLine(null);
 
   cleanupApplyLyricsAbortController()
@@ -69,6 +89,11 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
   ClearLyricsPageContainer();
 
   CleanUpIsByCommunity();
+
+  // This apply owns the lyrics area now, so whatever loader an earlier fetch
+  // left up (several fetch exits never hide it) comes down — except for the
+  // queued state, which keeps its loader on purpose.
+  if (descriptor !== "lyrics-queued") HideLoaderContainer();
 
   let noticeContent: string | null = null;
 
@@ -194,4 +219,6 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
     // Type assertion to StaticLyricsData since we've verified the Type is "Static"
     ApplyStaticLyrics(lyrics as StaticLyricsData, romanize);
   }
+  // EmitApply normally hides it; this covers an applier that bailed early.
+  HideLyricsSkeleton();
 }

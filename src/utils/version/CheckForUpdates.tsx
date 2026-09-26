@@ -135,16 +135,16 @@ function showUpdateModal(currentVersion: any, latestVersion: any) {
 
 export async function CheckForUpdates(force: boolean = false) {
   if (isDev) return;
-  const IsOutdated = await Session.SpicyLyrics.IsOutdated();
-  if (IsOutdated) {
-    if (!force && ShownUpdateNotice) return;
-    const currentVersion = Session.SpicyLyrics.GetCurrentVersion();
-    const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
+  if (!force && ShownUpdateNotice) return;
+  // One request: fetching the latest version a second time for the notice
+  // could be held back by the circuit breaker and throw, losing the notice.
+  const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
+  const currentVersion = Session.SpicyLyrics.GetCurrentVersion();
+  if (!Session.SpicyLyrics.IsBehind(currentVersion, latestVersion)) return;
 
-    presentUpdateAvailable(currentVersion, latestVersion);
+  presentUpdateAvailable(currentVersion, latestVersion);
 
-    ShownUpdateNotice = true;
-  }
+  ShownUpdateNotice = true;
 }
 
 // ---- dev stuff ------

@@ -97,6 +97,10 @@ export class SessionManager {
         continue;
       }
 
+      // The token was refused before its stated expiry; retire it so the next
+      // attempt waits for a fresh one instead of resending it.
+      if (status === SessionStatus.UNAUTHORIZED) Platform.InvalidateSpotifyAccessToken(token);
+
       this.logger.warn("createSession failed", status, result.data);
       await this.sleep(this.nextCreateDelay());
     }
@@ -142,6 +146,8 @@ export class SessionManager {
       this.scheduleRefresh(this.nextRefreshFailureDelay());
       return;
     }
+
+    if (status === SessionStatus.UNAUTHORIZED) Platform.InvalidateSpotifyAccessToken(token);
 
     this.logger.warn("refresh non-ok status", status, result.data);
     this.scheduleRefresh(this.nextRefreshFailureDelay());

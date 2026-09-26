@@ -27,6 +27,7 @@ const virtualizerLogger = new Logger("Lyrics Virtualizer");
 class LyricsVirtualizer {
   private _virtualizer: Virtualizer<HTMLElement, HTMLElement> | null = null;
   private _allElements: HTMLElement[] = [];
+  private _indexByElement = new Map<HTMLElement, number>();
   // One positioning wrapper per line element. The wrapper gets position:absolute +
   // translateY from the virtualizer; the .line lives inside it so a CSS `scale` on
   // .line acts around its own center instead of composing with translateY through
@@ -96,6 +97,7 @@ class LyricsVirtualizer {
   // snapshot would overwrite correct transforms set by the inner call.
   private _inOnChange = false;
   private _onChangePending = false;
+  private _changeQueued = false;
 
   setOnNewElementMounted(cb: (() => void) | null): void {
     this._onNewElementMounted = cb;
@@ -144,7 +146,7 @@ class LyricsVirtualizer {
       mountedCount: this._mountedIndices.size,
       containerWidth: this._containerWidth,
     });
-    let changed = false;
+    const toMeasure: HTMLElement[] = [];
     for (const idx of this._mountedIndices) {
       const wrapper = this._wrappers[idx];
       if (!wrapper?.isConnected) continue;
@@ -158,10 +160,11 @@ class LyricsVirtualizer {
       if (Math.abs(prevPad - gap) >= 0.5) {
         wrapper.style.paddingBottom = `${gap}px`;
       }
-      v.measureElement(wrapper);
-      changed = true;
+      toMeasure.push(wrapper);
     }
-    if (changed) {
+    // Measured after all padding writes so the pass costs one layout, not one per line.
+    this._measureBatch(v, toMeasure);
+    if (toMeasure.length > 0) {
       virtualizerLogger.debug("Remeasure pass updated virtualizer layout");
       v._willUpdate();
     } else {
@@ -311,6 +314,7 @@ class LyricsVirtualizer {
       if (this._resizeRAF !== null) { cancelAnimationFrame(this._resizeRAF); this._resizeRAF = null; }
     });
     this._allElements = lineElements;
+    this._indexByElement = new Map(lineElements.map((el, i) => [el, i]));
     this._wrappers = new Array(lineElements.length).fill(null);
     this._virtualContainer = virtualContainer;
     this._scrollEl = scrollEl;
@@ -330,15 +334,15 @@ class LyricsVirtualizer {
         virtualizerLogger.debug("Skipping resize measure: container width is zero");
         return;
       }
-      let changed = false;
+      const toMeasure: HTMLElement[] = [];
       for (const entry of entries) {
         const el = entry.target as HTMLElement;
         if (!el.isConnected) continue;
         if (el.getAttribute("data-index") === null) continue;
-        v.measureElement(el);
-        changed = true;
+        toMeasure.push(el);
       }
-      if (changed && this._resizeRAF === null) {
+      this._measureBatch(v, toMeasure);
+      if (toMeasure.length > 0 && this._resizeRAF === null) {
         this._resizeRAF = requestAnimationFrame(() => {
           this._resizeRAF = null;
           if (this._virtualizer === v) {
@@ -352,22 +356,22 @@ class LyricsVirtualizer {
     this._classObserver = this._maid!.Give(new MutationObserver((mutations) => {
       const v = this._virtualizer;
       if (!v) return;
-      let changed = false;
+      const toMeasure: HTMLElement[] = [];
       for (const mutation of mutations) {
         const el = mutation.target as HTMLElement;
-        const index = this._allElements.indexOf(el);
-        if (index === -1) continue;
+        const index = this._indexByElement.get(el);
+        if (index === undefined) continue;
         const wrapper = this._wrappers[index];
         if (!wrapper?.isConnected) continue;
         const gap = this._itemGap(index);
         const prev = parseFloat(wrapper.style.paddingBottom) || 0;
         if (Math.abs(gap - prev) >= 0.5) {
           wrapper.style.paddingBottom = `${gap}px`;
-          v.measureElement(wrapper);
-          changed = true;
+          toMeasure.push(wrapper);
         }
       }
-      if (changed && this._resizeRAF === null) {
+      this._measureBatch(v, toMeasure);
+      if (toMeasure.length > 0 && this._resizeRAF === null) {
         this._resizeRAF = requestAnimationFrame(() => {
           this._resizeRAF = null;
           if (this._virtualizer === v) {
@@ -394,13 +398,14 @@ class LyricsVirtualizer {
       scrollToFn: elementScroll,
       observeElementRect,
       observeElementOffset,
-      onChange: (v) => this._onVirtualizerChange(v),
+      onChange: (v) => this._queueChange(v),
       measureElement: this._measureHeight,
     });
 
     scrollEl.scrollTop = 0;
     virtualizerLogger.debug("Scroll position reset to top during init");
     this._virtualizer._willUpdate();
+    this._flushQueuedChange(this._virtualizer);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -546,6 +551,48 @@ class LyricsVirtualizer {
     return wrapper;
   }
 
+  // TanStack notifies once per resized item, and its ResizeObserver resizes items
+  // one at a time: running the mount pass on each notify forced a layout per line.
+  // Coalesce to one pass per task; the microtask still lands before paint.
+  private _queueChange(v: Virtualizer<HTMLElement, HTMLElement>): void {
+    if (this._inOnChange) {
+      this._onChangePending = true;
+      return;
+    }
+    if (this._changeQueued) return;
+    this._changeQueued = true;
+    queueMicrotask(() => this._flushQueuedChange(v));
+  }
+
+  // Run a queued pass now. Needed right after our own DOM insertions: Spicetify's
+  // wrapper rescans the page once per mutation delivery, so mounting in a later
+  // microtask would cost a second full scan.
+  private _flushQueuedChange(v: Virtualizer<HTMLElement, HTMLElement>): void {
+    if (!this._changeQueued) return;
+    this._changeQueued = false;
+    this._onVirtualizerChange(v);
+  }
+
+  // measureElement can synchronously re-enter onChange, whose DOM writes would
+  // force a fresh layout for every following read. Hold onChange until the batch
+  // is measured, then run it once.
+  private _measureBatch(v: Virtualizer<HTMLElement, HTMLElement>, wrappers: HTMLElement[]): void {
+    if (this._inOnChange) {
+      for (const wrapper of wrappers) v.measureElement(wrapper);
+      return;
+    }
+    this._inOnChange = true;
+    try {
+      for (const wrapper of wrappers) v.measureElement(wrapper);
+    } finally {
+      this._inOnChange = false;
+    }
+    if (this._onChangePending) {
+      this._onChangePending = false;
+      this._onVirtualizerChange(v);
+    }
+  }
+
   private _onVirtualizerChange(v: Virtualizer<HTMLElement, HTMLElement>): void {
     // Guard against stale callbacks from a virtualizer that has been replaced.
     if (v !== this._virtualizer) return;
@@ -591,47 +638,57 @@ class LyricsVirtualizer {
       });
     }
 
+    // Writes and reads are split into separate passes throughout: interleaving an
+    // offsetHeight read with each append forced a full page layout per line.
     const toUnmount: number[] = [];
     for (const idx of this._mountedIndices) {
       if (!nextVisible.has(idx)) toUnmount.push(idx);
     }
+    // Sync the cached size to the line's current classList before unmounting.
+    // The animator may have flipped Active/Sung since the wrapper was rendered,
+    // and the MutationObserver only fires for elements still in the subtree (and
+    // only as a microtask). Recomputing the gap here makes the cache match what a
+    // remount would render, so re-entry doesn't misalign following items by the
+    // stale dot-line height. We do NOT mutate classList — the animator owns
+    // Active/Sung, and stripping Active flashes the line collapsed on remount.
+    const unmountWrappers: HTMLElement[] = [];
     for (const idx of toUnmount) {
       const wrapper = this._wrappers[idx];
       if (wrapper) {
-        // Sync the cached size to the line's current classList before unmounting.
-        // The animator may have flipped Active/Sung since the wrapper was rendered,
-        // and the MutationObserver only fires for elements still in the subtree (and
-        // only as a microtask). Recomputing the gap here makes the cache match what a
-        // remount would render, so re-entry doesn't misalign following items by the
-        // stale dot-line height. We do NOT mutate classList — the animator owns
-        // Active/Sung, and stripping Active flashes the line collapsed on remount.
         const gap = this._itemGap(idx);
         const prevPad = parseFloat(wrapper.style.paddingBottom) || 0;
         if (Math.abs(prevPad - gap) >= 0.5) {
           wrapper.style.paddingBottom = `${gap}px`;
         }
-        v.measureElement(wrapper);
-        if (this._resizeRAF === null) {
-          this._resizeRAF = requestAnimationFrame(() => {
-            this._resizeRAF = null;
-            if (this._virtualizer === v) {
-              virtualizerLogger.debug("Unmount pass scheduled virtualizer update");
-              v._willUpdate();
-            }
-          });
-        }
-        this._resizeObserver?.unobserve(wrapper);
-        wrapper.parentElement?.removeChild(wrapper);
+        unmountWrappers.push(wrapper);
       }
       this._mountedIndices.delete(idx);
     }
+    for (const wrapper of unmountWrappers) v.measureElement(wrapper);
+    for (const wrapper of unmountWrappers) {
+      this._resizeObserver?.unobserve(wrapper);
+      wrapper.parentElement?.removeChild(wrapper);
+    }
+    if (unmountWrappers.length > 0 && this._resizeRAF === null) {
+      this._resizeRAF = requestAnimationFrame(() => {
+        this._resizeRAF = null;
+        if (this._virtualizer === v) {
+          virtualizerLogger.debug("Unmount pass scheduled virtualizer update");
+          v._willUpdate();
+        }
+      });
+    }
 
-    let didMeasure = false;
+    // Measured on mount so start offsets are corrected in the same frame; a gap
+    // change alters height without a ResizeObserver callback arriving in time.
+    const toMeasure: HTMLElement[] = [];
+    let mountedAny = false;
     for (const item of items) {
       const wrapper = this._getOrCreateWrapper(item.index);
       const gap = this._itemGap(item.index);
       const prevPad = parseFloat(wrapper.style.paddingBottom) || 0;
-      if (Math.abs(prevPad - gap) >= 0.5) {
+      const gapChanged = Math.abs(prevPad - gap) >= 0.5;
+      if (gapChanged) {
         wrapper.style.paddingBottom = `${gap}px`;
       }
       wrapper.style.transform = `translateY(${Math.round(item.start)}px)`;
@@ -640,17 +697,15 @@ class LyricsVirtualizer {
         this._virtualContainer.appendChild(wrapper);
         this._mountedIndices.add(item.index);
         this._resizeObserver?.observe(wrapper);
-        // Measure immediately on mount so start offsets are corrected in the same frame.
-        v.measureElement(wrapper);
-        didMeasure = true;
-        this._onNewElementMounted?.();
-      } else if (Math.abs(prevPad - gap) >= 0.5) {
-        // Gap changes alter wrapper height without necessarily triggering a ResizeObserver
-        // callback quickly enough for this pass.
-        v.measureElement(wrapper);
-        didMeasure = true;
+        toMeasure.push(wrapper);
+        mountedAny = true;
+      } else if (gapChanged) {
+        toMeasure.push(wrapper);
       }
     }
+    for (const wrapper of toMeasure) v.measureElement(wrapper);
+    if (mountedAny) this._onNewElementMounted?.();
+    const didMeasure = toMeasure.length > 0;
     if (didMeasure && this._resizeRAF === null) {
       this._resizeRAF = requestAnimationFrame(() => {
         this._resizeRAF = null;
@@ -841,6 +896,9 @@ class LyricsVirtualizer {
     // and the spacer-padded scrollHeight may not be tall enough on retry 0 when
     // most items are still estimated.
     const observedScrollTop = scrollEl.scrollTop;
+    // A smooth scroll hasn't moved yet on this read, so clamping is judged
+    // against the scroll range instead of the read-back position.
+    const maxScrollTop = scrollEl.scrollHeight - viewportHeight;
     const tanstackOffsetBefore = v.scrollOffset;
 
     // Diagnostics: distinguishes a smooth-scroll stall, an unscrollable container,
@@ -897,7 +955,7 @@ class LyricsVirtualizer {
         const drift = fresh
           ? Math.abs(fresh.start - itemStart) + Math.abs(fresh.size - itemSize)
           : 0;
-        const wasClamped = Math.abs(observedScrollTop - finalScrollTop) > 1;
+        const wasClamped = finalScrollTop - maxScrollTop > 1;
         // By now the issued scroll has fired and onChange remounted the window, so
         // this reflects the post-scroll state.
         const targetMounted = this._mountedIndices.has(index);
@@ -957,6 +1015,7 @@ class LyricsVirtualizer {
     }
     this._virtualizer = null;
     this._allElements = [];
+    this._indexByElement.clear();
     this._wrappers = [];
     this._mountedIndices.clear();
     this._lastVirtualWindowSignature = "";
@@ -965,7 +1024,8 @@ class LyricsVirtualizer {
       clearTimeout(this._resizeDebounceTimer);
       this._resizeDebounceTimer = null;
     }
-    this._onNewElementMounted = null;
+    // _onNewElementMounted is kept: it is registered once at module load
+    // (LyricsAnimator), and init() calls destroy() on every lyrics apply.
   }
 }
 

@@ -348,6 +348,54 @@ const createAdjacencyScanner = (xml: string): AdjacencyScanner => {
   };
 };
 
+/**
+ * The lead text of each `<text for="...">` transliteration entry, keyed by
+ * `for`, read from the raw XML.
+ *
+ * The parsed tree can't give this: fast-xml-parser merges an element's text
+ * nodes into one `#text`, so the spaces *between* per-word spans are lost
+ * (joining the spans gave "konnichiwasekai"), and an entry holding plain text
+ * with no spans at all is dropped. Text inside an `x-bg` wrapper is the
+ * background vocal's and is left out.
+ */
+function extractTransliterationLineTexts(xml: string): Map<string, string> {
+  const texts = new Map<string, string>();
+  const bodyIndex = xml.indexOf('<body');
+  const head = bodyIndex === -1 ? xml : xml.slice(0, bodyIndex);
+
+  const entryPattern = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
+  const forPattern = /\bfor\s*=\s*(["'])(.*?)\1/;
+  const bgPattern = /\bttm:role\s*=\s*(["'])x-bg\1/;
+  const tokenPattern = /<(\/?)span\b([^>]*?)(\/?)>|<[^>]*>|[^<]+/g;
+
+  for (const entry of head.matchAll(entryPattern)) {
+    const key = entry[1].match(forPattern)?.[2];
+    if (!key) continue;
+
+    let text = '';
+    // One flag per open span: whether it (or an ancestor) is an x-bg wrapper.
+    const bgStack: boolean[] = [];
+    for (const token of entry[2].matchAll(tokenPattern)) {
+      const raw = token[0];
+      const inBg = bgStack.length > 0 && bgStack[bgStack.length - 1];
+      if (!raw.startsWith('<')) {
+        if (!inBg) text += raw;
+      } else if (token[1] === '/') {
+        bgStack.pop();
+      } else if (raw.startsWith('<span') && token[3] !== '/') {
+        bgStack.push(inBg || bgPattern.test(token[2] ?? ''));
+      }
+    }
+
+    const normalized = decodeXmlEntities(text).replace(/\s+/g, ' ').trim();
+    if (normalized === '') continue;
+    const existing = texts.get(key);
+    texts.set(key, existing ? `${existing} ${normalized}` : normalized);
+  }
+
+  return texts;
+}
+
 /** Divs, tolerating documents that hang <p> straight off <body>. */
 const getDivs = (ttml: TtmlDocument): TtmlDiv[] => {
   const body = ttml?.tt?.body;
@@ -544,6 +592,7 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
 
     case 'Line': {
       ttmlLogger.debug('Processing line-synced lyrics');
+      const transliterationLineTexts = extractTransliterationLineTexts(ttmlInput);
 
       const buildLine = (p: TtmlPNode): ParsedLineVocal => {
         const pSpans = p != null && typeof p === 'object' && p.span ? toArray(p.span) : [];
@@ -562,9 +611,14 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
         const roles = getInlineRoleTexts(p);
         const lineKey = p && typeof p === 'object' ? p['itunes:key'] : undefined;
         const itmTranslit = lineKey ? Transliterations?.get(lineKey)?.spans : undefined;
+        const rawTranslit = lineKey ? transliterationLineTexts.get(lineKey) : undefined;
 
         let translit: string | undefined;
-        if (itmTranslit && itmTranslit.length > 0) {
+        if (rawTranslit !== undefined && rawTranslit !== '') {
+          // Read from the raw XML: keeps the spaces between spans, and covers
+          // plain-text entries that have no spans at all.
+          translit = rawTranslit;
+        } else if (itmTranslit && itmTranslit.length > 0) {
           translit = itmTranslit.map((s) => s.text).join('');
         } else if (roles.roman !== undefined) {
           translit = roles.roman;

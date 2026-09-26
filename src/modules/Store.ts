@@ -106,15 +106,21 @@ export function GetInstantStore<T extends Record<string, unknown>>(
 			}
 		}
 
-		if (parsed !== null && parsed.Version === version) {
-			items = parsed.Items
-			topUp(
-				items as Record<string, unknown>,
-				template as Record<string, unknown>,
-				`${storeName}.Items`,
-			)
-		} else {
-			items = deepClone(template)
+		items = deepClone(template)
+		if (parsed !== null && parsed.Version === version && isPlainObject(parsed.Items)) {
+			// A malformed record must not throw here: stores are created at import
+			// time, so one bad entry would break every module that imports this one
+			// until storage was cleared by hand. Start over from the template.
+			try {
+				topUp(
+					parsed.Items as Record<string, unknown>,
+					template as Record<string, unknown>,
+					`${storeName}.Items`,
+				)
+				items = parsed.Items
+			} catch (err) {
+				console.warn(`InstantStore "${storeName}": stored data is malformed, resetting`, err)
+			}
 		}
 	}
 

@@ -1,0 +1,147 @@
+/* Loading placeholder shown while lyrics fetch and render (experiment
+   `lyricsSkeleton`). Every animation here is transform or opacity only: those
+   run on the compositor and keep moving while the main thread is busy building
+   the lyrics DOM, which is the whole point of the placeholder. The keyframes
+   (SL_SkeletonSweep, SL_SkeletonDot) live in app.tsx's injected style block. */
+
+#SpicyLyricsPage:not(.Exp_LyricsSkeleton) .LyricsContainer .LyricsSkeleton,
+#SpicyLyricsPage.Exp_LyricsSkeleton .LyricsContainer .loaderContainer {
+  display: none;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton {
+  --SkeletonLineSize: clamp(1.85rem, calc(1cqw * 7), 3.5rem);
+
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.25s ease-out,
+    visibility 0s linear 0.25s;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton.active {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.2s ease-out,
+    visibility 0s;
+}
+
+/* Same type scale the lyrics use in the NPV card and the popup, so the bars
+   sit where the real lines will land. */
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .LyricsContainer .LyricsSkeleton {
+  --SkeletonLineSize: clamp(1.85rem, calc(1cqw * 6), 2.8rem);
+}
+
+/* The card is short: start the bars at the top, with only the bottom fade. */
+#SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .LyricsContainer .LyricsSkeleton .SkeletonLines {
+  padding-top: 1.25rem;
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 72%, transparent 97%);
+  mask-image: linear-gradient(180deg, #000 0, #000 72%, transparent 97%);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsSkeleton {
+  --SkeletonLineSize: clamp(1.7rem, calc(1cqw * 5.5), 2.6rem);
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLines {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--SkeletonLineSize) * 0.62);
+  box-sizing: border-box;
+  height: 100%;
+  padding: 25cqh var(--LyricsRightSidePadding, 8cqw) 0 var(--LyricsLeftSidePadding, 10cqw);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 64px, #000 72%, transparent 97%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 64px, #000 72%, transparent 97%);
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLine {
+  flex: 0 0 auto;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  height: calc(var(--SkeletonLineSize) * 0.72);
+  border-radius: calc(var(--SkeletonLineSize) * 0.18);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 45%,
+    rgba(255, 255, 255, 0.1) 55%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: SL_SkeletonSweep 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Lines further down trail slightly so the sweep reads as one diagonal pass. */
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLine::after {
+  animation-delay: calc(var(--i, 0) * 0.06s);
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonStatus {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 1.1rem;
+  display: flex;
+  align-items: baseline;
+  max-width: calc(100% - 2.5rem);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+/* The 503 queue message is a full sentence; let it wrap instead of clipping. */
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton.LongLabel .SkeletonStatus {
+  max-width: min(22rem, calc(100% - 2.5rem));
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonDots {
+  display: inline-flex;
+  gap: 0.2em;
+  margin-left: 0.3em;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonDots i {
+  display: block;
+  width: 0.3em;
+  height: 0.3em;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.25;
+  animation: SL_SkeletonDot 1.2s ease-in-out infinite;
+}
+
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonDots i:nth-child(2) { animation-delay: 0.16s; }
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonDots i:nth-child(3) { animation-delay: 0.32s; }
+
+/* Paused while hidden so the idle page isn't compositing an invisible loop. */
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton:not(.active) .SkeletonLine::after,
+#SpicyLyricsPage .LyricsContainer .LyricsSkeleton:not(.active) .SkeletonDots i {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLine::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  #SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonDots i {
+    animation: none;
+    opacity: 0.6;
+  }
+}

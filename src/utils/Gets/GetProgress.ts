@@ -4,6 +4,8 @@ import { SpotifyPlayer } from "./../../components/Global/SpotifyPlayer.ts";
 interface SyncedPosition {
   StartedSyncAt: number;
   Position: number;
+  /** The track the poll was for. A sample from the previous track is not used. */
+  TrackUri?: string | null;
 }
 
 interface PredictedProgress {
@@ -140,6 +142,7 @@ export const requestPositionSync = () => {
     const SpotifyPlatform = Spicetify.Platform;
     const startedAt = Date.now();
     const isLocallyPlaying = SpotifyPlatform.PlaybackAPI._isLocal;
+    const requestedUri = SpotifyPlayer.GetUri() ?? null;
 
     const getLocalPosition = () => {
       return SpotifyPlatform.PlayerAPI._contextPlayer
@@ -339,7 +342,10 @@ export const requestPositionSync = () => {
 
     sync
       .then((position: SyncedPosition) => {
-        syncedPosition = position;
+        // The track changed while this poll was in flight; its position belongs
+        // to the previous track.
+        if ((SpotifyPlayer.GetUri() ?? null) !== requestedUri) return;
+        syncedPosition = { ...position, TrackUri: requestedUri };
       })
       // Without this the loop is one rejection away from stopping forever: the
       // reschedule below lives in the success path, so a single failed poll
@@ -378,6 +384,14 @@ export default function GetProgress() {
     }
     console.warn("Synced Position: Skip, Returning 0");
     return 0;
+  }
+
+  // Until the first poll for a new track lands, the last sample is the previous
+  // track's position. Seeding the smoothed clock from it caused a one-poll spike
+  // and a spurious "drastic change" force-scroll; use the player's own estimate.
+  if (syncedPosition.TrackUri !== (SpotifyPlayer.GetUri() ?? null)) {
+    const isPlaying = Spicetify.Player.isPlaying();
+    return normalizeProgress(Spicetify.Player.getProgress() - $playbackOffset.get(), isPlaying);
   }
 
   const { StartedSyncAt, Position } = syncedPosition;

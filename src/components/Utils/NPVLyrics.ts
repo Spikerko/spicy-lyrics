@@ -4,7 +4,7 @@
 // (PageView.PageContainer), the card is strictly exclusive with the main page,
 // PiP and fullscreen — a single reconciler keeps the card in whichever state
 // the live conditions allow.
-import PageView from "../Pages/PageView.ts";
+import PageView, { PageContainer } from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
 import { IsPIP, _IsPIP_after, IsPIPOpening } from "./PopupLyrics.ts";
 import Session from "../Global/Session.ts";
@@ -347,7 +347,13 @@ async function reconcile(): Promise<void> {
   if (desired === "ACTIVE" && !cardOwnsPage && cardBodyEl) {
     refreshCardUI();
     cardOwnsPage = true;
-    await PageView.Open(cardBodyEl, { cardMode: true });
+    const body = cardBodyEl;
+    await PageView.Open(body, { cardMode: true });
+    // Open bails if another page got there first. Claiming ownership anyway
+    // would let a later teardown destroy that other page.
+    if (!PageView.IsOpened || !body.contains(PageContainer)) {
+      cardOwnsPage = false;
+    }
   } else if (desired === "SHELL" && cardOwnsPage) {
     cardOwnsPage = false;
     await PageView.Destroy();
@@ -494,6 +500,13 @@ export function initNPVLyrics(): void {
   watcherMaid.Give($hideNpvLyricsWhenUnavailable.listen(() => scheduleEvaluate()));
   // Turning the card off tears it down live; turning it back on re-injects it.
   watcherMaid.Give($disableNpvLyrics.listen(() => scheduleEvaluate()));
+  // Hide Spotify's own NPV lyrics section whenever the card is enabled, even
+  // while the card itself isn't rendered.
+  watcherMaid.Give(
+    $disableNpvLyrics.subscribe((disabled) => {
+      document.body.classList.toggle("SpicyLyrics_NPVCardEnabled", !disabled);
+    })
+  );
 
   Whentil.When(
     () =>

@@ -122,6 +122,84 @@ async function loadKawarpSource(kawarp: Kawarp, source: KawarpSource): Promise<v
   }
 }
 
+/** How long the full-size cover gets before a small preview is shown instead. */
+const COVER_PREVIEW_AFTER_MS = 250;
+
+/**
+ * The cover as a Blob, requested at high priority. Handing Kawarp a URL leaves
+ * the download to the browser at image priority, and on a slow link it then
+ * loses to the lyrics request — the background stayed blank until the lyrics
+ * had finished downloading. Resolves null if the fetch fails.
+ */
+async function fetchCoverBlob(url: string): Promise<Blob | null> {
+  try {
+    const res = await fetch(url, { priority: "high" } as RequestInit);
+    return res.ok ? await res.blob() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load a remote cover so something shows quickly on a slow connection: if the
+ * full-size image isn't in within COVER_PREVIEW_AFTER_MS, the small cover (a
+ * few KB, and usually cached already by the playbar) goes in first and the
+ * full one crossfades over it once it arrives. `onLoaded` runs after each load
+ * that went through, so the caller can start the instance.
+ */
+async function loadCoverProgressively(
+  kawarp: Kawarp,
+  source: KawarpSource,
+  previewUrl: string | null,
+  isStale: () => boolean,
+  onLoaded: () => void
+): Promise<void> {
+  if (source.kind !== "url") {
+    if (await queueKawarpLoad(kawarp, source, isStale)) onLoaded();
+    return;
+  }
+
+  const full = fetchCoverBlob(source.value);
+  const timedOut = Symbol("timedOut");
+  const early = await Promise.race([
+    full,
+    new Promise<typeof timedOut>((r) => setTimeout(() => r(timedOut), COVER_PREVIEW_AFTER_MS)),
+  ]);
+
+  if (early === timedOut && previewUrl && previewUrl !== source.value) {
+    if (await queueKawarpLoad(kawarp, { kind: "url", value: previewUrl }, isStale)) onLoaded();
+  }
+
+  const blob = early === timedOut ? await full : early;
+  const finalSource: KawarpSource = blob ? { kind: "blob", value: blob } : source;
+  if (await queueKawarpLoad(kawarp, finalSource, isStale)) onLoaded();
+}
+
+const kawarpLoadChains = new WeakMap<Kawarp, Promise<unknown>>();
+
+/**
+ * Load into `kawarp` after any load already running on it. Unserialized, a slow
+ * load for the previous track could finish after the current track's and leave
+ * the wrong art showing. Each queued load re-checks `isStale` when its turn
+ * comes, so skipped-past tracks are dropped. Resolves true if it loaded.
+ */
+function queueKawarpLoad(
+  kawarp: Kawarp,
+  source: KawarpSource,
+  isStale: () => boolean
+): Promise<boolean> {
+  const previous = kawarpLoadChains.get(kawarp) ?? Promise.resolve();
+  const next = previous
+    .catch(() => undefined)
+    .then(async () => {
+      if (isStale()) return false;
+      await loadKawarpSource(kawarp, source);
+      return true;
+    });
+  kawarpLoadChains.set(kawarp, next.catch(() => undefined));
+  return next;
+}
+
 export default async function ApplyDynamicBackground(element: HTMLElement, tag?: string, opts: ApplyDynamicBackgroundOpts = {}) {
   if (!element) return;
   // The NPV lyrics card must stay transparent (the NPV's own background shows
@@ -136,6 +214,11 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
   const currentImgCover = isLocalCover
     ? preCurrentImgCover
     : preCurrentImgCover.replace("spotify:image:", "https://i.scdn.co/image/");
+  // Shown first when the full-size cover is slow to arrive; see loadCoverProgressively.
+  const smallCover = SpotifyPlayer.GetCover("small") ?? "";
+  const previewImgCover = smallCover.startsWith("spotify:image:")
+    ? smallCover.replace("spotify:image:", "https://i.scdn.co/image/")
+    : null;
   const IsEpisode = SpotifyPlayer.GetContentType() === "episode";
 
   const artists = SpotifyPlayer.GetArtists() ?? [];
@@ -148,6 +231,14 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
 
   const TrackUri = SpotifyPlayer.GetUri();
   const IsLocal = TrackUri?.startsWith("spotify:local:") ?? false;
+
+  // Every await below can outlast a skip or the page closing. Results for a
+  // track that is no longer playing, or for an element that has been removed,
+  // must not be painted.
+  const isStale = () =>
+    !element.isConnected ||
+    SpotifyPlayer.GetUri() !== TrackUri ||
+    (SpotifyPlayer.GetCover("large") ?? "") !== preCurrentImgCover;
 
   const staticBgMode = $staticBackgroundMode.get();
   if (staticBgMode !== "off") {
@@ -179,9 +270,10 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
         const colorQuery = await Spicetify.GraphQL.Request(
           Spicetify.GraphQL.Definitions.getDynamicColorsByUris,
           {
-            imageUris: [SpotifyPlayer.GetCover("large") ?? ""]
+            imageUris: [preCurrentImgCover]
           }
         );
+        if (isStale()) return;
 
         const colorResponse = colorQuery.data.dynamicColors[0];
         const colorBestFit = colorResponse.bestFit === "DARK" ? "dark" : colorResponse.bestFit === "LIGHT" ? "light" : "dark";
@@ -210,8 +302,8 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     }
     const currentImgCover = await GetStaticBackground(TrackArtist, TrackId);
 
-    if (IsEpisode || !currentImgCover) return;
-    const prevBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.StaticBackground");
+    if (IsEpisode || !currentImgCover || isStale()) return;
+    let prevBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.StaticBackground");
 
     if (prevBg && prevBg.getAttribute("data-cover-id") === currentImgCover) {
       return;
@@ -230,6 +322,12 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
       : await BlobURLMaker(finalUrl)
           .then((blobUrl) => blobUrl ?? currentImgCover)
           .catch(() => currentImgCover);
+
+    if (isStale()) return;
+    // Another apply for this same track may have painted it while we awaited.
+    const livePrevBg = element.querySelector<HTMLElement>(".spicy-dynamic-bg.StaticBackground:not(.transition_Out)");
+    if (livePrevBg && livePrevBg.getAttribute("data-cover-id") === currentImgCover) return;
+    prevBg = livePrevBg;
 
     const dynamicBg = document.createElement("div");
 
@@ -269,12 +367,12 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     }
 
     // Resolving can block for seconds (rasterizing a local cover waits up to
-    // LOCAL_COVER_DECODE_TIMEOUT_MS). If the track changed in the meantime, a newer
-    // invocation already owns this tag's instance — loading our now-stale cover into it
-    // would flash the previous track's art. Bail and let the newer invocation win.
-    const liveImgCover = SpotifyPlayer.GetCover("large") ?? "";
-    if (liveImgCover !== preCurrentImgCover) {
-      dynamicBgLogger.debug("Cover changed while resolving dynamic background; skipping stale apply", { tag });
+    // LOCAL_COVER_DECODE_TIMEOUT_MS). If the track changed or the page closed in
+    // the meantime, a newer invocation (or the teardown) owns this tag's instance —
+    // loading our now-stale cover into it would flash the previous track's art, and
+    // building a new one on a detached element would leak its render loop.
+    if (isStale()) {
+      dynamicBgLogger.debug("Track or element changed while resolving dynamic background; skipping stale apply", { tag });
       return;
     }
 
@@ -290,8 +388,14 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
 
       if (kawarpInstance) {
         liveElement.setAttribute("data-cover-id", currentImgCover ?? "");
-        await loadKawarpSource(kawarpInstance, kawarpSource);
-        kawarpInstance.start();
+        try {
+          await loadCoverProgressively(kawarpInstance, kawarpSource, previewImgCover, isStale, () => {
+            // Disposed or replaced (page closed, NPV cleanup) while loading.
+            if (KawarpMap.get(tag ? tag : liveElement) === kawarpInstance) kawarpInstance.start();
+          });
+        } catch (err) {
+          dynamicBgLogger.warn("Dynamic background load failed", err);
+        }
         return;
       }
     }
@@ -300,16 +404,24 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     canvas.classList.add("spicy-dynamic-bg");
     canvas.setAttribute("data-cover-id", currentImgCover ?? "");
 
+    const mapKey = tag ? tag : canvas;
+    // An instance whose canvas is gone would otherwise be overwritten here and
+    // keep rendering forever.
+    const orphaned = KawarpMap.get(mapKey);
+    if (orphaned) orphaned.dispose();
+
     const kawarpInstance = new Kawarp(canvas, KawarpOptionsStatic)
-    KawarpMap.set(
-      tag ?
-        tag :
-        canvas,
-      kawarpInstance
-    )
+    KawarpMap.set(mapKey, kawarpInstance)
     element.appendChild(canvas);
-    await loadKawarpSource(kawarpInstance, kawarpSource);
-    kawarpInstance.start();
+    try {
+      await loadCoverProgressively(kawarpInstance, kawarpSource, previewImgCover, isStale, () => {
+        if (KawarpMap.get(mapKey) === kawarpInstance) kawarpInstance.start();
+      });
+      if (KawarpMap.get(mapKey) !== kawarpInstance) return;
+    } catch (err) {
+      dynamicBgLogger.warn("Dynamic background load failed", err);
+      return;
+    }
     const msDelay = KawarpOptionsStatic.transitionDuration * 2;
 
     if (opts?.doTransitionDurationAppendWithPromise) {
@@ -372,7 +484,7 @@ Global.Event.listen("playback:songchange", () => {
     }
 
     staticColorBgTransitionTimeout = setTimeout(() => {
-      const contentBox = PageContainer.querySelector<HTMLElement>(".ContentBox");
+      const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
       if (contentBox) ApplyDynamicBackground(contentBox);
 
       clearTimeout(staticColorBgTransitionTimeout);
@@ -484,6 +596,8 @@ Global.Event.listen("page:open", () => {
 });
 
 Global.Event.listen("playback:progress", async (e) => {
+  // Speed only matters to live backgrounds; a new one picks it up on the next tick.
+  if (KawarpMap.size === 0) return;
   const songUri = SpotifyPlayer.GetUri();
   if (!songUri) {
     resetDynamicBackgroundAnimationSpeed();

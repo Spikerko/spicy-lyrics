@@ -113,16 +113,39 @@ export function applyPingConfig(data: unknown): void {
   if (changed) store.SaveChanges();
 }
 
-/** The healthy ping interval. `minPingIntervalMs` is a floor, not a target. */
+/**
+ * setTimeout stores its delay as a signed 32-bit int; anything larger overflows
+ * and fires immediately, which would turn a huge TTL into a refresh loop.
+ */
+const MAX_TIMER_MS = 2_147_483_647;
+const MIN_SESSION_TTL_SECONDS = 60;
+const MIN_REFRESH_AT_TTL_FRACTION = 0.5;
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+// Bounds are applied when the delays are computed, not only when a config is
+// merged, so a value persisted by an older build is held to them too.
+
+/**
+ * The healthy ping interval. `minPingIntervalMs` is a floor, not a target, and
+ * the compiled default is a floor under both: the server may only slow clients
+ * down (see DEFAULT_PING_CONFIG).
+ */
 export function basePingDelayMs(): number {
-  return Math.max(current.pingIntervalMs, current.minPingIntervalMs);
+  return clamp(
+    Math.max(current.pingIntervalMs, current.minPingIntervalMs),
+    DEFAULT_PING_CONFIG.pingIntervalMs,
+    MAX_TIMER_MS
+  );
 }
 
 export function pingDelayMs(): number {
-  return jitter(basePingDelayMs(), PING_JITTER_RATIO);
+  return Math.min(jitter(basePingDelayMs(), PING_JITTER_RATIO), MAX_TIMER_MS);
 }
 
 export function refreshDelayMs(): number {
-  const base = current.sessionTtlSeconds * 1000 * current.refreshAtTtlFraction;
-  return jitter(base, REFRESH_JITTER_RATIO);
+  const ttlSeconds = Math.max(current.sessionTtlSeconds, MIN_SESSION_TTL_SECONDS);
+  const fraction = clamp(current.refreshAtTtlFraction, MIN_REFRESH_AT_TTL_FRACTION, 1);
+  const base = Math.min(ttlSeconds * 1000 * fraction, MAX_TIMER_MS);
+  return Math.min(jitter(base, REFRESH_JITTER_RATIO), MAX_TIMER_MS);
 }

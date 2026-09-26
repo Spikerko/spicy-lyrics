@@ -270,11 +270,18 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
   const ProcessedPosition = Position + PositionOffset;
   const currentLine = GetScrollLine(Lines, ProcessedPosition) as EnhancedLyricsItem | null;
 
-  const allLinesNotSung = Lines.every((line: any) => line.Status === "NotSung");
-  const activeLines = Lines.filter((line: any) => line.Status === "Active");
-  const sungLines = Lines.filter((line: any) => line.Status === "Sung");
-  const oneActiveNoSung = activeLines.length === 1 && sungLines.length === 0;
-  const allLinesSung = Lines.every((line: any) => line.Status === "Sung");
+  let notSungCount = 0;
+  let activeCount = 0;
+  let sungCount = 0;
+  for (let i = 0; i < Lines.length; i++) {
+    const status = Lines[i].Status;
+    if (status === "NotSung") notSungCount++;
+    else if (status === "Active") activeCount++;
+    else if (status === "Sung") sungCount++;
+  }
+  const allLinesNotSung = notSungCount === Lines.length;
+  const oneActiveNoSung = activeCount === 1 && sungCount === 0;
+  const allLinesSung = sungCount === Lines.length;
   const shouldForceScroll = isForceScrollQueued || lastLine == null;
 
   if (
@@ -411,11 +418,15 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
       const now = performance.now();
       const timeSinceLastScroll = now - lastUserScrollTime;
 
-      // Throttled layout read for viewport visibility
+      const hasVirtualizer = getLyricsVirtualizer() !== null;
+
+      // Throttled layout read for viewport visibility. Under the virtualizer
+      // isConnected alone decides (below), so skip the forced layout.
       const shouldRecalculateViewport =
-        now - lastViewportCheckTime > VIEWPORT_CHECK_INTERVAL ||
-        lastViewportLine !== LineElem ||
-        lastViewportContainer !== container;
+        !hasVirtualizer &&
+        (now - lastViewportCheckTime > VIEWPORT_CHECK_INTERVAL ||
+          lastViewportLine !== LineElem ||
+          lastViewportContainer !== container);
 
       if (shouldRecalculateViewport) {
         // Check if the line is at least 5px visible within the scroll container
@@ -440,8 +451,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
       // mounted elements are near the current scroll position (within overscan), so
       // treating them as "in viewport" is close enough. Detached elements mean the
       // user scrolled far away — preserve the original no-scroll behavior.
-      const isLineInViewport =
-        lastIsLineInViewport || (getLyricsVirtualizer() !== null && LineElem.isConnected);
+      const isLineInViewport = hasVirtualizer ? LineElem.isConnected : lastIsLineInViewport;
 
       const isSameLine = lastLine === LineElem;
 
@@ -485,7 +495,9 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
           ".LyricsContainer .LyricsContent"
         );
         if (lyricsContent) {
-          lyricsContent.classList.remove("HideLineBlur");
+          if (lyricsContent.classList.contains("HideLineBlur")) {
+            lyricsContent.classList.remove("HideLineBlur");
+          }
         } else {
           console.warn(
             "SpicyLyrics: Could not find .LyricsContent in ScrollToActiveLine to remove HideLineBlur."
@@ -504,7 +516,11 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
             Lines[currentLine._LineIndex - 1] &&
             Lines[currentLine._LineIndex - 1].DotLine === true
           ) {
-            setTimeout(Scroll, 240);
+            // Skip if a song change, seek or reset moved on in the meantime —
+            // the captured index would scroll the new lyrics to a stale line.
+            setTimeout(() => {
+              if (lastLine === LineElem) Scroll();
+            }, 240);
           } else {
             Scroll();
           }
@@ -558,9 +574,9 @@ export function CleanupScrollEvents() {
   // Disconnect observer
   lyricsContentObserver?.disconnect();
 
-  // Remove window listeners
-  window.removeEventListener("focus", ResetLastLine);
-  window.removeEventListener("resize", ResetLastLine);
+  // The window focus/resize listeners stay: they are added once at module load,
+  // and this runs on every lyrics apply, so removing them here dropped them for
+  // the rest of the session.
 
   // Reset module variables
   currentSimpleBarInstance = null;
