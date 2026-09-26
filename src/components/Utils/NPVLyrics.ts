@@ -114,6 +114,8 @@ async function teardownCard(): Promise<void> {
   cardMaid?.CleanUp();
   cardMaid = null;
   cardEl = null;
+  // A queued toggle belongs to this card; don't let it land on a replacement.
+  pendingMutate = null;
   document.body.classList.remove("SpicyLyrics_NPVCardExpanded");
   cardBodyEl = null;
   lastToggleOpen = null;
@@ -290,9 +292,12 @@ function morphExpandedState(mutate: () => void): void {
   );
   // Runs once: from the callback, or from a later click's flush — the skipped
   // transition still invokes its callback afterwards, which is then a no-op.
+  // Dropped if Spotify removed the card first: refreshCardUI would re-add the
+  // expanded body class and hide the NPV with no card to show.
   const run = () => {
     if (pendingMutate !== run) return;
     pendingMutate = null;
+    if (cardEl !== card || !card.isConnected) return;
     mutate();
   };
   pendingMutate = run;
