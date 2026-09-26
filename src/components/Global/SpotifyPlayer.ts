@@ -117,6 +117,9 @@ const GetContentType = (): string => {
   return "unknown";
 };
 
+/** What GetCover/GetCoverFrom return when the item has no cover of that size. */
+export const COVER_PLACEHOLDER_URL = "https://images.spikerko.org/SongPlaceholderFull.png";
+
 export type CoverSizes = "standard" | "small" | "large" | "xlarge";
 export type Artist = {
   type: "artist";
@@ -145,16 +148,16 @@ export const SpotifyPlayer = {
   },
   GetCover: (size: CoverSizes): string | undefined => {
     const item = Spicetify?.Player?.data?.item;
-    if (!item) return "https://images.spikerko.org/SongPlaceholderFull.png";
+    if (!item) return COVER_PLACEHOLDER_URL;
     // @ts-ignore aaa
     const covers = item.images ?? item.show?.images;
     if (covers?.length > 0) {
       const cover = covers.find((cover: any) => cover.label === size);
       return (
-        cover?.url ?? "https://images.spikerko.org/SongPlaceholderFull.png"
+        cover?.url ?? COVER_PLACEHOLDER_URL
       );
     }
-    return "https://images.spikerko.org/SongPlaceholderFull.png";
+    return COVER_PLACEHOLDER_URL;
   },
   GetCoverFrom: (
     size: CoverSizes,
@@ -164,11 +167,11 @@ export const SpotifyPlayer = {
       if (source.length > 0) {
         const cover = source?.find((cover) => cover.label === size);
         return (
-          cover?.url ?? "https://images.spikerko.org/SongPlaceholderFull.png"
+          cover?.url ?? COVER_PLACEHOLDER_URL
         );
       }
     }
-    return "https://images.spikerko.org/SongPlaceholderFull.png";
+    return COVER_PLACEHOLDER_URL;
   },
   GetName: (): string | undefined => {
     return Spicetify?.Player?.data?.item?.name;
@@ -227,6 +230,7 @@ export const SpotifyPlayer = {
     let rightContainer: HTMLElement | null;
     let sibling: HTMLElement | null;
     const buttonsStash = new Set<HTMLElement>();
+    const NATIVE_LYRICS_BUTTON_CLASSES = new Set(["main-nowPlayingBar-lyricsButton", "vVsHwFW9rx4CZOne"]);
 
     type ButtonOnClick = (btn: Button) => void;
 
@@ -249,7 +253,7 @@ export const SpotifyPlayer = {
         registerOnCreate: boolean = true
       ) {
         this.element = document.createElement("button");
-        this.element.classList.add("main-genericButton-button");
+        this.element.classList.add("main-genericButton-button", "SpicyLyrics_PlaybarButton");
         this.iconElement = document.createElement("span");
         this.iconElement.classList.add("Wrapper-sm-only", "Wrapper-small-only");
         this.element.appendChild(this.iconElement);
@@ -362,6 +366,7 @@ export const SpotifyPlayer = {
       }
       for (const className of Array.from(sibling.classList)) {
         if (className.startsWith("main-genericButton") || className === "ZfsMQKTLl695iPvUo3GK") continue;
+        if (NATIVE_LYRICS_BUTTON_CLASSES.has(className)) continue;
         element.classList.add(className);
       }
     }

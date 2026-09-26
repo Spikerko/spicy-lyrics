@@ -60,6 +60,7 @@ function hasAnyOldKey(): boolean {
   }
   if (
     Spicetify.LocalStorage.get(`${OLD_PREFIX}disablePopupLyrics`) !== null ||
+    Spicetify.LocalStorage.get(`${OLD_PREFIX}hide_npv_bg`) !== null ||
     Spicetify.LocalStorage.get(`${OLD_PREFIX}devMode`) !== null ||
     Spicetify.LocalStorage.get(`${OLD_PREFIX}staticBackground`) !== null ||
     Spicetify.LocalStorage.get(`${OLD_PREFIX}staticBackgroundType`) !== null

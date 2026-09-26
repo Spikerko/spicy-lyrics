@@ -4,6 +4,7 @@ import {
   $hideNpvLyricsWhenUnavailable,
   $lockedMediaBox,
   $popupLyricsAllowed,
+  $removeSpotifyLyricsButton,
   $showVolumeSlider,
   $timelineOutsideMediaContent,
   $viewControlsPosition,
@@ -27,6 +28,7 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
   const showVolumeSlider = useStore($showVolumeSlider);
   const hideNpvLyricsWhenUnavailable = useStore($hideNpvLyricsWhenUnavailable);
   const disableNpvLyrics = useStore($disableNpvLyrics);
+  const removeSpotifyLyricsButton = useStore($removeSpotifyLyricsButton);
   const isGlobalNav = useStore($isGlobalNav);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
@@ -38,8 +40,9 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
   const r6 = matches(query, "Hide NPV Lyrics When No Lyrics Are Available", "Remove the lyrics card from the Now Playing sidebar while the current song has no lyrics, instead of showing a notice. It comes back on the next song that has them.");
   const r7 = matches(query, "Disable NPV Lyrics", "Never show the lyrics card in the Now Playing sidebar.");
   const r8 = matches(query, "Volume Slider", "Show a volume control on the album artwork in Fullscreen, Cinema View and Popup Lyrics.");
+  const r9 = matches(query, "Remove Spotify's Lyrics Button", "Hide Spotify's built-in lyrics button from the playback bar. The Spicy Lyrics button stays.");
 
-  if (!r2 && !r3 && !r4 && !r5 && !r6 && !r7 && !r8) return null;
+  if (!r2 && !r3 && !r4 && !r5 && !r6 && !r7 && !r8 && !r9) return null;
 
   return (
     <>
@@ -86,6 +89,18 @@ export default function InterfaceSection({ query, sectionFilter }: Props) {
           <Toggle
             checked={timelineOutsideMediaContent}
             onChange={(v) => $timelineOutsideMediaContent.set(v)}
+          />
+        </Row>
+      )}
+
+      {r9 && (
+        <Row
+          label="Remove Spotify's Lyrics Button"
+          description="Hide Spotify's built-in lyrics button from the playback bar. The Spicy Lyrics button stays."
+        >
+          <Toggle
+            checked={removeSpotifyLyricsButton}
+            onChange={(v) => $removeSpotifyLyricsButton.set(v)}
           />
         </Row>
       )}

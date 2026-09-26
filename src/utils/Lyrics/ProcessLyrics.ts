@@ -187,8 +187,9 @@ const gatherText = (
         textLines.push(text);
       }
 
-      if (vocalGroup.Background !== undefined) {
-        for (const syllable of vocalGroup.Background[0].Syllables) {
+      // A line can carry several background vocals, and all of them render.
+      for (const background of vocalGroup.Background ?? []) {
+        for (const syllable of background?.Syllables ?? []) {
           entries.push({ target: syllable, line: vocalGroup });
           bgTextLines.push(syllable.Text);
         }

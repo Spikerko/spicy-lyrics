@@ -61,13 +61,9 @@ new IntervalManager(Infinity, () => {
     ".LyricsContainer .LyricsContent"
   );
   if (!LyricsContainer || !ScrollSimplebar) return;
-  if (IsMouseInLyricsPage) {
-    LyricsContainer.classList.remove("hide-scrollbar");
-  } else {
-    if (ScrollSimplebar.isDragging) {
-      LyricsContainer.classList.remove("hide-scrollbar");
-    } else {
-      LyricsContainer.classList.add("hide-scrollbar");
-    }
+  const hide = !IsMouseInLyricsPage && !ScrollSimplebar.isDragging;
+  // Unguarded add/remove would queue a MutationObserver record every frame.
+  if (LyricsContainer.classList.contains("hide-scrollbar") !== hide) {
+    LyricsContainer.classList.toggle("hide-scrollbar", hide);
   }
 }).Start();

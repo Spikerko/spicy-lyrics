@@ -26,6 +26,10 @@ class IntervalManager {
     this.intervalId = null;
     this.Running = false;
     this.Destroyed = false;
+
+    // Registered once here, not per Start(): every Restart() used to add
+    // another Stop closure that nothing ever released.
+    this.maid.Give(() => this.Stop());
   }
 
   // Starts the requestAnimationFrame loop
@@ -48,8 +52,6 @@ class IntervalManager {
         if (!this.Running || this.Destroyed) return;
         this.callback();
       }, this.duration);
-
-      this.maid.Give(() => this.Stop());
       return;
     }
 
@@ -71,9 +73,6 @@ class IntervalManager {
     };
 
     this.animationFrameId = requestAnimationFrame(loop);
-
-    // Register cleanup with the Maid
-    this.maid.Give(() => this.Stop());
   }
 
   // Stops the animation frame loop without destroying the manager

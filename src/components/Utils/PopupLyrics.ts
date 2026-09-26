@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import Session from "../Global/Session.ts";
-import PageView from "../Pages/PageView.ts";
+import PageView, { PageContainer } from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
 import { NPVCardOwnsPage, DeRenderNPVCard, RequestNPVCardEvaluate } from "./NPVLyrics.ts";
 
@@ -32,14 +32,10 @@ const OpenPopupLyricsFlow = async () => {
   if (NPVCardOwnsPage()) await DeRenderNPVCard();
 
   if (PageView.IsOpened && !IsPIP) {
-    if (Fullscreen.IsOpen) {
-      // If in any fullscreen mode, close it first
-      await Fullscreen.Close();
-      Session.GoBack();
-    } else {
-      await PageView.Destroy();
-      Session.GoBack();
-    }
+    // Destroy leaves fullscreen itself and is synchronous, so the page is
+    // guaranteed closed before we recurse — whether or not GoBack applies.
+    await PageView.Destroy();
+    Session.GoBackFrom("/SpicyLyrics");
 
     await OpenPopupLyricsFlow();
     return;
@@ -149,13 +145,29 @@ const OpenPopupLyricsFlow = async () => {
 
   currentPipWindow.document.head.appendChild(additionalStylingElement);
 
+  // The awaits above (requestWindow, the style fetch) leave room for the main
+  // page to open, or for the user to close the still-empty window. Either way
+  // PiP can no longer take the page over; bail and drop the window.
+  if (PageView.IsOpened || currentPipWindow.closed) {
+    if (!currentPipWindow.closed) currentPipWindow.close();
+    currentPipWindow = null;
+    return;
+  }
+
   currentPipWindow.document.body.innerHTML = `<div class="app-drag-region"></div><div class="spicy-pip-wrapper"></div>`;
 
   const pipWrapper = currentPipWindow.document.body.querySelector(".spicy-pip-wrapper") as HTMLElement;
 
   IsPIP = true;
 
-  PageView.Open(pipWrapper);
+  await PageView.Open(pipWrapper);
+  if (!PageView.IsOpened || !pipWrapper.contains(PageContainer)) {
+    // The open was refused or raced; don't leave a blank window claiming PiP.
+    IsPIP = false;
+    currentPipWindow.close();
+    currentPipWindow = null;
+    return;
+  }
 
   Fullscreen.Open(true, false);
 

@@ -10,12 +10,27 @@ import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
-import Fullscreen, { CleanupMediaBox, SetControlsDragLock } from "./Fullscreen.ts";
+import Fullscreen, {
+  CleanupMediaBox,
+  IsFullscreenClosing,
+  SetControlsDragLock,
+} from "./Fullscreen.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 import { IsCompactMode } from "./CompactMode.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Scheduler from "../../modules/Scheduler.ts";
 import Whentil from "../../modules/Whentil.ts";
+
+// Spicetify's wrapper rescans every element's computed style on each childList
+// mutation, and textContent always replaces the text node. Editing it in place doesn't.
+function setText(el: HTMLElement, text: string): void {
+  const node = el.firstChild;
+  if (node && node === el.lastChild && node.nodeType === Node.TEXT_NODE) {
+    if (node.nodeValue !== text) node.nodeValue = text;
+  } else if (el.textContent !== text) {
+    el.textContent = text;
+  }
+}
 
 // Define interfaces for our control instances
 interface PlaybackControlsInstance {
@@ -160,7 +175,7 @@ function OpenNowBar(skipSaving: boolean = false) {
   }, 10);
 
   if (Fullscreen.IsOpen) {
-    const MediaBox = PageContainer.querySelector(
+    const MediaBox = PageContainer?.querySelector(
       ".ContentBox .NowBar .Header .MediaBox .MediaContent"
     );
 
@@ -460,8 +475,8 @@ function OpenNowBar(skipSaving: boolean = false) {
           if (!isDragging) {
             SliderBar.style.setProperty("--SliderProgress", sliderPercentage.toString());
           }
-          DurationElem.textContent = formattedDuration;
-          PositionElem.textContent = formattedPosition;
+          setText(DurationElem, formattedDuration);
+          setText(PositionElem, formattedPosition);
         };
 
         const sliderBarHandler = (event: MouseEvent) => {
@@ -538,7 +553,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
           if (PositionElem) {
             // Show the formatted position for the drag position
-            PositionElem.textContent = songProgressBar.GetFormattedPosition();
+            setText(PositionElem, songProgressBar.GetFormattedPosition());
           }
         };
 
@@ -860,14 +875,15 @@ function OpenNowBar(skipSaving: boolean = false) {
         ActiveSetupSongProgressBarInstance.Apply();
       }
 
-      // Use a more reliable approach to add elements
-      Whentil.When(
+      // Cancelled with the maid: if the page closes first, the condition never
+      // becomes true and Whentil would poll every ~4ms forever.
+      const mediaContentTask = Whentil.When(
         () =>
-          PageContainer.querySelector(
+          PageContainer?.querySelector(
             ".ContentBox .NowBar .Header .MediaBox .MediaContent .ViewControls"
           ),
         () => {
-          const MediaBox = PageContainer.querySelector(
+          const MediaBox = PageContainer?.querySelector(
             ".ContentBox .NowBar .Header .MediaBox .MediaContent"
           );
           if (!MediaBox) return;
@@ -911,6 +927,7 @@ function OpenNowBar(skipSaving: boolean = false) {
                     }); */
         }
       );
+      NowBarFullscreenMaid.Give({ Destroy: mediaContentTask.Cancel });
     }
   }
 
@@ -1065,7 +1082,7 @@ function CleanUpActiveComponents() {
 
 function CloseNowBar() {
   NowBarObj.Open = false;
-  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
+  const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
   NowBar.classList.remove("Active");
   $isNowBarOpen.set(false);
@@ -1218,6 +1235,22 @@ async function getAVCStreamUrl(manifestUrl: string) {
     }
 } */
 
+/**
+ * The fullscreen song/artist links. In PiP the page lives in the popup window
+ * and `Fullscreen.IsOpen` is true too, but the main-window Close would drag the
+ * page out of the popup — so there we only navigate the main window. A click
+ * during the exit animation is dropped rather than navigating twice.
+ */
+async function navigateFromFullscreen(pathname: string) {
+  if (IsFullscreenClosing()) return;
+  if (!IsPIP && Fullscreen.IsOpen && !(await Fullscreen.Close())) return;
+  Session.Navigate({ pathname });
+}
+
+// Each UpdateNowBar takes a token for its delayed metadata swap; a later update
+// (fast skipping) makes the earlier one's pending timers no-ops.
+let metadataUpdateToken = 0;
+
 function UpdateNowBar(force = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
@@ -1368,8 +1401,10 @@ function UpdateNowBar(force = false) {
 
 
   MetadataContainer.classList.add("tr_VisuallyHidden");
+  const metadataToken = ++metadataUpdateToken;
 
   setTimeout(() => {
+    if (metadataToken !== metadataUpdateToken) return;
     const songName = SpotifyPlayer.GetName();
     if (SongNameSpan) {
       SongNameSpan.textContent = songName ?? "";
@@ -1378,10 +1413,7 @@ function UpdateNowBar(force = false) {
         const albumId = albumUri?.split(":")?.[2];
         if (albumId) {
           SongNameSpan.classList.add("Clickable");
-          SongNameSpan.onclick = async () => {
-            await Fullscreen.Close();
-            Session.Navigate({ pathname: `/album/${albumId}` });
-          };
+          SongNameSpan.onclick = () => navigateFromFullscreen(`/album/${albumId}`);
         } else {
           SongNameSpan.classList.remove("Clickable");
           SongNameSpan.onclick = null;
@@ -1415,10 +1447,7 @@ function UpdateNowBar(force = false) {
           span.textContent = artist.name;
           if (artistId) {
             span.classList.add("Clickable");
-            span.onclick = async () => {
-              await Fullscreen.Close();
-              Session.Navigate({ pathname: `/artist/${artistId}` });
-            };
+            span.onclick = () => navigateFromFullscreen(`/artist/${artistId}`);
           }
           scrollWrapper.appendChild(span);
           if (idx < artists.length - 1) {
@@ -1433,13 +1462,16 @@ function UpdateNowBar(force = false) {
       }
     }
 
-    setTimeout(() => MetadataContainer.classList.remove("tr_VisuallyHidden"), 80);
+    setTimeout(() => {
+      if (metadataToken !== metadataUpdateToken) return;
+      MetadataContainer.classList.remove("tr_VisuallyHidden");
+    }, 80);
   }, 350);
 }
 
 
 function NowBar_SwapSides() {
-  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
+  const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
   const spicyLyricsPage = PageContainer;
@@ -1475,7 +1507,7 @@ function NowBar_SwapSides() {
 }
 
 function Session_NowBar_SetSide() {
-  const NowBar = PageContainer.querySelector(".ContentBox .NowBar");
+  const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
 
   const spicyLyricsPage = PageContainer;

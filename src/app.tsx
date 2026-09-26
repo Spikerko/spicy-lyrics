@@ -9,6 +9,7 @@ import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Loaders/LoaderContainer.css";
+import "./css/Loaders/LyricsSkeleton.css";
 import "./css/font-pack/font-pack.css";
 
 import ApplyDynamicBackground, {
@@ -18,6 +19,7 @@ import ApplyDynamicBackground, {
 import {
   $currentLyricsData,
   $showNpvDynamicBg,
+  $removeSpotifyLyricsButton,
   $popupLyricsAllowed,
   $spicyLyricsVersion,
   $staticBackgroundMode,
@@ -231,6 +233,27 @@ async function main() {
           }
         }
 
+        @keyframes SL_SkeletonSweep {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(100%);
+          }
+        }
+
+        @keyframes SL_SkeletonDot {
+          0%,
+          100% {
+            opacity: 0.25;
+            transform: translateY(0);
+          }
+          40% {
+            opacity: 1;
+            transform: translateY(-0.18em);
+          }
+        }
+
         @keyframes MB_anim_enter {
           0% {
             transform: translate(100%, 0);
@@ -243,6 +266,25 @@ async function main() {
 
   skeletonStyle.id = "spicyLyrics-additionalStyling";
   document.head.appendChild(skeletonStyle);
+
+  // Enter fullscreen once the route change has mounted the page. Bounded, and
+  // re-checked on arrival: navigating away first must not leave it armed for
+  // whenever the page next opens, and a second click must not open it twice.
+  let pendingFullscreenOpen: ReturnType<typeof Whentil.When> | null = null;
+  const openFullscreenOncePageMounts = (cinemaView: boolean) => {
+    pendingFullscreenOpen?.Cancel();
+    pendingFullscreenOpen = Whentil.When(
+      () => document.querySelector<HTMLElement>(".Root__main-view #SpicyLyricsPage"),
+      () => {
+        pendingFullscreenOpen = null;
+        if (Spicetify.Platform.History.location?.pathname !== "/SpicyLyrics") return;
+        if (Fullscreen.IsOpen) return;
+        Fullscreen.Open(cinemaView);
+      },
+      1,
+      5000
+    );
+  };
 
   let ButtonList: any;
   if (SpotifyPlayer.Playbar?.Button) {
@@ -261,13 +303,7 @@ async function main() {
                 } else  */
               Session.Navigate({ pathname: "/SpicyLyrics" });
               if (Global.Saves.shift_key_pressed) {
-                const pageWhentil = Whentil.When(
-                  () => document.querySelector<HTMLElement>(".Root__main-view #SpicyLyricsPage"),
-                  () => {
-                    Fullscreen.Open(true);
-                    pageWhentil?.Cancel();
-                  }
-                );
+                openFullscreenOncePageMounts(true);
               }
               //}
             } else {
@@ -287,13 +323,7 @@ async function main() {
           async (self) => {
             if (!self.active) {
               Session.Navigate({ pathname: "/SpicyLyrics" });
-              const pageWhentil = Whentil.When(
-                () => document.querySelector<HTMLElement>(".Root__main-view #SpicyLyricsPage"),
-                () => {
-                  Fullscreen.Open(Global.Saves.shift_key_pressed ?? false);
-                  pageWhentil?.Cancel();
-                }
-              );
+              openFullscreenOncePageMounts(Global.Saves.shift_key_pressed ?? false);
             } else {
               Session.GoBack();
             }
@@ -354,17 +384,23 @@ async function main() {
     }
   });
 
-  {
-    if (!ButtonList) return;
+  // Only the playbar buttons depend on Playbar.Button. A bare `return` here used
+  // to abort the rest of main(): no routing, song-change handling or backgrounds.
+  if (ButtonList) {
+    const lyricsPageButton = ButtonList[0].Button;
+    lyricsPageButton.element.id = "SpicyLyrics_PageButton";
+    lyricsPageButton.element.style.setProperty("display", "inline-block", "important");
 
     const fullscreenButton = ButtonList[1].Button;
     fullscreenButton.element.style.order = "100001";
     fullscreenButton.element.id = "SpicyLyrics_FullscreenButton";
+    fullscreenButton.element.style.setProperty("display", "inline-block", "important");
 
     const popupLyricsButton = ButtonList[2].Button;
     if (popupLyricsButton && ('documentPictureInPicture' in window) && $popupLyricsAllowed.get()) {
       popupLyricsButton.element.style.order = "100000";
       popupLyricsButton.element.id = "SpicyLyrics_PopupLyricsButton";
+      popupLyricsButton.element.style.setProperty("display", "inline-block", "important");
     }
 
     const hideUnwantedButtons = (container: Element) => {
@@ -380,6 +416,7 @@ async function main() {
 
         if (
           (isFullscreen || isPip || isGenericControl) &&
+          element.id !== "SpicyLyrics_PageButton" &&
           element.id !== "SpicyLyrics_FullscreenButton" &&
           element.id !== "SpicyLyrics_PopupLyricsButton"
         ) {
@@ -453,6 +490,20 @@ async function main() {
   if (ButtonList) {
     button = ButtonList[0];
   }
+
+  // The page button is offered for tracks only. Applied on every song change,
+  // not just at startup, so switching to an episode hides it again.
+  const syncLyricsButtonRegistration = () => {
+    if (!button) return;
+    const isTrack = SpotifyPlayer.GetContentType() === "track";
+    if (isTrack && !button.Registered) {
+      button.Button.register();
+      button.Registered = true;
+    } else if (!isTrack && button.Registered) {
+      button.Button.deregister();
+      button.Registered = false;
+    }
+  };
 
   const Hometinue = async () => {
     Whentil.When(
@@ -679,6 +730,10 @@ async function main() {
       }
     });
 
+    $removeSpotifyLyricsButton.subscribe((v) => {
+      document.body.classList.toggle("SpicyLyrics_RemoveSpotifyLyricsButton", v);
+    });
+
     startNowPlayingBarObserver();
     scheduleNowPlayingBarDynamicBackgroundApply();
 
@@ -701,10 +756,7 @@ async function main() {
         PageContainer?.classList.remove("episode-content-type");
       }
 
-      if (!button.Registered) {
-        button.Button.register();
-        button.Registered = true;
-      }
+      syncLyricsButtonRegistration();
 
       if (PageContainer?.querySelector(".ContentBox .NowBar")) {
         if (Fullscreen.IsOpen) {
@@ -788,17 +840,17 @@ async function main() {
 
     async function loadPage(location: Location) {
       appLogger.debug("Handling route change", location.pathname);
+      // Recorded before any await: a later navigation must see this one as its
+      // previous location, not whatever was current when this call started.
+      const previous = lastLocation;
+      lastLocation = location;
       if (location.pathname === "/SpicyLyrics") {
         PageView.Open();
         if (button) button.Button.active = true;
-      } else {
-        if (lastLocation?.pathname === "/SpicyLyrics") {
-          await PageView.Destroy();
-          if (!button) return;
-          button.Button.active = false;
-        }
+      } else if (previous?.pathname === "/SpicyLyrics") {
+        if (button) button.Button.active = false;
+        await PageView.Destroy();
       }
-      lastLocation = location;
     }
 
     Global.Event.listen("platform:history", loadPage);
@@ -1059,21 +1111,7 @@ async function main() {
 
   Whentil.When(
     () => SpotifyPlayer.GetContentType(),
-    () => {
-      const IsSomethingElseThanTrack = SpotifyPlayer.GetContentType() !== "track";
-
-      if (IsSomethingElseThanTrack) {
-        if (!button) return;
-        button.Button.deregister();
-        button.Registered = false;
-      } else {
-        if (!button) return;
-        if (!button.Registered) {
-          button.Button.register();
-          button.Registered = true;
-        }
-      }
-    }
+    () => syncLyricsButtonRegistration()
   );
 
   initNPVLyrics();
@@ -1085,9 +1123,8 @@ async function main() {
   setTimeout(() => {
     Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
       if (IsPIP) return;
-      if (Fullscreen.CinemaViewOpen) {
-        await Fullscreen.Close();
-        Session.GoBack();
+      if (Fullscreen.CinemaViewOpen && (await Fullscreen.Close())) {
+        Session.GoBackFrom("/SpicyLyrics");
       }
     });
 

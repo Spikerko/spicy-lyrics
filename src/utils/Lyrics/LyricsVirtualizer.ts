@@ -5,7 +5,9 @@ import {
   observeElementOffset,
 } from "@tanstack/virtual-core";
 import { Maid } from "../../modules/Maid.ts";
+import { Spring } from "../../modules/Spring.ts";
 import Logger from "../Logger.ts";
+import { $smoothScrolling } from "../stores.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
 // Gap is baked into each wrapper's padding-bottom so items can have
@@ -24,9 +26,34 @@ const ESTIMATE: Record<string, number> = {
 
 const virtualizerLogger = new Logger("Lyrics Virtualizer");
 
+// Smooth-scroll spring. Critically damped, so it never overshoots the line, and
+// settles in ~0.8s. A retarget mid-flight keeps the current velocity, which is
+// what makes back-to-back line changes read as one continuous glide.
+const SMOOTH_SCROLL_FREQUENCY = 1;
+const SMOOTH_SCROLL_DAMPING = 1;
+// The glide is done once it is this close (px) to the goal and moving slower than
+// this per frame. Sub-pixel rendering makes the final snap invisible.
+const SMOOTH_SCROLL_SETTLE_PX = 0.25;
+const SMOOTH_SCROLL_SETTLE_SPEED = 0.05;
+// How many times a glide may re-aim after finding the list somewhere other than
+// where it steered it (layout changed underneath it) before it just accepts
+// where the browser put it.
+const SMOOTH_SCROLL_MAX_RECONCILES = 3;
+
+// With Smooth Scrolling on, rows glide to a new position instead of jumping when
+// something above them changes height — chiefly a "•••" interlude line, which
+// snaps between 0 and a full line height as it becomes active and ends.
+const LAYOUT_GLIDE_TRANSITION = "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)";
+// Row glides are held off for this long after anything that re-lays the list out
+// wholesale (opening it, instant jumps, resizes, the user scrolling), where rows
+// sliding into place would look like drift rather than motion.
+const LAYOUT_GLIDE_BLOCK_INIT_MS = 1500;
+const LAYOUT_GLIDE_BLOCK_MS = 800;
+
 class LyricsVirtualizer {
   private _virtualizer: Virtualizer<HTMLElement, HTMLElement> | null = null;
   private _allElements: HTMLElement[] = [];
+  private _indexByElement = new Map<HTMLElement, number>();
   // One positioning wrapper per line element. The wrapper gets position:absolute +
   // translateY from the virtualizer; the .line lives inside it so a CSS `scale` on
   // .line acts around its own center instead of composing with translateY through
@@ -85,7 +112,7 @@ class LyricsVirtualizer {
   private static readonly _MAX_SCROLL_RETRIES = 30;
 
   // True while a programmatic scrollToIndex is converging. During this window we
-  // disable TanStack's own scroll-position adjustment (see _setConverging) so we are
+  // disable TanStack's own scroll-position adjustment (see _shouldAdjustScroll) so we are
   // the sole writer of scrollTop and the retry chain's "external scroll" abort only
   // trips on a genuine user scroll.
   private _converging = false;
@@ -96,6 +123,39 @@ class LyricsVirtualizer {
   // snapshot would overwrite correct transforms set by the inner call.
   private _inOnChange = false;
   private _onChangePending = false;
+  private _changeQueued = false;
+
+  // Smooth-scroll state (see _smoothScrollToIndex). The spring persists across
+  // scrolls so its velocity can carry over into the next target.
+  private _smoothSpring: Spring | null = null;
+  private _smoothRAF: ReturnType<typeof requestAnimationFrame> | null = null;
+  private _smoothTarget: {
+    index: number;
+    align: "start" | "center" | "end" | "auto";
+    padding: number;
+  } | null = null;
+  private _smoothLastTs: number | null = null;
+  private _smoothLastPosition: number | null = null;
+  // Whole-pixel scrollTop last written; the sub-pixel remainder lives in
+  // _smoothFraction and is applied as a translate on the virtual container.
+  private _smoothLastWhole: number | null = null;
+  private _smoothFraction = 0;
+  // Layout the glide needs every frame, read once per retarget rather than per
+  // frame — each read here forces a layout on top of the lyrics animator's writes.
+  // Null means "stale, re-read next frame" (set on viewport resizes).
+  private _smoothGeometry: {
+    containerOffset: number;
+    viewportHeight: number;
+    maxScroll: number;
+    // v.getTotalSize() when maxScroll was read. Rows below can change height
+    // mid-glide (an interlude opening or collapsing), which moves the scroll
+    // limit by exactly the change in total size — tracked without a layout read.
+    totalSize: number;
+  } | null = null;
+  private _smoothReconciles = 0;
+
+  // performance.now() until which row glides stay off. See LAYOUT_GLIDE_BLOCK_MS.
+  private _layoutGlideBlockedUntil = 0;
 
   setOnNewElementMounted(cb: (() => void) | null): void {
     this._onNewElementMounted = cb;
@@ -144,7 +204,7 @@ class LyricsVirtualizer {
       mountedCount: this._mountedIndices.size,
       containerWidth: this._containerWidth,
     });
-    let changed = false;
+    const toMeasure: HTMLElement[] = [];
     for (const idx of this._mountedIndices) {
       const wrapper = this._wrappers[idx];
       if (!wrapper?.isConnected) continue;
@@ -158,10 +218,11 @@ class LyricsVirtualizer {
       if (Math.abs(prevPad - gap) >= 0.5) {
         wrapper.style.paddingBottom = `${gap}px`;
       }
-      v.measureElement(wrapper);
-      changed = true;
+      toMeasure.push(wrapper);
     }
-    if (changed) {
+    // Measured after all padding writes so the pass costs one layout, not one per line.
+    this._measureBatch(v, toMeasure);
+    if (toMeasure.length > 0) {
       virtualizerLogger.debug("Remeasure pass updated virtualizer layout");
       v._willUpdate();
     } else {
@@ -239,6 +300,8 @@ class LyricsVirtualizer {
       });
       this._containerWidth = clientWidth;
       this._containerHeight = clientHeight;
+      this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+      this._smoothGeometry = null;
       if (this._spacer) this._spacer.style.height = `${clientHeight / 2}px`;
       this._remeasureVisible();
       v._willUpdate();
@@ -252,6 +315,7 @@ class LyricsVirtualizer {
         current: clientHeight,
       });
       this._containerHeight = clientHeight;
+      this._smoothGeometry = null;
       if (this._spacer) this._spacer.style.height = `${clientHeight / 2}px`;
       v._willUpdate();
       return;
@@ -279,6 +343,10 @@ class LyricsVirtualizer {
   };
 
   private _onScrollEnd = (): void => {
+    // Every per-frame write of a smooth glide ends its own "scroll" and fires
+    // scrollend; remeasuring each time is a forced layout per frame. The glide
+    // remeasures once when it settles instead.
+    if (this._smoothRAF !== null) return;
     if (this._scrollEndTimer !== null) {
       clearTimeout(this._scrollEndTimer);
       this._scrollEndTimer = null;
@@ -287,6 +355,7 @@ class LyricsVirtualizer {
   };
 
   private _onScrollDebounced = (): void => {
+    if (this._smoothRAF !== null) return;
     if (this._scrollEndTimer !== null) clearTimeout(this._scrollEndTimer);
     this._scrollEndTimer = setTimeout(() => {
       this._scrollEndTimer = null;
@@ -311,6 +380,7 @@ class LyricsVirtualizer {
       if (this._resizeRAF !== null) { cancelAnimationFrame(this._resizeRAF); this._resizeRAF = null; }
     });
     this._allElements = lineElements;
+    this._indexByElement = new Map(lineElements.map((el, i) => [el, i]));
     this._wrappers = new Array(lineElements.length).fill(null);
     this._virtualContainer = virtualContainer;
     this._scrollEl = scrollEl;
@@ -330,15 +400,15 @@ class LyricsVirtualizer {
         virtualizerLogger.debug("Skipping resize measure: container width is zero");
         return;
       }
-      let changed = false;
+      const toMeasure: HTMLElement[] = [];
       for (const entry of entries) {
         const el = entry.target as HTMLElement;
         if (!el.isConnected) continue;
         if (el.getAttribute("data-index") === null) continue;
-        v.measureElement(el);
-        changed = true;
+        toMeasure.push(el);
       }
-      if (changed && this._resizeRAF === null) {
+      this._measureBatch(v, toMeasure);
+      if (toMeasure.length > 0 && this._resizeRAF === null) {
         this._resizeRAF = requestAnimationFrame(() => {
           this._resizeRAF = null;
           if (this._virtualizer === v) {
@@ -352,22 +422,22 @@ class LyricsVirtualizer {
     this._classObserver = this._maid!.Give(new MutationObserver((mutations) => {
       const v = this._virtualizer;
       if (!v) return;
-      let changed = false;
+      const toMeasure: HTMLElement[] = [];
       for (const mutation of mutations) {
         const el = mutation.target as HTMLElement;
-        const index = this._allElements.indexOf(el);
-        if (index === -1) continue;
+        const index = this._indexByElement.get(el);
+        if (index === undefined) continue;
         const wrapper = this._wrappers[index];
         if (!wrapper?.isConnected) continue;
         const gap = this._itemGap(index);
         const prev = parseFloat(wrapper.style.paddingBottom) || 0;
         if (Math.abs(gap - prev) >= 0.5) {
           wrapper.style.paddingBottom = `${gap}px`;
-          v.measureElement(wrapper);
-          changed = true;
+          toMeasure.push(wrapper);
         }
       }
-      if (changed && this._resizeRAF === null) {
+      this._measureBatch(v, toMeasure);
+      if (toMeasure.length > 0 && this._resizeRAF === null) {
         this._resizeRAF = requestAnimationFrame(() => {
           this._resizeRAF = null;
           if (this._virtualizer === v) {
@@ -394,13 +464,25 @@ class LyricsVirtualizer {
       scrollToFn: elementScroll,
       observeElementRect,
       observeElementOffset,
-      onChange: (v) => this._onVirtualizerChange(v),
+      onChange: (v) => this._queueChange(v),
       measureElement: this._measureHeight,
     });
+
+    this._virtualizer.shouldAdjustScrollPositionOnItemSizeChange = this._shouldAdjustScroll;
+
+    // Switching Smooth Scrolling off must take effect on the glide in flight,
+    // not only on the next scroll.
+    this._maid!.Give(
+      $smoothScrolling.listen((enabled) => {
+        if (!enabled) this._handOffSmoothScroll();
+      })
+    );
+    this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_INIT_MS);
 
     scrollEl.scrollTop = 0;
     virtualizerLogger.debug("Scroll position reset to top during init");
     this._virtualizer._willUpdate();
+    this._flushQueuedChange(this._virtualizer);
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -430,6 +512,20 @@ class LyricsVirtualizer {
       this._scrollEl?.removeEventListener("scroll", this._onScrollDebounced);
     });
 
+    // Anything the user does to move the list. The scrollbar lives on the
+    // SimpleBar root, outside the scroll element, hence the second target.
+    const intentRoot = scrollEl.closest<HTMLElement>("[data-simplebar]") ?? scrollEl;
+    for (const type of ["wheel", "touchstart", "keydown"] as const) {
+      scrollEl.addEventListener(type, this._onUserScrollIntent, { passive: true });
+    }
+    intentRoot.addEventListener("pointerdown", this._onUserScrollIntent, { passive: true });
+    this._maid!.Give(() => {
+      for (const type of ["wheel", "touchstart", "keydown"] as const) {
+        scrollEl.removeEventListener(type, this._onUserScrollIntent);
+      }
+      intentRoot.removeEventListener("pointerdown", this._onUserScrollIntent);
+    });
+
     // Permanent bottom spacer at half the viewport height so the last item can be
     // centered without temporary container-height inflation (which flickers the scrollbar).
     const spacer = document.createElement("div");
@@ -451,6 +547,8 @@ class LyricsVirtualizer {
         virtualizerLogger.debug("Ignoring width change to 0 (likely minimized)");
         return;
       }
+      // The viewport moved under a glide in flight; have it re-read its geometry.
+      this._smoothGeometry = null;
       if (this._spacer) this._spacer.style.height = `${el.clientHeight / 2}px`;
       if (Math.abs(newWidth - this._containerWidth) < 1) {
         // Width unchanged, but a height-only resize (vertical-only window resize,
@@ -462,11 +560,13 @@ class LyricsVirtualizer {
             next: el.clientHeight,
           });
           this._containerHeight = el.clientHeight;
+          this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
           v._willUpdate();
         }
         return;
       }
       
+      this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
       virtualizerLogger.info("Container width changed", {
         previous: this._containerWidth,
         next: newWidth,
@@ -500,6 +600,7 @@ class LyricsVirtualizer {
     // has re-laid out so every re-mounted item gets correct heights.
     const _handleVisibilityRestore = () => {
       if (document.hidden) return;
+      this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
       virtualizerLogger.debug("Visibility restored; forcing remeasure cycle");
       requestAnimationFrame(() => {
         const v = this._virtualizer;
@@ -544,6 +645,48 @@ class LyricsVirtualizer {
       }
     }
     return wrapper;
+  }
+
+  // TanStack notifies once per resized item, and its ResizeObserver resizes items
+  // one at a time: running the mount pass on each notify forced a layout per line.
+  // Coalesce to one pass per task; the microtask still lands before paint.
+  private _queueChange(v: Virtualizer<HTMLElement, HTMLElement>): void {
+    if (this._inOnChange) {
+      this._onChangePending = true;
+      return;
+    }
+    if (this._changeQueued) return;
+    this._changeQueued = true;
+    queueMicrotask(() => this._flushQueuedChange(v));
+  }
+
+  // Run a queued pass now. Needed right after our own DOM insertions: Spicetify's
+  // wrapper rescans the page once per mutation delivery, so mounting in a later
+  // microtask would cost a second full scan.
+  private _flushQueuedChange(v: Virtualizer<HTMLElement, HTMLElement>): void {
+    if (!this._changeQueued) return;
+    this._changeQueued = false;
+    this._onVirtualizerChange(v);
+  }
+
+  // measureElement can synchronously re-enter onChange, whose DOM writes would
+  // force a fresh layout for every following read. Hold onChange until the batch
+  // is measured, then run it once.
+  private _measureBatch(v: Virtualizer<HTMLElement, HTMLElement>, wrappers: HTMLElement[]): void {
+    if (this._inOnChange) {
+      for (const wrapper of wrappers) v.measureElement(wrapper);
+      return;
+    }
+    this._inOnChange = true;
+    try {
+      for (const wrapper of wrappers) v.measureElement(wrapper);
+    } finally {
+      this._inOnChange = false;
+    }
+    if (this._onChangePending) {
+      this._onChangePending = false;
+      this._onVirtualizerChange(v);
+    }
   }
 
   private _onVirtualizerChange(v: Virtualizer<HTMLElement, HTMLElement>): void {
@@ -591,48 +734,66 @@ class LyricsVirtualizer {
       });
     }
 
+    // Writes and reads are split into separate passes throughout: interleaving an
+    // offsetHeight read with each append forced a full page layout per line.
     const toUnmount: number[] = [];
     for (const idx of this._mountedIndices) {
       if (!nextVisible.has(idx)) toUnmount.push(idx);
     }
+    // Sync the cached size to the line's current classList before unmounting.
+    // The animator may have flipped Active/Sung since the wrapper was rendered,
+    // and the MutationObserver only fires for elements still in the subtree (and
+    // only as a microtask). Recomputing the gap here makes the cache match what a
+    // remount would render, so re-entry doesn't misalign following items by the
+    // stale dot-line height. We do NOT mutate classList — the animator owns
+    // Active/Sung, and stripping Active flashes the line collapsed on remount.
+    const unmountWrappers: HTMLElement[] = [];
     for (const idx of toUnmount) {
       const wrapper = this._wrappers[idx];
       if (wrapper) {
-        // Sync the cached size to the line's current classList before unmounting.
-        // The animator may have flipped Active/Sung since the wrapper was rendered,
-        // and the MutationObserver only fires for elements still in the subtree (and
-        // only as a microtask). Recomputing the gap here makes the cache match what a
-        // remount would render, so re-entry doesn't misalign following items by the
-        // stale dot-line height. We do NOT mutate classList — the animator owns
-        // Active/Sung, and stripping Active flashes the line collapsed on remount.
         const gap = this._itemGap(idx);
         const prevPad = parseFloat(wrapper.style.paddingBottom) || 0;
         if (Math.abs(prevPad - gap) >= 0.5) {
           wrapper.style.paddingBottom = `${gap}px`;
         }
-        v.measureElement(wrapper);
-        if (this._resizeRAF === null) {
-          this._resizeRAF = requestAnimationFrame(() => {
-            this._resizeRAF = null;
-            if (this._virtualizer === v) {
-              virtualizerLogger.debug("Unmount pass scheduled virtualizer update");
-              v._willUpdate();
-            }
-          });
-        }
-        this._resizeObserver?.unobserve(wrapper);
-        wrapper.parentElement?.removeChild(wrapper);
+        unmountWrappers.push(wrapper);
       }
       this._mountedIndices.delete(idx);
     }
+    for (const wrapper of unmountWrappers) v.measureElement(wrapper);
+    for (const wrapper of unmountWrappers) {
+      this._resizeObserver?.unobserve(wrapper);
+      wrapper.parentElement?.removeChild(wrapper);
+    }
+    if (unmountWrappers.length > 0 && this._resizeRAF === null) {
+      this._resizeRAF = requestAnimationFrame(() => {
+        this._resizeRAF = null;
+        if (this._virtualizer === v) {
+          virtualizerLogger.debug("Unmount pass scheduled virtualizer update");
+          v._willUpdate();
+        }
+      });
+    }
 
-    let didMeasure = false;
+    // Measured on mount so start offsets are corrected in the same frame; a gap
+    // change alters height without a ResizeObserver callback arriving in time.
+    const toMeasure: HTMLElement[] = [];
+    let mountedAny = false;
+    const glide = this._layoutGlideEnabled();
     for (const item of items) {
       const wrapper = this._getOrCreateWrapper(item.index);
       const gap = this._itemGap(item.index);
       const prevPad = parseFloat(wrapper.style.paddingBottom) || 0;
-      if (Math.abs(prevPad - gap) >= 0.5) {
+      const gapChanged = Math.abs(prevPad - gap) >= 0.5;
+      if (gapChanged) {
         wrapper.style.paddingBottom = `${gap}px`;
+      }
+      // Only rows already on screen glide; a row being mounted has no previous
+      // position to glide from and must appear where it belongs.
+      const wantGlide = glide && this._mountedIndices.has(item.index);
+      if ((wrapper.dataset.glide === "1") !== wantGlide) {
+        wrapper.style.transition = wantGlide ? LAYOUT_GLIDE_TRANSITION : "";
+        wrapper.dataset.glide = wantGlide ? "1" : "";
       }
       wrapper.style.transform = `translateY(${Math.round(item.start)}px)`;
 
@@ -640,17 +801,15 @@ class LyricsVirtualizer {
         this._virtualContainer.appendChild(wrapper);
         this._mountedIndices.add(item.index);
         this._resizeObserver?.observe(wrapper);
-        // Measure immediately on mount so start offsets are corrected in the same frame.
-        v.measureElement(wrapper);
-        didMeasure = true;
-        this._onNewElementMounted?.();
-      } else if (Math.abs(prevPad - gap) >= 0.5) {
-        // Gap changes alter wrapper height without necessarily triggering a ResizeObserver
-        // callback quickly enough for this pass.
-        v.measureElement(wrapper);
-        didMeasure = true;
+        toMeasure.push(wrapper);
+        mountedAny = true;
+      } else if (gapChanged) {
+        toMeasure.push(wrapper);
       }
     }
+    for (const wrapper of toMeasure) v.measureElement(wrapper);
+    if (mountedAny) this._onNewElementMounted?.();
+    const didMeasure = toMeasure.length > 0;
     if (didMeasure && this._resizeRAF === null) {
       this._resizeRAF = requestAnimationFrame(() => {
         this._resizeRAF = null;
@@ -686,24 +845,294 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    if (!instant && $smoothScrolling.get()) {
+      this._smoothScrollToIndex(index, align, padding);
+      return;
+    }
+    this._stopSmoothScroll();
     this._setConverging(true);
     this._scrollToIndexWithRetry(index, align, instant, padding, 0, null);
   }
 
-  // Toggle convergence mode. While converging we disable TanStack's
-  // shouldAdjustScrollPositionOnItemSizeChange hook, whose automatic scrollTop
-  // correction (for above-viewport items measured larger than estimate) writes
-  // scrollTop out from under our manual scroll and trips the retry's external-scroll
-  // guard — the root cause of the active line never centering on a mid-song open.
-  // Restored to the default heuristic on settle so steady-state scrolling keeps it.
-  private _setConverging(active: boolean): void {
-    if (active === this._converging) return;
-    this._converging = active;
+  // Where item N sits in the virtual container. Unmeasured items fall back to an
+  // average-size estimate; callers re-read this as measurements land.
+  private _getItemRect(
+    v: Virtualizer<HTMLElement, HTMLElement>,
+    index: number
+  ): { start: number; size: number } {
+    const cached = v.measurementsCache[index] as
+      | { start: number; end: number; size: number }
+      | undefined;
+    if (cached) return { start: cached.start, size: cached.size };
+
+    // gap is always 0 — baked into each wrapper's padding-bottom.
+    const count = this._allElements.length;
+    const totalSize = v.getTotalSize();
+    const avgItemSize = count > 1 ? totalSize / count : totalSize;
+    return { start: index * avgItemSize, size: this._estimateSize(index) };
+  }
+
+  /**
+   * Spring-driven alternative to the native smooth scroll. Each frame re-reads
+   * the target line's position (items mounting above it shift it while we
+   * travel), so this converges on far targets the same way the retry chain
+   * does, without needing it. Calling again mid-flight just retargets.
+   */
+  private _smoothScrollToIndex(
+    index: number,
+    align: "start" | "center" | "end" | "auto",
+    padding: number
+  ): void {
     const v = this._virtualizer;
-    if (v) {
-      v.shouldAdjustScrollPositionOnItemSizeChange = active ? () => false : undefined;
+    const scrollEl = v?.scrollElement;
+    if (!v || !scrollEl || !this._virtualContainer) return;
+
+    const viewportHeight = scrollEl.clientHeight;
+    if (!viewportHeight) return;
+
+    const animating = this._smoothRAF !== null;
+    // Where the list visually is right now, sub-pixel remainder included.
+    const current = animating && this._smoothSpring
+      ? scrollEl.scrollTop + this._smoothFraction
+      : scrollEl.scrollTop;
+
+    if (!this._smoothSpring) {
+      this._smoothSpring = new Spring(current, SMOOTH_SCROLL_FREQUENCY, SMOOTH_SCROLL_DAMPING);
+    } else if (!animating) {
+      // Starting fresh: begin at rest from wherever the list actually is.
+      this._smoothSpring.SetGoal(current, true);
+    }
+
+    this._smoothGeometry = this._readSmoothGeometry(v, scrollEl);
+    this._smoothReconciles = 0;
+
+    this._smoothTarget = { index, align, padding };
+    // We are the only scrollTop writer until the glide settles — see _shouldAdjustScroll.
+    this._setConverging(true);
+
+    if (!animating) {
+      this._smoothLastTs = null;
+      this._smoothLastPosition = null;
+      this._smoothLastWhole = null;
+      this._smoothRAF = requestAnimationFrame(this._smoothStep);
     }
   }
+
+  // Layout reads for the glide. Done at retarget and after invalidation only —
+  // never on an ordinary frame. Null when the list isn't laid out.
+  private _readSmoothGeometry(
+    v: Virtualizer<HTMLElement, HTMLElement>,
+    scrollEl: HTMLElement
+  ): NonNullable<LyricsVirtualizer["_smoothGeometry"]> | null {
+    const container = this._virtualContainer;
+    const viewportHeight = scrollEl.clientHeight;
+    if (!container || !viewportHeight) return null;
+    // The virtual container's rect includes the sub-pixel translate, so add it
+    // back to get the untranslated offset.
+    const containerRect = container.getBoundingClientRect();
+    const scrollElRect = scrollEl.getBoundingClientRect();
+    return {
+      containerOffset:
+        containerRect.top - scrollElRect.top + scrollEl.scrollTop + this._smoothFraction,
+      viewportHeight,
+      maxScroll: Math.max(0, scrollEl.scrollHeight - viewportHeight),
+      totalSize: v.getTotalSize(),
+    };
+  }
+
+  /**
+   * One frame of the glide. Ordinarily reads no layout: the goal comes from
+   * TanStack's measurement cache (items mounting above the target move it while
+   * we travel, so it is re-read every frame) plus geometry cached at retarget,
+   * with the scroll limit kept current from the change in total size. The only
+   * DOM work is the scroll write and the sub-pixel translate.
+   */
+  private _smoothStep = (ts: number): void => {
+    this._smoothRAF = null;
+    const v = this._virtualizer;
+    const target = this._smoothTarget;
+    const spring = this._smoothSpring;
+    const scrollEl = v?.scrollElement;
+    const container = this._virtualContainer;
+    if (!v || !target || !spring || !scrollEl || !container) {
+      this._stopSmoothScroll();
+      return;
+    }
+
+    // Invalidated by a viewport resize (or never read): re-read it this frame.
+    if (!this._smoothGeometry) this._smoothGeometry = this._readSmoothGeometry(v, scrollEl);
+    const geometry = this._smoothGeometry;
+    if (!geometry) {
+      this._stopSmoothScroll();
+      return;
+    }
+
+    const maxScroll = Math.max(0, geometry.maxScroll + (v.getTotalSize() - geometry.totalSize));
+    const item = this._getItemRect(v, target.index);
+    // Rounded so the glide ends on a whole pixel with no translate left over.
+    const goal = Math.round(
+      Math.min(
+        maxScroll,
+        this._computeFinalScrollTop(
+          item.start,
+          item.size,
+          geometry.viewportHeight,
+          geometry.containerOffset,
+          target.align,
+          target.padding
+        )
+      )
+    );
+
+    spring.SetGoal(goal);
+    const dt =
+      this._smoothLastTs === null ? 1 / 60 : Math.min((ts - this._smoothLastTs) / 1000, 0.05);
+    this._smoothLastTs = ts;
+    const position = Math.max(0, spring.Step(dt));
+
+    const moved =
+      this._smoothLastPosition === null ? Infinity : Math.abs(position - this._smoothLastPosition);
+    this._smoothLastPosition = position;
+    const settled =
+      Math.abs(position - goal) < SMOOTH_SCROLL_SETTLE_PX &&
+      moved < SMOOTH_SCROLL_SETTLE_SPEED &&
+      this._mountedIndices.has(target.index);
+
+    // scrollTop only moves in whole pixels, which near the slow end of the ease
+    // shows up as the list ticking one pixel at a time. Scroll by the whole part
+    // and carry the remainder as a compositor-only translate on the list.
+    const whole = settled ? goal : Math.min(Math.round(position), Math.floor(maxScroll));
+    const fraction = settled ? 0 : Math.max(0, Math.min(position, maxScroll)) - whole;
+
+    if (whole !== this._smoothLastWhole) {
+      // `behavior: "instant"` overrides the element's CSS scroll-behavior: smooth,
+      // which would otherwise ease every per-frame write and fight the spring.
+      scrollEl.scrollTo({ top: whole, behavior: "instant" });
+      this._smoothLastWhole = whole;
+    }
+    this._setSmoothFraction(fraction);
+
+    // Same Wayland guard as the retry chain: a programmatic write may not
+    // dispatch 'scroll', so push the offset into TanStack ourselves. This also
+    // mounts rows coming into view in the same frame they are scrolled to.
+    if (v.scrollOffset == null || Math.abs(v.scrollOffset - whole) >= 1) {
+      v.scrollOffset = whole;
+      this._onVirtualizerChange(v);
+    }
+
+    if (settled) {
+      // One read, only when landing. If layout changed underneath the glide the
+      // browser may have clamped us somewhere else; the virtualizer's window
+      // must follow where the list really is, not where we asked it to be.
+      const actual = scrollEl.scrollTop;
+      if (Math.abs(actual - v.scrollOffset!) >= 1) {
+        v.scrollOffset = actual;
+        this._onVirtualizerChange(v);
+      }
+      if (Math.abs(actual - goal) > 1 && this._smoothReconciles < SMOOTH_SCROLL_MAX_RECONCILES) {
+        // Re-aim from where the list actually is, with fresh geometry.
+        virtualizerLogger.debug("Smooth scroll landed off target, re-aiming", { actual, goal });
+        this._smoothReconciles += 1;
+        this._smoothGeometry = null;
+        this._smoothLastWhole = actual;
+        this._smoothLastPosition = null;
+        spring.SetGoal(actual, true);
+        this._smoothRAF = requestAnimationFrame(this._smoothStep);
+        return;
+      }
+      this._stopSmoothScroll();
+      // Stand-in for the scrollend remeasures skipped during the glide.
+      this._remeasureVisible();
+    } else {
+      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+    }
+  };
+
+  // Smooth Scrolling was switched off mid-glide: stop the spring and let the
+  // standard path finish the move, so the line still ends up in place.
+  private _handOffSmoothScroll(): void {
+    const target = this._smoothTarget;
+    const active = this._smoothRAF !== null;
+    this._stopSmoothScroll();
+    if (active && target) this.scrollToIndex(target.index, target.align, false, target.padding);
+    // Strip the row-glide transitions from mounted rows right away.
+    if (this._virtualizer) this._onVirtualizerChange(this._virtualizer);
+  }
+
+  private _setSmoothFraction(fraction: number): void {
+    // Below a hundredth of a pixel nothing visibly changes; skip the style write.
+    if (Math.abs(fraction - this._smoothFraction) < 0.01 && fraction !== 0) return;
+    this._smoothFraction = fraction;
+    if (this._virtualContainer) {
+      this._virtualContainer.style.translate = fraction === 0 ? "" : `0 ${-fraction}px`;
+    }
+  }
+
+  private _stopSmoothScroll(): void {
+    const wasActive = this._smoothRAF !== null || this._smoothTarget !== null;
+    if (this._smoothRAF !== null) {
+      cancelAnimationFrame(this._smoothRAF);
+      this._smoothRAF = null;
+    }
+    this._smoothTarget = null;
+    this._smoothGeometry = null;
+    this._smoothLastTs = null;
+    this._smoothLastPosition = null;
+    this._smoothLastWhole = null;
+    this._setSmoothFraction(0);
+    if (wasActive) this._setConverging(false);
+  }
+
+  // The user is about to move the list themselves: let go of any glide, and hold
+  // off row glides so measurement corrections while they scroll stay instant.
+  private _onUserScrollIntent = (): void => {
+    this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+    if (this._smoothRAF !== null) {
+      virtualizerLogger.debug("Smooth scroll cancelled: user scroll");
+      this._stopSmoothScroll();
+    }
+  };
+
+  private _blockLayoutGlide(ms: number): void {
+    this._layoutGlideBlockedUntil = Math.max(this._layoutGlideBlockedUntil, performance.now() + ms);
+  }
+
+  private _layoutGlideEnabled(): boolean {
+    return $smoothScrolling.get() && performance.now() >= this._layoutGlideBlockedUntil;
+  }
+
+  // Converging (a programmatic scroll in flight): we are the only scrollTop
+  // writer. Without this, TanStack's automatic scrollTop correction (for
+  // above-viewport items measured larger than estimate) writes scrollTop out from
+  // under the manual scroll and trips the retry's external-scroll guard — the
+  // root cause of the active line never centering on a mid-song open.
+  private _setConverging(active: boolean): void {
+    this._converging = active;
+  }
+
+  /**
+   * Installed as TanStack's shouldAdjustScrollPositionOnItemSizeChange. Outside
+   * the two cases below it reproduces TanStack's default heuristic.
+   */
+  private _shouldAdjustScroll = (
+    item: { start: number },
+    _delta: number,
+    instance: Virtualizer<HTMLElement, HTMLElement>
+  ): boolean => {
+    if (this._converging) return false;
+    // Rows are gliding to absorb the size change; shifting scrollTop by the same
+    // amount instantly would move the list twice.
+    if (this._layoutGlideEnabled()) return false;
+    // TanStack's own default, verbatim (v3.16 resizeItem); both members are private there.
+    const internals = instance as unknown as {
+      scrollAdjustments: number;
+      getScrollOffset: () => number;
+    };
+    return (
+      item.start < internals.getScrollOffset() + internals.scrollAdjustments &&
+      instance.scrollDirection !== "backward"
+    );
+  };
 
   private _computeFinalScrollTop(
     itemStart: number,
@@ -766,24 +1195,7 @@ class LyricsVirtualizer {
       return;
     }
 
-    let itemStart: number;
-    let itemSize: number;
-
-    const cached = v.measurementsCache[index] as
-      | { start: number; end: number; size: number }
-      | undefined;
-
-    if (cached) {
-      itemStart = cached.start;
-      itemSize = cached.size;
-    } else {
-      // gap is always 0 — baked into each wrapper's padding-bottom.
-      const count = this._allElements.length;
-      const totalSize = v.getTotalSize();
-      const avgItemSize = count > 1 ? totalSize / count : totalSize;
-      itemStart = index * avgItemSize;
-      itemSize = this._estimateSize(index);
-    }
+    const { start: itemStart, size: itemSize } = this._getItemRect(v, index);
 
     const containerRect = this._virtualContainer.getBoundingClientRect();
     const scrollElRect = scrollEl.getBoundingClientRect();
@@ -822,6 +1234,10 @@ class LyricsVirtualizer {
       });
     }
 
+    // An instant jump re-lays out the whole window; rows gliding around after it
+    // would look like the list settling. Extended on every retry.
+    if (instant) this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+
     if (instant) {
       scrollEl.classList.add("InstantScroll");
     } else {
@@ -841,6 +1257,9 @@ class LyricsVirtualizer {
     // and the spacer-padded scrollHeight may not be tall enough on retry 0 when
     // most items are still estimated.
     const observedScrollTop = scrollEl.scrollTop;
+    // A smooth scroll hasn't moved yet on this read, so clamping is judged
+    // against the scroll range instead of the read-back position.
+    const maxScrollTop = scrollEl.scrollHeight - viewportHeight;
     const tanstackOffsetBefore = v.scrollOffset;
 
     // Diagnostics: distinguishes a smooth-scroll stall, an unscrollable container,
@@ -897,7 +1316,7 @@ class LyricsVirtualizer {
         const drift = fresh
           ? Math.abs(fresh.start - itemStart) + Math.abs(fresh.size - itemSize)
           : 0;
-        const wasClamped = Math.abs(observedScrollTop - finalScrollTop) > 1;
+        const wasClamped = finalScrollTop - maxScrollTop > 1;
         // By now the issued scroll has fired and onChange remounted the window, so
         // this reflects the post-scroll state.
         const targetMounted = this._mountedIndices.has(index);
@@ -933,8 +1352,11 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    this._stopSmoothScroll();
+    this._smoothSpring = null;
+    this._layoutGlideBlockedUntil = 0;
     // Reset convergence so the next virtualizer instance doesn't inherit a stale `true`
-    // (which would make _setConverging(true) a no-op and never install the hook).
+    // (the hook would then refuse every adjustment for the new instance).
     this._converging = false;
     this._maid?.Destroy();
     this._maid = null;
@@ -957,6 +1379,7 @@ class LyricsVirtualizer {
     }
     this._virtualizer = null;
     this._allElements = [];
+    this._indexByElement.clear();
     this._wrappers = [];
     this._mountedIndices.clear();
     this._lastVirtualWindowSignature = "";
@@ -965,7 +1388,8 @@ class LyricsVirtualizer {
       clearTimeout(this._resizeDebounceTimer);
       this._resizeDebounceTimer = null;
     }
-    this._onNewElementMounted = null;
+    // _onNewElementMounted is kept: it is registered once at module load
+    // (LyricsAnimator), and init() calls destroy() on every lyrics apply.
   }
 }
 

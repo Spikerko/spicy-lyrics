@@ -56,6 +56,14 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_DuetLinePadding",
   },
+  {
+    id: "lyricsSkeleton",
+    label: "Lyrics Loading Skeleton",
+    description:
+      "Shows placeholder lines and a small \"Loading Lyrics\" label while lyrics fetch and render, instead of the blurred spinner. Disable to bring the spinner back.",
+    default: true,
+    pageClass: "Exp_LyricsSkeleton",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id` — what the UI iterates over. */
