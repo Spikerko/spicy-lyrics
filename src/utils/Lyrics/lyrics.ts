@@ -1,4 +1,4 @@
-import { $lyricsContainerExists, $minimalLyricsMode } from "../stores.ts";
+import { $lyricsContainerExists, $minimalLyricsMode, $seekFadeCompensation } from "../stores.ts";
 import { $romanization } from "../uiState.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
@@ -231,6 +231,18 @@ LyricsInterval();
 let LinesEvListenerMaid: Maid | null = null;
 let LinesEvListenerExists: boolean = false;
 
+// Spotify fades audio in for roughly this long after a seek, so landing exactly
+// on a line's start swallows its first syllable on faster songs.
+const SEEK_FADE_COMPENSATION_MS = 300;
+
+function SeekToLineStart(startTime: number) {
+  const target = $seekFadeCompensation.get()
+    ? Math.max(0, startTime - SEEK_FADE_COMPENSATION_MS)
+    : startTime;
+  SpotifyPlayer.Seek(target);
+  Global.Event.evoke("song:seek", target);
+}
+
 // Define proper type for event parameter
 function LinesEvListener(e: MouseEvent) {
   const target = e.target as HTMLElement;
@@ -246,10 +258,7 @@ function LinesEvListener(e: MouseEvent) {
       }
     });
 
-    if (startTime !== undefined) {
-      SpotifyPlayer.Seek(startTime);
-      Global.Event.evoke("song:seek", startTime);
-    }
+    if (startTime !== undefined) SeekToLineStart(startTime);
   } else if (target.classList.contains("word")) {
     let startTime: number | undefined;
 
@@ -266,10 +275,7 @@ function LinesEvListener(e: MouseEvent) {
       }
     });
 
-    if (startTime !== undefined) {
-      SpotifyPlayer.Seek(startTime);
-      Global.Event.evoke("song:seek", startTime);
-    }
+    if (startTime !== undefined) SeekToLineStart(startTime);
   } else if (target.classList.contains("Emphasis")) {
     let startTime: number | undefined;
 
@@ -290,10 +296,7 @@ function LinesEvListener(e: MouseEvent) {
       }
     });
 
-    if (startTime !== undefined) {
-      SpotifyPlayer.Seek(startTime);
-      Global.Event.evoke("song:seek", startTime);
-    }
+    if (startTime !== undefined) SeekToLineStart(startTime);
   }
 }
 
