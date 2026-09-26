@@ -394,11 +394,13 @@ async function main() {
     const fullscreenButton = ButtonList[1].Button;
     fullscreenButton.element.style.order = "100001";
     fullscreenButton.element.id = "SpicyLyrics_FullscreenButton";
+    fullscreenButton.element.style.setProperty("display", "inline-block", "important");
 
     const popupLyricsButton = ButtonList[2].Button;
     if (popupLyricsButton && ('documentPictureInPicture' in window) && $popupLyricsAllowed.get()) {
       popupLyricsButton.element.style.order = "100000";
       popupLyricsButton.element.id = "SpicyLyrics_PopupLyricsButton";
+      popupLyricsButton.element.style.setProperty("display", "inline-block", "important");
     }
 
     const hideUnwantedButtons = (container: Element) => {
