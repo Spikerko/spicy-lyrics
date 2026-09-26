@@ -235,6 +235,15 @@ const MORPH_CLASSES = [
   "SpicyLyrics_NPVMorphOut",
 ];
 let activeMorph: ViewTransition | null = null;
+// The update callback of a morph that hasn't run yet. startViewTransition
+// defers it a frame, so a click in that window would read the old state (the
+// stores and the Expanded class) and morph in the wrong direction.
+let pendingMutate: (() => void) | null = null;
+
+// Apply a queued morph's state change now, so the next click sees it.
+function flushPendingMorph(): void {
+  pendingMutate?.();
+}
 
 // The morph's clipping comes from nested view-transition groups (Chromium 140+).
 // Without them the card's snapshot is a top-level group and bleeds over the UI.
@@ -253,6 +262,7 @@ const supportsNestedViewTransitions =
 // Nothing here may read layout or computed style: the lyrics dirty both every
 // frame, so any read forces a full relayout before the first capture.
 function morphExpandedState(mutate: () => void): void {
+  flushPendingMorph();
   const card = cardEl;
   if (
     !card ||
@@ -278,7 +288,15 @@ function morphExpandedState(mutate: () => void): void {
       ? "SpicyLyrics_NPVMorphOut"
       : "SpicyLyrics_NPVMorphIn"
   );
-  const transition = document.startViewTransition(mutate);
+  // Runs once: from the callback, or from a later click's flush — the skipped
+  // transition still invokes its callback afterwards, which is then a no-op.
+  const run = () => {
+    if (pendingMutate !== run) return;
+    pendingMutate = null;
+    mutate();
+  };
+  pendingMutate = run;
+  const transition = document.startViewTransition(run);
   activeMorph = transition;
   // The stores flip inside the update callback, a frame from now; park the
   // evaluate they trigger until the morph is over.
@@ -372,6 +390,7 @@ function renderCardShell(npv: HTMLElement): boolean {
   const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
   if (toggle) {
     toggle.addEventListener("click", () => {
+      flushPendingMorph();
       // Hiding an expanded card also leaves expanded mode.
       const morph = cardEl?.classList.contains("Expanded")
         ? morphExpandedState
