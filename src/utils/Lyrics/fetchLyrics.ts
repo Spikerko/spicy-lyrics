@@ -12,7 +12,8 @@ import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
-import { IsLyricsSkeletonEnabled, ShowLyricsSkeleton } from "./LyricsSkeleton.ts";
+import { HideLyricsSkeleton, IsLyricsSkeletonEnabled, ShowLyricsSkeleton } from "./LyricsSkeleton.ts";
+import { onExperimentChange } from "../experiments.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -512,6 +513,32 @@ export function HideLoaderContainer(): void {
     loaderContainer.querySelector(".loaderMessage")?.remove();
   }
 }
+
+// The CSS hides whichever loader the experiment isn't using, so flipping it
+// mid-fetch would hide the one that went up and leave nothing in its place.
+// Hand the loading state, and any queue message, across to the other one.
+onExperimentChange((experiment) => {
+  if (experiment.id !== "lyricsSkeleton") return;
+  const loaderContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .loaderContainer"
+  );
+  const skeleton = PageContainer?.querySelector<HTMLElement>(".LyricsContainer .LyricsSkeleton");
+  const queuedMessage = loaderContainer?.classList.contains("queued")
+    ? loaderContainer.querySelector(".loaderMessage")?.textContent
+    : skeleton?.classList.contains("active") && skeleton.classList.contains("LongLabel")
+      ? skeleton.querySelector(".SkeletonLabel")?.textContent
+      : null;
+  if (!$currentlyFetching.get() && !queuedMessage) return;
+
+  if (IsLyricsSkeletonEnabled()) {
+    HideLoaderContainer();
+    ShowLyricsSkeleton(queuedMessage ?? undefined);
+  } else {
+    HideLyricsSkeleton();
+    if (queuedMessage) ShowQueueLoader(queuedMessage);
+    else loaderContainer?.classList.add("active");
+  }
+});
 
 /**
  * Clear the lyrics container content

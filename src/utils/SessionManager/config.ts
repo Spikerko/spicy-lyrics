@@ -118,7 +118,12 @@ export function applyPingConfig(data: unknown): void {
  * and fires immediately, which would turn a huge TTL into a refresh loop.
  */
 const MAX_TIMER_MS = 2_147_483_647;
-const MIN_SESSION_TTL_SECONDS = 60;
+/**
+ * Floor on the refresh delay itself, so a tiny TTL can't become a refresh loop.
+ * Applied to the delay rather than the TTL: flooring the TTL would schedule a
+ * short-lived session's refresh after it had already expired.
+ */
+const MIN_REFRESH_DELAY_MS = 30_000;
 const MIN_REFRESH_AT_TTL_FRACTION = 0.5;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -144,8 +149,7 @@ export function pingDelayMs(): number {
 }
 
 export function refreshDelayMs(): number {
-  const ttlSeconds = Math.max(current.sessionTtlSeconds, MIN_SESSION_TTL_SECONDS);
   const fraction = clamp(current.refreshAtTtlFraction, MIN_REFRESH_AT_TTL_FRACTION, 1);
-  const base = Math.min(ttlSeconds * 1000 * fraction, MAX_TIMER_MS);
+  const base = clamp(current.sessionTtlSeconds * 1000 * fraction, MIN_REFRESH_DELAY_MS, MAX_TIMER_MS);
   return Math.min(jitter(base, REFRESH_JITTER_RATIO), MAX_TIMER_MS);
 }

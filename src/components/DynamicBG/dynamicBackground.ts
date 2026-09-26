@@ -1,7 +1,7 @@
 import { $staticBackgroundBlur, $staticBackgroundMode } from "../../utils/stores.ts";
 import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import Global from "../Global/Global.ts";
-import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
+import { COVER_PLACEHOLDER_URL, SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import ArtistVisuals from "./ArtistVisuals/Main.ts";
 import { PageContainer } from "../Pages/PageView.ts";
 import Kawarp, { type KawarpOptions } from "@kawarp/core";
@@ -181,7 +181,9 @@ const kawarpLoadChains = new WeakMap<Kawarp, Promise<unknown>>();
  * Load into `kawarp` after any load already running on it. Unserialized, a slow
  * load for the previous track could finish after the current track's and leave
  * the wrong art showing. Each queued load re-checks `isStale` when its turn
- * comes, so skipped-past tracks are dropped. Resolves true if it loaded.
+ * comes, so skipped-past tracks are dropped. Resolves true if it loaded and is
+ * still current — a skip during the load itself must not start the instance on
+ * the old art; the newer track's load is already queued behind this one.
  */
 function queueKawarpLoad(
   kawarp: Kawarp,
@@ -194,7 +196,7 @@ function queueKawarpLoad(
     .then(async () => {
       if (isStale()) return false;
       await loadKawarpSource(kawarp, source);
-      return true;
+      return !isStale();
     });
   kawarpLoadChains.set(kawarp, next.catch(() => undefined));
   return next;
@@ -215,10 +217,13 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     ? preCurrentImgCover
     : preCurrentImgCover.replace("spotify:image:", "https://i.scdn.co/image/");
   // Shown first when the full-size cover is slow to arrive; see loadCoverProgressively.
+  // GetCover falls back to the placeholder when there is no small size — never preview that.
   const smallCover = SpotifyPlayer.GetCover("small") ?? "";
   const previewImgCover = smallCover.startsWith("spotify:image:")
     ? smallCover.replace("spotify:image:", "https://i.scdn.co/image/")
-    : null;
+    : smallCover.startsWith("https://") && smallCover !== COVER_PLACEHOLDER_URL
+      ? smallCover
+      : null;
   const IsEpisode = SpotifyPlayer.GetContentType() === "episode";
 
   const artists = SpotifyPlayer.GetArtists() ?? [];
