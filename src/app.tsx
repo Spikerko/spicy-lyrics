@@ -387,6 +387,10 @@ async function main() {
   // Only the playbar buttons depend on Playbar.Button. A bare `return` here used
   // to abort the rest of main(): no routing, song-change handling or backgrounds.
   if (ButtonList) {
+    const lyricsPageButton = ButtonList[0].Button;
+    lyricsPageButton.element.id = "SpicyLyrics_PageButton";
+    lyricsPageButton.element.style.setProperty("display", "inline-block", "important");
+
     const fullscreenButton = ButtonList[1].Button;
     fullscreenButton.element.style.order = "100001";
     fullscreenButton.element.id = "SpicyLyrics_FullscreenButton";
@@ -410,6 +414,7 @@ async function main() {
 
         if (
           (isFullscreen || isPip || isGenericControl) &&
+          element.id !== "SpicyLyrics_PageButton" &&
           element.id !== "SpicyLyrics_FullscreenButton" &&
           element.id !== "SpicyLyrics_PopupLyricsButton"
         ) {
