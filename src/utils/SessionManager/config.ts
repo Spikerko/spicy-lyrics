@@ -119,11 +119,12 @@ export function applyPingConfig(data: unknown): void {
  */
 const MAX_TIMER_MS = 2_147_483_647;
 /**
- * Floor on the refresh delay itself, so a tiny TTL can't become a refresh loop.
- * Applied to the delay rather than the TTL: flooring the TTL would schedule a
- * short-lived session's refresh after it had already expired.
+ * Floor on the refresh delay itself, so a garbage TTL (say, a persisted 0.001)
+ * can't become a refresh loop. Applied to the delay rather than the TTL, and
+ * kept small: flooring above the TTL would schedule a short-lived session's
+ * refresh after it had already expired. Sessions shorter than this aren't viable.
  */
-const MIN_REFRESH_DELAY_MS = 30_000;
+const MIN_REFRESH_DELAY_MS = 5_000;
 const MIN_REFRESH_AT_TTL_FRACTION = 0.5;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -150,6 +151,9 @@ export function pingDelayMs(): number {
 
 export function refreshDelayMs(): number {
   const fraction = clamp(current.refreshAtTtlFraction, MIN_REFRESH_AT_TTL_FRACTION, 1);
-  const base = clamp(current.sessionTtlSeconds * 1000 * fraction, MIN_REFRESH_DELAY_MS, MAX_TIMER_MS);
-  return Math.min(jitter(base, REFRESH_JITTER_RATIO), MAX_TIMER_MS);
+  const ttlMs = current.sessionTtlSeconds * 1000;
+  const base = clamp(ttlMs * fraction, MIN_REFRESH_DELAY_MS, MAX_TIMER_MS);
+  // Jitter must not carry a late-fraction refresh past the expiry itself.
+  const latest = clamp(ttlMs, MIN_REFRESH_DELAY_MS, MAX_TIMER_MS);
+  return Math.min(jitter(base, REFRESH_JITTER_RATIO), latest);
 }
