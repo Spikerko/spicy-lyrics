@@ -11,6 +11,7 @@ const SECTION_NAME = "Appearance";
 
 const FPS_CAP_DESCRIPTION =
   "Limit how often the lyrics, the animated background and the scroll glide are redrawn. Lower values use less CPU, especially on high refresh rate displays. Turn off to redraw on every display refresh.";
+const FPS_SLIDER_DESCRIPTION = "Frames per second while the cap is on.";
 
 interface Props {
   query: string;
@@ -30,7 +31,7 @@ export default function AppearanceSection({ query, sectionFilter }: Props) {
     "Disable the custom Spicy Lyrics font and fall back to your root font."
   );
   const r2 = matches(query, "Limit Animation Frame Rate", FPS_CAP_DESCRIPTION);
-  const r3 = fpsCapEnabled && matches(query, "Animation Frame Rate", FPS_CAP_DESCRIPTION);
+  const r3 = fpsCapEnabled && matches(query, "Animation Frame Rate", FPS_SLIDER_DESCRIPTION);
 
   if (!r1 && !r2 && !r3) return null;
 
@@ -56,7 +57,7 @@ export default function AppearanceSection({ query, sectionFilter }: Props) {
       {r3 && (
         <Row
           label="Animation Frame Rate"
-          description="Frames per second while the cap is on."
+          description={FPS_SLIDER_DESCRIPTION}
           stacked
         >
           <Slider

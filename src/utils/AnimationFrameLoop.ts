@@ -16,10 +16,19 @@ const callbacks = new Set<FrameCallback>();
 // 60 fps cap on a 60 Hz display would drop every other frame.
 const FRAME_SLACK_MS = 1;
 
+// Same bounds and default as the settings slider. The value comes from the
+// persisted settings blob, so it is validated rather than trusted.
+const MIN_FPS_CAP = 15;
+const MAX_FPS_CAP = 240;
+const DEFAULT_FPS_CAP = 60;
+
 const computeFrameInterval = (): number => {
   if (!$animationFpsCapEnabled.get()) return 0;
-  const fps = $animationFpsCap.get();
-  return Number.isFinite(fps) && fps > 0 ? 1000 / fps : 0;
+  const saved = Number($animationFpsCap.get());
+  const fps = Number.isFinite(saved)
+    ? Math.min(MAX_FPS_CAP, Math.max(MIN_FPS_CAP, saved))
+    : DEFAULT_FPS_CAP;
+  return 1000 / fps;
 };
 
 let frameInterval = computeFrameInterval();
