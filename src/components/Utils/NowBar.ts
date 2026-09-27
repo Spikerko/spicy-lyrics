@@ -741,15 +741,14 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
         };
 
-        const clientYFromEvent = (event: MouseEvent | TouchEvent) => {
-          if ("touches" in event && event.touches.length > 0) {
-            return event.touches[0].clientY;
-          }
+        const pointFromEvent = (event: MouseEvent | TouchEvent) => {
+          if ("touches" in event && event.touches.length > 0) return event.touches[0];
           if ("changedTouches" in event && event.changedTouches.length > 0) {
-            return event.changedTouches[0].clientY;
+            return event.changedTouches[0];
           }
-          return (event as MouseEvent).clientY;
+          return event as MouseEvent;
         };
+        const clientYFromEvent = (event: MouseEvent | TouchEvent) => pointFromEvent(event).clientY;
 
         const percentageFromEvent = (event: MouseEvent | TouchEvent) => {
           const clientY = clientYFromEvent(event);
@@ -779,15 +778,27 @@ function OpenNowBar(skipSaving: boolean = false) {
         // A press on the glyph is a mute tap until the pointer travels far enough
         // to count as a drag; then it adjusts the volume like the rest of the track.
         let pendingIconTap = false;
+        let pressX = 0;
         let pressY = 0;
         const ICON_DRAG_THRESHOLD_PX = 4;
+        // After a touch, browsers may replay it as mousedown/mouseup. Without
+        // ignoring those, a tap on the glyph toggled mute and then back again.
+        let lastTouchAt = -Infinity;
+        const EMULATED_MOUSE_WINDOW_MS = 800;
 
         // Volume has no seek cost, so we commit live on every move instead of only
         // on release like the timeline does. A plain click is covered too — mousedown
         // starts the drag and immediately commits the position under the cursor.
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
+          if ("touches" in event) {
+            lastTouchAt = performance.now();
+          } else if (performance.now() - lastTouchAt < EMULATED_MOUSE_WINDOW_MS) {
+            return;
+          }
           pendingIconTap = !!(event.target as HTMLElement | null)?.closest?.(".VolumeIcon");
-          pressY = clientYFromEvent(event);
+          const press = pointFromEvent(event);
+          pressX = press.clientX;
+          pressY = press.clientY;
           dragDoc = VolumeElement.ownerDocument ?? document;
           isDragging = true;
           // .Dragging keeps the capsule expanded and turns off the fill's eased
@@ -809,7 +820,9 @@ function OpenNowBar(skipSaving: boolean = false) {
         const handleDragMove = (event: MouseEvent | TouchEvent) => {
           if (!isDragging) return;
           if (pendingIconTap) {
-            if (Math.abs(clientYFromEvent(event) - pressY) < ICON_DRAG_THRESHOLD_PX) return;
+            const point = pointFromEvent(event);
+            const travel = Math.hypot(point.clientX - pressX, point.clientY - pressY);
+            if (travel < ICON_DRAG_THRESHOLD_PX) return;
             pendingIconTap = false;
           }
           commit(percentageFromEvent(event));
@@ -817,6 +830,7 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         const handleDragEnd = (event: MouseEvent | TouchEvent) => {
           if (!isDragging) return;
+          if ("changedTouches" in event) lastTouchAt = performance.now();
           isDragging = false;
           VolumeElement.classList.remove("Dragging");
           dragDoc.body.style.userSelect = "";
