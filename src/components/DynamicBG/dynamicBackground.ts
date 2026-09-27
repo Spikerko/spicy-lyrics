@@ -8,6 +8,7 @@ import Kawarp, { type KawarpOptions } from "@kawarp/core";
 import { BackgroundAnimationController, type AudioAnalysisData } from "./BackgroundAnimationController.ts";
 import { getDynamicAudioAnalysis } from "../../utils/audioAnalysis.ts";
 import Logger from "../../utils/Logger.ts";
+import { onAnimationFrame } from "../../utils/AnimationFrameLoop.ts";
 
 const dynamicBgLogger = new Logger("Dynamic Background");
 
@@ -29,6 +30,29 @@ let cachedColorBackgroundEl: HTMLElement | null = null;
 
 export const KawarpMap = new Map<HTMLElement | string, Kawarp>();
 const animSpeedController = new BackgroundAnimationController();
+
+// Kawarp's own start() runs an uncapped requestAnimationFrame loop. We render the
+// instances from the shared, frame-capped loop instead, on the same frames as the
+// lyrics, so $maxAnimationFps bounds how often the page repaints.
+// Only instances still in KawarpMap render: every dispose() site also removes the
+// instance from the map, synchronously.
+const runningKawarps = new WeakSet<Kawarp>();
+
+function startKawarp(kawarp: Kawarp) {
+  if (runningKawarps.has(kawarp)) return;
+  // start() + stop() seeds Kawarp's frame clock so the first renderFrame() doesn't
+  // see a delta since page load; the frame start() queues is a no-op once stopped.
+  kawarp.start();
+  kawarp.stop();
+  runningKawarps.add(kawarp);
+}
+
+onAnimationFrame(() => {
+  if (KawarpMap.size === 0) return;
+  KawarpMap.forEach((kawarp) => {
+    if (runningKawarps.has(kawarp)) kawarp.renderFrame();
+  });
+});
 
 interface ApplyDynamicBackgroundOpts {
   doTransitionDurationAppendWithPromise?: boolean;
@@ -396,7 +420,7 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
         try {
           await loadCoverProgressively(kawarpInstance, kawarpSource, previewImgCover, isStale, () => {
             // Disposed or replaced (page closed, NPV cleanup) while loading.
-            if (KawarpMap.get(tag ? tag : liveElement) === kawarpInstance) kawarpInstance.start();
+            if (KawarpMap.get(tag ? tag : liveElement) === kawarpInstance) startKawarp(kawarpInstance);
           });
         } catch (err) {
           dynamicBgLogger.warn("Dynamic background load failed", err);
@@ -420,7 +444,7 @@ export default async function ApplyDynamicBackground(element: HTMLElement, tag?:
     element.appendChild(canvas);
     try {
       await loadCoverProgressively(kawarpInstance, kawarpSource, previewImgCover, isStale, () => {
-        if (KawarpMap.get(mapKey) === kawarpInstance) kawarpInstance.start();
+        if (KawarpMap.get(mapKey) === kawarpInstance) startKawarp(kawarpInstance);
       });
       if (KawarpMap.get(mapKey) !== kawarpInstance) return;
     } catch (err) {

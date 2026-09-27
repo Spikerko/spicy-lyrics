@@ -107,6 +107,10 @@ export const $scrollLeadEnabled = persistAtom<boolean>("scrollLeadEnabled", fals
 export const $scrollLeadMs = persistAtom<number>("scrollLeadMs", 250);
 // Spring-driven auto-scroll instead of the browser's native smooth scroll.
 export const $smoothScrolling = persistAtom<boolean>("smoothScrolling", false);
+// Upper bound for the per-frame lyrics animation and the animated background:
+// "30" | "60" | "120" | "unlimited". On high refresh rate displays every extra
+// frame is another repaint of the whole page, so this bounds the per-second work.
+export const $maxAnimationFps = persistAtom<string>("maxAnimationFps", "60");
 
 // Version atom — NOT persisted, set once at startup
 export const $spicyLyricsVersion = atom<string>(
