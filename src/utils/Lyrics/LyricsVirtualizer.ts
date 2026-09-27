@@ -8,6 +8,7 @@ import { Maid } from "../../modules/Maid.ts";
 import { Spring } from "../../modules/Spring.ts";
 import Logger from "../Logger.ts";
 import { $smoothScrolling } from "../stores.ts";
+import { cancelCappedFrame, requestCappedFrame } from "../AnimationFrameLoop.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
 // Gap is baked into each wrapper's padding-bottom so items can have
@@ -128,7 +129,10 @@ class LyricsVirtualizer {
   // Smooth-scroll state (see _smoothScrollToIndex). The spring persists across
   // scrolls so its velocity can carry over into the next target.
   private _smoothSpring: Spring | null = null;
-  private _smoothRAF: ReturnType<typeof requestAnimationFrame> | null = null;
+  // Stepped on the frame-capped loop: every glide frame writes scrollTop and a
+  // translate, so at the display's own rate (240 Hz on some setups) the glide
+  // alone redrew the whole page every refresh for the second or two it runs.
+  private _smoothRAF: number | null = null;
   private _smoothTarget: {
     index: number;
     align: "start" | "center" | "end" | "auto";
@@ -914,7 +918,7 @@ class LyricsVirtualizer {
       this._smoothLastTs = null;
       this._smoothLastPosition = null;
       this._smoothLastWhole = null;
-      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+      this._smoothRAF = requestCappedFrame(this._smoothStep);
     }
   }
 
@@ -1037,14 +1041,14 @@ class LyricsVirtualizer {
         this._smoothLastWhole = actual;
         this._smoothLastPosition = null;
         spring.SetGoal(actual, true);
-        this._smoothRAF = requestAnimationFrame(this._smoothStep);
+        this._smoothRAF = requestCappedFrame(this._smoothStep);
         return;
       }
       this._stopSmoothScroll();
       // Stand-in for the scrollend remeasures skipped during the glide.
       this._remeasureVisible();
     } else {
-      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+      this._smoothRAF = requestCappedFrame(this._smoothStep);
     }
   };
 
@@ -1071,7 +1075,7 @@ class LyricsVirtualizer {
   private _stopSmoothScroll(): void {
     const wasActive = this._smoothRAF !== null || this._smoothTarget !== null;
     if (this._smoothRAF !== null) {
-      cancelAnimationFrame(this._smoothRAF);
+      cancelCappedFrame(this._smoothRAF);
       this._smoothRAF = null;
     }
     this._smoothTarget = null;

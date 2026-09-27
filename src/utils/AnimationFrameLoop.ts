@@ -41,15 +41,27 @@ const shouldRender = (timestamp: number): boolean => {
   return true;
 };
 
+// One-shot callbacks for the next rendered frame (see requestCappedFrame).
+let pending = new Map<number, FrameCallback>();
+let nextPendingId = 1;
+
+const run = (callback: FrameCallback, timestamp: number) => {
+  // One throwing subscriber must not stop the others (or the loop).
+  try {
+    callback(timestamp);
+  } catch (err) {
+    console.error("Spicy Lyrics: animation frame callback failed", err);
+  }
+};
+
 const loop = (timestamp: number) => {
   if (shouldRender(timestamp)) {
-    for (const callback of callbacks) {
-      // One throwing subscriber must not stop the others (or the loop).
-      try {
-        callback(timestamp);
-      } catch (err) {
-        console.error("Spicy Lyrics: animation frame callback failed", err);
-      }
+    for (const callback of callbacks) run(callback, timestamp);
+    if (pending.size > 0) {
+      // Swap first: callbacks that schedule themselves again land on the next frame.
+      const due = pending;
+      pending = new Map();
+      for (const callback of due.values()) run(callback, timestamp);
     }
   }
   requestAnimationFrame(loop);
@@ -61,4 +73,18 @@ requestAnimationFrame(loop);
 export function onAnimationFrame(callback: FrameCallback): () => void {
   callbacks.add(callback);
   return () => callbacks.delete(callback);
+}
+
+/**
+ * requestAnimationFrame, but on the next frame the cap lets through. For
+ * JS-driven motion that should not redraw the page more often than the lyrics do.
+ */
+export function requestCappedFrame(callback: FrameCallback): number {
+  const id = nextPendingId++;
+  pending.set(id, callback);
+  return id;
+}
+
+export function cancelCappedFrame(id: number): void {
+  pending.delete(id);
 }
