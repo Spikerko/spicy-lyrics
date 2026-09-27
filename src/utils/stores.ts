@@ -110,8 +110,9 @@ export const $smoothScrolling = persistAtom<boolean>("smoothScrolling", false);
 // Frame rate cap for everything that redraws every frame (lyrics animation,
 // animated background, smooth-scroll glide). On high refresh rate displays every
 // extra frame is another repaint of the whole page, so this bounds the per-second
-// work. Turning the cap off restores drawing on every display refresh.
-export const $animationFpsCapEnabled = persistAtom<boolean>("animationFpsCapEnabled", true);
+// work. Off by default, which draws on every display refresh as before; the
+// slider value only applies once the cap is turned on.
+export const $animationFpsCapEnabled = persistAtom<boolean>("animationFpsCapEnabled", false);
 export const $animationFpsCap = persistAtom<number>("animationFpsCap", 60);
 
 // Version atom — NOT persisted, set once at startup
