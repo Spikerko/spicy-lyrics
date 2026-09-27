@@ -239,7 +239,11 @@ $simpleLyricsMode.subscribe((simpleLyricsMode) => {
 
 const SungLetterGlow = 0.2;
 
-// Promote an element to its own compositor layer for GPU-accelerated animations
+// Promote an element to its own compositor layer for GPU-accelerated animations.
+// Only lines go through here. Words, letters and dots get their layer from CSS
+// (Mixed.css) while their line is Active: an inline will-change on every word
+// kept a few hundred layers alive, and the compositor paid for each of them on
+// every frame even though only the active line's words move.
 function promoteToGPU(el: HTMLElement): void {
   // Hint to the browser that transform and opacity will change frequently
   el.style.willChange = "transform, opacity, text-shadow, scale";
@@ -709,8 +713,6 @@ export function Animate(position: number): void {
               word.AnimatorStore.Scale.SetGoal(ScaleSpline.at(0), true);
               word.AnimatorStore.YOffset.SetGoal(YOffsetSpline.at(0), true);
               word.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
-              // Enable GPU compositing for word elements
-              promoteToGPU(word.HTMLElement);
             }
 
             let targetScale: number;
@@ -846,7 +848,7 @@ export function Animate(position: number): void {
                   }
                 }
               } else {
-                word.HTMLElement.style.setProperty("--gradient-position", `${targetGradientPos}%`);
+                setStyleIfChanged(word.HTMLElement, "--gradient-position", `${targetGradientPos}%`);
               }
               // Reduce redundant writes using thresholds for smoother performance
               setStyleIfChanged(
@@ -912,8 +914,6 @@ export function Animate(position: number): void {
               word.AnimatorStore.YOffset.SetGoal(DotYOffsetSpline.at(0), true);
               word.AnimatorStore.Glow.SetGoal(DotGlowSpline.at(0), true);
               word.AnimatorStore.Opacity.SetGoal(DotOpacitySpline.at(0), true);
-              // Enable GPU compositing for dot elements
-              promoteToGPU(word.HTMLElement);
             }
 
             let targetScale: number;
@@ -983,8 +983,6 @@ export function Animate(position: number): void {
                   letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
-                  // Enable GPU compositing for letter elements
-                  promoteToGPU(letter.HTMLElement);
                 }
 
                 let targetScale: number,
@@ -1156,7 +1154,7 @@ export function Animate(position: number): void {
                     }
                   }
                 } else {
-                  letter.HTMLElement.style.setProperty("--gradient-position", `${targetGradient}%`);
+                  setStyleIfChanged(letter.HTMLElement, "--gradient-position", `${targetGradient}%`);
                 }
                 // Use translate3d to ensure GPU-accelerated transforms
                 setStyleIfChanged(
@@ -1189,7 +1187,6 @@ export function Animate(position: number): void {
                   letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
-                  promoteToGPU(letter.HTMLElement);
                 }
 
                 letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0));
@@ -1204,7 +1201,7 @@ export function Animate(position: number): void {
                   letter.HTMLElement.style.animation = "none";
                   letter.HTMLElement.style.setProperty("--SLM_GradientPosition", "-50%");
                 } else {
-                  letter.HTMLElement.style.setProperty("--gradient-position", `-20%`);
+                  setStyleIfChanged(letter.HTMLElement, "--gradient-position", `-20%`);
                 }
 
                 setStyleIfChanged(
@@ -1237,7 +1234,6 @@ export function Animate(position: number): void {
                   letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(0), true);
                   letter.AnimatorStore.YOffset.SetGoal(LetterYOffsetSpline.at(0), true);
                   letter.AnimatorStore.Glow.SetGoal(GlowSpline.at(0), true);
-                  promoteToGPU(letter.HTMLElement);
                 }
 
                 letter.AnimatorStore.Scale.SetGoal(LetterScaleSpline.at(1));
@@ -1252,7 +1248,7 @@ export function Animate(position: number): void {
                   letter.HTMLElement.style.animation = "none";
                   letter.HTMLElement.style.setProperty("--SLM_GradientPosition", "100%");
                 } else {
-                  letter.HTMLElement.style.setProperty("--gradient-position", `100%`);
+                  setStyleIfChanged(letter.HTMLElement, "--gradient-position", `100%`);
                 }
                 setStyleIfChanged(
                   letter.HTMLElement,
@@ -1405,7 +1401,7 @@ export function Animate(position: number): void {
                   word.HTMLElement.style.animation = "none";
                   word.HTMLElement.style.setProperty("--SLM_GradientPosition", "100%");
                 } else {
-                  word.HTMLElement.style.setProperty("--gradient-position", "100%");
+                  setStyleIfChanged(word.HTMLElement, "--gradient-position", "100%");
                 }
                 setStyleIfChanged(
                   word.HTMLElement,
@@ -1601,7 +1597,7 @@ export function Animate(position: number): void {
                   letter.HTMLElement.style.animation = "none";
                   letter.HTMLElement.style.setProperty("--SLM_GradientPosition", "100%");
                 } else {
-                  letter.HTMLElement.style.setProperty("--gradient-position", `100%`);
+                  setStyleIfChanged(letter.HTMLElement, "--gradient-position", `100%`);
                 }
                 setStyleIfChanged(
                   letter.HTMLElement,
@@ -1704,8 +1700,6 @@ export function Animate(position: number): void {
               dot.AnimatorStore.YOffset.SetGoal(DotYOffsetSpline.at(0), true);
               dot.AnimatorStore.Glow.SetGoal(DotGlowSpline.at(0), true);
               dot.AnimatorStore.Opacity.SetGoal(DotOpacitySpline.at(0), true);
-              // Enable GPU compositing for dot elements
-              promoteToGPU(dot.HTMLElement);
             }
 
             let targetScale: number;
@@ -1742,13 +1736,15 @@ export function Animate(position: number): void {
             const currentOpacity = dot.AnimatorStore.Opacity.Step(deltaTime);
 
             // Use translate3d to ensure GPU-accelerated transforms
-            queueStyle(
+            setStyleIfChanged(
               dot.HTMLElement,
               "transform",
-              `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset ?? 0}), 0)`
+              `translate3d(0, calc(var(--DefaultLyricsSize) * ${currentYOffset ?? 0}), 0)`,
+              0.0001,
+              currentYOffset ?? 0
             ); // Use --DefaultLyricsSize?
-            queueStyle(dot.HTMLElement, "scale", `${currentScale}`);
-            queueStyle(dot.HTMLElement, "opacity", `${currentOpacity}`);
+            setStyleIfChanged(dot.HTMLElement, "scale", `${currentScale}`, 0.001);
+            setStyleIfChanged(dot.HTMLElement, "opacity", `${currentOpacity}`, 0.001);
             setStyleIfChanged(
               dot.HTMLElement,
               "--text-shadow-blur-radius",
@@ -1789,7 +1785,7 @@ export function Animate(position: number): void {
 
           // Apply styles using spring value for glow, keep direct calculation for gradient
           if (!$simpleLyricsMode.get()) {
-            line.HTMLElement.style.setProperty("--gradient-position", `${targetGradientPos}%`);
+            setStyleIfChanged(line.HTMLElement, "--gradient-position", `${targetGradientPos}%`);
             setStyleIfChanged(
               line.HTMLElement,
               "--text-shadow-blur-radius",
