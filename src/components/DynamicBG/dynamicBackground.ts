@@ -33,7 +33,7 @@ const animSpeedController = new BackgroundAnimationController();
 
 // Kawarp's own start() runs an uncapped requestAnimationFrame loop. We render the
 // instances from the shared, frame-capped loop instead, on the same frames as the
-// lyrics, so $maxAnimationFps bounds how often the page repaints.
+// lyrics, so $animationFpsCap bounds how often the page repaints.
 // Only instances still in KawarpMap render: every dispose() site also removes the
 // instance from the map, synchronously.
 const runningKawarps = new WeakSet<Kawarp>();

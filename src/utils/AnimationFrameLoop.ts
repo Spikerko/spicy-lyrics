@@ -1,8 +1,8 @@
-import { $maxAnimationFps } from "./stores.ts";
+import { $animationFpsCap, $animationFpsCapEnabled } from "./stores.ts";
 
 /**
  * One requestAnimationFrame loop shared by everything that repaints every frame
- * (the lyrics animator and the Kawarp backgrounds), capped by `$maxAnimationFps`.
+ * (the lyrics animator and the Kawarp backgrounds), capped by `$animationFpsCap`.
  *
  * Both have to render on the *same* frames: if each capped itself on its own
  * schedule, the page would still be repainted on the union of their frames.
@@ -16,15 +16,18 @@ const callbacks = new Set<FrameCallback>();
 // 60 fps cap on a 60 Hz display would drop every other frame.
 const FRAME_SLACK_MS = 1;
 
-const toFrameInterval = (value: string): number => {
-  const fps = Number(value);
+const computeFrameInterval = (): number => {
+  if (!$animationFpsCapEnabled.get()) return 0;
+  const fps = $animationFpsCap.get();
   return Number.isFinite(fps) && fps > 0 ? 1000 / fps : 0;
 };
 
-let frameInterval = toFrameInterval($maxAnimationFps.get());
-$maxAnimationFps.listen((value) => {
-  frameInterval = toFrameInterval(value);
-});
+let frameInterval = computeFrameInterval();
+const updateFrameInterval = () => {
+  frameInterval = computeFrameInterval();
+};
+$animationFpsCapEnabled.listen(updateFrameInterval);
+$animationFpsCap.listen(updateFrameInterval);
 
 let lastRender = -Infinity;
 

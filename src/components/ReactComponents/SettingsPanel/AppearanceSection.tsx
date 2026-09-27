@@ -1,11 +1,16 @@
 import { useStore } from "@nanostores/react";
 import React from "react";
-import { $maxAnimationFps, $skipSpicyFont } from "../../../utils/stores.ts";
-import { matches, Row, SectionTitle, Select, Toggle } from "./components.tsx";
+import {
+  $animationFpsCap,
+  $animationFpsCapEnabled,
+  $skipSpicyFont,
+} from "../../../utils/stores.ts";
+import { matches, Row, SectionTitle, Slider, Toggle } from "./components.tsx";
 
 const SECTION_NAME = "Appearance";
-const fpsOptions = ["30", "60", "120", "unlimited"];
-const fpsLabels = ["30 FPS", "60 FPS", "120 FPS", "Unlimited"];
+
+const FPS_CAP_DESCRIPTION =
+  "Limit how often the lyrics, the animated background and the scroll glide are redrawn. Lower values use less CPU, especially on high refresh rate displays. Turn off to redraw on every display refresh.";
 
 interface Props {
   query: string;
@@ -14,7 +19,8 @@ interface Props {
 
 export default function AppearanceSection({ query, sectionFilter }: Props) {
   const skipSpicyFont = useStore($skipSpicyFont);
-  const maxAnimationFps = useStore($maxAnimationFps);
+  const fpsCapEnabled = useStore($animationFpsCapEnabled);
+  const fpsCap = useStore($animationFpsCap);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 
@@ -23,13 +29,10 @@ export default function AppearanceSection({ query, sectionFilter }: Props) {
     "Use Default Font",
     "Disable the custom Spicy Lyrics font and fall back to your root font."
   );
-  const r2 = matches(
-    query,
-    "Animation Frame Rate",
-    "Limit how often the lyrics and the animated background are redrawn. Lower values use less CPU, especially on high refresh rate displays."
-  );
+  const r2 = matches(query, "Limit Animation Frame Rate", FPS_CAP_DESCRIPTION);
+  const r3 = fpsCapEnabled && matches(query, "Animation Frame Rate", FPS_CAP_DESCRIPTION);
 
-  if (!r1 && !r2) return null;
+  if (!r1 && !r2 && !r3) return null;
 
   return (
     <>
@@ -45,15 +48,25 @@ export default function AppearanceSection({ query, sectionFilter }: Props) {
       )}
 
       {r2 && (
+        <Row label="Limit Animation Frame Rate" description={FPS_CAP_DESCRIPTION}>
+          <Toggle checked={fpsCapEnabled} onChange={(v) => $animationFpsCapEnabled.set(v)} />
+        </Row>
+      )}
+
+      {r3 && (
         <Row
           label="Animation Frame Rate"
-          description="Limit how often the lyrics and the animated background are redrawn. Lower values use less CPU, especially on high refresh rate displays."
+          description="Frames per second while the cap is on."
+          stacked
         >
-          <Select
-            value={maxAnimationFps}
-            options={fpsOptions}
-            labels={fpsLabels}
-            onChange={(v) => $maxAnimationFps.set(v)}
+          <Slider
+            value={fpsCap}
+            min={15}
+            max={240}
+            step={5}
+            defaultValue={60}
+            unit="FPS"
+            onChange={(v) => $animationFpsCap.set(v)}
           />
         </Row>
       )}
