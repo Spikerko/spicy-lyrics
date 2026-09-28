@@ -494,20 +494,27 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         // Add drag functionality
 
+        // The document the bar lives in when the drag starts. In Popup Lyrics that
+        // is the PiP window's, whose pointer events never reach the main document:
+        // listening there left the drag open, and the main window's own pointer
+        // moves then drove it.
+        let dragDoc: Document = document;
+
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
           isDragging = true;
+          dragDoc = SliderBar.ownerDocument;
           // .Dragging keeps the bar thickened and turns off the fill's eased glide
           // so it tracks the pointer 1:1.
           SliderBar.classList.add("Dragging");
-          document.body.style.userSelect = "none"; // Prevent text selection during drag
+          dragDoc.body.style.userSelect = "none"; // Prevent text selection during drag
           // Keep the overlay visible if the pointer leaves the artwork mid-drag
           SetControlsDragLock(true);
 
           // Add the event listeners for drag movement and end
-          document.addEventListener("mousemove", handleDragMove);
-          document.addEventListener("touchmove", handleDragMove);
-          document.addEventListener("mouseup", handleDragEnd);
-          document.addEventListener("touchend", handleDragEnd);
+          dragDoc.addEventListener("mousemove", handleDragMove);
+          dragDoc.addEventListener("touchmove", handleDragMove);
+          dragDoc.addEventListener("mouseup", handleDragEnd);
+          dragDoc.addEventListener("touchend", handleDragEnd);
 
           // Emit event that dragging has started
           Global.Event.evoke("nowbar:timeline:dragging", { isDragging: true });
@@ -561,13 +568,13 @@ function OpenNowBar(skipSaving: boolean = false) {
           if (!isDragging) return;
           isDragging = false;
           SliderBar.classList.remove("Dragging");
-          document.body.style.userSelect = ""; // Restore text selection
+          dragDoc.body.style.userSelect = ""; // Restore text selection
 
           // Remove the event listeners
-          document.removeEventListener("mousemove", handleDragMove);
-          document.removeEventListener("touchmove", handleDragMove);
-          document.removeEventListener("mouseup", handleDragEnd);
-          document.removeEventListener("touchend", handleDragEnd);
+          dragDoc.removeEventListener("mousemove", handleDragMove);
+          dragDoc.removeEventListener("touchmove", handleDragMove);
+          dragDoc.removeEventListener("mouseup", handleDragEnd);
+          dragDoc.removeEventListener("touchend", handleDragEnd);
 
           // Get the final position
           let clientX: number;
@@ -616,14 +623,14 @@ function OpenNowBar(skipSaving: boolean = false) {
           SliderBar.removeEventListener("click", sliderBarHandler);
           SliderBar.removeEventListener("mousedown", handleDragStart);
           SliderBar.removeEventListener("touchstart", handleDragStart);
-          document.removeEventListener("mousemove", handleDragMove);
-          document.removeEventListener("touchmove", handleDragMove);
-          document.removeEventListener("mouseup", handleDragEnd);
-          document.removeEventListener("touchend", handleDragEnd);
+          dragDoc.removeEventListener("mousemove", handleDragMove);
+          dragDoc.removeEventListener("touchmove", handleDragMove);
+          dragDoc.removeEventListener("mouseup", handleDragEnd);
+          dragDoc.removeEventListener("touchend", handleDragEnd);
           if (isDragging) {
             isDragging = false;
             SliderBar.classList.remove("Dragging");
-            document.body.style.userSelect = "";
+            dragDoc.body.style.userSelect = "";
             SetControlsDragLock(false);
           }
         });
@@ -747,24 +754,30 @@ function OpenNowBar(skipSaving: boolean = false) {
         // Volume has no seek cost, so we commit live on every move instead of only
         // on release like the timeline does. A plain click is covered too — mousedown
         // starts the drag and immediately commits the position under the cursor.
+        // See the timeline's dragDoc: in Popup Lyrics the capsule lives in the PiP
+        // window, and listening on the main document left the drag open, so
+        // hovering the main window later set the volume from its coordinates (0%).
+        let dragDoc: Document = document;
+
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
           // The glyph zone at the foot of the capsule is the mute button, not part
           // of the track — starting a drag there would slam the volume to ~5% on
           // every mute click.
           if ((event.target as HTMLElement | null)?.closest?.(".VolumeIcon")) return;
           isDragging = true;
+          dragDoc = VolumeElement.ownerDocument;
           // .Dragging keeps the capsule expanded and turns off the fill's eased
           // glide so it tracks the pointer 1:1.
           VolumeElement.classList.add("Dragging");
-          document.body.style.userSelect = "none";
+          dragDoc.body.style.userSelect = "none";
           // Keep the overlay from fading out when the pointer leaves the artwork
           // while the fill is still held.
           SetControlsDragLock(true);
 
-          document.addEventListener("mousemove", handleDragMove);
-          document.addEventListener("touchmove", handleDragMove);
-          document.addEventListener("mouseup", handleDragEnd);
-          document.addEventListener("touchend", handleDragEnd);
+          dragDoc.addEventListener("mousemove", handleDragMove);
+          dragDoc.addEventListener("touchmove", handleDragMove);
+          dragDoc.addEventListener("mouseup", handleDragEnd);
+          dragDoc.addEventListener("touchend", handleDragEnd);
 
           handleDragMove(event);
         };
@@ -778,12 +791,12 @@ function OpenNowBar(skipSaving: boolean = false) {
           if (!isDragging) return;
           isDragging = false;
           VolumeElement.classList.remove("Dragging");
-          document.body.style.userSelect = "";
+          dragDoc.body.style.userSelect = "";
 
-          document.removeEventListener("mousemove", handleDragMove);
-          document.removeEventListener("touchmove", handleDragMove);
-          document.removeEventListener("mouseup", handleDragEnd);
-          document.removeEventListener("touchend", handleDragEnd);
+          dragDoc.removeEventListener("mousemove", handleDragMove);
+          dragDoc.removeEventListener("touchmove", handleDragMove);
+          dragDoc.removeEventListener("mouseup", handleDragEnd);
+          dragDoc.removeEventListener("touchend", handleDragEnd);
 
           commit(percentageFromEvent(event));
           SetControlsDragLock(false);
@@ -824,14 +837,14 @@ function OpenNowBar(skipSaving: boolean = false) {
           VolumeElement.removeEventListener("touchstart", handleDragStart);
           IconElement.removeEventListener("click", iconHandler);
           VolumeElement.removeEventListener("wheel", wheelHandler);
-          document.removeEventListener("mousemove", handleDragMove);
-          document.removeEventListener("touchmove", handleDragMove);
-          document.removeEventListener("mouseup", handleDragEnd);
-          document.removeEventListener("touchend", handleDragEnd);
+          dragDoc.removeEventListener("mousemove", handleDragMove);
+          dragDoc.removeEventListener("touchmove", handleDragMove);
+          dragDoc.removeEventListener("mouseup", handleDragEnd);
+          dragDoc.removeEventListener("touchend", handleDragEnd);
           if (isDragging) {
             isDragging = false;
             VolumeElement.classList.remove("Dragging");
-            document.body.style.userSelect = "";
+            dragDoc.body.style.userSelect = "";
             SetControlsDragLock(false);
           }
         });
