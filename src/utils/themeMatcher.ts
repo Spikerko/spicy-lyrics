@@ -101,24 +101,47 @@ export function watchMarketplaceUserCss(): () => void {
 const STOCK_PLAYBAR_CLASS = "SpicyLyrics_StockPlaybar";
 
 // default.scss pins the elapsed time out of the playback bar's flow while the
-// page is open. Themes that already reposition the bar or its labels (Spotify
-// Spice lays the bar across the top edge) break under that, so it only applies
-// to a layout where both are still in flow. The class comes off before measuring
-// so the reading is the theme's layout, not ours; it goes back on in the same
-// task, so nothing paints in between.
-export function syncStockPlaybarClass() {
-  document.body.classList.remove(STOCK_PLAYBAR_CLASS);
+// page is open, and pads the progress bar to make room for it. That assumes
+// Spotify's own arrangement: bar and label in flow, the label on the progress
+// bar's row, directly to its left. Themes arrange it differently (Spotify Spice
+// lays the bar across the top edge, others restack it with flex, grid or
+// margins without touching `position`), so the geometry is checked too, not
+// just `position`. Anything else, right-to-left layouts included, keeps its own
+// layout.
+const isStockPlaybar = (): boolean => {
   const bar =
     document.querySelector<HTMLElement>(".Root__now-playing-bar .playback-bar") ??
     document.querySelector<HTMLElement>(".playback-bar");
-  const elapsed = bar?.querySelector<HTMLElement>(
+  if (!bar) return false;
+  const barPosition = getComputedStyle(bar).position;
+  if (barPosition !== "static" && barPosition !== "relative") return false;
+
+  const elapsed = bar.querySelector<HTMLElement>(
     `:scope > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"])`
   );
-  const barPosition = bar ? getComputedStyle(bar).position : null;
-  const stock =
-    (barPosition === "static" || barPosition === "relative") &&
-    (!elapsed || getComputedStyle(elapsed).position === "static");
-  document.body.classList.toggle(STOCK_PLAYBAR_CLASS, stock);
+  // The rule's own two targets for the progress wrapper: the classed one, or
+  // whichever direct child holds the progress bar.
+  let progress: Element | null = bar.querySelector(":scope > .playback-progressbar-container");
+  if (!progress) {
+    progress = bar.querySelector(".playback-progressbar");
+    while (progress && progress.parentElement !== bar) progress = progress.parentElement;
+  }
+  if (!elapsed || !progress) return false;
+  if (getComputedStyle(elapsed).position !== "static") return false;
+
+  // Not laid out (hidden bar): nothing to compare, and nothing to break.
+  if (bar.getBoundingClientRect().width === 0) return true;
+  const label = elapsed.getBoundingClientRect();
+  const track = progress.getBoundingClientRect();
+  const sameRow = label.top < track.bottom && track.top < label.bottom;
+  return sameRow && label.right <= track.left + 1;
+};
+
+// The class comes off before measuring so the reading is the theme's layout,
+// not ours; it goes back on in the same task, so nothing paints in between.
+export function syncStockPlaybarClass() {
+  document.body.classList.remove(STOCK_PLAYBAR_CLASS);
+  document.body.classList.toggle(STOCK_PLAYBAR_CLASS, isStockPlaybar());
 }
 
 export async function runThemeMatcher() {
