@@ -63,6 +63,7 @@ import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIs
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
 import Logger from "../../utils/Logger.ts";
+import { syncStockPlaybarClass } from "../../utils/themeMatcher.ts";
 import { ApplyExperimentClasses, onExperimentChange } from "../../utils/experiments.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
@@ -144,6 +145,8 @@ async function OpenPage(
   }
 
   if (PageView.IsOpened) return;
+
+  syncStockPlaybarClass();
 
   // The main-view page belongs to the /SpicyLyrics route. The awaits above can
   // outlast a quick navigate-away; opening now would strand the page on

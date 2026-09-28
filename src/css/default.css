@@ -238,11 +238,13 @@ body:not(.SpicyLyrics_StaticBackground)
   opacity: 0.75;
 }
 
-body:not(.SpicyLyrics_StaticBackground)
-  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+/* Zero-specificity gate so a theme restyling the cover (a round vinyl, its own
+   shadow) wins. No opacity: it made everything a theme draws on the cover,
+   pseudo-elements included, see-through. */
+:where(body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas))
   .main-nowPlayingView-coverArt {
   box-shadow: 0 9px 20px 0 rgba(0, 0, 0, 0.271);
-  opacity: 0.95;
 }
 
 body:not(.SpicyLyrics_StaticBackground)
