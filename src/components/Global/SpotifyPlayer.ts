@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import Global from "./Global.ts";
 import GetProgress, {
   _DEPRECATED___GetProgress,
 } from "../../utils/Gets/GetProgress.ts";
@@ -352,6 +353,7 @@ export const SpotifyPlayer = {
       if ([...buttonsStash].some(button => button.parentElement !== rightContainer)) {
         rightContainer.prepend(...buttonsStash);
       }
+      Global.Event.evoke("playbar:controls", rightContainer);
     }
 
     const playbarObserver = new MutationObserver(records => {

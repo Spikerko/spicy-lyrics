@@ -149,7 +149,7 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
       let section: Element | null = artwork;
       while (section && section.parentElement !== modernContent) section = section.parentElement;
       if (section) section.insertAdjacentElement("afterend", el);
-      else return false;
+      else modernContent.prepend(el);
     }
     return true;
   }

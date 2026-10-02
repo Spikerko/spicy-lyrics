@@ -122,6 +122,13 @@ export const GetPageRoot = () =>
     ":is(.Root__main-view, :where(#main-view)) .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
   );
 
+let PageMountObserver: MutationObserver | null = null;
+
+function cancelPendingPageMount() {
+  PageMountObserver?.disconnect();
+  PageMountObserver = null;
+}
+
 let PageResizeListener: ResizeObserver | null = null;
 export let PageContainer: HTMLElement | null = null;
 export let IsCardMode = false;
@@ -143,6 +150,7 @@ async function OpenPage(
     return OpenPage(AppendTo, options);
   }
 
+  cancelPendingPageMount();
   if (PageView.IsOpened) return;
 
   // The main-view page belongs to the /SpicyLyrics route. The awaits above can
@@ -159,6 +167,18 @@ async function OpenPage(
   const pageRoot = AppendTo ?? GetPageRoot();
   if (!pageRoot) {
     pageLogger.warn("Cannot open page: main view is unavailable");
+    if (AppendTo === undefined && !options?.cardMode) {
+      PageMountObserver = new MutationObserver(() => {
+        if (Spicetify.Platform.History.location.pathname !== "/SpicyLyrics") {
+          cancelPendingPageMount();
+          return;
+        }
+        if (!GetPageRoot()) return;
+        cancelPendingPageMount();
+        void OpenPage();
+      });
+      PageMountObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
     return;
   }
 
@@ -388,6 +408,7 @@ export function Compactify(Element: HTMLElement | undefined = undefined) {
 // await in here let an Open, a second Destroy, or a Fullscreen close tail run
 // against a half torn-down page.
 async function DestroyPage() {
+  cancelPendingPageMount();
   if (!PageView.IsOpened) return;
   pageLogger.debug("Destroying page");
   PageView.IsOpened = false;
