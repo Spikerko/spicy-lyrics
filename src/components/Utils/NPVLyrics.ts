@@ -39,13 +39,19 @@ let evaluateAgain = false;
 // see holdEvaluateUntilSettled.
 let stateAnimation: Promise<unknown> | null = null;
 
-const getNPV = (): HTMLElement | null =>
+export const GetNPVElement = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
-    ".Root__right-sidebar aside.NowPlayingView"
+    "aside.NowPlayingView"
   ) ??
   document.querySelector<HTMLElement>(
-    ".Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)"
+    "aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer)"
   );
+
+export function GetNPVObserverRoot(): Element | null {
+  const panel = document.getElementById("Desktop_PanelContainer_Id") ?? GetNPVElement();
+  return document.querySelector(".Root__right-sidebar") ??
+    panel?.closest("[aria-hidden]") ?? panel?.parentElement ?? null;
+}
 
 export function NPVCardOwnsPage(): boolean {
   return cardOwnsPage;
@@ -89,9 +95,9 @@ function hiddenForMissingLyrics(): boolean {
 
 function desiredState(): CardState {
   if ($disableNpvLyrics.get()) return "DORMANT";
-  const npv = getNPV();
+  const npv = GetNPVElement();
   // closest("[inert]") covers the whole .Root__right-sidebar <-> aside chain
-  if (!npv || !npv.isConnected || npv.closest("[inert]")) return "DORMANT";
+  if (!npv || !npv.isConnected || npv.closest('[inert], [hidden], [aria-hidden="true"]')) return "DORMANT";
   const pageBusyElsewhere =
     (PageView.IsOpened && !cardOwnsPage) ||
     IsPIP ||
@@ -133,6 +139,20 @@ function clearExpandedIfDetached(): void {
 }
 
 function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
+  const modernContent = npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]');
+  if (modernContent) {
+    const nativeLyrics = modernContent.querySelector('[data-testid="lyrics-npv-section"]');
+    if (nativeLyrics?.parentElement === modernContent) {
+      nativeLyrics.insertAdjacentElement("beforebegin", el);
+    } else {
+      const artwork = modernContent.querySelector('[data-testid="track-visual-enhancement"]');
+      let section: Element | null = artwork;
+      while (section && section.parentElement !== modernContent) section = section.parentElement;
+      if (section) section.insertAdjacentElement("afterend", el);
+      else return false;
+    }
+    return true;
+  }
   const cover = npv.querySelector(".main-nowPlayingView-coverArtContainer");
   const anchor =
     cover?.closest(".main-nowPlayingView-nowPlayingWidget") ??
@@ -368,6 +388,13 @@ function renderCardShell(npv: HTMLElement): boolean {
   cardMaid = new Maid();
   cardEl = el;
   cardMaid.Give(cardEl);
+  if (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl)) {
+    for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) {
+      const markedHost = host;
+      markedHost.classList.add("SpicyLyrics_NPVStretch");
+      cardMaid.Give(() => markedHost.classList.remove("SpicyLyrics_NPVStretch"));
+    }
+  }
   cardBodyEl = cardEl.querySelector<HTMLElement>(".CardBody");
 
   const expand = cardEl.querySelector<HTMLElement>("#NPVCardExpand");
@@ -443,7 +470,7 @@ async function reconcile(): Promise<void> {
   }
 
   if (current === "DORMANT") {
-    const npv = getNPV();
+    const npv = GetNPVElement();
     if (!npv) return;
     // NPV inner content not rendered yet — the sidebar observer retries.
     if (!renderCardShell(npv)) return;
@@ -536,7 +563,7 @@ function holdEvaluateUntilSettled(finished: Promise<unknown>): void {
 let observedSidebar: Element | null = null;
 
 function attachSidebarObserver(): void {
-  const sidebar = document.querySelector(".Root__right-sidebar");
+  const sidebar = GetNPVObserverRoot();
   if (!sidebar || sidebar === observedSidebar) return;
   const observer = new MutationObserver((records) => {
     clearExpandedIfDetached();
@@ -554,7 +581,7 @@ function attachSidebarObserver(): void {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["inert"],
+    attributeFilter: ["inert", "aria-hidden", "hidden", "aria-label"],
   });
   // Keyed Give disconnects the previous observer when the sidebar is swapped.
   watcherMaid.Give(observer, "sidebar-observer");
@@ -570,9 +597,14 @@ function attachWatchers(): void {
   const topContainer = document.querySelector(".Root__top-container");
   const watchRoot =
     topContainer ?? document.querySelector(".Root") ?? document.body;
-  const topObserver = new MutationObserver(() => {
+  const topObserver = new MutationObserver((records) => {
     clearExpandedIfDetached();
-    if (!observedSidebar || !observedSidebar.isConnected) {
+    if (records.every(record => cardEl?.contains(record.target))) return;
+    const panelChanged = records.some(record =>
+      [...record.addedNodes, ...record.removedNodes].some(node => node instanceof Element &&
+        (node.matches('aside.NowPlayingView, #Desktop_PanelContainer_Id') ||
+          node.querySelector('aside.NowPlayingView, #Desktop_PanelContainer_Id'))));
+    if (!observedSidebar || !observedSidebar.isConnected || panelChanged) {
       observedSidebar = null;
       attachSidebarObserver();
     }
@@ -623,8 +655,7 @@ export function initNPVLyrics(): void {
 
   Whentil.When(
     () =>
-      document.querySelector(".Root__right-sidebar") ??
-      document.querySelector(".Root"),
+      GetNPVObserverRoot() ?? document.querySelector(".Root") ?? document.body,
     () => {
       attachWatchers();
     }

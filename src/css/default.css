@@ -7,7 +7,10 @@
   --sltoaster-bottom-padding: 32px;
 }
 
-.main-nowPlayingView-contextItemInfo::before {
+.main-nowPlayingView-contextItemInfo::before,
+aside.NowPlayingView.spicy-dynamic-bg-in-this
+  [data-testid="NPV_Panel_OpenDiv"]
+  div:has(> [data-testid="track-visual-enhancement"]) ~ div::before {
   display: none;
 }
 
@@ -43,10 +46,10 @@
   font-family: SpicyLyrics, "Noto Sans Georgian", "VazirmatnRegular", sans-serif !important;
 }
 
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer {
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer {
   display: none;
 }
 
@@ -79,7 +82,7 @@
   top: 24px;
 }
 
-.Root:not(.global-nav) .Root__main-view #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
+.Root:not(.global-nav) :is(.Root__main-view, :where(#main-view)) #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
   bottom: 36px;
   top: unset;
 }
@@ -309,6 +312,12 @@ body:not(.SpicyLyrics_StaticBackground)
   padding: 0;
 }
 
+.SpicyLyrics_PlaybarTooltip > .main-contextMenu-tippy {
+  background-color: var(--background-elevated-highlight, var(--spice-card, #333));
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
 #SpicyLyricsPageSvg {
   fill: currentColor;
   transform: translateY(2px);
@@ -326,7 +335,7 @@ body:not(.SpicyLyrics_StaticBackground)
 }
 
 button:has(#SpicyLyricsPageSvg)::after {
-  transform: translateX(-370%) translateY(-40%) !important;
+  transform: translateX(-50%) !important;
 }
 
 button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-genericButton-buttonActiveDot)::after {
@@ -334,12 +343,12 @@ button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-gene
 }
 
 /* "Page Not Visible" fix */
-.Root__main-view:has(#SpicyLyricsPage),
-.Root__main-view:has(#SpicyLyricsPage) .KL8t9WB65UfUEPuTFAhO,
-.Root__main-view:has(#SpicyLyricsPage) .main-content-view,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container .div[data-overlayscrollbars-viewport] {
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage),
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .KL8t9WB65UfUEPuTFAhO,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-content-view,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container .div[data-overlayscrollbars-viewport] {
   height: 100% !important;
 }
 
@@ -617,8 +626,8 @@ sl-generic-modal.SpicyLyricsModal .sl-modal .sl-modal-container {
 }
 
 
-.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > header,
-.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > .main-topBar-container {
+.Root.global-nav :is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) > header,
+.Root.global-nav :is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) > .main-topBar-container {
   display: none !important;
 }
 
@@ -755,6 +764,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-co
   }
 }
 
+aside.NowPlayingView,
 .Root__right-sidebar aside {
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -777,6 +787,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-co
 
 /* "Remove Spotify's lyrics button" setting. Our own button carries #SpicyLyricsPageSvg. */
 body.SpicyLyrics_RemoveSpotifyLyricsButton .main-nowPlayingBar-lyricsButton[data-testid="lyrics-button"]:not(:has(#SpicyLyricsPageSvg)),
+body.SpicyLyrics_RemoveSpotifyLyricsButton [data-testid="now-playing-bar"] [data-testid="lyrics-button"]:not(:has(#SpicyLyricsPageSvg)),
 body.SpicyLyrics_RemoveSpotifyLyricsButton .main-nowPlayingBar-extraControls > [data-testid="lyrics-button"]:not(:has(#SpicyLyricsPageSvg)) {
   display: none !important;
 }

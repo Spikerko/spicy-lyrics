@@ -107,19 +107,19 @@ const PageView = {
 export const GetPageRoot = () =>
   /* document.querySelector<HTMLElement>(".QdB2YtfEq0ks5O4QbtwX .WRGTOibB8qNEkgPNtMxq") ?? */
   document.querySelector<HTMLElement>(
-    ".Root__main-view .main-view-container div[data-overlayscrollbars-viewport]"
+    ":is(.Root__main-view, :where(#main-view)) .main-view-container div[data-overlayscrollbars-viewport]"
   ) ??
   (() => {
     const child = document.querySelector<HTMLElement>(
-      ".Root__main-view .main-view-container .main-view-container__scroll-node-child"
+      ":is(.Root__main-view, :where(#main-view)) .main-view-container .main-view-container__scroll-node-child"
     );
     return child?.parentElement as HTMLElement | null;
   })() ??
   document.querySelector<HTMLElement>(
-    ".Root__main-view .main-view-container .os-host"
+    ":is(.Root__main-view, :where(#main-view)) .main-view-container .os-host"
   ) ??
   document.querySelector<HTMLElement>(
-    ".Root__main-view .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
+    ":is(.Root__main-view, :where(#main-view)) .main-view-container .uGZUPBPcDpzSYqKcQT8r > div"
   );
 
 let PageResizeListener: ResizeObserver | null = null;
@@ -153,6 +153,12 @@ async function OpenPage(
     !options?.cardMode &&
     Spicetify.Platform?.History?.location?.pathname !== "/SpicyLyrics"
   ) {
+    return;
+  }
+
+  const pageRoot = AppendTo ?? GetPageRoot();
+  if (!pageRoot) {
+    pageLogger.warn("Cannot open page: main view is unavailable");
     return;
   }
 
@@ -278,11 +284,7 @@ async function OpenPage(
     }
   }
 
-  if (AppendTo !== undefined) {
-    AppendTo?.appendChild(elem);
-  } else {
-    GetPageRoot()?.appendChild(elem);
-  }
+  pageRoot.appendChild(elem);
 
   addLinesEvListener();
 
@@ -329,7 +331,7 @@ async function OpenPage(
 
   if (AppendTo === undefined) {
     const legacyPage = document.querySelector<HTMLElement>(
-      ".Root__main-view .main-view-container .os-host"
+      ":is(.Root__main-view, :where(#main-view)) .main-view-container .os-host"
     );
     if (legacyPage) {
       legacyPage.style.containerType = "inline-size";
@@ -407,7 +409,7 @@ async function DestroyPage() {
   CleanUpIsByCommunity();
 
   const legacyPage = document.querySelector<HTMLElement>(
-    ".Root__main-view .main-view-container .os-host"
+    ":is(.Root__main-view, :where(#main-view)) .main-view-container .os-host"
   );
   if (legacyPage) {
     legacyPage.style.containerType = "";

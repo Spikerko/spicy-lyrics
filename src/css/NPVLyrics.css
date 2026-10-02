@@ -91,6 +91,17 @@
   flex-shrink: 0;
 }
 
+body.SpicyLyrics_NPVCardExpanded aside.NowPlayingView .SpicyLyrics_NPVStretch {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+body.SpicyLyrics_NPVCardExpanded aside.NowPlayingView
+  .SpicyLyrics_NPVStretch > :not(.SpicyLyrics_NPVStretch, #SpicyLyricsNPVCard) {
+  display: none;
+}
+
 /* Collapsed shell: header only. */
 #SpicyLyricsNPVCard.Collapsed .CardBody {
   display: none;
@@ -303,6 +314,7 @@ html.SpicyLyrics_NPVMorph {
 
 /* The panel is the outer group; its snapshot carries the cover art and other
    sections, which cross-fade out/in while the card morphs over them. */
+html.SpicyLyrics_NPVMorph aside.NowPlayingView:has(#SpicyLyricsNPVCard),
 html.SpicyLyrics_NPVMorph .Root__right-sidebar aside:has(#SpicyLyricsNPVCard) {
   view-transition-name: spicy-npv-panel;
 }
@@ -444,6 +456,7 @@ html.SpicyLyrics_NPVMorph::view-transition-new(spicy-npv-card) {
 }
 
 
+body.SpicyLyrics_NPVCardEnabled aside.NowPlayingView [data-testid="lyrics-npv-section"],
 body.SpicyLyrics_NPVCardEnabled .main-nowPlayingView-panel .main-nowPlayingView-section[data-testid="lyrics-npv-section"],
 body.SpicyLyrics_NPVCardEnabled #liquid-lyrics-sidebar-card {
   display: none !important;
