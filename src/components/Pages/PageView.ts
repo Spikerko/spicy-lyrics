@@ -1,3 +1,4 @@
+import { createTooltip } from "../../utils/tooltip.ts";
 import fetchLyrics, { ShowQueueLoader } from "../../utils/Lyrics/fetchLyrics.ts";
 import { LyricsQueueRetry } from "../../utils/Lyrics/LyricsQueueRetry.ts";
 import { SkeletonMarkup } from "../../utils/Lyrics/LyricsSkeleton.ts";
@@ -581,7 +582,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     if (closeButton) {
       try {
         if (!isPip) {
-          Tooltips.Close = Spicetify.Tippy(closeButton, {
+          Tooltips.Close = createTooltip(closeButton, {
             ...Spicetify.TippyProps,
             content: `Close Page`,
           });
@@ -614,7 +615,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     if (compactModeToggle) {
       try {
         if (!isPip) {
-          Tooltips.CompactModeToggle = Spicetify.Tippy(compactModeToggle, {
+          Tooltips.CompactModeToggle = createTooltip(compactModeToggle, {
             ...Spicetify.TippyProps,
             content: `${
               IsCompactMode() ? "Disable Compact Mode" : "Enable Compact Mode"
@@ -649,7 +650,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     if (romanizationToggle) {
       try {
         if (!isPip) {
-          Tooltips.RomanizationToggle = Spicetify.Tippy(romanizationToggle, {
+          Tooltips.RomanizationToggle = createTooltip(romanizationToggle, {
             ...Spicetify.TippyProps,
             content: isRomanized ? `Disable Romanization` : `Enable Romanization`,
           });
@@ -685,7 +686,7 @@ function AppendViewControls(ReAppend: boolean = false) {
       if (nowBarButton) {
         try {
           if (!isPip) {
-            Tooltips.NowBarToggle = Spicetify.Tippy(nowBarButton, {
+            Tooltips.NowBarToggle = createTooltip(nowBarButton, {
               ...Spicetify.TippyProps,
               content: `NowBar`,
             });
@@ -702,7 +703,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     if (fullscreenBtn) {
       try {
         if (!isPip) {
-          Tooltips.FullscreenToggle = Spicetify.Tippy(fullscreenBtn, {
+          Tooltips.FullscreenToggle = createTooltip(fullscreenBtn, {
             ...Spicetify.TippyProps,
             content: `${
               Fullscreen.CinemaViewOpen ? "Fullscreen" : "Cinema View"
@@ -731,7 +732,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     if (cinemaViewBtn && !Fullscreen.IsOpen) {
       try {
         if (!isPip) {
-          Tooltips.CinemaView = Spicetify.Tippy(cinemaViewBtn, {
+          Tooltips.CinemaView = createTooltip(cinemaViewBtn, {
             ...Spicetify.TippyProps,
             content: `Cinema View`,
           });
@@ -752,7 +753,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     ) {
       try {
         if (!isPip) {
-          Tooltips.NowBarSideToggle = Spicetify.Tippy(nowBarSideToggleBtn, {
+          Tooltips.NowBarSideToggle = createTooltip(nowBarSideToggleBtn, {
             ...Spicetify.TippyProps,
             content: `Swap NowBar Side`,
           });
@@ -766,7 +767,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     const settingsButton = elem.querySelector("#SettingsToggle");
     if (settingsButton && !isPip) {
       try {
-        Tooltips.Settings = Spicetify.Tippy(settingsButton, {
+        Tooltips.Settings = createTooltip(settingsButton, {
           ...Spicetify.TippyProps,
           content: `Spicy Lyrics Settings`,
         });
@@ -782,7 +783,7 @@ function AppendViewControls(ReAppend: boolean = false) {
     if (lyricsManagerButton && isTTMLMakerMode) {
       try {
         if (!isPip) {
-          Tooltips.LyricsManager = Spicetify.Tippy(lyricsManagerButton, {
+          Tooltips.LyricsManager = createTooltip(lyricsManagerButton, {
             ...Spicetify.TippyProps,
             content: `Lyrics Manager`,
           });

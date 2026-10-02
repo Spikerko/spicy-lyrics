@@ -312,7 +312,7 @@ body:not(.SpicyLyrics_StaticBackground)
   padding: 0;
 }
 
-.SpicyLyrics_PlaybarTooltip > .main-contextMenu-tippy {
+.SpicyLyrics_Tooltip > .main-contextMenu-tippy {
   background-color: var(--background-elevated-highlight, var(--spice-card, #333));
   border-radius: 4px;
   padding: 6px 8px;

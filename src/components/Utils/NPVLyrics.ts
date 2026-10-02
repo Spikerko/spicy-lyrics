@@ -1,3 +1,4 @@
+import { createTooltip } from "../../utils/tooltip.ts";
 // Compact lyrics card injected into Spotify's right-sidebar Now Playing View.
 // Reuses the full synced lyrics pipeline by opening the page (PageView.Open)
 // into the card body in cardMode. Because the pipeline is a global singleton
@@ -180,7 +181,7 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
 
 function setTooltip(target: Element, content: string, maidKey: string): void {
   try {
-    const tip = Spicetify.Tippy(target, {
+    const tip = createTooltip(target, {
       ...Spicetify.TippyProps,
       content,
     });

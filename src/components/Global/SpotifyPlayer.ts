@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { createTooltip } from "../../utils/tooltip.ts";
 import Global from "./Global.ts";
 import GetProgress, {
   _DEPRECATED___GetProgress,
@@ -262,11 +263,10 @@ export const SpotifyPlayer = {
         this.disabled = disabled;
         this.active = active;
         addClassname(this.element);
-        this.tippy = (Spicetify as any).Tippy?.(this.element, {
+        this.tippy = createTooltip(this.element, {
           content: label,
           ...(Spicetify as any).TippyProps,
         });
-        this.tippy?.popper?.classList.add("SpicyLyrics_PlaybarTooltip");
         this.label = label;
         if (registerOnCreate) this.register();
       }
@@ -406,7 +406,7 @@ export const SpotifyPlayer = {
         this.onClick = onClick;
         this.disabled = disabled;
         this.active = active;
-        this.tippy = (Spicetify as any).Tippy?.(this.element, {
+        this.tippy = createTooltip(this.element, {
           content: label,
           ...(Spicetify as any).TippyProps,
         });

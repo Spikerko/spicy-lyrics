@@ -1,3 +1,4 @@
+import { createTooltip } from "../../../tooltip.ts";
 import { IsPIP } from "../../../../components/Utils/PopupLyrics.ts";
 
 let isByCommunityAbortController: AbortController | null = null;
@@ -122,7 +123,7 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
   if (uploaderSpan) {
     if (!IsPIP) {
       madeTippys.add(
-        Spicetify.Tippy(uploaderSpan, {
+        createTooltip(uploaderSpan, {
           ...Spicetify.TippyProps,
           content: `View TTML Profile`,
         })
@@ -144,7 +145,7 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
   if (makerSpan) {
     if (!IsPIP) {
       madeTippys.add(
-        Spicetify.Tippy(makerSpan, {
+        createTooltip(makerSpan, {
           ...Spicetify.TippyProps,
           content: `View TTML Profile`,
         })
