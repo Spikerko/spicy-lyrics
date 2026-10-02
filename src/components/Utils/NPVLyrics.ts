@@ -143,13 +143,18 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
   if (modernContent) {
     const nativeLyrics = modernContent.querySelector('[data-testid="lyrics-npv-section"]');
     if (nativeLyrics?.parentElement === modernContent) {
-      nativeLyrics.insertAdjacentElement("beforebegin", el);
+      if (el.parentElement !== modernContent || el.nextElementSibling !== nativeLyrics) {
+        nativeLyrics.insertAdjacentElement("beforebegin", el);
+      }
     } else {
       const artwork = modernContent.querySelector('[data-testid="track-visual-enhancement"]');
       let section: Element | null = artwork;
       while (section && section.parentElement !== modernContent) section = section.parentElement;
-      if (section) section.insertAdjacentElement("afterend", el);
-      else modernContent.prepend(el);
+      if (section) {
+        if (section.nextElementSibling !== el) section.insertAdjacentElement("afterend", el);
+      } else if (modernContent.firstElementChild !== el) {
+        modernContent.prepend(el);
+      }
     }
     return true;
   }
@@ -456,6 +461,13 @@ async function reconcile(): Promise<void> {
     : cardOwnsPage
       ? "ACTIVE"
       : "SHELL";
+
+  if (cardEl) {
+    const npv = GetNPVElement();
+    if (npv?.querySelector('[data-testid="NPV_Panel_OpenDiv"]') === cardEl.parentElement) {
+      insertCard(npv, cardEl);
+    }
+  }
 
   if (desired === current) {
     if (cardEl) refreshCardUI();
