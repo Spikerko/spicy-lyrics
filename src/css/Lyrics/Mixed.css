@@ -94,12 +94,15 @@
 }
 
 /* Syllable words paint their own gradient. A gradient clipped to their parent
-   paints the same glyphs again while the words move. */
+   paints the same glyphs again while the words move. The interlude dots paint
+   their own too, in every lyrics type: left on the line, its gradient drew a
+   dim copy of each dot at its resting place while the dot bounced. */
 #SpicyLyricsPage.SpicyRenderer
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer[data-lyrics-type="Syllable"]
-  .line.Active {
+  .line.Active,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.musical-line.Active {
   background-image: none;
 }
 
