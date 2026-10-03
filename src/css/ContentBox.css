@@ -1871,6 +1871,13 @@
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart {
+  transition: opacity 0.95s;
+}
+
+/* The scale lives on the icon, not on .Heart: .Heart is the hover target, and
+   shrinking it pulled its edge out from under a pointer resting near the edge,
+   which ended the hover, sprang it back under the pointer and looped. */
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart svg {
   transition: scale 0.85s
       linear(
         0,
@@ -1896,8 +1903,7 @@
         0.997 60.4%,
         1.01 66.8%,
         1
-      ),
-    opacity 0.95s
+      );
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart {
@@ -1905,15 +1911,15 @@
   --press-scale-padding: 0.245;
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart:hover {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart:hover svg {
   scale: calc(1 - var(--hover-scale-padding));
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.press02 {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.press02 svg {
   scale: calc(1 + var(--press-scale-padding)) !important;
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.reverse_press02 {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.reverse_press02 svg {
   scale: calc(1 - var(--press-scale-padding)) !important;
 }
 

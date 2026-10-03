@@ -86,9 +86,12 @@ div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after,
 /* Everything under the visual enhancement's parent, reached through the
    enhancement and its following siblings rather than div:has(> …): an ancestor
    :has() with a featureless subject made Blink restyle the whole document on
-   any DOM change. The enhancement is its parent's first child. */
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::before,
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::after {
+   any DOM change. The enhancement is its parent's first child.
+   Only wrappers of a Canvas (video, or the image Canvas variant) lose their
+   overlays. Matching any img also caught the album cover, whose pseudo-elements
+   themes build on (e.g. Spotify Spice's vinyl record). */
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):is(:has(video, .main-nowPlayingView-canvasVisualEnhancement img), .main-nowPlayingView-canvasVisualEnhancement:has(img), .main-nowPlayingView-canvasVisualEnhancement :has(img)):not(.main-image-image.cover-art-image)::before,
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):is(:has(video, .main-nowPlayingView-canvasVisualEnhancement img), .main-nowPlayingView-canvasVisualEnhancement:has(img), .main-nowPlayingView-canvasVisualEnhancement :has(img)):not(.main-image-image.cover-art-image)::after {
   display: none !important;
 }
 

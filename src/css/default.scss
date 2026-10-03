@@ -139,7 +139,9 @@
 
 
 
-body:has(#SpicyLyricsPage):not(:has(
+/* SpicyLyrics_StockPlaybar: set on page open only when no theme has already
+   moved the bar or its time labels (see syncStockPlaybarClass). */
+body.SpicyLyrics_StockPlaybar:has(#SpicyLyricsPage):not(:has(
   [id*="dribbblish"]
 )):not(
   .sltm__ThemeMatch__textdt
