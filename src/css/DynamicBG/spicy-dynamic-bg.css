@@ -42,8 +42,12 @@ aside .spicy-dynamic-bg {
   initial-value: 80%;
 }
 
+/* Spotify 1.3.x leaves the NPV cover/canvas classes unmapped. The cover's
+   [data-testid="track-visual-enhancement"] is stable, and the canvas container is
+   its next sibling on both builds. */
 aside video,
-.main-nowPlayingView-canvasVisualEnhancement div:has(> img) {
+.main-nowPlayingView-canvasVisualEnhancement div:has(> img),
+[data-testid="track-visual-enhancement"] + * div:has(> img) {
   --sl_videocanvas_mask-stop: 25%;
   filter: brightness(0.65);
   opacity: .9;
@@ -53,22 +57,35 @@ aside video,
 }
 
 .main-nowPlayingView-coverArtContainer:has(video),
-.main-nowPlayingView-coverArtContainer:has(.main-nowPlayingView-canvasVisualEnhancement img) {
+.main-nowPlayingView-coverArtContainer:has(.main-nowPlayingView-canvasVisualEnhancement img),
+div:has(> [data-testid="track-visual-enhancement"]):has(video),
+div:has(> [data-testid="track-visual-enhancement"] + * img) {
   margin-top: 25px !important;
 }
 
-aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA) :is(video, .main-nowPlayingView-canvasVisualEnhancement div:has(> img)),
-.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA) :is(video) {
+/* The :not() hashes are the cover's collapsed (square) state per Spotify build:
+   yiy_EezkGycfPvS3 on 1.2.98, Xb7R370pCgtlIa7FdCEC on 1.3.1, pDnmSSubLQYcPyfsjA7x
+   on 1.3.3. */
+aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC) :is(video, .main-nowPlayingView-canvasVisualEnhancement div:has(> img)),
+.main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC) :is(video),
+/* 1.3.3 leaves the cover container unmapped. The image wrapper is reached
+   through the cover's own child rather than a :has() on the container: a
+   non-subject :has() ahead of a bare `div` made Blink restyle every div in the
+   app on any DOM change. */
+aside div:has(> [data-testid="track-visual-enhancement"]):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x) video,
+aside div:not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x) > [data-testid="track-visual-enhancement"] + * div:has(> img) {
   --sl_videocanvas_mask-stop: 80% !important;
 }
 
 aside video:hover,
-.main-nowPlayingView-canvasVisualEnhancement div:has(> img):hover {
+.main-nowPlayingView-canvasVisualEnhancement div:has(> img):hover,
+[data-testid="track-visual-enhancement"] + * div:has(> img):hover {
   filter: brightness(0.9);
 }
 
 .VideoPlayer__container video,
-.main-nowPlayingView-canvasVisualEnhancement img {
+.main-nowPlayingView-canvasVisualEnhancement img,
+[data-testid="track-visual-enhancement"] + * img {
   filter: none !important;
   -webkit-mask-image: none !important;
   mask-image: none !important;
@@ -86,9 +103,20 @@ div.main-nowPlayingView-contextItemInfo:has(.main-trackInfo-container)::after,
 /* Everything under the visual enhancement's parent, reached through the
    enhancement and its following siblings rather than div:has(> …): an ancestor
    :has() with a featureless subject made Blink restyle the whole document on
-   any DOM change. The enhancement is its parent's first child. */
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::before,
-:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):has(video, img):not(.main-image-image.cover-art-image)::after {
+   any DOM change. The enhancement is its parent's first child.
+   Only wrappers of a Canvas (video, or the image Canvas variant) lose their
+   overlays. Matching any img also caught the album cover, whose pseudo-elements
+   themes build on (e.g. Spotify Spice's vinyl record). */
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):is(:has(video, .main-nowPlayingView-canvasVisualEnhancement img), .main-nowPlayingView-canvasVisualEnhancement:has(img), .main-nowPlayingView-canvasVisualEnhancement :has(img)):not(.main-image-image.cover-art-image)::before,
+:is(.main-nowPlayingView-nowPlayingWidget, .NowPlayingView, aside) :is(.main-nowPlayingView-coverArtVisualEnhancement ~ *, .main-nowPlayingView-coverArtVisualEnhancement *, .main-nowPlayingView-coverArtVisualEnhancement ~ * *):not(.main-nowPlayingView-coverArtVisualEnhancement):is(:has(video, .main-nowPlayingView-canvasVisualEnhancement img), .main-nowPlayingView-canvasVisualEnhancement:has(img), .main-nowPlayingView-canvasVisualEnhancement :has(img)):not(.main-image-image.cover-art-image)::after,
+/* Same reach from the stable test id: Spotify 1.3.x paints its dark canvas
+   gradients here, which cut a hard edge across the dynamic background. The
+   Canvas container is the enhancement's next sibling, while the album cover is
+   inside the enhancement, so there only a video counts. */
+:is(.NowPlayingView, aside) :is([data-testid="track-visual-enhancement"] ~ *, [data-testid="track-visual-enhancement"] ~ * *):has(video, img)::before,
+:is(.NowPlayingView, aside) :is([data-testid="track-visual-enhancement"] ~ *, [data-testid="track-visual-enhancement"] ~ * *):has(video, img)::after,
+:is(.NowPlayingView, aside) [data-testid="track-visual-enhancement"] *:has(video)::before,
+:is(.NowPlayingView, aside) [data-testid="track-visual-enhancement"] *:has(video)::after {
   display: none !important;
 }
 
@@ -142,7 +170,8 @@ aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
 /* Hide sidebar background when in fullscreen lyrics mode */
 body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   aside:is(.NowPlayingView, .spicy-dynamic-bg-in-this)
-  .spicy-dynamic-bg {
+  .spicy-dynamic-bg,
+body:has(#SpicyLyricsPage.Fullscreen) aside.NowPlayingView .spicy-dynamic-bg {
   display: none;
 }
 
@@ -204,12 +233,16 @@ body:has(#SpicyLyricsPage.Fullscreen) .Root__right-sidebar
   z-index: -1 !important;
 }
 
-.NowPlayingView .main-nowPlayingView-headerCloseButton {
+/* The close button is the header wrapper's first child; 1.3.x drops its class. */
+.NowPlayingView .main-nowPlayingView-headerCloseButton,
+.NowPlayingView .main-nowPlayingView-headerWrapper > button:first-child {
   color: var(--spice-text);
   opacity: .8 !important;
 }
 
 .NowPlayingView .main-nowPlayingView-headerCloseButton:hover,
-.NowPlayingView .main-nowPlayingView-headerCloseButton:focus {
+.NowPlayingView .main-nowPlayingView-headerCloseButton:focus,
+.NowPlayingView .main-nowPlayingView-headerWrapper > button:first-child:hover,
+.NowPlayingView .main-nowPlayingView-headerWrapper > button:first-child:focus {
   opacity: 1 !important;
 }

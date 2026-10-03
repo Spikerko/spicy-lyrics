@@ -50,7 +50,10 @@ export const GetNPVElement = (): HTMLElement | null =>
 
 export function GetNPVObserverRoot(): Element | null {
   const panel = document.getElementById("Desktop_PanelContainer_Id") ?? GetNPVElement();
+  // The top container's child holding the panel is what .Root__right-sidebar
+  // names on older builds, so swaps of it still reach the top observer.
   return document.querySelector(".Root__right-sidebar") ??
+    panel?.closest(".Root__top-container > *") ??
     panel?.closest("[aria-hidden]") ?? panel?.parentElement ?? null;
 }
 
@@ -610,8 +613,21 @@ function attachWatchers(): void {
   const topContainer = document.querySelector(".Root__top-container");
   const watchRoot =
     topContainer ?? document.querySelector(".Root") ?? document.body;
+  // Without .Root__right-sidebar (Spotify 1.3.x) the observer root is found
+  // through the NPV panel, which can mount after we start, deep inside the
+  // sidebar. Watch the whole subtree until it appears, then narrow back down.
+  let watchingSubtree = false;
+  const observeTop = () => {
+    watchingSubtree = topContainer === null || observedSidebar === null;
+    topObserver.observe(watchRoot, { childList: true, subtree: watchingSubtree });
+  };
   const topObserver = new MutationObserver((records) => {
     clearExpandedIfDetached();
+    if (observedSidebar === null) {
+      attachSidebarObserver();
+      if (observedSidebar !== null && watchingSubtree && topContainer !== null) observeTop();
+      return;
+    }
     if (records.every(record => cardEl?.contains(record.target))) return;
     const panelChanged = records.some(record =>
       [...record.addedNodes, ...record.removedNodes].some(node => node instanceof Element &&
@@ -620,12 +636,10 @@ function attachWatchers(): void {
     if (!observedSidebar || !observedSidebar.isConnected || panelChanged) {
       observedSidebar = null;
       attachSidebarObserver();
+      if (observedSidebar === null && !watchingSubtree) observeTop();
     }
   });
-  topObserver.observe(watchRoot, {
-    childList: true,
-    subtree: topContainer === null,
-  });
+  observeTop();
   watcherMaid.Give(topObserver, "top-observer");
 }
 

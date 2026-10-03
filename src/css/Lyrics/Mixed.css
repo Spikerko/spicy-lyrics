@@ -34,7 +34,16 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   position: relative;
-  will-change: transform, opacity;
+}
+
+/* Only the active line's words move, so only they get their own compositor
+   layer. A layer for every word on the page cost more per frame in layer
+   bookkeeping than it saved; the words of a line that just finished repaint
+   for the few frames their springs take to settle instead. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .word,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .letterGroup,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .letter {
+  will-change: transform, scale, opacity;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line,
@@ -584,7 +593,13 @@
   #SpicyLyricsPage.SpicyRenderer
   .LyricsContainer
   .SpicyLyricsScrollContainer[data-lyrics-type="Static"] {
-  --DefaultLyricsSize: clamp(1.4rem, calc(1cqw * 6), 2.3rem);
+  /* Bounded by height and narrow widths the same way as the synced popup
+     size (Lyrics/main.css). */
+  --DefaultLyricsSize: clamp(
+    1rem,
+    min(max(1.4rem, 6vw), 7vh, 7vw),
+    2.3rem
+  );
 }
 
 #SpicyLyricsPage.SpicyRenderer
@@ -769,7 +784,7 @@
 
 #SpicyLyricsPage.SpicyRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
   .LyricsContainer
-  .LyricsContent:not(:has(.line.Active)):not(:has(.line.NotSung))
+  .LyricsContent.LinesAllSung
   .line:not(.musical-line):not(.static) {
   scale: 1;
   opacity: var(--Vocal-Sung-opacity, 0.5);
@@ -866,15 +881,19 @@
   width: calc(100% + .25cqw * 2);
   height: calc(100% + .85cqw * 2);
   background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(2px);
+  /* The blur is only applied while hovered (see below). Left on at rest, every
+     line carried an invisible backdrop-filter layer the compositor still had
+     to process each frame. It fades with the opacity, so nothing pops. */
+  backdrop-filter: none;
   opacity: 0;
   scale: 0.9;
   border-radius: 16px;
-  transition: opacity .25s ease, scale .4s linear(0, 0.013 1%, 0.051 2.2%, 0.404 9.8%, 0.51 12.6%, 0.602 15.5%, 0.683 18.7%, 0.754 22.2%, 0.813 26%, 0.861 30.2%, 0.9 34.8%, 0.931 40%, 0.972 52.7%, 0.992 70.2%, 1);
+  transition: opacity .25s ease, backdrop-filter .25s ease, scale .4s linear(0, 0.013 1%, 0.051 2.2%, 0.404 9.8%, 0.51 12.6%, 0.602 15.5%, 0.683 18.7%, 0.754 22.2%, 0.813 26%, 0.861 30.2%, 0.9 34.8%, 0.931 40%, 0.972 52.7%, 0.992 70.2%, 1);
   transform-origin: center center;
 }
 
 #SpicyLyricsPage.SpicyRenderer:not(.NoLineHoverBackground) .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"]) .line:hover::before {
   opacity: 1;
   scale: 1.05;
+  backdrop-filter: blur(2px);
 }

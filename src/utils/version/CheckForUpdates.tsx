@@ -95,8 +95,7 @@ function showUpdateModal(currentVersion: any, latestVersion: any, origin?: DOMRe
 export async function CheckForUpdates(force: boolean = false) {
   if (isDev) return;
   if (!force && ShownUpdateNotice) return;
-  // One request: fetching the latest version a second time for the notice
-  // could be held back by the circuit breaker and throw, losing the notice.
+  // One request: the notice reuses this reading rather than fetching again.
   const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
   const currentVersion = Session.SpicyLyrics.GetCurrentVersion();
   if (!Session.SpicyLyrics.IsBehind(currentVersion, latestVersion)) return;

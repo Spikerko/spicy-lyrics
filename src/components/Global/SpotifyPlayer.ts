@@ -366,9 +366,20 @@ export const SpotifyPlayer = {
     mountButtons();
 
     function addClassname(element: HTMLElement) {
-      const sibling = GetControls()?.querySelector<HTMLElement>(
-        'button[data-testid="lyrics-button"], button[data-testid="pip-toggle-button"], button[data-testid="fullscreen-mode-button"], .main-genericButton-button:not(.SpicyLyrics_PlaybarButton)'
-      );
+      // Tried in order (a selector list would return the first in DOM order, the
+      // lyrics button): buttons that never turn active come first, so we don't
+      // copy an active-state class such as 1.2.98's hashed active dot.
+      const controls = GetControls();
+      let sibling: HTMLElement | null = null;
+      for (const selector of [
+        'button[data-testid="fullscreen-mode-button"]',
+        'button[data-testid="pip-toggle-button"]',
+        'button[data-testid="lyrics-button"]',
+        ".main-genericButton-button:not(.SpicyLyrics_PlaybarButton)",
+      ]) {
+        sibling = controls?.querySelector<HTMLElement>(selector) ?? null;
+        if (sibling) break;
+      }
       if (!sibling) return;
       for (const className of Array.from(sibling.classList)) {
         if (className.startsWith("main-genericButton") || className === "ZfsMQKTLl695iPvUo3GK") continue;

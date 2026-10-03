@@ -64,6 +64,7 @@ import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIs
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
 import Logger from "../../utils/Logger.ts";
+import { setStockPlaybarPage } from "../../utils/themeMatcher.ts";
 import { ApplyExperimentClasses, onExperimentChange } from "../../utils/experiments.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
@@ -189,6 +190,11 @@ async function OpenPage(
     } */
   const elem = document.createElement("div");
   elem.id = "SpicyLyricsPage";
+  // Spotify's OverlayScrollbars (main view, NPV panel) ignores mutations inside
+  // this marker. Without it, every per-frame word style write made it re-measure
+  // its viewport, forcing an extra style + layout pass mid-frame. The page's size
+  // never depends on its content, so there is nothing for it to pick up.
+  elem.setAttribute("data-scroll-size-contained", "");
 
   elem.classList.add("SpicyRenderer");
 
@@ -363,6 +369,7 @@ async function OpenPage(
 
   $lyricsContainerExists.set(true);
   PageView.IsOpened = true;
+  setStockPlaybarPage(elem);
 
   if (IsPIP) {
     elem?.classList.add("ForcedCompactMode");
@@ -438,6 +445,7 @@ async function DestroyPage() {
   }
 
   PageContainer?.remove();
+  setStockPlaybarPage(null);
   removeLinesEvListener();
   (Object.keys(Tooltips) as (keyof typeof Tooltips)[]).forEach((key) => {
     Tooltips[key]?.destroy();

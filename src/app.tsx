@@ -337,8 +337,10 @@ async function main() {
       },
       {
         Registered: false,
+        // Created whenever the browser supports it; whether it is shown follows
+        // $popupLyricsAllowed (see syncPopupLyricsButton).
         Button: (
-          (('documentPictureInPicture' in window) && ($popupLyricsAllowed.get()))
+          ('documentPictureInPicture' in window)
             ? new SpotifyPlayer.Playbar.Button(
               "Spicy Popup Lyrics",
               Icons.PiPMode,
@@ -350,6 +352,9 @@ async function main() {
                 }
               },
               false,
+              false,
+              // Registering is left to syncPopupLyricsButton, which tracks it in
+              // `Registered`; registering here showed it even with the setting off.
               false
             )
             : undefined
@@ -377,14 +382,35 @@ async function main() {
     Global.Saves.shift_key_pressed = false;
   });
 
+  // Registers or removes the Popup Lyrics button to match the setting, so turning
+  // it on or off applies right away instead of after a restart. The body class
+  // hides Spotify's Miniplayer button while ours is in use (default.css).
+  let pageContainerAvailable = false;
+  const syncPopupLyricsButton = () => {
+    const allowed = ('documentPictureInPicture' in window) && $popupLyricsAllowed.get();
+    document.body.classList.toggle("SpicyLyrics_PopupLyricsEnabled", allowed);
+    const popupLyricsEntry = ButtonList?.[2];
+    if (!popupLyricsEntry?.Button || !pageContainerAvailable) return;
+    if (allowed && !popupLyricsEntry.Registered) {
+      popupLyricsEntry.Button.register();
+      popupLyricsEntry.Registered = true;
+    } else if (!allowed && popupLyricsEntry.Registered) {
+      popupLyricsEntry.Button.deregister();
+      popupLyricsEntry.Registered = false;
+    }
+  };
+
   Global.Event.listen("pagecontainer:available", () => {
     if (!ButtonList) return;
+    pageContainerAvailable = true;
     for (const button of ButtonList) {
+      if (button === ButtonList[2]) continue;
       if (!button.Registered) {
         if (button.Button) button.Button.register();
         button.Registered = true;
       }
     }
+    syncPopupLyricsButton();
   });
 
   // Only the playbar buttons depend on Playbar.Button. A bare `return` here used
@@ -400,18 +426,22 @@ async function main() {
     fullscreenButton.element.style.setProperty("display", "inline-block", "important");
 
     const popupLyricsButton = ButtonList[2].Button;
-    if (popupLyricsButton && ('documentPictureInPicture' in window) && $popupLyricsAllowed.get()) {
+    if (popupLyricsButton) {
       popupLyricsButton.element.style.order = "100000";
       popupLyricsButton.element.id = "SpicyLyrics_PopupLyricsButton";
       popupLyricsButton.element.style.setProperty("display", "inline-block", "important");
     }
+    syncPopupLyricsButton();
+    $popupLyricsAllowed.listen(syncPopupLyricsButton);
 
+    // Spotify's Miniplayer button is hidden by a rule (see syncPopupLyricsButton),
+    // not here: this only runs when our playbar observer fires, which missed some
+    // of Spotify's re-renders and left both buttons showing.
     const hideUnwantedButtons = (container: Element) => {
       for (const element of container.children) {
         const testId = element.attributes.getNamedItem("data-testid")?.value;
 
         const isFullscreen = testId === "fullscreen-mode-button";
-        const isPip = ('documentPictureInPicture' in window) && $popupLyricsAllowed.get() && testId === "pip-toggle-button";
         const isGenericControl =
           testId !== "lyrics-button" &&
           element.classList.contains("control-button") &&
@@ -419,7 +449,7 @@ async function main() {
           !element.classList.contains("main-devicePicker-controlButton");
 
         if (
-          (isFullscreen || isPip || isGenericControl) &&
+          (isFullscreen || isGenericControl) &&
           element.id !== "SpicyLyrics_PageButton" &&
           element.id !== "SpicyLyrics_FullscreenButton" &&
           element.id !== "SpicyLyrics_PopupLyricsButton"
@@ -581,6 +611,9 @@ async function main() {
     // but page backgrounds (e.g. lpagebg) must remain intact.
     let cinemaViewObserver: MutationObserver | null = null;
     let cinemaViewActive = false;
+    // Spotify 1.3.x ships the cinema root under a hash Spicetify doesn't map;
+    // its unhashed .over-cinema-scroll child is present in both builds.
+    const CINEMA_VIEW_SELECTOR = ".Root__cinema-view, .over-cinema-scroll";
 
     const getTopContainerElement = () => {
       const rightSidebar = document.querySelector<HTMLElement>(".Root__right-sidebar");
@@ -591,7 +624,7 @@ async function main() {
     };
 
     const checkCinemaViewAndMaybeCleanup = (topContainer: HTMLElement) => {
-      const cinemaViewExists = Boolean(topContainer.querySelector(".Root__cinema-view"));
+      const cinemaViewExists = Boolean(topContainer.querySelector(CINEMA_VIEW_SELECTOR));
 
       if (cinemaViewExists && !cinemaViewActive) {
         cinemaViewActive = true;
@@ -624,6 +657,13 @@ async function main() {
         }
 
         checkCinemaViewAndMaybeCleanup(topContainer);
+
+        // On 1.3.x the NPV observer root is found through the panel, which
+        // can mount after startup; pick it up here and apply once it exists.
+        if (!nowPlayingBarObserver) {
+          startNowPlayingBarObserver();
+          if (nowPlayingBarObserver) scheduleNowPlayingBarDynamicBackgroundApply();
+        }
       });
 
       cinemaViewObserver.observe(topContainer, {
@@ -647,7 +687,7 @@ async function main() {
       if (!coverUrl) return;
       const nowPlayingBar = getNowPlayingBarElement();
       const topContainer = getTopContainerElement();
-      const cinemaViewExists = Boolean(topContainer?.querySelector(".Root__cinema-view"));
+      const cinemaViewExists = Boolean(topContainer?.querySelector(CINEMA_VIEW_SELECTOR));
       // Same rule as the NPV lyrics card: an inert ancestor chain
       // (.Root__right-sidebar <-> aside) means the NPV is not interactive,
       // so its dynamic background should be de-rendered too.
@@ -1044,7 +1084,7 @@ async function main() {
         }
       });
 
-      // 15 minutes, jittered. The `finally` matters: CheckForUpdates reaches the
+      // 2 minutes, jittered. The `finally` matters: CheckForUpdates reaches the
       // network, and a single throw used to skip the reschedule entirely, which
       // silently stopped update checks for the rest of the session.
       const CheckForUpdates_Intervaled = async () => {
@@ -1053,7 +1093,7 @@ async function main() {
         } catch (error) {
           console.warn("Update check failed", error);
         } finally {
-          setTimeout(CheckForUpdates_Intervaled, jitter(900 * 1000, 0.2));
+          setTimeout(CheckForUpdates_Intervaled, jitter(120 * 1000, 0.2));
         }
       };
       setTimeout(async () => await CheckForUpdates_Intervaled(), 1000);
