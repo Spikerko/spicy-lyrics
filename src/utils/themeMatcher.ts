@@ -170,10 +170,45 @@ export function setStockPlaybarPage(page: HTMLElement | null) {
   syncStockPlaybarClass();
 }
 
+// Spotify can swap the playback bar (or its label) out while the page stays
+// open, and the reading taken on open would then go stale. The now-playing bar
+// is watched for that, childList only, plus its parent for the bar being
+// replaced whole, so the lyrics page's own churn never reaches the observer.
+// The check reruns only when the bar or its label is a different element.
+let playbarObserver: MutationObserver | null = null;
+let observedBar: HTMLElement | null = null;
+let observedElapsed: HTMLElement | null = null;
+
+const stopWatchingPlaybar = () => {
+  playbarObserver?.disconnect();
+  playbarObserver = null;
+  observedBar = null;
+  observedElapsed = null;
+};
+
+const watchPlaybar = (bar: HTMLElement | null) => {
+  stopWatchingPlaybar();
+  if (!bar) return;
+  const root =
+    bar.closest<HTMLElement>('.Root__now-playing-bar, [data-testid="now-playing-bar"]') ??
+    bar.parentElement;
+  if (!root) return;
+  observedBar = bar;
+  observedElapsed = getElapsed(bar);
+  playbarObserver = new MutationObserver(() => {
+    const current = getPlaybar();
+    if (current === observedBar && (current && getElapsed(current)) === observedElapsed) return;
+    syncStockPlaybarClass();
+  });
+  playbarObserver.observe(root, { childList: true, subtree: true });
+  if (root.parentElement) playbarObserver.observe(root.parentElement, { childList: true });
+};
+
 // The class comes off before measuring so the reading is the theme's layout,
 // not ours; it goes back on in the same task, so nothing paints in between.
 export function syncStockPlaybarClass(tries = 0) {
   clearTimeout(pendingPlaybarSync);
+  stopWatchingPlaybar();
   document.body.classList.remove(STOCK_PLAYBAR_CLASS);
   if (!stockPlaybarPage?.isConnected) return;
   const bar = getPlaybar();
@@ -185,6 +220,7 @@ export function syncStockPlaybarClass(tries = 0) {
     return;
   }
   document.body.classList.toggle(STOCK_PLAYBAR_CLASS, isStockPlaybar());
+  watchPlaybar(bar);
 }
 
 export async function runThemeMatcher() {

@@ -352,6 +352,9 @@ async function main() {
                 }
               },
               false,
+              false,
+              // Registering is left to syncPopupLyricsButton, which tracks it in
+              // `Registered`; registering here showed it even with the setting off.
               false
             )
             : undefined
@@ -1081,7 +1084,7 @@ async function main() {
         }
       });
 
-      // 15 minutes, jittered. The `finally` matters: CheckForUpdates reaches the
+      // 2 minutes, jittered. The `finally` matters: CheckForUpdates reaches the
       // network, and a single throw used to skip the reschedule entirely, which
       // silently stopped update checks for the rest of the session.
       const CheckForUpdates_Intervaled = async () => {
@@ -1090,7 +1093,7 @@ async function main() {
         } catch (error) {
           console.warn("Update check failed", error);
         } finally {
-          setTimeout(CheckForUpdates_Intervaled, jitter(900 * 1000, 0.2));
+          setTimeout(CheckForUpdates_Intervaled, jitter(120 * 1000, 0.2));
         }
       };
       setTimeout(async () => await CheckForUpdates_Intervaled(), 1000);

@@ -813,6 +813,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           dragDoc.addEventListener("touchmove", handleDragMove);
           dragDoc.addEventListener("mouseup", handleDragEnd);
           dragDoc.addEventListener("touchend", handleDragEnd);
+          dragDoc.addEventListener("touchcancel", handleDragCancel);
 
           if (!pendingIconTap) handleDragMove(event);
         };
@@ -828,9 +829,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           commit(percentageFromEvent(event));
         };
 
-        const handleDragEnd = (event: MouseEvent | TouchEvent) => {
-          if (!isDragging) return;
-          if ("changedTouches" in event) lastTouchAt = performance.now();
+        const stopDrag = () => {
           isDragging = false;
           VolumeElement.classList.remove("Dragging");
           dragDoc.body.style.userSelect = "";
@@ -839,6 +838,13 @@ function OpenNowBar(skipSaving: boolean = false) {
           dragDoc.removeEventListener("touchmove", handleDragMove);
           dragDoc.removeEventListener("mouseup", handleDragEnd);
           dragDoc.removeEventListener("touchend", handleDragEnd);
+          dragDoc.removeEventListener("touchcancel", handleDragCancel);
+        };
+
+        const handleDragEnd = (event: MouseEvent | TouchEvent) => {
+          if (!isDragging) return;
+          if ("changedTouches" in event) lastTouchAt = performance.now();
+          stopDrag();
 
           if (pendingIconTap) {
             pendingIconTap = false;
@@ -846,6 +852,17 @@ function OpenNowBar(skipSaving: boolean = false) {
           } else {
             commit(percentageFromEvent(event));
           }
+          SetControlsDragLock(false);
+        };
+
+        // The browser took the touch over (a scroll, a system gesture): no touchend
+        // follows, so drop the drag without a final commit or a mute toggle. Moves
+        // already committed stay, as the volume tracks the pointer live.
+        const handleDragCancel = () => {
+          if (!isDragging) return;
+          lastTouchAt = performance.now();
+          pendingIconTap = false;
+          stopDrag();
           SetControlsDragLock(false);
         };
 
@@ -865,17 +882,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           VolumeElement.removeEventListener("mousedown", handleDragStart);
           VolumeElement.removeEventListener("touchstart", handleDragStart);
           VolumeElement.removeEventListener("wheel", wheelHandler);
-          dragDoc.removeEventListener("mousemove", handleDragMove);
-          dragDoc.removeEventListener("touchmove", handleDragMove);
-          dragDoc.removeEventListener("mouseup", handleDragEnd);
-          dragDoc.removeEventListener("touchend", handleDragEnd);
-          if (isDragging) {
-            isDragging = false;
-            pendingIconTap = false;
-            VolumeElement.classList.remove("Dragging");
-            dragDoc.body.style.userSelect = "";
-            SetControlsDragLock(false);
-          }
+          handleDragCancel();
         });
 
         // The `volume` event only fires on change, so seed the initial state here
