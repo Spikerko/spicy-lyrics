@@ -1,5 +1,6 @@
 import { Maid } from "../modules/Maid";
 import Logger from "./Logger";
+import { onAnimationFrame } from "./AnimationFrameLoop.ts";
 
 const intervalLogger = new Logger("Interval Manager");
 
@@ -7,8 +8,7 @@ class IntervalManager {
   private maid: Maid;
   private callback: () => void;
   private duration: number; // Duration in milliseconds
-  private lastTimestamp: number | null;
-  private animationFrameId: number | null;
+  private unsubscribeFrame: (() => void) | null;
   private intervalId: ReturnType<typeof setInterval> | null;
   public Running: boolean;
   public Destroyed: boolean;
@@ -21,8 +21,7 @@ class IntervalManager {
     this.maid = new Maid();
     this.callback = callback;
     this.duration = duration === Infinity ? 0 : duration * 1000; // Convert seconds to milliseconds or set to 0 for immediate execution
-    this.lastTimestamp = null;
-    this.animationFrameId = null;
+    this.unsubscribeFrame = null;
     this.intervalId = null;
     this.Running = false;
     this.Destroyed = false;
@@ -32,7 +31,7 @@ class IntervalManager {
     this.maid.Give(() => this.Stop());
   }
 
-  // Starts the requestAnimationFrame loop
+  // Starts the interval, or the per-frame callback when duration is Infinity
   public Start() {
     if (this.Destroyed) {
       intervalLogger.warn("Cannot start; IntervalManager has been destroyed");
@@ -45,7 +44,6 @@ class IntervalManager {
     }
 
     this.Running = true;
-    this.lastTimestamp = null;
 
     if (this.duration > 0 && Number.isFinite(this.duration)) {
       this.intervalId = setInterval(() => {
@@ -55,24 +53,13 @@ class IntervalManager {
       return;
     }
 
-    const loop = (timestamp: number) => {
+    // "Every frame" means every frame of the shared, capped loop. These pollers
+    // each used to run their own requestAnimationFrame, i.e. on every refresh of
+    // the display (240 times a second on some setups) whatever the FPS setting.
+    this.unsubscribeFrame = onAnimationFrame(() => {
       if (!this.Running || this.Destroyed) return;
-
-      if (this.lastTimestamp === null) {
-        this.lastTimestamp = timestamp;
-      }
-
-      const elapsed = timestamp - this.lastTimestamp;
-
-      if (this.duration === 0 || elapsed >= this.duration) {
-        this.callback();
-        this.lastTimestamp = this.duration === 0 ? null : timestamp; // Reset timestamp for immediate execution when duration is infinite
-      }
-
-      this.animationFrameId = requestAnimationFrame(loop);
-    };
-
-    this.animationFrameId = requestAnimationFrame(loop);
+      this.callback();
+    });
   }
 
   // Stops the animation frame loop without destroying the manager
@@ -81,12 +68,11 @@ class IntervalManager {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
+    if (this.unsubscribeFrame !== null) {
+      this.unsubscribeFrame();
+      this.unsubscribeFrame = null;
     }
     this.Running = false;
-    this.lastTimestamp = null;
   }
 
   // Restarts the animation frame loop
