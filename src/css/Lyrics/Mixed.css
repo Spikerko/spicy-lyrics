@@ -593,7 +593,13 @@
   #SpicyLyricsPage.SpicyRenderer
   .LyricsContainer
   .SpicyLyricsScrollContainer[data-lyrics-type="Static"] {
-  --DefaultLyricsSize: clamp(1.4rem, calc(1cqw * 6), 2.3rem);
+  /* Bounded by height and narrow widths the same way as the synced popup
+     size (Lyrics/main.css). */
+  --DefaultLyricsSize: clamp(
+    1rem,
+    min(max(1.4rem, 6vw), 7vh, 7vw),
+    2.3rem
+  );
 }
 
 #SpicyLyricsPage.SpicyRenderer
@@ -778,7 +784,7 @@
 
 #SpicyLyricsPage.SpicyRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
   .LyricsContainer
-  .LyricsContent:not(:has(.line.Active)):not(:has(.line.NotSung))
+  .LyricsContent.LinesAllSung
   .line:not(.musical-line):not(.static) {
   scale: 1;
   opacity: var(--Vocal-Sung-opacity, 0.5);

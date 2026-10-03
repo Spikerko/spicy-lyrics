@@ -211,6 +211,13 @@ const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition
   return enhance(lastIdx - firstIdx <= 1 ? firstIdx : lastIdx);
 };
 
+// Gap above the active line in "Top" scrolling. A resized popup can leave only
+// a sliver of lyrics, where a fixed 50px pushed the line into the bottom fade,
+// so in PiP it shrinks with the viewport, staying just inside the mask's top
+// fade, which scales too (.spicy-pip-wrapper in Lyrics/main.css).
+const GetTopScrollOffset = (container: HTMLElement) =>
+  IsPIP ? Math.min(50, Math.round(container.clientHeight * 0.2)) : 85;
+
 const ScrollTo = (
   container: HTMLElement,
   element: HTMLElement,
@@ -222,13 +229,13 @@ const ScrollTo = (
     // instantScroll is effectively always true in the virtualizer path
     // (we set scrollTop directly), but passing the flag keeps the intent
     // explicit and allows a future smooth-scroll path if needed.
-    scrollLyricsToIndex(lineIndex, type === "Top" ? "start" : "center", instantScroll, type ==="Top" ? (IsPIP ? -50 : -85) : 30);
+    scrollLyricsToIndex(lineIndex, type === "Top" ? "start" : "center", instantScroll, type ==="Top" ? -GetTopScrollOffset(container) : 30);
     return;
   }
   if (type === "Center") {
     ScrollIntoCenterViewCSS(container, element, -30, instantScroll);
   } else if (type === "Top") {
-    ScrollIntoTopViewCSS(container, element, (IsPIP ? 50 : 85), instantScroll);
+    ScrollIntoTopViewCSS(container, element, GetTopScrollOffset(container), instantScroll);
   }
 };
 

@@ -14,6 +14,32 @@ export let IsPIPOpening = false;
 let currentPipWindow = null;
 let pipPageHideHandler: ((event: Event) => void) | null = null;
 
+// Smallest popup viewport the layout is built for: the NowBar (artwork +
+// metadata) plus room for a couple of lyric lines below it. Document PiP has no
+// min-size option, so the window is snapped back up instead.
+const PIP_MIN_WIDTH = 260;
+const PIP_MIN_HEIGHT = 180;
+// Snap once the user lets go — resizing mid-drag fights the OS resize loop.
+const PIP_MIN_SIZE_SETTLE_MS = 200;
+let pipMinSizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const EnforcePipMinSize = (pipWindow: Window) => {
+  if (pipWindow.closed) return;
+  const missingWidth = Math.max(0, PIP_MIN_WIDTH - pipWindow.innerWidth);
+  const missingHeight = Math.max(0, PIP_MIN_HEIGHT - pipWindow.innerHeight);
+  if (!missingWidth && !missingHeight) return;
+  // resizeTo takes the outer size; grow it by exactly what the viewport lacks.
+  pipWindow.resizeTo(pipWindow.outerWidth + missingWidth, pipWindow.outerHeight + missingHeight);
+};
+
+const pipResizeHandler = () => {
+  if (pipMinSizeTimer) clearTimeout(pipMinSizeTimer);
+  pipMinSizeTimer = setTimeout(() => {
+    pipMinSizeTimer = null;
+    if (currentPipWindow) EnforcePipMinSize(currentPipWindow);
+  }, PIP_MIN_SIZE_SETTLE_MS);
+};
+
 export const OpenPopupLyrics = async () => {
   IsPIPOpening = true;
   try {
@@ -178,6 +204,11 @@ const OpenPopupLyricsFlow = async () => {
 
   currentPipWindow.addEventListener("pagehide", pipPageHideHandler);
 
+  // Chrome reopens the popup at the last size the user dragged it to, which may
+  // be below the minimum.
+  EnforcePipMinSize(currentPipWindow);
+  currentPipWindow.addEventListener("resize", pipResizeHandler);
+
   _IsPIP_after = true;
 };
 
@@ -192,6 +223,11 @@ export const ClosePopupLyrics = async () => {
   if (pipPageHideHandler) {
     currentPipWindow.removeEventListener("pagehide", pipPageHideHandler);
     pipPageHideHandler = null;
+  }
+  currentPipWindow.removeEventListener("resize", pipResizeHandler);
+  if (pipMinSizeTimer) {
+    clearTimeout(pipMinSizeTimer);
+    pipMinSizeTimer = null;
   }
 
   currentPipWindow.close()

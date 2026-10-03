@@ -649,6 +649,10 @@ export function Animate(position: number): void {
       }
   }; */
 
+  // Whether every mounted line has been sung, for LinesAllSung below.
+  let mountedLine: HTMLElement | null = null;
+  let anyLineUnsung = false;
+
   if (CurrentLyricsType === "Syllable") {
     const arr = LyricsObject.Types.Syllable.Lines;
 
@@ -656,6 +660,8 @@ export function Animate(position: number): void {
       const line = arr[index];
       if (!line.HTMLElement.isConnected) continue;
       const lineState = getElementState(ProcessedPosition, line.StartTime, line.EndTime);
+      mountedLine ??= line.HTMLElement;
+      if (lineState !== "Sung") anyLineUnsung = true;
 
       if (lineState === "Active") {
         if (Blurring_LastLine !== index) {
@@ -1648,6 +1654,8 @@ export function Animate(position: number): void {
       const line = arr[index];
       if (!line.HTMLElement.isConnected) continue;
       const lineState = getElementState(ProcessedPosition, line.StartTime, line.EndTime);
+      mountedLine ??= line.HTMLElement;
+      if (lineState !== "Sung") anyLineUnsung = true;
 
       if (lineState === "Active") {
         if (Blurring_LastLine !== index) {
@@ -1832,6 +1840,12 @@ export function Animate(position: number): void {
       }
     }
   }
+  // Stands in for `.LyricsContent:not(:has(.line.Active)):not(:has(.line.NotSung))`
+  // in Mixed.css: with line classes inside a :has(), every line change made
+  // Blink re-check the page's ancestors, up to <html>.
+  const lyricsContent = mountedLine?.closest<HTMLElement>(".LyricsContent");
+  if (lyricsContent) setClass(lyricsContent, "LinesAllSung", !anyLineUnsung);
+
   // Commit any queued style changes after completing the animation computations
   flushStyleBatch();
 }

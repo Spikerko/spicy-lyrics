@@ -48,7 +48,11 @@
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsSkeleton {
-  --SkeletonLineSize: clamp(1.7rem, calc(1cqw * 5.5), 2.6rem);
+  --SkeletonLineSize: clamp(
+    1.2rem,
+    min(max(1.7rem, 5.5vw), 8vh, 8vw),
+    2.6rem
+  );
 }
 
 #SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLines {

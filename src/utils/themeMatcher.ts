@@ -108,26 +108,38 @@ const STOCK_PLAYBAR_CLASS = "SpicyLyrics_StockPlaybar";
 // margins without touching `position`), so the geometry is checked too, not
 // just `position`. Anything else, right-to-left layouts included, keeps its own
 // layout.
+const getPlaybar = () =>
+  document.querySelector<HTMLElement>(".Root__now-playing-bar .playback-bar") ??
+  document.querySelector<HTMLElement>('[data-testid="now-playing-bar"] .playback-bar') ??
+  document.querySelector<HTMLElement>(".playback-bar");
+
+const getElapsed = (bar: HTMLElement) =>
+  bar.querySelector<HTMLElement>(
+    `:scope > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"])`
+  );
+
 const isStockPlaybar = (): boolean => {
-  const bar =
-    document.querySelector<HTMLElement>(".Root__now-playing-bar .playback-bar") ??
-    document.querySelector<HTMLElement>(".playback-bar");
+  // Dribbblish restyles the bar without moving anything the checks below see.
+  if (document.querySelector('[id*="dribbblish"]')) return false;
+  const bar = getPlaybar();
   if (!bar) return false;
   const barPosition = getComputedStyle(bar).position;
   if (barPosition !== "static" && barPosition !== "relative") return false;
 
-  const elapsed = bar.querySelector<HTMLElement>(
-    `:scope > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"])`
-  );
-  // The rule's own two targets for the progress wrapper: the classed one, or
-  // whichever direct child holds the progress bar.
+  const elapsed = getElapsed(bar);
+  // The rule's own targets for the progress wrapper: the classed one, whichever
+  // direct child holds the progress bar, or (1.3.3, where neither class is
+  // mapped) the child following the position label.
   let progress: Element | null = bar.querySelector(":scope > .playback-progressbar-container");
   if (!progress) {
     progress = bar.querySelector(".playback-progressbar");
     while (progress && progress.parentElement !== bar) progress = progress.parentElement;
   }
+  progress ??= bar.querySelector(`:scope > [data-testid="playback-position"] + div`);
   if (!elapsed || !progress) return false;
-  if (getComputedStyle(elapsed).position !== "static") return false;
+  // Spotify's own rule makes the label position: relative (1.2.98 through 1.3.3).
+  const elapsedPosition = getComputedStyle(elapsed).position;
+  if (elapsedPosition !== "static" && elapsedPosition !== "relative") return false;
 
   // Not laid out (hidden bar): nothing to compare, and nothing to break.
   if (bar.getBoundingClientRect().width === 0) return true;
@@ -137,10 +149,41 @@ const isStockPlaybar = (): boolean => {
   return sameRow && label.right <= track.left + 1;
 };
 
+// Spotify reopens the last route on startup, so the page can open before the
+// playback bar has mounted. Measuring then would settle on "not stock" until the
+// page is reopened, so wait for the bar and its label first.
+const PLAYBAR_WAIT_INTERVAL_MS = 250;
+const PLAYBAR_WAIT_MAX_TRIES = 120;
+let pendingPlaybarSync: ReturnType<typeof setTimeout> | undefined;
+
+// The page the class is held for. This used to be a `body:has(#SpicyLyricsPage)`
+// gate in default.scss, but a :has() on <body> ahead of a descendant selector
+// makes Blink re-check body's whole subtree on every DOM change anywhere (the
+// lyrics virtualizer, Spotify's own React updates), which showed up as dropped
+// frames in every view on 1.3.3.
+let stockPlaybarPage: HTMLElement | null = null;
+
+// Pass the mounted page, or null when it goes away. A page in the popup window
+// isn't in this document, so the main window's bar is left alone, as before.
+export function setStockPlaybarPage(page: HTMLElement | null) {
+  stockPlaybarPage = page?.ownerDocument === document ? page : null;
+  syncStockPlaybarClass();
+}
+
 // The class comes off before measuring so the reading is the theme's layout,
 // not ours; it goes back on in the same task, so nothing paints in between.
-export function syncStockPlaybarClass() {
+export function syncStockPlaybarClass(tries = 0) {
+  clearTimeout(pendingPlaybarSync);
   document.body.classList.remove(STOCK_PLAYBAR_CLASS);
+  if (!stockPlaybarPage?.isConnected) return;
+  const bar = getPlaybar();
+  if ((!bar || !getElapsed(bar)) && tries < PLAYBAR_WAIT_MAX_TRIES) {
+    pendingPlaybarSync = setTimeout(
+      () => syncStockPlaybarClass(tries + 1),
+      PLAYBAR_WAIT_INTERVAL_MS
+    );
+    return;
+  }
   document.body.classList.toggle(STOCK_PLAYBAR_CLASS, isStockPlaybar());
 }
 

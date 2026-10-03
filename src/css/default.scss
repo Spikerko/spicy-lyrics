@@ -139,13 +139,11 @@
 
 
 
-/* SpicyLyrics_StockPlaybar: set on page open only when no theme has already
-   moved the bar or its time labels (see syncStockPlaybarClass). */
-body.SpicyLyrics_StockPlaybar:has(#SpicyLyricsPage):not(:has(
-  [id*="dribbblish"]
-)):not(
-  .sltm__ThemeMatch__textdt
-) {
+/* SpicyLyrics_StockPlaybar: held only while the page is open, and only when no
+   theme has already moved the bar or its time labels (see syncStockPlaybarClass).
+   Keep :has() off <body> here: ahead of a descendant selector it made every DOM
+   change in the app restyle most of the document. */
+body.SpicyLyrics_StockPlaybar:not(.sltm__ThemeMatch__textdt) {
   .playback-bar {
     position: relative;
   }
@@ -153,7 +151,9 @@ body.SpicyLyrics_StockPlaybar:has(#SpicyLyricsPage):not(:has(
     height: 100%;
     position: absolute;
   }
-  .playback-bar > .playback-progressbar-container {
+  /* 1.3.x hashes the wrapper's class; it still follows the position label. */
+  .playback-bar > .playback-progressbar-container,
+  .playback-bar > [data-testid="playback-position"] + div {
     margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
   }
   /* Builds whose progress wrapper lacks that class: pad the bar instead of
@@ -181,6 +181,7 @@ html body.SpicyLyrics_NPVDynamicBackground {
   /* npv buttons */
   .yiRHu4qsmlXpKcnFQsm2:hover,
   .main-nowPlayingView-headerButton:hover,
+  .NowPlayingView .main-nowPlayingView-headerWrapper > span > div > button:hover,
 
   /* npv topbar */
   :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5, .Md4BJN3odqZUJlsWlwlo)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .reoKRnUF1d0YUCkSGwV2, ._WXoQxsGVuSUBWYEu1bY) {
@@ -194,6 +195,7 @@ html body.SpicyLyrics_NPVDynamicBackground {
   /* switch to video button */
   .search-searchCategory-carouselButton,
   .main-nowPlayingView-section a time:has(p),
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard) a time:has(p),
   /* npv topbar */
   :is(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo),
   .NowPlayingView > div :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) {
@@ -203,6 +205,8 @@ html body.SpicyLyrics_NPVDynamicBackground {
 
   :is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) button,
   :is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) .fetnShpUoCol51CFSqwn > div,
+  /* "Switch to video": the container keeps Encore's unhashed media-set class on 1.3.x */
+  [data-testid="NPV_Panel_OpenDiv"] .encore-over-media-set > button,
   ._uLgxi8fZ9VwTaKwJAkL.hKxJslHNZklIP_ONgdL5,
   .main-nowPlayingView-headerButtonWrapper > button:hover {
     background-color: rgba(255, 255, 255, 0.078) !important;
@@ -257,6 +261,10 @@ html body.SpicyLyrics_NPVDynamicBackground {
   }
 }
 
-.NowPlayingView:not(:hover):not(:has(:focus-visible)) .main-nowPlayingView-headerCloseButton {
+/* 1.3.x drops the close button's class. Its fallback uses :focus-within: under
+   :has() the bare `button` made Blink restyle every button in the app on any
+   DOM change. */
+.NowPlayingView:not(:hover):not(:has(:focus-visible)) .main-nowPlayingView-headerCloseButton,
+.NowPlayingView:not(:hover):not(:focus-within) .main-nowPlayingView-headerWrapper > button:first-child {
   transform: translate(-200%) !important;
 }
