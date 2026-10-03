@@ -56,6 +56,11 @@ interface VolumeControlInstance {
 
 let ActivePlaybackControlsInstance: PlaybackControlsInstance | null = null;
 let ActiveVolumeControlInstance: VolumeControlInstance | null = null;
+// Last non-zero volume, so a mute tap can restore it. Module-level because the
+// fullscreen overlay (and with it the volume capsule) is rebuilt often.
+let lastAudibleVolume = 0;
+// Unmuting when nothing audible was ever seen (e.g. Spotify started muted).
+const DEFAULT_UNMUTE_VOLUME = 0.5;
 const ActiveSongProgressBarInstance_Map = new Map<string, any>();
 let ActiveSetupSongProgressBarInstance: SongProgressBarInstance | null = null;
 
@@ -494,15 +499,15 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         // Add drag functionality
 
-        // The document the bar lives in when the drag starts. In Popup Lyrics that
-        // is the PiP window's, whose pointer events never reach the main document:
-        // listening there left the drag open, and the main window's own pointer
-        // moves then drove it.
+        // The document the bar lives in when the drag starts. In Popup Lyrics the
+        // page is moved into the Picture-in-Picture window's own document, so
+        // listening on the main one missed the release and kept the drag alive
+        // until the pointer next crossed the main window.
         let dragDoc: Document = document;
 
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
           isDragging = true;
-          dragDoc = SliderBar.ownerDocument;
+          dragDoc = SliderBar.ownerDocument ?? document;
           // .Dragging keeps the bar thickened and turns off the fill's eased glide
           // so it tracks the pointer 1:1.
           SliderBar.classList.add("Dragging");
@@ -703,14 +708,14 @@ function OpenNowBar(skipSaving: boolean = false) {
         // this class — the legacy skin's traveled colour keeps the glyph white.
         const ICON_COVERED_LEVEL = 0.09;
 
-        // `getVolume()` returns 0 while muted and `toggleMute()` restores the previous
-        // level internally, so a single number drives both the bar and the icon —
-        // there's nothing to remember on our side and no `getMute()` call anywhere.
-        // Dragging to a genuine 0 therefore shows the muted icon, which is intended.
+        // `getVolume()` returns 0 while muted, so a single number drives both the
+        // bar and the icon, with no `getMute()` call anywhere. Dragging to a genuine
+        // 0 therefore shows the muted icon, which is intended.
 
         const render = (volume: number) => {
           const level = clamp(volume);
           currentLevel = level;
+          if (level > 0) lastAudibleVolume = level;
           // One variable drives both skins: the new skin's fill scale and the
           // legacy skin's gradient stop plus handle offset all read --VolumeLevel.
           VolumeElement.style.setProperty("--VolumeLevel", level.toString());
@@ -736,36 +741,66 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
         };
 
-        const percentageFromEvent = (event: MouseEvent | TouchEvent) => {
-          let clientY: number;
-          if ("touches" in event && event.touches.length > 0) {
-            clientY = event.touches[0].clientY;
-          } else if ("changedTouches" in event && event.changedTouches.length > 0) {
-            clientY = event.changedTouches[0].clientY;
-          } else {
-            clientY = (event as MouseEvent).clientY;
+        const pointFromEvent = (event: MouseEvent | TouchEvent) => {
+          if ("touches" in event && event.touches.length > 0) return event.touches[0];
+          if ("changedTouches" in event && event.changedTouches.length > 0) {
+            return event.changedTouches[0];
           }
+          return event as MouseEvent;
+        };
+        const clientYFromEvent = (event: MouseEvent | TouchEvent) => pointFromEvent(event).clientY;
 
+        const percentageFromEvent = (event: MouseEvent | TouchEvent) => {
+          const clientY = clientYFromEvent(event);
           const rect = VolumeElement.getBoundingClientRect();
           if (rect.height === 0) return currentLevel;
           return clamp(1 - (clientY - rect.top) / rect.height);
         };
 
+        // Mute is done here rather than with Spicetify.Player.toggleMute(), which
+        // did nothing on Spotify 1.3.0.277: remember the level, drop to 0, and bring
+        // it back on the next tap.
+        const toggleMute = () => {
+          if (currentLevel > 0) {
+            lastAudibleVolume = currentLevel;
+            commit(0);
+          } else {
+            commit(lastAudibleVolume > 0 ? lastAudibleVolume : DEFAULT_UNMUTE_VOLUME);
+          }
+        };
+
+        // The document the capsule lives in when the drag starts. In Popup Lyrics
+        // the page is moved into the Picture-in-Picture window's own document;
+        // listening on the main one missed the release, so the drag stayed alive
+        // and the next hover over the main window set the volume from a pointer
+        // position in a different window (usually 0%).
+        let dragDoc: Document = document;
+        // A press on the glyph is a mute tap until the pointer travels far enough
+        // to count as a drag; then it adjusts the volume like the rest of the track.
+        let pendingIconTap = false;
+        let pressX = 0;
+        let pressY = 0;
+        const ICON_DRAG_THRESHOLD_PX = 4;
+        // After a touch, browsers may replay it as mousedown/mouseup. Without
+        // ignoring those, a tap on the glyph toggled mute and then back again.
+        let lastTouchAt = -Infinity;
+        const EMULATED_MOUSE_WINDOW_MS = 800;
+
         // Volume has no seek cost, so we commit live on every move instead of only
         // on release like the timeline does. A plain click is covered too — mousedown
         // starts the drag and immediately commits the position under the cursor.
-        // See the timeline's dragDoc: in Popup Lyrics the capsule lives in the PiP
-        // window, and listening on the main document left the drag open, so
-        // hovering the main window later set the volume from its coordinates (0%).
-        let dragDoc: Document = document;
-
         const handleDragStart = (event: MouseEvent | TouchEvent) => {
-          // The glyph zone at the foot of the capsule is the mute button, not part
-          // of the track — starting a drag there would slam the volume to ~5% on
-          // every mute click.
-          if ((event.target as HTMLElement | null)?.closest?.(".VolumeIcon")) return;
+          if ("touches" in event) {
+            lastTouchAt = performance.now();
+          } else if (performance.now() - lastTouchAt < EMULATED_MOUSE_WINDOW_MS) {
+            return;
+          }
+          pendingIconTap = !!(event.target as HTMLElement | null)?.closest?.(".VolumeIcon");
+          const press = pointFromEvent(event);
+          pressX = press.clientX;
+          pressY = press.clientY;
+          dragDoc = VolumeElement.ownerDocument ?? document;
           isDragging = true;
-          dragDoc = VolumeElement.ownerDocument;
           // .Dragging keeps the capsule expanded and turns off the fill's eased
           // glide so it tracks the pointer 1:1.
           VolumeElement.classList.add("Dragging");
@@ -779,16 +814,23 @@ function OpenNowBar(skipSaving: boolean = false) {
           dragDoc.addEventListener("mouseup", handleDragEnd);
           dragDoc.addEventListener("touchend", handleDragEnd);
 
-          handleDragMove(event);
+          if (!pendingIconTap) handleDragMove(event);
         };
 
         const handleDragMove = (event: MouseEvent | TouchEvent) => {
           if (!isDragging) return;
+          if (pendingIconTap) {
+            const point = pointFromEvent(event);
+            const travel = Math.hypot(point.clientX - pressX, point.clientY - pressY);
+            if (travel < ICON_DRAG_THRESHOLD_PX) return;
+            pendingIconTap = false;
+          }
           commit(percentageFromEvent(event));
         };
 
         const handleDragEnd = (event: MouseEvent | TouchEvent) => {
           if (!isDragging) return;
+          if ("changedTouches" in event) lastTouchAt = performance.now();
           isDragging = false;
           VolumeElement.classList.remove("Dragging");
           dragDoc.body.style.userSelect = "";
@@ -798,25 +840,13 @@ function OpenNowBar(skipSaving: boolean = false) {
           dragDoc.removeEventListener("mouseup", handleDragEnd);
           dragDoc.removeEventListener("touchend", handleDragEnd);
 
-          commit(percentageFromEvent(event));
-          SetControlsDragLock(false);
-        };
-
-        const iconHandler = () => {
-          try {
-            Spicetify.Player.toggleMute();
-          } catch (err) {
-            console.error("Spicy Lyrics: couldn't toggle mute", err);
-            return;
+          if (pendingIconTap) {
+            pendingIconTap = false;
+            toggleMute();
+          } else {
+            commit(percentageFromEvent(event));
           }
-
-          // The `volume` event normally drives the icon on its own; this one-shot
-          // resync covers the case where that internal emitter isn't available.
-          const resync = window.setTimeout(() => {
-            if (isDragging) return;
-            render(Spicetify.Player.getVolume() ?? 0);
-          }, 60);
-          volumeMaid.Give(() => clearTimeout(resync), "MuteResync");
+          SetControlsDragLock(false);
         };
 
         const wheelHandler = (event: WheelEvent) => {
@@ -829,13 +859,11 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         VolumeElement.addEventListener("mousedown", handleDragStart);
         VolumeElement.addEventListener("touchstart", handleDragStart);
-        IconElement.addEventListener("click", iconHandler);
         VolumeElement.addEventListener("wheel", wheelHandler, { passive: false });
 
         volumeMaid.Give(() => {
           VolumeElement.removeEventListener("mousedown", handleDragStart);
           VolumeElement.removeEventListener("touchstart", handleDragStart);
-          IconElement.removeEventListener("click", iconHandler);
           VolumeElement.removeEventListener("wheel", wheelHandler);
           dragDoc.removeEventListener("mousemove", handleDragMove);
           dragDoc.removeEventListener("touchmove", handleDragMove);
@@ -843,6 +871,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           dragDoc.removeEventListener("touchend", handleDragEnd);
           if (isDragging) {
             isDragging = false;
+            pendingIconTap = false;
             VolumeElement.classList.remove("Dragging");
             dragDoc.body.style.userSelect = "";
             SetControlsDragLock(false);

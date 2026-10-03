@@ -5,6 +5,7 @@ import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { Lyrics } from "./Animator/Main.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
 import { Maid } from "../../modules/Maid.ts";
+import { onAnimationFrame } from "../AnimationFrameLoop.ts";
 
 export const ScrollingIntervalTime = Infinity;
 
@@ -222,10 +223,9 @@ const LyricsInterval = () => {
     Lyrics.TimeSetter(progress);
     Lyrics.Animate(progress);
   }
-  requestAnimationFrame(LyricsInterval);
 };
 
-LyricsInterval();
+onAnimationFrame(LyricsInterval);
 
 // Define proper types for event listener variables
 let LinesEvListenerMaid: Maid | null = null;

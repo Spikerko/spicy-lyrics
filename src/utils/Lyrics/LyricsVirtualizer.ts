@@ -8,6 +8,7 @@ import { Maid } from "../../modules/Maid.ts";
 import { Spring } from "../../modules/Spring.ts";
 import Logger from "../Logger.ts";
 import { $smoothScrolling } from "../stores.ts";
+import { cancelCappedFrame, requestCappedFrame } from "../AnimationFrameLoop.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
 // Gap is baked into each wrapper's padding-bottom so items can have
@@ -35,6 +36,10 @@ const SMOOTH_SCROLL_DAMPING = 1;
 // this per frame. Sub-pixel rendering makes the final snap invisible.
 const SMOOTH_SCROLL_SETTLE_PX = 0.25;
 const SMOOTH_SCROLL_SETTLE_SPEED = 0.05;
+// Largest single spring step, and the most time one glide frame may account for.
+// The cap allows frames 67 ms apart (15 fps); anything longer is a stall.
+const SMOOTH_SCROLL_MAX_STEP = 0.05;
+const SMOOTH_SCROLL_MAX_ELAPSED = 0.1;
 // How many times a glide may re-aim after finding the list somewhere other than
 // where it steered it (layout changed underneath it) before it just accepts
 // where the browser put it.
@@ -128,7 +133,10 @@ class LyricsVirtualizer {
   // Smooth-scroll state (see _smoothScrollToIndex). The spring persists across
   // scrolls so its velocity can carry over into the next target.
   private _smoothSpring: Spring | null = null;
-  private _smoothRAF: ReturnType<typeof requestAnimationFrame> | null = null;
+  // Stepped on the frame-capped loop: every glide frame writes scrollTop and a
+  // translate, so at the display's own rate (240 Hz on some setups) the glide
+  // alone redrew the whole page every refresh for the second or two it runs.
+  private _smoothRAF: number | null = null;
   private _smoothTarget: {
     index: number;
     align: "start" | "center" | "end" | "auto";
@@ -914,7 +922,7 @@ class LyricsVirtualizer {
       this._smoothLastTs = null;
       this._smoothLastPosition = null;
       this._smoothLastWhole = null;
-      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+      this._smoothRAF = requestCappedFrame(this._smoothStep);
     }
   }
 
@@ -985,10 +993,21 @@ class LyricsVirtualizer {
     );
 
     spring.SetGoal(goal);
-    const dt =
-      this._smoothLastTs === null ? 1 / 60 : Math.min((ts - this._smoothLastTs) / 1000, 0.05);
+    // Step the spring in slices of at most SMOOTH_SCROLL_MAX_STEP so a low frame
+    // rate cap (15 fps is ~67 ms a frame) keeps the glide's wall-clock timing,
+    // while a real stall (hidden window, long task) still can't jump it forward.
+    let elapsed =
+      this._smoothLastTs === null
+        ? 1 / 60
+        : Math.min((ts - this._smoothLastTs) / 1000, SMOOTH_SCROLL_MAX_ELAPSED);
     this._smoothLastTs = ts;
-    const position = Math.max(0, spring.Step(dt));
+    let stepped = spring.Step(Math.min(elapsed, SMOOTH_SCROLL_MAX_STEP));
+    elapsed -= SMOOTH_SCROLL_MAX_STEP;
+    while (elapsed > 0) {
+      stepped = spring.Step(Math.min(elapsed, SMOOTH_SCROLL_MAX_STEP));
+      elapsed -= SMOOTH_SCROLL_MAX_STEP;
+    }
+    const position = Math.max(0, stepped);
 
     const moved =
       this._smoothLastPosition === null ? Infinity : Math.abs(position - this._smoothLastPosition);
@@ -1037,14 +1056,14 @@ class LyricsVirtualizer {
         this._smoothLastWhole = actual;
         this._smoothLastPosition = null;
         spring.SetGoal(actual, true);
-        this._smoothRAF = requestAnimationFrame(this._smoothStep);
+        this._smoothRAF = requestCappedFrame(this._smoothStep);
         return;
       }
       this._stopSmoothScroll();
       // Stand-in for the scrollend remeasures skipped during the glide.
       this._remeasureVisible();
     } else {
-      this._smoothRAF = requestAnimationFrame(this._smoothStep);
+      this._smoothRAF = requestCappedFrame(this._smoothStep);
     }
   };
 
@@ -1071,7 +1090,7 @@ class LyricsVirtualizer {
   private _stopSmoothScroll(): void {
     const wasActive = this._smoothRAF !== null || this._smoothTarget !== null;
     if (this._smoothRAF !== null) {
-      cancelAnimationFrame(this._smoothRAF);
+      cancelCappedFrame(this._smoothRAF);
       this._smoothRAF = null;
     }
     this._smoothTarget = null;
