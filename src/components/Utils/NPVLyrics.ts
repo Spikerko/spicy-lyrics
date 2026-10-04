@@ -40,13 +40,33 @@ let evaluateAgain = false;
 // see holdEvaluateUntilSettled.
 let stateAnimation: Promise<unknown> | null = null;
 
+// Spotify's newer NPV layout (rolled out remotely to 1.3.3) has no test id on the
+// panel's content or artwork. Its cover block holds either the Canvas surface or
+// the cover-art slot, and the block after it holds the title, the sections
+// (Spotify's lyrics preview first, when the song has one) and "Next in queue".
+const NPV_COVER_MARKERS = "[data-canvas-surface], [data-testid='cover-art-slot']";
+
 export const GetNPVElement = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
     "aside.NowPlayingView"
   ) ??
   document.querySelector<HTMLElement>(
-    "aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer)"
+    `aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer, ${NPV_COVER_MARKERS})`
   );
+
+/**
+ * The NPV the dynamic background can use, or null. The newer layout isn't
+ * styled for it yet: its panel and section cards paint opaque backgrounds that
+ * would hide the canvas, which would still be rendering every frame.
+ */
+export const GetNPVElementForBackground = (): HTMLElement | null => {
+  const npv = GetNPVElement();
+  if (!npv) return null;
+  const restyled =
+    !npv.matches("aside.NowPlayingView") &&
+    !npv.querySelector("[data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer");
+  return restyled ? null : npv;
+};
 
 export function GetNPVObserverRoot(): Element | null {
   const panel = document.getElementById("Desktop_PanelContainer_Id") ?? GetNPVElement();
@@ -161,6 +181,30 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
       }
     }
     return true;
+  }
+  const coverMarker = npv.querySelector(NPV_COVER_MARKERS);
+  if (coverMarker) {
+    const nativeLyrics = npv.querySelector('[data-testid="lyrics-npv-section"]');
+    if (nativeLyrics) {
+      if (el.nextElementSibling !== nativeLyrics) nativeLyrics.insertAdjacentElement("beforebegin", el);
+      return true;
+    }
+    // No lyrics preview for this song: top of the sections, right under the title.
+    let coverBlock: Element = coverMarker;
+    while (coverBlock.parentElement && coverBlock.parentElement !== npv && coverBlock.parentElement.children.length < 2) {
+      coverBlock = coverBlock.parentElement;
+    }
+    const info = coverBlock.nextElementSibling;
+    const title = info
+      ? [...info.children].find((child) => child.querySelector('a[href^="/album/"], a[href^="/show/"], a[href^="/episode/"]'))
+      : null;
+    const sections = title?.nextElementSibling;
+    if (sections) {
+      if (sections.firstElementChild !== el) sections.prepend(el);
+      return true;
+    }
+    // Still rendering; the sidebar observer retries.
+    return false;
   }
   const cover = npv.querySelector(".main-nowPlayingView-coverArtContainer");
   const anchor =
@@ -397,7 +441,12 @@ function renderCardShell(npv: HTMLElement): boolean {
   cardMaid = new Maid();
   cardEl = el;
   cardMaid.Give(cardEl);
-  if (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl)) {
+  // Expanded mode hides everything beside these hosts. The legacy layout has its
+  // own .main-nowPlayingView-* rules instead.
+  if (
+    npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl) ||
+    npv.querySelector(NPV_COVER_MARKERS)
+  ) {
     for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) {
       const markedHost = host;
       markedHost.classList.add("SpicyLyrics_NPVStretch");
@@ -468,7 +517,13 @@ async function reconcile(): Promise<void> {
 
   if (cardEl) {
     const npv = GetNPVElement();
-    if (npv?.querySelector('[data-testid="NPV_Panel_OpenDiv"]') === cardEl.parentElement) {
+    // Spotify reorders its own sections (the lyrics preview arrives late), so put
+    // the card back in its slot. insertCard only moves it when it's out of place.
+    if (
+      npv &&
+      (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]') === cardEl.parentElement ||
+        npv.querySelector(NPV_COVER_MARKERS))
+    ) {
       insertCard(npv, cardEl);
     }
   }

@@ -318,7 +318,7 @@ html.SpicyLyrics_NPVMorph {
 
 /* The panel is the outer group; its snapshot carries the cover art and other
    sections, which cross-fade out/in while the card morphs over them. */
-html.SpicyLyrics_NPVMorph :is(aside.NowPlayingView, aside#Desktop_PanelContainer_Id:has([data-testid="NPV_Panel_OpenDiv"])):has(#SpicyLyricsNPVCard),
+html.SpicyLyrics_NPVMorph :is(aside.NowPlayingView, aside#Desktop_PanelContainer_Id:has([data-testid="NPV_Panel_OpenDiv"], [data-canvas-surface], [data-testid="cover-art-slot"])):has(#SpicyLyricsNPVCard),
 html.SpicyLyrics_NPVMorph .Root__right-sidebar aside:has(#SpicyLyricsNPVCard) {
   view-transition-name: spicy-npv-panel;
 }
@@ -460,7 +460,7 @@ html.SpicyLyrics_NPVMorph::view-transition-new(spicy-npv-card) {
 }
 
 
-body.SpicyLyrics_NPVCardEnabled :is(aside.NowPlayingView, aside#Desktop_PanelContainer_Id:has([data-testid="NPV_Panel_OpenDiv"])) [data-testid="lyrics-npv-section"],
+body.SpicyLyrics_NPVCardEnabled :is(aside.NowPlayingView, aside#Desktop_PanelContainer_Id:has([data-testid="NPV_Panel_OpenDiv"], [data-canvas-surface], [data-testid="cover-art-slot"])) [data-testid="lyrics-npv-section"],
 body.SpicyLyrics_NPVCardEnabled .main-nowPlayingView-panel .main-nowPlayingView-section[data-testid="lyrics-npv-section"],
 body.SpicyLyrics_NPVCardEnabled #liquid-lyrics-sidebar-card {
   display: none !important;
