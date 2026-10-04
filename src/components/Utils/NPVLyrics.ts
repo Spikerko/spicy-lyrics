@@ -189,22 +189,31 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
       if (el.nextElementSibling !== nativeLyrics) nativeLyrics.insertAdjacentElement("beforebegin", el);
       return true;
     }
-    // No lyrics preview for this song: top of the sections, right under the title.
+    // No lyrics preview for this song.
     let coverBlock: Element = coverMarker;
     while (coverBlock.parentElement && coverBlock.parentElement !== npv && coverBlock.parentElement.children.length < 2) {
       coverBlock = coverBlock.parentElement;
     }
-    const info = coverBlock.nextElementSibling;
-    const title = info
-      ? [...info.children].find((child) => child.querySelector('a[href^="/album/"], a[href^="/show/"], a[href^="/episode/"]'))
-      : null;
-    const sections = title?.nextElementSibling;
-    if (sections) {
-      if (sections.firstElementChild !== el) sections.prepend(el);
+    let info = coverBlock.nextElementSibling;
+    if (info === el) info = el.nextElementSibling;
+    if (!info) {
+      // Nothing below the cover yet: sit right under it.
+      if (coverBlock.nextElementSibling !== el) coverBlock.insertAdjacentElement("afterend", el);
       return true;
     }
-    // Still rendering; the sidebar observer retries.
-    return false;
+    // Right under the title, which spaces the same as the top of the sections
+    // (both stack with a 16px gap) and works when there are no sections at all.
+    // Local files have no album link, so fall back to the first block with text.
+    const infoBlocks = [...info.children].filter((child) => child !== el);
+    const title =
+      infoBlocks.find((child) => child.querySelector('a[href^="/album/"], a[href^="/show/"], a[href^="/episode/"]')) ??
+      infoBlocks.find((child) => child.textContent?.trim());
+    if (title) {
+      if (title.nextElementSibling !== el) title.insertAdjacentElement("afterend", el);
+    } else if (info.firstElementChild !== el) {
+      info.prepend(el);
+    }
+    return true;
   }
   const cover = npv.querySelector(".main-nowPlayingView-coverArtContainer");
   const anchor =
