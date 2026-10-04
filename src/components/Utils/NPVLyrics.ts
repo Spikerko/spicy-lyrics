@@ -432,6 +432,27 @@ function refreshCardUI(): void {
   }
 }
 
+// The card's ancestors, marked for expanded mode, which hides everything beside
+// them. The legacy layout has its own .main-nowPlayingView-* rules instead.
+let stretchHosts: HTMLElement[] = [];
+
+// Rerun whenever the card may have moved: a host left unmarked after a move
+// (Spotify's lyrics preview arriving late, say) is hidden, and the card with it.
+function markStretchHosts(npv: HTMLElement): void {
+  const next: HTMLElement[] = [];
+  if (
+    cardEl &&
+    (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl) ||
+      npv.querySelector(NPV_COVER_MARKERS))
+  ) {
+    for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) next.push(host);
+  }
+  if (next.length === stretchHosts.length && next.every((host, i) => host === stretchHosts[i])) return;
+  for (const host of stretchHosts) if (!next.includes(host)) host.classList.remove("SpicyLyrics_NPVStretch");
+  for (const host of next) host.classList.add("SpicyLyrics_NPVStretch");
+  stretchHosts = next;
+}
+
 function renderCardShell(npv: HTMLElement): boolean {
   const el = document.createElement("div");
   el.id = "SpicyLyricsNPVCard";
@@ -450,18 +471,11 @@ function renderCardShell(npv: HTMLElement): boolean {
   cardMaid = new Maid();
   cardEl = el;
   cardMaid.Give(cardEl);
-  // Expanded mode hides everything beside these hosts. The legacy layout has its
-  // own .main-nowPlayingView-* rules instead.
-  if (
-    npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl) ||
-    npv.querySelector(NPV_COVER_MARKERS)
-  ) {
-    for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) {
-      const markedHost = host;
-      markedHost.classList.add("SpicyLyrics_NPVStretch");
-      cardMaid.Give(() => markedHost.classList.remove("SpicyLyrics_NPVStretch"));
-    }
-  }
+  markStretchHosts(npv);
+  cardMaid.Give(() => {
+    for (const host of stretchHosts) host.classList.remove("SpicyLyrics_NPVStretch");
+    stretchHosts = [];
+  });
   cardBodyEl = cardEl.querySelector<HTMLElement>(".CardBody");
 
   const expand = cardEl.querySelector<HTMLElement>("#NPVCardExpand");
@@ -534,6 +548,7 @@ async function reconcile(): Promise<void> {
         npv.querySelector(NPV_COVER_MARKERS))
     ) {
       insertCard(npv, cardEl);
+      markStretchHosts(npv);
     }
   }
 
