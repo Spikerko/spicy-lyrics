@@ -151,9 +151,12 @@ body.SpicyLyrics_StockPlaybar:not(.sltm__ThemeMatch__textdt) {
     height: 100%;
     position: absolute;
   }
-  /* 1.3.x hashes the wrapper's class; it still follows the position label. */
+  /* 1.3.x hashes the wrapper's class; it still follows the position label.
+     Only where nothing inside it is .playback-progressbar either: builds that
+     still have that class get the bar padding below, and both together pushed
+     the progress bar in twice (1.2.93: 116px instead of 58px). */
   .playback-bar > .playback-progressbar-container,
-  .playback-bar > [data-testid="playback-position"] + div {
+  .playback-bar:not(:has(.playback-progressbar)) > [data-testid="playback-position"] + div {
     margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
   }
   /* Builds whose progress wrapper lacks that class: pad the bar instead of
