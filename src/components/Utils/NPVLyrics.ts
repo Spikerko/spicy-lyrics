@@ -40,13 +40,33 @@ let evaluateAgain = false;
 // see holdEvaluateUntilSettled.
 let stateAnimation: Promise<unknown> | null = null;
 
+// Spotify's newer NPV layout (rolled out remotely to 1.3.3) has no test id on the
+// panel's content or artwork. Its cover block holds either the Canvas surface or
+// the cover-art slot, and the block after it holds the title, the sections
+// (Spotify's lyrics preview first, when the song has one) and "Next in queue".
+const NPV_COVER_MARKERS = "[data-canvas-surface], [data-testid='cover-art-slot']";
+
 export const GetNPVElement = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
     "aside.NowPlayingView"
   ) ??
   document.querySelector<HTMLElement>(
-    "aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer)"
+    `aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer, ${NPV_COVER_MARKERS})`
   );
+
+/**
+ * The NPV the dynamic background can use, or null. The newer layout isn't
+ * styled for it yet: its panel and section cards paint opaque backgrounds that
+ * would hide the canvas, which would still be rendering every frame.
+ */
+export const GetNPVElementForBackground = (): HTMLElement | null => {
+  const npv = GetNPVElement();
+  if (!npv) return null;
+  const restyled =
+    !npv.matches("aside.NowPlayingView") &&
+    !npv.querySelector("[data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer");
+  return restyled ? null : npv;
+};
 
 export function GetNPVObserverRoot(): Element | null {
   const panel = document.getElementById("Desktop_PanelContainer_Id") ?? GetNPVElement();
@@ -159,6 +179,39 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
       } else if (modernContent.firstElementChild !== el) {
         modernContent.prepend(el);
       }
+    }
+    return true;
+  }
+  const coverMarker = npv.querySelector(NPV_COVER_MARKERS);
+  if (coverMarker) {
+    const nativeLyrics = npv.querySelector('[data-testid="lyrics-npv-section"]');
+    if (nativeLyrics) {
+      if (el.nextElementSibling !== nativeLyrics) nativeLyrics.insertAdjacentElement("beforebegin", el);
+      return true;
+    }
+    // No lyrics preview for this song.
+    let coverBlock: Element = coverMarker;
+    while (coverBlock.parentElement && coverBlock.parentElement !== npv && coverBlock.parentElement.children.length < 2) {
+      coverBlock = coverBlock.parentElement;
+    }
+    let info = coverBlock.nextElementSibling;
+    if (info === el) info = el.nextElementSibling;
+    if (!info) {
+      // Nothing below the cover yet: sit right under it.
+      if (coverBlock.nextElementSibling !== el) coverBlock.insertAdjacentElement("afterend", el);
+      return true;
+    }
+    // Right under the title, which spaces the same as the top of the sections
+    // (both stack with a 16px gap) and works when there are no sections at all.
+    // Local files have no album link, so fall back to the first block with text.
+    const infoBlocks = [...info.children].filter((child) => child !== el);
+    const title =
+      infoBlocks.find((child) => child.querySelector('a[href^="/album/"], a[href^="/show/"], a[href^="/episode/"]')) ??
+      infoBlocks.find((child) => child.textContent?.trim());
+    if (title) {
+      if (title.nextElementSibling !== el) title.insertAdjacentElement("afterend", el);
+    } else if (info.firstElementChild !== el) {
+      info.prepend(el);
     }
     return true;
   }
@@ -379,6 +432,27 @@ function refreshCardUI(): void {
   }
 }
 
+// The card's ancestors, marked for expanded mode, which hides everything beside
+// them. The legacy layout has its own .main-nowPlayingView-* rules instead.
+let stretchHosts: HTMLElement[] = [];
+
+// Rerun whenever the card may have moved: a host left unmarked after a move
+// (Spotify's lyrics preview arriving late, say) is hidden, and the card with it.
+function markStretchHosts(npv: HTMLElement): void {
+  const next: HTMLElement[] = [];
+  if (
+    cardEl &&
+    (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl) ||
+      npv.querySelector(NPV_COVER_MARKERS))
+  ) {
+    for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) next.push(host);
+  }
+  if (next.length === stretchHosts.length && next.every((host, i) => host === stretchHosts[i])) return;
+  for (const host of stretchHosts) if (!next.includes(host)) host.classList.remove("SpicyLyrics_NPVStretch");
+  for (const host of next) host.classList.add("SpicyLyrics_NPVStretch");
+  stretchHosts = next;
+}
+
 function renderCardShell(npv: HTMLElement): boolean {
   const el = document.createElement("div");
   el.id = "SpicyLyricsNPVCard";
@@ -397,13 +471,11 @@ function renderCardShell(npv: HTMLElement): boolean {
   cardMaid = new Maid();
   cardEl = el;
   cardMaid.Give(cardEl);
-  if (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl)) {
-    for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) {
-      const markedHost = host;
-      markedHost.classList.add("SpicyLyrics_NPVStretch");
-      cardMaid.Give(() => markedHost.classList.remove("SpicyLyrics_NPVStretch"));
-    }
-  }
+  markStretchHosts(npv);
+  cardMaid.Give(() => {
+    for (const host of stretchHosts) host.classList.remove("SpicyLyrics_NPVStretch");
+    stretchHosts = [];
+  });
   cardBodyEl = cardEl.querySelector<HTMLElement>(".CardBody");
 
   const expand = cardEl.querySelector<HTMLElement>("#NPVCardExpand");
@@ -468,8 +540,15 @@ async function reconcile(): Promise<void> {
 
   if (cardEl) {
     const npv = GetNPVElement();
-    if (npv?.querySelector('[data-testid="NPV_Panel_OpenDiv"]') === cardEl.parentElement) {
+    // Spotify reorders its own sections (the lyrics preview arrives late), so put
+    // the card back in its slot. insertCard only moves it when it's out of place.
+    if (
+      npv &&
+      (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]') === cardEl.parentElement ||
+        npv.querySelector(NPV_COVER_MARKERS))
+    ) {
       insertCard(npv, cardEl);
+      markStretchHosts(npv);
     }
   }
 
