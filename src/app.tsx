@@ -9,6 +9,7 @@ import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Loaders/LoaderContainer.css";
+import "./css/Loaders/LyricsSkeleton.css";
 import "./css/font-pack/font-pack.css";
 
 import ApplyDynamicBackground, {
@@ -18,6 +19,7 @@ import ApplyDynamicBackground, {
 import {
   $currentLyricsData,
   $showNpvDynamicBg,
+  $removeSpotifyLyricsButton,
   $popupLyricsAllowed,
   $spicyLyricsVersion,
   $staticBackgroundMode,
@@ -47,17 +49,18 @@ import { needsMigration, showMigrationModal } from "./utils/migration/DataMigrat
 import "./css/settings-panel.css";
 import "./components/ReactComponents/LyricsManager/styles.css";
 import "./css/polyfills/generic-modal-polyfill.css";
+import "./css/NoticeDialog.css";
 import "./css/polyfills/sonner-polyfill.css";
 import "./css/NPVLyrics.css";
-import UpdateDialog from "./components/ReactComponents/UpdateDialog.tsx";
+import { showUpdatedDialog } from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import { GetNPVCardElement, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
+import { GetNPVCardElement, GetNPVElementForBackground, GetNPVObserverRoot, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
 import ReactDOM from "react-dom/client";
-import { PopupModal } from "./components/Modal.ts";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
+import { guardSpicetifyScrollingFix } from "./utils/scrollFixGuard.ts";
 import "./utils/settings.ts";
 import SLToaster from "./components/ReactComponents/SLToaster.tsx";
-import { openSettingsPanel } from "./utils/settings.ts";
+import { registerSettingsMenu } from "./utils/settings.ts";
 import { exposeToWindow } from "./utils/expose.ts";
 import Logger from "./utils/Logger.ts";
 import Whentil from "./modules/Whentil.ts";
@@ -77,6 +80,8 @@ async function main() {
   }
 
   await Platform.OnSpotifyReady;
+
+  guardSpicetifyScrollingFix();
 
   if (needsMigration()) {
     showMigrationModal();
@@ -232,6 +237,27 @@ async function main() {
           }
         }
 
+        @keyframes SL_SkeletonSweep {
+          from {
+            transform: translateX(-100%);
+          }
+          to {
+            transform: translateX(100%);
+          }
+        }
+
+        @keyframes SL_SkeletonDot {
+          0%,
+          100% {
+            opacity: 0.25;
+            transform: translateY(0);
+          }
+          40% {
+            opacity: 1;
+            transform: translateY(-0.18em);
+          }
+        }
+
         @keyframes MB_anim_enter {
           0% {
             transform: translate(100%, 0);
@@ -244,6 +270,25 @@ async function main() {
 
   skeletonStyle.id = "spicyLyrics-additionalStyling";
   document.head.appendChild(skeletonStyle);
+
+  // Enter fullscreen once the route change has mounted the page. Bounded, and
+  // re-checked on arrival: navigating away first must not leave it armed for
+  // whenever the page next opens, and a second click must not open it twice.
+  let pendingFullscreenOpen: ReturnType<typeof Whentil.When> | null = null;
+  const openFullscreenOncePageMounts = (cinemaView: boolean) => {
+    pendingFullscreenOpen?.Cancel();
+    pendingFullscreenOpen = Whentil.When(
+      () => document.querySelector<HTMLElement>(":is(.Root__main-view, :where(#main-view)) #SpicyLyricsPage"),
+      () => {
+        pendingFullscreenOpen = null;
+        if (Spicetify.Platform.History.location?.pathname !== "/SpicyLyrics") return;
+        if (Fullscreen.IsOpen) return;
+        Fullscreen.Open(cinemaView);
+      },
+      1,
+      5000
+    );
+  };
 
   let ButtonList: any;
   if (SpotifyPlayer.Playbar?.Button) {
@@ -262,13 +307,7 @@ async function main() {
                 } else  */
               Session.Navigate({ pathname: "/SpicyLyrics" });
               if (Global.Saves.shift_key_pressed) {
-                const pageWhentil = Whentil.When(
-                  () => document.querySelector<HTMLElement>(".Root__main-view #SpicyLyricsPage"),
-                  () => {
-                    Fullscreen.Open(true);
-                    pageWhentil?.Cancel();
-                  }
-                );
+                openFullscreenOncePageMounts(true);
               }
               //}
             } else {
@@ -288,13 +327,7 @@ async function main() {
           async (self) => {
             if (!self.active) {
               Session.Navigate({ pathname: "/SpicyLyrics" });
-              const pageWhentil = Whentil.When(
-                () => document.querySelector<HTMLElement>(".Root__main-view #SpicyLyricsPage"),
-                () => {
-                  Fullscreen.Open(Global.Saves.shift_key_pressed ?? false);
-                  pageWhentil?.Cancel();
-                }
-              );
+              openFullscreenOncePageMounts(Global.Saves.shift_key_pressed ?? false);
             } else {
               Session.GoBack();
             }
@@ -305,8 +338,10 @@ async function main() {
       },
       {
         Registered: false,
+        // Created whenever the browser supports it; whether it is shown follows
+        // $popupLyricsAllowed (see syncPopupLyricsButton).
         Button: (
-          (('documentPictureInPicture' in window) && ($popupLyricsAllowed.get()))
+          ('documentPictureInPicture' in window)
             ? new SpotifyPlayer.Playbar.Button(
               "Spicy Popup Lyrics",
               Icons.PiPMode,
@@ -318,6 +353,9 @@ async function main() {
                 }
               },
               false,
+              false,
+              // Registering is left to syncPopupLyricsButton, which tracks it in
+              // `Registered`; registering here showed it even with the setting off.
               false
             )
             : undefined
@@ -345,42 +383,75 @@ async function main() {
     Global.Saves.shift_key_pressed = false;
   });
 
+  // Registers or removes the Popup Lyrics button to match the setting, so turning
+  // it on or off applies right away instead of after a restart. The body class
+  // hides Spotify's Miniplayer button while ours is in use (default.css).
+  let pageContainerAvailable = false;
+  const syncPopupLyricsButton = () => {
+    const allowed = ('documentPictureInPicture' in window) && $popupLyricsAllowed.get();
+    document.body.classList.toggle("SpicyLyrics_PopupLyricsEnabled", allowed);
+    const popupLyricsEntry = ButtonList?.[2];
+    if (!popupLyricsEntry?.Button || !pageContainerAvailable) return;
+    if (allowed && !popupLyricsEntry.Registered) {
+      popupLyricsEntry.Button.register();
+      popupLyricsEntry.Registered = true;
+    } else if (!allowed && popupLyricsEntry.Registered) {
+      popupLyricsEntry.Button.deregister();
+      popupLyricsEntry.Registered = false;
+    }
+  };
+
   Global.Event.listen("pagecontainer:available", () => {
     if (!ButtonList) return;
+    pageContainerAvailable = true;
     for (const button of ButtonList) {
+      if (button === ButtonList[2]) continue;
       if (!button.Registered) {
         if (button.Button) button.Button.register();
         button.Registered = true;
       }
     }
+    syncPopupLyricsButton();
   });
 
-  {
-    if (!ButtonList) return;
+  // Only the playbar buttons depend on Playbar.Button. A bare `return` here used
+  // to abort the rest of main(): no routing, song-change handling or backgrounds.
+  if (ButtonList) {
+    const lyricsPageButton = ButtonList[0].Button;
+    lyricsPageButton.element.id = "SpicyLyrics_PageButton";
+    lyricsPageButton.element.style.setProperty("display", "inline-block", "important");
 
     const fullscreenButton = ButtonList[1].Button;
     fullscreenButton.element.style.order = "100001";
     fullscreenButton.element.id = "SpicyLyrics_FullscreenButton";
+    fullscreenButton.element.style.setProperty("display", "inline-block", "important");
 
     const popupLyricsButton = ButtonList[2].Button;
-    if (popupLyricsButton && ('documentPictureInPicture' in window) && $popupLyricsAllowed.get()) {
+    if (popupLyricsButton) {
       popupLyricsButton.element.style.order = "100000";
       popupLyricsButton.element.id = "SpicyLyrics_PopupLyricsButton";
+      popupLyricsButton.element.style.setProperty("display", "inline-block", "important");
     }
+    syncPopupLyricsButton();
+    $popupLyricsAllowed.listen(syncPopupLyricsButton);
 
+    // Spotify's Miniplayer button is hidden by a rule (see syncPopupLyricsButton),
+    // not here: this only runs when our playbar observer fires, which missed some
+    // of Spotify's re-renders and left both buttons showing.
     const hideUnwantedButtons = (container: Element) => {
       for (const element of container.children) {
         const testId = element.attributes.getNamedItem("data-testid")?.value;
 
         const isFullscreen = testId === "fullscreen-mode-button";
-        const isPip = ('documentPictureInPicture' in window) && $popupLyricsAllowed.get() && testId === "pip-toggle-button";
         const isGenericControl =
+          testId !== "lyrics-button" &&
           element.classList.contains("control-button") &&
           !element.classList.contains("volume-bar__icon-button") &&
           !element.classList.contains("main-devicePicker-controlButton");
 
         if (
-          (isFullscreen || isPip || isGenericControl) &&
+          (isFullscreen || isGenericControl) &&
+          element.id !== "SpicyLyrics_PageButton" &&
           element.id !== "SpicyLyrics_FullscreenButton" &&
           element.id !== "SpicyLyrics_PopupLyricsButton"
         ) {
@@ -389,71 +460,29 @@ async function main() {
       }
     };
 
-    let observer: MutationObserver | null = null;
-
-    const startObservingDOM = () => {
-      const controlsContainer = document.querySelector<HTMLElement>(
-        ".main-nowPlayingBar-extraControls"
-      );
-
-      if (!controlsContainer) {
-        setTimeout(startObservingDOM, 100);
-        return;
-      }
-
-      hideUnwantedButtons(controlsContainer);
-
-      const MAX_MUTATION_BATCHES = 100;
-      const MAX_OBSERVE_MS = 60_000;
-      let mutationBatches = 0;
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-      const stopObserving = (obs: MutationObserver, _reason: "ready" | "timeout" | "max_mutations") => {
-        try {
-          obs.disconnect();
-        } finally {
-          if (timeoutId !== undefined) {
-            clearTimeout(timeoutId);
-            timeoutId = undefined;
-          }
-          if (observer === obs) observer = null;
-        }
-      };
-
-      observer = new MutationObserver((mutations, obs) => {
-        mutationBatches += 1;
-        if (mutationBatches >= MAX_MUTATION_BATCHES) {
-          stopObserving(obs, "max_mutations");
-          return;
-        }
-
-        const hasNewChildren = mutations.some((mutation) => mutation.addedNodes.length > 0);
-        if (!hasNewChildren) return;
-
-        const hasFullscreen = !!controlsContainer.querySelector('[data-testid="fullscreen-mode-button"]');
-        const needsPip = $popupLyricsAllowed.get();
-        const hasPip = !!controlsContainer.querySelector('[data-testid="pip-toggle-button"]');
-
-        const isReady = hasFullscreen && (!needsPip || hasPip);
-        if (!isReady) return;
-
-        hideUnwantedButtons(controlsContainer);
-        stopObserving(obs, "ready");
-      });
-
-      observer.observe(controlsContainer, { childList: true });
-      timeoutId = setTimeout(() => {
-        if (observer) stopObserving(observer, "timeout");
-      }, MAX_OBSERVE_MS);
-    };
-
-    startObservingDOM();
+    Global.Event.listen("playbar:controls", hideUnwantedButtons);
+    const controlsContainer = SpotifyPlayer.Playbar.GetControls();
+    if (controlsContainer) hideUnwantedButtons(controlsContainer);
   }
 
   let button: any;
   if (ButtonList) {
     button = ButtonList[0];
   }
+
+  // The page button is offered for tracks only. Applied on every song change,
+  // not just at startup, so switching to an episode hides it again.
+  const syncLyricsButtonRegistration = () => {
+    if (!button) return;
+    const isTrack = SpotifyPlayer.GetContentType() === "track";
+    if (isTrack && !button.Registered) {
+      button.Button.register();
+      button.Registered = true;
+    } else if (!isTrack && button.Registered) {
+      button.Button.deregister();
+      button.Registered = false;
+    }
+  };
 
   const Hometinue = async () => {
     Whentil.When(
@@ -463,22 +492,11 @@ async function main() {
       }
     );
 
+    // A fresh install has no previous version, and there is nothing to announce.
     const fromVersion = $fromVersion.get();
-    if (fromVersion !== $spicyLyricsVersion.get()) {
-      const div = document.createElement("div");
-      const reactRoot = ReactDOM.createRoot(div);
-      reactRoot.render(
-        <UpdateDialog fromVersion={fromVersion} spicyLyricsVersion={$spicyLyricsVersion.get()} />
-      );
-
-      PopupModal.display({
-        title: "Spicy Lyrics",
-        content: div,
-        isLarge: true,
-        onClose: () => {
-          reactRoot.unmount();
-        }
-      });
+    const toVersion = $spicyLyricsVersion.get();
+    if (fromVersion && toVersion && fromVersion !== toVersion) {
+      showUpdatedDialog(fromVersion, toVersion);
     }
 
     $fromVersion.set($spicyLyricsVersion.get());
@@ -499,13 +517,10 @@ async function main() {
     let lastImgUrl: string | null;
     let lastNowPlayingBarElement: HTMLElement | null = null;
     let nowPlayingBarObserver: MutationObserver | null = null;
+    let nowPlayingBarObservedRoot: Element | null = null;
     let nowPlayingBarMutationTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const getNowPlayingBarElement = () =>
-      document.querySelector<HTMLElement>(".Root__right-sidebar aside.NowPlayingView") ??
-      document.querySelector<HTMLElement>(
-        `.Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)`
-      );
+    const getNowPlayingBarElement = GetNPVElementForBackground;
 
     const scheduleNowPlayingBarDynamicBackgroundApply = () => {
       if (nowPlayingBarMutationTimeout) {
@@ -513,15 +528,17 @@ async function main() {
       }
       nowPlayingBarMutationTimeout = setTimeout(() => {
         nowPlayingBarMutationTimeout = null;
+        startNowPlayingBarObserver();
         void applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
       }, 50);
     };
 
     const startNowPlayingBarObserver = () => {
-      if (nowPlayingBarObserver) return;
-
-      const sidebar = document.querySelector(".Root__right-sidebar");
+      const sidebar = GetNPVObserverRoot();
       if (!sidebar) return;
+      if (nowPlayingBarObserver && sidebar === nowPlayingBarObservedRoot) return;
+      nowPlayingBarObserver?.disconnect();
+      nowPlayingBarObservedRoot = sidebar;
 
       nowPlayingBarObserver = new MutationObserver((mutations) => {
         // Resolved once per callback, not once per record.
@@ -531,7 +548,8 @@ async function main() {
           // for records that would otherwise schedule a re-apply.
           if (mutation.type === "attributes") {
             const name = mutation.attributeName;
-            if (name !== "src" && name !== "class" && name !== "inert") return false;
+            if (name !== "src" && name !== "class" && name !== "inert" &&
+              name !== "aria-hidden" && name !== "hidden" && name !== "aria-label") return false;
           } else if (mutation.type !== "childList") {
             return false;
           }
@@ -560,8 +578,18 @@ async function main() {
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ["src", "class", "inert"],
+        attributeFilter: ["src", "class", "inert", "aria-hidden", "hidden", "aria-label"],
       });
+    };
+
+    // CSS gates on this body class rather than body:has(aside.spicy-dynamic-bg-in-this),
+    // which made every DOM change a candidate for a full-document restyle.
+    // Derived from the live aside so a React-swapped aside can't leave it stale.
+    const syncNPVDynamicBackgroundClass = () => {
+      document.body.classList.toggle(
+        "SpicyLyrics_NPVDynamicBackground",
+        Boolean(document.querySelector("aside.spicy-dynamic-bg-in-this"))
+      );
     };
 
     const CleanupNowBarDynamicBgLets = () => {
@@ -574,6 +602,7 @@ async function main() {
       }
       nowPlayingBar?.querySelector<HTMLElement>(".spicy-dynamic-bg")?.remove();
       nowPlayingBar?.classList.remove("spicy-dynamic-bg-in-this");
+      syncNPVDynamicBackgroundClass();
       lastNowPlayingBarElement = null;
       lastImgUrl = null;
     };
@@ -583,6 +612,9 @@ async function main() {
     // but page backgrounds (e.g. lpagebg) must remain intact.
     let cinemaViewObserver: MutationObserver | null = null;
     let cinemaViewActive = false;
+    // Spotify 1.3.x ships the cinema root under a hash Spicetify doesn't map;
+    // its unhashed .over-cinema-scroll child is present in both builds.
+    const CINEMA_VIEW_SELECTOR = ".Root__cinema-view, .over-cinema-scroll";
 
     const getTopContainerElement = () => {
       const rightSidebar = document.querySelector<HTMLElement>(".Root__right-sidebar");
@@ -593,7 +625,7 @@ async function main() {
     };
 
     const checkCinemaViewAndMaybeCleanup = (topContainer: HTMLElement) => {
-      const cinemaViewExists = Boolean(topContainer.querySelector(".Root__cinema-view"));
+      const cinemaViewExists = Boolean(topContainer.querySelector(CINEMA_VIEW_SELECTOR));
 
       if (cinemaViewExists && !cinemaViewActive) {
         cinemaViewActive = true;
@@ -626,6 +658,13 @@ async function main() {
         }
 
         checkCinemaViewAndMaybeCleanup(topContainer);
+
+        // On 1.3.x the NPV observer root is found through the panel, which
+        // can mount after startup; pick it up here and apply once it exists.
+        if (!nowPlayingBarObserver) {
+          startNowPlayingBarObserver();
+          if (nowPlayingBarObserver) scheduleNowPlayingBarDynamicBackgroundApply();
+        }
       });
 
       cinemaViewObserver.observe(topContainer, {
@@ -642,16 +681,18 @@ async function main() {
     );
 
     async function applyDynamicBackgroundToNowPlayingBar(coverUrl: string | undefined) {
+      // Up front so the early returns below can't leave it stale after an aside swap.
+      syncNPVDynamicBackgroundClass();
       if (!$showNpvDynamicBg.get()) return;
       if (SpotifyPlayer.GetContentType() === "unknown" || SpotifyPlayer.IsDJ()) return;
       if (!coverUrl) return;
       const nowPlayingBar = getNowPlayingBarElement();
       const topContainer = getTopContainerElement();
-      const cinemaViewExists = Boolean(topContainer?.querySelector(".Root__cinema-view"));
+      const cinemaViewExists = Boolean(topContainer?.querySelector(CINEMA_VIEW_SELECTOR));
       // Same rule as the NPV lyrics card: an inert ancestor chain
       // (.Root__right-sidebar <-> aside) means the NPV is not interactive,
       // so its dynamic background should be de-rendered too.
-      const npvIsInert = Boolean(nowPlayingBar?.closest("[inert]"));
+      const npvIsInert = Boolean(nowPlayingBar?.closest('[inert], [hidden], [aria-hidden="true"]'));
 
       try {
         if (!nowPlayingBar || cinemaViewExists || npvIsInert) {
@@ -663,6 +704,7 @@ async function main() {
         if (coverUrl === lastImgUrl) return;
 
         nowPlayingBar.classList.add("spicy-dynamic-bg-in-this");
+        syncNPVDynamicBackgroundClass();
 
         await ApplyDynamicBackground(nowPlayingBar, "npvbg");
 
@@ -678,6 +720,10 @@ async function main() {
       } else {
         scheduleNowPlayingBarDynamicBackgroundApply();
       }
+    });
+
+    $removeSpotifyLyricsButton.subscribe((v) => {
+      document.body.classList.toggle("SpicyLyrics_RemoveSpotifyLyricsButton", v);
     });
 
     startNowPlayingBarObserver();
@@ -702,10 +748,7 @@ async function main() {
         PageContainer?.classList.remove("episode-content-type");
       }
 
-      if (!button.Registered) {
-        button.Button.register();
-        button.Registered = true;
-      }
+      syncLyricsButtonRegistration();
 
       if (PageContainer?.querySelector(".ContentBox .NowBar")) {
         if (Fullscreen.IsOpen) {
@@ -789,17 +832,17 @@ async function main() {
 
     async function loadPage(location: Location) {
       appLogger.debug("Handling route change", location.pathname);
+      // Recorded before any await: a later navigation must see this one as its
+      // previous location, not whatever was current when this call started.
+      const previous = lastLocation;
+      lastLocation = location;
       if (location.pathname === "/SpicyLyrics") {
         PageView.Open();
         if (button) button.Button.active = true;
-      } else {
-        if (lastLocation?.pathname === "/SpicyLyrics") {
-          await PageView.Destroy();
-          if (!button) return;
-          button.Button.active = false;
-        }
+      } else if (previous?.pathname === "/SpicyLyrics") {
+        if (button) button.Button.active = false;
+        await PageView.Destroy();
       }
-      lastLocation = location;
     }
 
     Global.Event.listen("platform:history", loadPage);
@@ -1054,7 +1097,7 @@ async function main() {
         }
       });
 
-      // 15 minutes, jittered. The `finally` matters: CheckForUpdates reaches the
+      // 2 minutes, jittered. The `finally` matters: CheckForUpdates reaches the
       // network, and a single throw used to skip the reschedule entirely, which
       // silently stopped update checks for the rest of the session.
       const CheckForUpdates_Intervaled = async () => {
@@ -1063,7 +1106,7 @@ async function main() {
         } catch (error) {
           console.warn("Update check failed", error);
         } finally {
-          setTimeout(CheckForUpdates_Intervaled, jitter(900 * 1000, 0.2));
+          setTimeout(CheckForUpdates_Intervaled, jitter(120 * 1000, 0.2));
         }
       };
       setTimeout(async () => await CheckForUpdates_Intervaled(), 1000);
@@ -1072,21 +1115,7 @@ async function main() {
 
   Whentil.When(
     () => SpotifyPlayer.GetContentType(),
-    () => {
-      const IsSomethingElseThanTrack = SpotifyPlayer.GetContentType() !== "track";
-
-      if (IsSomethingElseThanTrack) {
-        if (!button) return;
-        button.Button.deregister();
-        button.Registered = false;
-      } else {
-        if (!button) return;
-        if (!button.Registered) {
-          button.Button.register();
-          button.Registered = true;
-        }
-      }
-    }
+    () => syncLyricsButtonRegistration()
   );
 
   initNPVLyrics();
@@ -1098,9 +1127,8 @@ async function main() {
   setTimeout(() => {
     Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS.ESCAPE, async () => {
       if (IsPIP) return;
-      if (Fullscreen.CinemaViewOpen) {
-        await Fullscreen.Close();
-        Session.GoBack();
+      if (Fullscreen.CinemaViewOpen && (await Fullscreen.Close())) {
+        Session.GoBackFrom("/SpicyLyrics");
       }
     });
 

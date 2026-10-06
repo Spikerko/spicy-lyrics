@@ -7,7 +7,10 @@
   --sltoaster-bottom-padding: 32px;
 }
 
-.main-nowPlayingView-contextItemInfo::before {
+.main-nowPlayingView-contextItemInfo::before,
+aside.NowPlayingView.spicy-dynamic-bg-in-this
+  [data-testid="NPV_Panel_OpenDiv"]
+  div:has(> [data-testid="track-visual-enhancement"]) ~ div::before {
   display: none;
 }
 
@@ -43,10 +46,10 @@
   font-family: SpicyLyrics, "Noto Sans Georgian", "VazirmatnRegular", sans-serif !important;
 }
 
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer {
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node-child-spacer {
   display: none;
 }
 
@@ -79,7 +82,7 @@
   top: 24px;
 }
 
-.Root:not(.global-nav) .Root__main-view #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
+.Root:not(.global-nav) :is(.Root__main-view, :where(#main-view)) #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ViewControls {
   bottom: 36px;
   top: unset;
 }
@@ -196,8 +199,14 @@ body.player-floating:has(.glassify-bg) #SpicyLyricsPage:not(.Fullscreen) .ViewCo
   cursor: pointer;
 }
 
+/* Spotify 1.3.x: Spicetify no longer maps the sidebar or NPV section classes, so
+   these rules also reach the NPV through aside.NowPlayingView, the panel's test id
+   and child position, which hold on both builds. The panel's first child is the
+   cover widget; every later child except our card is a section. */
 body:not(.SpicyLyrics_StaticBackground)
-  .Root__right-sidebar:has(.main-nowPlayingView-section, canvas) {
+  .Root__right-sidebar:has(.main-nowPlayingView-section, canvas),
+body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView {
   --background-tint: color-mix(in srgb, rgb(var(--spice-rgb-selected-row)) 7%, transparent);
   --spice-card: var(--background-tint);
   --background-tinted-base: var(--background-tint);
@@ -205,7 +214,18 @@ body:not(.SpicyLyrics_StaticBackground)
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-content {
+  .main-nowPlayingView-content,
+/* A :has() ancestor with a bare `> div` subject made Blink restyle every div in
+   the document on any DOM change. The aside carries .spicy-dynamic-bg-in-this
+   exactly while it holds the background, and the section implies the old
+   :has(.main-nowPlayingView-section) check; the doubled class keeps specificity. */
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar
+  .spicy-dynamic-bg-in-this.spicy-dynamic-bg-in-this
+  .main-nowPlayingView-section > div,
+body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView.spicy-dynamic-bg-in-this.spicy-dynamic-bg-in-this
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard) > div {
   background: transparent;
 }
 
@@ -218,24 +238,8 @@ body:not(.SpicyLyrics_StaticBackground)
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .spicy-dynamic-bg
-  div[data-overlayscrollbars-viewport],
-.Root__right-sidebar:has(.main-nowPlayingView-section, canvas)
-  .spicy-dynamic-bg
-  div[data-overlayscrollbars-viewport]
-  > div {
+  div[data-overlayscrollbars-viewport] {
   background: transparent;
-}
-
-body:not(.SpicyLyrics_StaticBackground)
-  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .spicy-dynamic-bg
-  .main-nowPlayingView-coverArtContainer
-  div:has(video)::after,
-.Root__right-sidebar:has(.main-nowPlayingView-section, canvas)
-  .spicy-dynamic-bg
-  .main-nowPlayingView-coverArtContainer
-  div:has(video):before {
-  display: none;
 }
 
 body:not(.SpicyLyrics_StaticBackground)
@@ -246,16 +250,19 @@ body:not(.SpicyLyrics_StaticBackground)
   opacity: 0.75;
 }
 
-body:not(.SpicyLyrics_StaticBackground)
-  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-coverArt {
+/* Zero-specificity gate so a theme restyling the cover (a round vinyl, its own
+   shadow) wins. No opacity: it made everything a theme draws on the cover,
+   pseudo-elements included, see-through. */
+:where(body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas))
+  .main-nowPlayingView-coverArt,
+:where(body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView.spicy-dynamic-bg-in-this
+  [data-testid="track-visual-enhancement"])
+  [data-testid="context-link"] > div {
   box-shadow: 0 9px 20px 0 rgba(0, 0, 0, 0.271);
-  opacity: 0.95;
 }
 
-body:not(.SpicyLyrics_StaticBackground)
-  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type="button"])),
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
   .main-nowPlayingView-section.QR9JmVmX9LYwo62NRtew
@@ -265,7 +272,22 @@ body:not(.SpicyLyrics_StaticBackground)
   .Uw4tcZdmh7s4BMdgCCuu,
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent) {
+  .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent),
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .aN6RjOsDo5DSOGDMRF2G {
+    background-color: transparent !important;
+}
+
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-section:not(:has(.search-searchCategory-carousel)):not(:has(button[type="button"])),
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .main-nowPlayingView-aboutArtist,
+body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView.spicy-dynamic-bg-in-this
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard):not(:has(button[type="button"])) {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
 }
@@ -280,12 +302,18 @@ body:not(.SpicyLyrics_StaticBackground)
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .main-nowPlayingView-section:has(button[type="button"]) {
+  .main-nowPlayingView-section:has(button[type="button"]),
+body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView.spicy-dynamic-bg-in-this
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard):has(button[type="button"]) {
   background-color: transparent;
 }
 
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  button[type="button"],
+body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView.spicy-dynamic-bg-in-this
   button[type="button"] {
   /* background-color: var(--background-tinted-base); */
   background-color: transparent;
@@ -300,6 +328,31 @@ body:not(.SpicyLyrics_StaticBackground)
   button[type="button"]
   .Button-sm-buttonSecondary-useBrowserDefaultFocusStyle {
   border: 1px solid hsla(0, 0%, 100%, 0.5);
+}
+
+/* Mirrors Spotify's .main-nowPlayingBar-lyricsButton rule, which our buttons no longer carry. */
+.SpicyLyrics_PlaybarButton {
+  flex-shrink: 0;
+  padding: 0;
+}
+
+/* Spotify's own tooltip rule. Spicetify's Tippy still renders .main-contextMenu-tippy,
+   which Spotify 1.3.x no longer styles; on older builds this repeats the same values. */
+.SpicyLyrics_Tooltip > .main-contextMenu-tippy {
+  --generic-tooltip-background-color: var(--spice-card);
+  color: var(--spice-text);
+  background-color: var(--generic-tooltip-background-color);
+  text-overflow: ellipsis;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  border-radius: 4px;
+  -webkit-box-orient: vertical;
+  max-width: 50ch;
+  padding: 4px 8px;
+  display: -webkit-box;
+  overflow: hidden;
+  box-shadow: 0 16px 24px #0000004d, 0 6px 8px #0003;
+  font-size: 14px !important;
 }
 
 #SpicyLyricsPageSvg {
@@ -318,8 +371,17 @@ body:not(.SpicyLyrics_StaticBackground)
   transform: translateY(2px);
 }
 
+/* Our Popup Lyrics button takes the place of Spotify's Miniplayer button. A rule
+   rather than a one-off inline style, so a Miniplayer button Spotify re-renders
+   or adds back later is hidden as well. */
+body.SpicyLyrics_PopupLyricsEnabled
+  :is([data-testid="now-playing-bar"], .Root__now-playing-bar)
+  button[data-testid="pip-toggle-button"] {
+  display: none !important;
+}
+
 button:has(#SpicyLyricsPageSvg)::after {
-  transform: translateX(-370%) translateY(-40%) !important;
+  transform: translateX(-50%) !important;
 }
 
 button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-genericButton-buttonActiveDot)::after {
@@ -327,12 +389,12 @@ button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-gene
 }
 
 /* "Page Not Visible" fix */
-.Root__main-view:has(#SpicyLyricsPage),
-.Root__main-view:has(#SpicyLyricsPage) .KL8t9WB65UfUEPuTFAhO,
-.Root__main-view:has(#SpicyLyricsPage) .main-content-view,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container__scroll-node,
-.Root__main-view:has(#SpicyLyricsPage) .main-view-container .div[data-overlayscrollbars-viewport] {
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage),
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .KL8t9WB65UfUEPuTFAhO,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-content-view,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container__scroll-node,
+:is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) .main-view-container .div[data-overlayscrollbars-viewport] {
   height: 100% !important;
 }
 
@@ -416,58 +478,10 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       line-height: 1.45;
     }
 
-    /* Kept only for the post-update success card (UpdateDialog.tsx).
-       The update-available flow no longer renders a divider — the
-       version row provides its own visual break. */
     .uc-divider {
       height: 1px;
       background: var(--hairline);
       margin: var(--space-1) 0;
-    }
-
-    /* Flat version display — no inner blur, no triple-inset highlight.
-       The accent token does the work; the headline matters more than
-       the chrome around it. */
-    .uc-version-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-3);
-      padding: 14px var(--space-4);
-      background: var(--accent-tint-bg);
-      box-shadow: inset 0 0 0 1px var(--hairline);
-      border-radius: var(--radius-md);
-      margin: var(--space-1) 0 var(--space-2);
-
-      .uc-ver {
-        font-size: 1.05rem !important;
-        font-weight: var(--w-semibold);
-        color: var(--color-text-secondary);
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.01em;
-
-        &.new {
-          color: var(--color-text-primary);
-        }
-      }
-
-      .uc-arrow {
-        display: inline-flex;
-        align-items: center;
-        color: var(--color-text-tertiary);
-      }
-    }
-
-    /* New: horizontal action row replaces the stacked full-width pair.
-       Quiet "Later" sits left, primary "Update now" sits right. The
-       hierarchy is unambiguous and the visual weight matches the
-       importance of the choice. */
-    .uc-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: var(--space-2);
-      margin-top: var(--space-1);
     }
 
     button {
@@ -489,40 +503,12 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       }
     }
 
-    .btn-primary,
     .btn-update {
       background-color: var(--accent);
       color: var(--accent-on-fill);
 
       &:hover {
         background-color: var(--accent-hover);
-      }
-    }
-
-    /* Quiet text-style button. No background until hover. Used as the
-       "Later" affordance — it should let the user dismiss without
-       drawing attention to the act of dismissing. */
-    .btn-quiet {
-      background-color: transparent;
-      color: var(--color-text-secondary);
-      box-shadow: none;
-      padding: 9px 14px;
-
-      &:hover {
-        background-color: var(--accent-tint-bg);
-        color: var(--color-text-primary);
-      }
-    }
-
-    .btn-secondary {
-      background-color: var(--accent-tint-bg);
-      color: var(--color-text-primary);
-      box-shadow: inset 0 0 0 1px var(--hairline);
-      border: 0;
-
-      &:hover {
-        background-color: var(--accent-tint-bg-hover);
-        box-shadow: inset 0 0 0 1px var(--hairline-strong);
       }
     }
 
@@ -558,15 +544,6 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
 
       button {
         width: 100%;
-      }
-    }
-
-    .btn-discord {
-      background-color: #5865f2;
-      color: #ffffff;
-
-      &:hover {
-        background-color: #6872f5;
       }
     }
 
@@ -695,8 +672,8 @@ sl-generic-modal.SpicyLyricsModal .sl-modal .sl-modal-container {
 }
 
 
-.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > header,
-.Root.global-nav .Root__main-view:has(#SpicyLyricsPage) > .main-topBar-container {
+.Root.global-nav :is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) > header,
+.Root.global-nav :is(.Root__main-view, :where(#main-view)):has(#SpicyLyricsPage) > .main-topBar-container {
   display: none !important;
 }
 
@@ -833,6 +810,7 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-co
   }
 }
 
+aside.NowPlayingView,
 .Root__right-sidebar aside {
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -853,3 +831,9 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay-animated.Active .sl-modal-co
   inline-size: 4px !important;
 }
 
+/* "Remove Spotify's lyrics button" setting. Our own button carries #SpicyLyricsPageSvg. */
+body.SpicyLyrics_RemoveSpotifyLyricsButton .main-nowPlayingBar-lyricsButton[data-testid="lyrics-button"]:not(:has(#SpicyLyricsPageSvg)),
+body.SpicyLyrics_RemoveSpotifyLyricsButton [data-testid="now-playing-bar"] [data-testid="lyrics-button"]:not(:has(#SpicyLyricsPageSvg)),
+body.SpicyLyrics_RemoveSpotifyLyricsButton .main-nowPlayingBar-extraControls > [data-testid="lyrics-button"]:not(:has(#SpicyLyricsPageSvg)) {
+  display: none !important;
+}

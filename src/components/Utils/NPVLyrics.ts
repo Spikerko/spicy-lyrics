@@ -1,10 +1,11 @@
+import { createTooltip } from "../../utils/tooltip.ts";
 // Compact lyrics card injected into Spotify's right-sidebar Now Playing View.
 // Reuses the full synced lyrics pipeline by opening the page (PageView.Open)
 // into the card body in cardMode. Because the pipeline is a global singleton
 // (PageView.PageContainer), the card is strictly exclusive with the main page,
 // PiP and fullscreen — a single reconciler keeps the card in whichever state
 // the live conditions allow.
-import PageView from "../Pages/PageView.ts";
+import PageView, { PageContainer } from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
 import { IsPIP, _IsPIP_after, IsPIPOpening } from "./PopupLyrics.ts";
 import Session from "../Global/Session.ts";
@@ -35,16 +36,46 @@ const watcherMaid = new Maid();
 let evaluateTimer: ReturnType<typeof setTimeout> | null = null;
 let evaluating = false;
 let evaluateAgain = false;
-// Non-null while the card's open/close morph is running; see holdEvaluateUntilSettled.
-let stateAnimation: Animation | null = null;
+// Non-null while the card's open/close or expand/collapse morph is running;
+// see holdEvaluateUntilSettled.
+let stateAnimation: Promise<unknown> | null = null;
 
-const getNPV = (): HTMLElement | null =>
+// Spotify's newer NPV layout (rolled out remotely to 1.3.3) has no test id on the
+// panel's content or artwork. Its cover block holds either the Canvas surface or
+// the cover-art slot, and the block after it holds the title, the sections
+// (Spotify's lyrics preview first, when the song has one) and "Next in queue".
+const NPV_COVER_MARKERS = "[data-canvas-surface], [data-testid='cover-art-slot']";
+
+export const GetNPVElement = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
-    ".Root__right-sidebar aside.NowPlayingView"
+    "aside.NowPlayingView"
   ) ??
   document.querySelector<HTMLElement>(
-    ".Root__right-sidebar aside#Desktop_PanelContainer_Id:has(.main-nowPlayingView-coverArtContainer)"
+    `aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer, ${NPV_COVER_MARKERS})`
   );
+
+/**
+ * The NPV the dynamic background can use, or null. The newer layout isn't
+ * styled for it yet: its panel and section cards paint opaque backgrounds that
+ * would hide the canvas, which would still be rendering every frame.
+ */
+export const GetNPVElementForBackground = (): HTMLElement | null => {
+  const npv = GetNPVElement();
+  if (!npv) return null;
+  const restyled =
+    !npv.matches("aside.NowPlayingView") &&
+    !npv.querySelector("[data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer");
+  return restyled ? null : npv;
+};
+
+export function GetNPVObserverRoot(): Element | null {
+  const panel = document.getElementById("Desktop_PanelContainer_Id") ?? GetNPVElement();
+  // The top container's child holding the panel is what .Root__right-sidebar
+  // names on older builds, so swaps of it still reach the top observer.
+  return document.querySelector(".Root__right-sidebar") ??
+    panel?.closest(".Root__top-container > *") ??
+    panel?.closest("[aria-hidden]") ?? panel?.parentElement ?? null;
+}
 
 export function NPVCardOwnsPage(): boolean {
   return cardOwnsPage;
@@ -88,9 +119,9 @@ function hiddenForMissingLyrics(): boolean {
 
 function desiredState(): CardState {
   if ($disableNpvLyrics.get()) return "DORMANT";
-  const npv = getNPV();
+  const npv = GetNPVElement();
   // closest("[inert]") covers the whole .Root__right-sidebar <-> aside chain
-  if (!npv || !npv.isConnected || npv.closest("[inert]")) return "DORMANT";
+  if (!npv || !npv.isConnected || npv.closest('[inert], [hidden], [aria-hidden="true"]')) return "DORMANT";
   const pageBusyElsewhere =
     (PageView.IsOpened && !cardOwnsPage) ||
     IsPIP ||
@@ -113,12 +144,77 @@ async function teardownCard(): Promise<void> {
   cardMaid?.CleanUp();
   cardMaid = null;
   cardEl = null;
+  // A queued toggle belongs to this card; don't let it land on a replacement.
+  pendingMutate = null;
+  document.body.classList.remove("SpicyLyrics_NPVCardExpanded");
   cardBodyEl = null;
   lastToggleOpen = null;
   lastExpanded = null;
 }
 
+// The expanded body class hides the NPV's other content, so it must not outlive
+// a card that Spotify's React removed. Called from the observers, which run
+// before the next paint; reconcile's teardown would only follow after the
+// evaluate debounce.
+function clearExpandedIfDetached(): void {
+  if (cardEl && !cardEl.isConnected) {
+    document.body.classList.remove("SpicyLyrics_NPVCardExpanded");
+  }
+}
+
 function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
+  const modernContent = npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]');
+  if (modernContent) {
+    const nativeLyrics = modernContent.querySelector('[data-testid="lyrics-npv-section"]');
+    if (nativeLyrics?.parentElement === modernContent) {
+      if (el.parentElement !== modernContent || el.nextElementSibling !== nativeLyrics) {
+        nativeLyrics.insertAdjacentElement("beforebegin", el);
+      }
+    } else {
+      const artwork = modernContent.querySelector('[data-testid="track-visual-enhancement"]');
+      let section: Element | null = artwork;
+      while (section && section.parentElement !== modernContent) section = section.parentElement;
+      if (section) {
+        if (section.nextElementSibling !== el) section.insertAdjacentElement("afterend", el);
+      } else if (modernContent.firstElementChild !== el) {
+        modernContent.prepend(el);
+      }
+    }
+    return true;
+  }
+  const coverMarker = npv.querySelector(NPV_COVER_MARKERS);
+  if (coverMarker) {
+    const nativeLyrics = npv.querySelector('[data-testid="lyrics-npv-section"]');
+    if (nativeLyrics) {
+      if (el.nextElementSibling !== nativeLyrics) nativeLyrics.insertAdjacentElement("beforebegin", el);
+      return true;
+    }
+    // No lyrics preview for this song.
+    let coverBlock: Element = coverMarker;
+    while (coverBlock.parentElement && coverBlock.parentElement !== npv && coverBlock.parentElement.children.length < 2) {
+      coverBlock = coverBlock.parentElement;
+    }
+    let info = coverBlock.nextElementSibling;
+    if (info === el) info = el.nextElementSibling;
+    if (!info) {
+      // Nothing below the cover yet: sit right under it.
+      if (coverBlock.nextElementSibling !== el) coverBlock.insertAdjacentElement("afterend", el);
+      return true;
+    }
+    // Right under the title, which spaces the same as the top of the sections
+    // (both stack with a 16px gap) and works when there are no sections at all.
+    // Local files have no album link, so fall back to the first block with text.
+    const infoBlocks = [...info.children].filter((child) => child !== el);
+    const title =
+      infoBlocks.find((child) => child.querySelector('a[href^="/album/"], a[href^="/show/"], a[href^="/episode/"]')) ??
+      infoBlocks.find((child) => child.textContent?.trim());
+    if (title) {
+      if (title.nextElementSibling !== el) title.insertAdjacentElement("afterend", el);
+    } else if (info.firstElementChild !== el) {
+      info.prepend(el);
+    }
+    return true;
+  }
   const cover = npv.querySelector(".main-nowPlayingView-coverArtContainer");
   const anchor =
     cover?.closest(".main-nowPlayingView-nowPlayingWidget") ??
@@ -141,7 +237,7 @@ function insertCard(npv: HTMLElement, el: HTMLElement): boolean {
 
 function setTooltip(target: Element, content: string, maidKey: string): void {
   try {
-    const tip = Spicetify.Tippy(target, {
+    const tip = createTooltip(target, {
       ...Spicetify.TippyProps,
       content,
     });
@@ -157,20 +253,20 @@ let lastExpanded: boolean | null = null;
 const STATE_ANIM_MS = 350;
 const STATE_ANIM_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
-// FLIP morph instead of document.startViewTransition: view-transition
+// Open/close morph. FLIP instead of document.startViewTransition: view-transition
 // snapshots render in a viewport-anchored top layer, unclipped by the
 // sidebar, so the expanded card's true (scroll-clipped, near-viewport-tall)
 // rect bled over the rest of the UI. Animating the live element keeps the
 // stretch inside the sidebar's own clipping. The class flip happens
 // synchronously here; the follow-up debounced evaluate re-runs refreshCardUI
 // idempotently, so nothing jumps afterwards.
-function animateStateChange(mutate: () => void): void {
+function animateStateChange(mutate: () => void): Animation | null {
   if (
     !cardEl ||
     window.matchMedia("(prefers-reduced-motion: reduce)").matches
   ) {
     mutate();
-    return;
+    return null;
   }
   const card = cardEl;
   const buttons = Array.from(
@@ -188,10 +284,12 @@ function animateStateChange(mutate: () => void): void {
     lastCard.width === 0 ||
     lastCard.height === 0
   )
-    return;
+    return null;
 
   // Stretch the card box from its old size to its new one (overflow: hidden
   // clips the body while it grows/shrinks).
+  // The compact body is pinned (flex-shrink: 0) and merely clipped, so the
+  // lyrics can render straight away rather than waiting out the morph.
   const morph = card.animate(
     [
       { width: `${firstCard.width}px`, height: `${firstCard.height}px` },
@@ -199,10 +297,6 @@ function animateStateChange(mutate: () => void): void {
     ],
     { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
   );
-  // Only the expanded body flexes with the animated card height (`flex: 1 1 auto`);
-  // the compact one is pinned and merely clipped, so it can render straight away
-  // rather than waiting out the morph.
-  if (card.classList.contains("Expanded")) holdEvaluateUntilSettled(morph);
 
   // Glide each control from its old spot (right cluster <-> centered).
   buttons.forEach((button, i) => {
@@ -216,6 +310,91 @@ function animateStateChange(mutate: () => void): void {
       { duration: STATE_ANIM_MS, easing: STATE_ANIM_EASE }
     );
   });
+  return morph;
+}
+
+const MORPH_CLASSES = [
+  "SpicyLyrics_NPVMorph",
+  "SpicyLyrics_NPVMorphIn",
+  "SpicyLyrics_NPVMorphOut",
+];
+let activeMorph: ViewTransition | null = null;
+// The update callback of a morph that hasn't run yet. startViewTransition
+// defers it a frame, so a click in that window would read the old state (the
+// stores and the Expanded class) and morph in the wrong direction.
+let pendingMutate: (() => void) | null = null;
+
+// Apply a queued morph's state change now, so the next click sees it.
+function flushPendingMorph(): void {
+  pendingMutate?.();
+}
+
+// The morph's clipping comes from nested view-transition groups (Chromium 140+).
+// Without them the card's snapshot is a top-level group and bleeds over the UI.
+const supportsNestedViewTransitions =
+  typeof document.startViewTransition === "function" &&
+  CSS.supports("view-transition-group", "nearest");
+
+// Entering/leaving expanded mode can't use the FLIP morph above: the body
+// flexes with the card there, and the page is a `container-type: size`
+// container with a cqw type scale, so every frame of a height animation
+// re-resolved the lyrics' styles and relaid out every line (60–100ms a frame).
+// A view transition lays the new state out once and morphs snapshots instead.
+// NPVLyrics.css names the NPV panel as the outer group with the card and its
+// controls nested inside, so the morph stays clipped to the sidebar — the
+// unclipped top-layer snapshots were why this used FLIP originally.
+// Nothing here may read layout or computed style: the lyrics dirty both every
+// frame, so any read forces a full relayout before the first capture.
+function morphExpandedState(mutate: () => void): void {
+  flushPendingMorph();
+  const card = cardEl;
+  if (
+    !card ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    mutate();
+    return;
+  }
+  if (!supportsNestedViewTransitions) {
+    // The FLIP morph, janky here but contained. Only the expanded body flexes
+    // with the animated height, so park the lyrics until it settles.
+    const morph = animateStateChange(mutate);
+    if (morph && card.classList.contains("Expanded")) {
+      holdEvaluateUntilSettled(morph.finished);
+    }
+    return;
+  }
+  const root = document.documentElement;
+  root.classList.remove(...MORPH_CLASSES);
+  root.classList.add(
+    "SpicyLyrics_NPVMorph",
+    card.classList.contains("Expanded")
+      ? "SpicyLyrics_NPVMorphOut"
+      : "SpicyLyrics_NPVMorphIn"
+  );
+  // Runs once: from the callback, or from a later click's flush — the skipped
+  // transition still invokes its callback afterwards, which is then a no-op.
+  // Dropped if Spotify removed the card first: refreshCardUI would re-add the
+  // expanded body class and hide the NPV with no card to show.
+  const run = () => {
+    if (pendingMutate !== run) return;
+    pendingMutate = null;
+    if (cardEl !== card || !card.isConnected) return;
+    mutate();
+  };
+  pendingMutate = run;
+  const transition = document.startViewTransition(run);
+  activeMorph = transition;
+  // The stores flip inside the update callback, a frame from now; park the
+  // evaluate they trigger until the morph is over.
+  holdEvaluateUntilSettled(transition.finished);
+  const settle = () => {
+    // A newer morph skipped this one and still needs the names.
+    if (activeMorph !== transition) return;
+    activeMorph = null;
+    root.classList.remove(...MORPH_CLASSES);
+  };
+  transition.finished.then(settle, settle);
 }
 
 function refreshCardUI(): void {
@@ -225,6 +404,9 @@ function refreshCardUI(): void {
   const expanded = open && $npvLyricsExpanded.get();
   cardEl.classList.toggle("Collapsed", !open);
   cardEl.classList.toggle("Expanded", expanded);
+  // NPVLyrics.css hides the card's wrapper siblings off this, for when the card
+  // is nested inside .main-nowPlayingView-content.
+  document.body.classList.toggle("SpicyLyrics_NPVCardExpanded", expanded);
   // Only rewrite the buttons when the state actually changed — these DOM
   // writes land inside the observed sidebar subtree and would otherwise
   // re-trigger the observer on every evaluate.
@@ -250,6 +432,27 @@ function refreshCardUI(): void {
   }
 }
 
+// The card's ancestors, marked for expanded mode, which hides everything beside
+// them. The legacy layout has its own .main-nowPlayingView-* rules instead.
+let stretchHosts: HTMLElement[] = [];
+
+// Rerun whenever the card may have moved: a host left unmarked after a move
+// (Spotify's lyrics preview arriving late, say) is hidden, and the card with it.
+function markStretchHosts(npv: HTMLElement): void {
+  const next: HTMLElement[] = [];
+  if (
+    cardEl &&
+    (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]')?.contains(cardEl) ||
+      npv.querySelector(NPV_COVER_MARKERS))
+  ) {
+    for (let host = cardEl.parentElement; host && host !== npv; host = host.parentElement) next.push(host);
+  }
+  if (next.length === stretchHosts.length && next.every((host, i) => host === stretchHosts[i])) return;
+  for (const host of stretchHosts) if (!next.includes(host)) host.classList.remove("SpicyLyrics_NPVStretch");
+  for (const host of next) host.classList.add("SpicyLyrics_NPVStretch");
+  stretchHosts = next;
+}
+
 function renderCardShell(npv: HTMLElement): boolean {
   const el = document.createElement("div");
   el.id = "SpicyLyricsNPVCard";
@@ -268,6 +471,11 @@ function renderCardShell(npv: HTMLElement): boolean {
   cardMaid = new Maid();
   cardEl = el;
   cardMaid.Give(cardEl);
+  markStretchHosts(npv);
+  cardMaid.Give(() => {
+    for (const host of stretchHosts) host.classList.remove("SpicyLyrics_NPVStretch");
+    stretchHosts = [];
+  });
   cardBodyEl = cardEl.querySelector<HTMLElement>(".CardBody");
 
   const expand = cardEl.querySelector<HTMLElement>("#NPVCardExpand");
@@ -282,7 +490,7 @@ function renderCardShell(npv: HTMLElement): boolean {
   const maximize = cardEl.querySelector<HTMLElement>("#NPVCardMaximize");
   if (maximize) {
     maximize.addEventListener("click", () => {
-      animateStateChange(() => {
+      morphExpandedState(() => {
         const next = !$npvLyricsExpanded.get();
         $npvLyricsExpanded.set(next);
         // Expanding a collapsed card opens + expands in one step.
@@ -295,7 +503,12 @@ function renderCardShell(npv: HTMLElement): boolean {
   const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
   if (toggle) {
     toggle.addEventListener("click", () => {
-      animateStateChange(() => {
+      flushPendingMorph();
+      // Hiding an expanded card also leaves expanded mode.
+      const morph = cardEl?.classList.contains("Expanded")
+        ? morphExpandedState
+        : animateStateChange;
+      morph(() => {
         const open = $npvLyricsOpen.get();
         // Collapsing an expanded card exits expanded mode for good — reopening
         // shows the normal card again.
@@ -325,6 +538,20 @@ async function reconcile(): Promise<void> {
       ? "ACTIVE"
       : "SHELL";
 
+  if (cardEl) {
+    const npv = GetNPVElement();
+    // Spotify reorders its own sections (the lyrics preview arrives late), so put
+    // the card back in its slot. insertCard only moves it when it's out of place.
+    if (
+      npv &&
+      (npv.querySelector('[data-testid="NPV_Panel_OpenDiv"]') === cardEl.parentElement ||
+        npv.querySelector(NPV_COVER_MARKERS))
+    ) {
+      insertCard(npv, cardEl);
+      markStretchHosts(npv);
+    }
+  }
+
   if (desired === current) {
     if (cardEl) refreshCardUI();
     return;
@@ -338,7 +565,7 @@ async function reconcile(): Promise<void> {
   }
 
   if (current === "DORMANT") {
-    const npv = getNPV();
+    const npv = GetNPVElement();
     if (!npv) return;
     // NPV inner content not rendered yet — the sidebar observer retries.
     if (!renderCardShell(npv)) return;
@@ -347,7 +574,13 @@ async function reconcile(): Promise<void> {
   if (desired === "ACTIVE" && !cardOwnsPage && cardBodyEl) {
     refreshCardUI();
     cardOwnsPage = true;
-    await PageView.Open(cardBodyEl, { cardMode: true });
+    const body = cardBodyEl;
+    await PageView.Open(body, { cardMode: true });
+    // Open bails if another page got there first. Claiming ownership anyway
+    // would let a later teardown destroy that other page.
+    if (!PageView.IsOpened || !body.contains(PageContainer)) {
+      cardOwnsPage = false;
+    }
   } else if (desired === "SHELL" && cardOwnsPage) {
     cardOwnsPage = false;
     await PageView.Destroy();
@@ -399,29 +632,36 @@ function scheduleEvaluate(): void {
  * another measure/mount cycle. Letting the box settle first means the lyrics are
  * built and measured once, against final dimensions.
  */
-function holdEvaluateUntilSettled(animation: Animation): void {
+function holdEvaluateUntilSettled(finished: Promise<unknown>): void {
   if (evaluateTimer !== null) {
     clearTimeout(evaluateTimer);
     evaluateTimer = null;
   }
-  stateAnimation = animation;
+  stateAnimation = finished;
   const settle = () => {
     // A newer morph took over; it owns the re-schedule now.
-    if (stateAnimation !== animation) return;
+    if (stateAnimation !== finished) return;
     stateAnimation = null;
-    scheduleEvaluate();
+    // Skip the debounce: the box has settled, and an expand from the closed
+    // state would otherwise sit empty for another 100ms before the lyrics mount.
+    if (evaluateTimer !== null) {
+      clearTimeout(evaluateTimer);
+      evaluateTimer = null;
+    }
+    void evaluate();
   };
   // finished rejects when the animation is cancelled (card torn down mid-morph);
   // settle either way so we can never wedge with a stale hold.
-  animation.finished.then(settle, settle);
+  finished.then(settle, settle);
 }
 
 let observedSidebar: Element | null = null;
 
 function attachSidebarObserver(): void {
-  const sidebar = document.querySelector(".Root__right-sidebar");
+  const sidebar = GetNPVObserverRoot();
   if (!sidebar || sidebar === observedSidebar) return;
   const observer = new MutationObserver((records) => {
+    clearExpandedIfDetached();
     // Ignore mutations inside our own card (the synced lyrics pipeline
     // mutates it constantly); the card's removal itself still passes, since
     // that mutation targets the card's parent.
@@ -436,7 +676,7 @@ function attachSidebarObserver(): void {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["inert"],
+    attributeFilter: ["inert", "aria-hidden", "hidden", "aria-label"],
   });
   // Keyed Give disconnects the previous observer when the sidebar is swapped.
   watcherMaid.Give(observer, "sidebar-observer");
@@ -452,16 +692,33 @@ function attachWatchers(): void {
   const topContainer = document.querySelector(".Root__top-container");
   const watchRoot =
     topContainer ?? document.querySelector(".Root") ?? document.body;
-  const topObserver = new MutationObserver(() => {
-    if (!observedSidebar || !observedSidebar.isConnected) {
+  // Without .Root__right-sidebar (Spotify 1.3.x) the observer root is found
+  // through the NPV panel, which can mount after we start, deep inside the
+  // sidebar. Watch the whole subtree until it appears, then narrow back down.
+  let watchingSubtree = false;
+  const observeTop = () => {
+    watchingSubtree = topContainer === null || observedSidebar === null;
+    topObserver.observe(watchRoot, { childList: true, subtree: watchingSubtree });
+  };
+  const topObserver = new MutationObserver((records) => {
+    clearExpandedIfDetached();
+    if (observedSidebar === null) {
+      attachSidebarObserver();
+      if (observedSidebar !== null && watchingSubtree && topContainer !== null) observeTop();
+      return;
+    }
+    if (records.every(record => cardEl?.contains(record.target))) return;
+    const panelChanged = records.some(record =>
+      [...record.addedNodes, ...record.removedNodes].some(node => node instanceof Element &&
+        (node.matches('aside.NowPlayingView, #Desktop_PanelContainer_Id') ||
+          node.querySelector('aside.NowPlayingView, #Desktop_PanelContainer_Id'))));
+    if (!observedSidebar || !observedSidebar.isConnected || panelChanged) {
       observedSidebar = null;
       attachSidebarObserver();
+      if (observedSidebar === null && !watchingSubtree) observeTop();
     }
   });
-  topObserver.observe(watchRoot, {
-    childList: true,
-    subtree: topContainer === null,
-  });
+  observeTop();
   watcherMaid.Give(topObserver, "top-observer");
 }
 
@@ -494,11 +751,17 @@ export function initNPVLyrics(): void {
   watcherMaid.Give($hideNpvLyricsWhenUnavailable.listen(() => scheduleEvaluate()));
   // Turning the card off tears it down live; turning it back on re-injects it.
   watcherMaid.Give($disableNpvLyrics.listen(() => scheduleEvaluate()));
+  // Hide Spotify's own NPV lyrics section whenever the card is enabled, even
+  // while the card itself isn't rendered.
+  watcherMaid.Give(
+    $disableNpvLyrics.subscribe((disabled) => {
+      document.body.classList.toggle("SpicyLyrics_NPVCardEnabled", !disabled);
+    })
+  );
 
   Whentil.When(
     () =>
-      document.querySelector(".Root__right-sidebar") ??
-      document.querySelector(".Root"),
+      GetNPVObserverRoot() ?? document.querySelector(".Root") ?? document.body,
     () => {
       attachWatchers();
     }

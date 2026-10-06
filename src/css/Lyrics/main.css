@@ -60,21 +60,46 @@
   --SL-LyricsContent_MaskTopPadding: 32px;
 }
 
+/* Same mask, but the fades shrink with the lyrics area: a resized popup can
+   leave well under 128px of lyrics, where the two fixed 64px fades overlapped
+   and hid every line. Unchanged at the default popup size. */
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent {
+  --ImageMask: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent min(16px, 6%),
+    var(--spice-sidebar) calc(min(64px, 25%) + var(--SL-LyricsContent_MaskTopPadding)),
+    var(--spice-sidebar) calc(100% - min(64px, 25%)),
+    transparent calc(100% - min(16px, 6%)),
+    transparent
+  );
+}
+
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent:has(.LyricsNotice) {
   -webkit-mask-image: none;
   mask-image: none;
 }
 
-#SpicyLyricsPage .LyricsContainer .LyricsContent:not(:has(.LyricsNotice)) * {
+/* Everything but the notice, instead of `.LyricsContent:not(:has(.LyricsNotice)) *`:
+   an ancestor :has() with a `*` subject made Blink restyle the whole document on
+   any DOM change. The notice replaces the lyrics, so nothing else here holds text. */
+#SpicyLyricsPage .LyricsContainer .LyricsContent *:not(.LyricsNotice, .LyricsNotice *) {
   font-weight: 700 !important;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent {
   /* Compact sizing tuned for the popup: comfortably readable at the default
-     popup size (the floor dominates here, since the popup container is
-     narrow), scales with width, and is capped so very wide popups don't end
-     up with oversized text. */
-  --DefaultLyricsSize: clamp(1.7rem, calc(1cqw * 5.5), 2.6rem);
+     popup size (the 1.7rem floor dominates there), scales with width, and is
+     capped so very wide popups don't end up with oversized text. Short or very
+     narrow popups shrink it below that floor (8vh / 8vw), so a wide strip
+     still shows a few lines and a tiny window isn't one word per line. vw/vh
+     because this var is read inside .LyricsContent, where cq units would
+     resolve against a different container than here. */
+  --DefaultLyricsSize: clamp(
+    1.2rem,
+    min(max(1.7rem, 5.5vw), 8vh, 8vw),
+    2.6rem
+  );
 }
 
 /* #SpicyLyricsPage.Fullscreen.MinimalLyricsMode .LyricsContainer .LyricsContent {
@@ -126,6 +151,14 @@ body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsConten
   .LyricsContent
   .SpicyLyricsScrollContainer {
   margin-top: 40cqh;
+}
+
+/* The loading skeleton mirrors the lines' offset (LyricsSkeleton.css). */
+#SpicyLyricsPage.Fullscreen.MinimalLyricsMode
+  .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
+  padding-top: 40cqh;
 }
 
 body:has(.Root:not(.global-nav)) #SpicyLyricsPage.Fullscreen.MinimalLyricsMode

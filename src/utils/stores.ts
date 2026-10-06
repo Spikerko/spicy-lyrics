@@ -72,7 +72,9 @@ export const $hideNpvLyricsWhenUnavailable = persistAtom<boolean>(
   "hideNpvLyricsWhenUnavailable",
   true
 );
-export const $lockedMediaBox = persistAtom<boolean>("lockedMediaBox", false);
+// Hide Spotify's own lyrics button in the playback bar (ours is left alone).
+export const $removeSpotifyLyricsButton = persistAtom<boolean>("removeSpotifyLyricsButton", false);
+export const $lockedMediaBox =persistAtom<boolean>("lockedMediaBox", false);
 // $popupLyricsAllowed: stored as actual boolean "popupLyricsAllowed" in the settings blob.
 export const $popupLyricsAllowed = (() => {
   const initial: boolean =
@@ -97,6 +99,21 @@ export const $timelineOutsideMediaContent = persistAtom<boolean>(
 export const $showVolumeSlider = persistAtom<boolean>("showVolumeSlider", true);
 // Playback timing offset in milliseconds (bipolar: negative = earlier, positive = later)
 export const $playbackOffset = persistAtom<number>("playbackOffset", 0);
+// Clicking a line seeks this much earlier, so Spotify's ~300ms fade-in on seek
+// doesn't swallow the start of the line.
+export const $seekFadeCompensation = persistAtom<boolean>("seekFadeCompensation", true);
+// Start auto-scrolling to a line this many ms before it becomes active.
+export const $scrollLeadEnabled = persistAtom<boolean>("scrollLeadEnabled", false);
+export const $scrollLeadMs = persistAtom<number>("scrollLeadMs", 250);
+// Spring-driven auto-scroll instead of the browser's native smooth scroll.
+export const $smoothScrolling = persistAtom<boolean>("smoothScrolling", false);
+// Frame rate cap for everything that redraws every frame (lyrics animation,
+// animated background, smooth-scroll glide). On high refresh rate displays every
+// extra frame is another repaint of the whole page, so this bounds the per-second
+// work. Off by default, which draws on every display refresh as before; the
+// slider value only applies once the cap is turned on.
+export const $animationFpsCapEnabled = persistAtom<boolean>("animationFpsCapEnabled", false);
+export const $animationFpsCap = persistAtom<number>("animationFpsCap", 60);
 
 // Version atom — NOT persisted, set once at startup
 export const $spicyLyricsVersion = atom<string>(

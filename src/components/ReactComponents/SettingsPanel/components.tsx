@@ -126,6 +126,16 @@ export function Slider({
   const fillFrom = Math.min(zeroFrac, frac);
   const fillSpan = Math.abs(frac - zeroFrac);
 
+  // A bipolar fill grows out of the centre tick. A one-sided fill must start at
+  // the track's own left edge — anchoring it to the thumb's centre at `min` left
+  // a bare stub of track to the left of the fill.
+  const fillStyle = isBipolar
+    ? {
+        left: posFor(fillFrom),
+        width: `calc(${(fillSpan * 100).toFixed(4)}% - ${(fillSpan * THUMB).toFixed(3)}px)`,
+      }
+    : { left: "0px", width: posFor(frac) };
+
   const sign = isBipolar && clamped > 0 ? "+" : "";
   const valueLabel = `${sign}${clamped}${unit ? ` ${unit}` : ""}`;
   const changed = defaultValue !== undefined && clamped !== defaultValue;
@@ -134,13 +144,7 @@ export function Slider({
     <div className={`sl-sp-slider${disabled ? " sl-sp-slider--disabled" : ""}`}>
       <div className="sl-sp-slider-track-wrap">
         <span className="sl-sp-slider-track" />
-        <span
-          className="sl-sp-slider-fill"
-          style={{
-            left: posFor(fillFrom),
-            width: `calc(${(fillSpan * 100).toFixed(4)}% - ${(fillSpan * THUMB).toFixed(3)}px)`,
-          }}
-        />
+        <span className="sl-sp-slider-fill" style={fillStyle} />
         {isBipolar && <span className="sl-sp-slider-center" style={{ left: posFor(zeroFrac) }} />}
         <input
           type="range"

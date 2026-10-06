@@ -30,16 +30,34 @@ const TRIP_STATUSES = new Set([403, 408, 425, 429, 500, 502, 503, 504]);
 /** Consecutive qualifying failures before the breaker opens. */
 const FAILURE_THRESHOLD = 2;
 
-/** Escalating pause ladder. Each rung is jittered 0.5x-1.5x when applied. */
-const LADDER_MS = [120_000, 300_000, 900_000, 1_800_000];
-const LADDER_MAX_MS = LADDER_MS[LADDER_MS.length - 1];
+/**
+ * Escalating pause ladder — one rung per successive trip, the last one sticky.
+ * Each rung is jittered 0.5x-1.5x when applied.
+ *
+ * The head is short so an ordinary blip costs a listener half a minute rather
+ * than two, and the tail is long so a client that has failed a dozen times in a
+ * row settles at a rate the whole fleet can sustain against a struggling API.
+ */
+const LADDER_MS = [
+  // A blip: three quick attempts before conceding something is really wrong.
+  30_000, 30_000, 30_000,
+  60_000,
+  // The long middle, where a genuine outage is waited out.
+  120_000, 120_000, 120_000, 120_000, 120_000, 120_000, 120_000, 120_000,
+  // Sticky: this rung and every trip after it.
+  300_000,
+];
 
 /**
  * A persisted `openUntil` further out than this can only come from a corrupt
  * record or a backwards system-clock change; without the clamp such a value
  * would silence the client indefinitely.
+ *
+ * Deliberately well clear of the longest rung rather than derived from it: the
+ * same bound caps a `Retry-After` the origin sent us, and clamping that down to
+ * a ladder rung would make us noisier than the server asked for.
  */
-const OPEN_UNTIL_SANITY_MS = LADDER_MAX_MS * 1.5;
+const OPEN_UNTIL_SANITY_MS = 2_700_000;
 
 /** Quiet period after which the ladder drops back to its first rung. */
 const LADDER_DECAY_MS = 3_600_000;
@@ -317,7 +335,7 @@ export function SettleFailure(lease: BreakerLease, retryAfterHeaderMs?: number):
   if (!claimSettle(lease)) return;
 
   // A lyrics probe never escalates: otherwise a user skipping tracks would push
-  // their own client from the 2 minute rung to the 30 minute one.
+  // their own client from the 30 second rung to the 5 minute one.
   if (lease.kind === "earlyProbe") return;
 
   if (lease.kind === "halfOpen") {

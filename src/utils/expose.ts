@@ -6,6 +6,8 @@ import { OpenLyricsDBPanel } from "./openLyricsDBPanel";
 import { DeepFreeze } from "./utils";
 import { triggerSpicyLyricsFakeUpdate } from "./version/CheckForUpdates";
 import { BreakerDebug } from "./API/CircuitBreaker";
+import { showUpdatedDialog } from "../components/ReactComponents/UpdateDialog.tsx";
+import GetProgress from "./Gets/GetProgress";
 
 export function exposeToWindow() {
     const api = {
@@ -25,14 +27,20 @@ export function exposeToWindow() {
                 }
             }
         },
+        constants: {
+            toaster: toast,
+        },
         testing: {
             autoUpdate: {
                 triggerFakeUpdate: triggerSpicyLyricsFakeUpdate,
+                showUpdatedDialog: (fromVersion: string, toVersion: string) => showUpdatedDialog(fromVersion, toVersion),
             },
-            toaster: toast,
-            // Escape hatch: a bad persisted breaker state would otherwise mean
-            // telling users to clear localStorage by hand.
-            breaker: BreakerDebug,
+            getProgress: () => GetProgress(),
+        },
+        request: {
+            QueryAPI: {
+                breaker: BreakerDebug,
+            }
         }
     };
 

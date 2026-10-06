@@ -6,18 +6,20 @@ import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { Query, QueryHttpError, QueryNetworkError } from "../API/Query.ts";
 import { IsTripStatus, ServiceUnavailableError } from "../API/CircuitBreaker.ts";
 import { ProcessLyrics } from "./ProcessLyrics.ts";
+import { IsEmptyLyrics } from "./EmptyLines.ts";
 import Logger from "../Logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
 import { LyricsQueueRetry } from "./LyricsQueueRetry.ts";
 import { GetExpireStore } from "../../modules/Store.ts";
 import { SLObjPack } from "../objpack.ts";
+import { HideLyricsSkeleton, IsLyricsSkeletonEnabled, ShowLyricsSkeleton } from "./LyricsSkeleton.ts";
+import { onExperimentChange } from "../experiments.ts";
 import { resolveLocalTrackUri } from "../SpotifyLocalTrackResolver.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
 
-// recently updated key structure - changed name
-export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 4, {
+export const LyricsStore = GetExpireStore<any>("SpicyLyrics_LyricsStore_g1", 6, {
   Unit: "Days",
   Duration: 3,
 }, isDev as true);
@@ -88,6 +90,14 @@ function isStaleFetch(uri: string): boolean {
   return currentUri != null && currentUri !== uri;
 }
 
+/**
+ * Hide the loader on behalf of the fetch for `uri` — unless that fetch has been
+ * overtaken, in which case the loader belongs to the newer fetch.
+ */
+function hideLoaderFor(uri: string): void {
+  if (!isStaleFetch(uri)) HideLoaderContainer();
+}
+
 export default async function fetchLyrics(uri: string): Promise<FetchLyricsResult> {
   if (inFlightUri === uri) {
     lyricsLogger.debug("Fetch already in flight for this track, skipping", uri);
@@ -155,6 +165,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   const targetUri = await resolveLocalTrackUri(uri);
   const trackId = targetUri.split(":")[2];
 
+  if (IsLyricsSkeletonEnabled()) ShowLyricsSkeleton();
+
   if (LyricsContent) {
     LyricsContent.classList.add("HiddenTransitioned");
   }
@@ -184,7 +196,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     } catch (error) {
       lyricsCacheLogger.error("Error parsing saved lyrics data", error);
       $currentlyFetching.set(false);
-      HideLoaderContainer();
+      hideLoaderFor(uri);
     }
   }
 
@@ -234,46 +246,92 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     return ["offline", 400];
   }
 
-  ShowLoaderContainer();
+  ShowLoaderContainer(uri);
 
   // Fetch new lyrics if no match in localStorage
   /* const lyricsApi = storage.get("customLyricsApi") ?? Defaults.LyricsContent.api.url;
     const lyricsAccessToken = storage.get("lyricsApiAccessToken") ?? Defaults.LyricsContent.api.accessToken; */
 
   try {
-    const Token = await Platform.GetSpotifyAccessToken();
-
     let status = 0;
 
-    lyricsLogger.debug("API lyrics query", { trackId });
-    const queries = await Query(
-      [
-        {
-          operation: "lyrics",
-          variables: {
-            id: trackId,
-            auth: "SpicyLyrics-WebAuth",
+    const runLyricsQuery = async (token: string) => {
+      lyricsLogger.debug("API lyrics query", { trackId });
+      const queries = await Query(
+        [
+          {
+            operation: "lyrics",
+            variables: {
+              id: trackId,
+              auth: "SpicyLyrics-WebAuth",
+            },
           },
+        ],
+        {
+          "SpicyLyrics-WebAuth": `Bearer ${token}`,
         },
-      ],
-      {
-        "SpicyLyrics-WebAuth": `Bearer ${Token}`,
-      },
-      // Someone is waiting on this, so it may pass even while the breaker is
-      // open (subject to the breaker's own cooldown) and doubles as the health
-      // check that closes it. This is the only caller allowed to set it.
-      { probe: true }
-    );
+        // Someone is waiting on this, so it may pass even while the breaker is
+        // open (subject to the breaker's own cooldown) and doubles as the health
+        // check that closes it. This is the only caller allowed to set it.
+        { probe: true }
+      );
+      return queries.get("0");
+    };
 
-    const lyricsQuery = queries.get("0");
+    const Token = await Platform.GetSpotifyAccessToken();
+    let lyricsQuery = await runLyricsQuery(Token);
+
+    // The envelope 401: the token we sent was already dead, whatever the client
+    // told us about its expiry. Retire it and try once more with a fresh one —
+    // once only, so a genuinely unauthorized client can't loop.
+    if (lyricsQuery?.httpStatus === 401) {
+      lyricsLogger.warn("Lyrics query unauthorized, refreshing the token and retrying once");
+      Platform.InvalidateSpotifyAccessToken(Token);
+
+      let retryToken: string | undefined;
+      try {
+        retryToken = await Platform.GetSpotifyAccessToken();
+      } catch (error) {
+        // No new token to be had. Keep the 401 we already have rather than
+        // reporting this as a fault of our own.
+        lyricsLogger.warn("Could not refresh the token for the retry", error);
+      }
+
+      if (retryToken && retryToken !== Token) {
+        try {
+          lyricsQuery = await runLyricsQuery(retryToken);
+        } catch (error) {
+          // The retry goes through the circuit breaker like any other request.
+          // If it is held back, keep the 401 instead of overwriting it with the
+          // breaker's own, less accurate, reason.
+          if (error instanceof ServiceUnavailableError) {
+            lyricsLogger.warn("Unauthorized retry suppressed by the breaker", error.message);
+          } else {
+            throw error;
+          }
+        }
+      } else if (retryToken) {
+        // Nothing new to send: the client is still on the token that was just
+        // refused, so a retry would only spend a breaker probe to be told the
+        // same thing.
+        lyricsLogger.warn("Token unchanged after refresh, not retrying");
+      }
+    }
+
     if (!lyricsQuery) {
       lyricsLogger.error("Lyrics query not found");
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
 
     status = lyricsQuery.httpStatus;
+
+    if (status === 503 && isStaleFetch(uri)) {
+      // The user already moved on. Entering the queued state now would put the
+      // queue loader up over the new track, with nothing left to take it down.
+      return ["lyrics-queued", 503];
+    }
 
     if (status === 503) {
       // The server accepted the request but hasn't processed it yet — it's
@@ -288,18 +346,18 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
 
     if (status !== 200) {
       if (status === 404) {
-        HideLoaderContainer();
+        hideLoaderFor(uri);
         $currentlyFetching.set(false);
         return ["lyrics-not-found", 404];
       }
       if (status === 429) {
         // The server's own per-query rate limit. (A *transport* 429 never gets
         // here — that trips the circuit breaker and throws.)
-        HideLoaderContainer();
+        hideLoaderFor(uri);
         $currentlyFetching.set(false);
         return ["rate-limited", 429];
       }
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["status-not-200", status];
     }
@@ -307,12 +365,22 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     const lyrics = lyricsPacker.unpack(lyricsQuery.data) as any;
 
     if (lyrics === null || lyrics === undefined || lyrics === "") {
-      HideLoaderContainer();
+      hideLoaderFor(uri);
       $currentlyFetching.set(false);
       return ["lyrics-not-found", 404];
     }
 
     await ProcessLyrics(lyrics);
+
+    // Pruning blank lines can empty out a payload the API still counted as a
+    // hit. Nothing would render, so treat it as a miss rather than caching and
+    // publishing an empty lyrics card.
+    if (IsEmptyLyrics(lyrics)) {
+      lyricsLogger.warn("Lyrics payload had no renderable lines after pruning");
+      hideLoaderFor(uri);
+      $currentlyFetching.set(false);
+      return ["lyrics-not-found", 404];
+    }
 
     // Stamp the uri so every match downstream (saved-data, re-fetch, cache)
     // keys off the stable uri instead of the API-supplied id.
@@ -336,7 +404,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     return [{ ...lyrics, fromCache: false }, 200];
   } catch (error) {
     $currentlyFetching.set(false);
-    HideLoaderContainer();
+    hideLoaderFor(uri);
 
     // The request was never made: the circuit breaker is holding traffic back
     // because the API is refusing us. That is a temporary pause, not a fault,
@@ -380,15 +448,21 @@ export const LYRICS_QUEUE_MESSAGE =
 /**
  * Show the loader container after a delay
  */
-function ShowLoaderContainer(): void {
+function ShowLoaderContainer(uri: string): void {
+  // The skeleton went up when the fetch started; it replaces the spinner.
+  if (IsLyricsSkeletonEnabled()) return;
   const loaderContainer = PageContainer?.querySelector<HTMLElement>(
     ".LyricsContainer .loaderContainer"
   );
-  if (loaderContainer) {
-    ContainerShowLoaderTimeout = setTimeout(() => {
-      loaderContainer.classList.add("active");
-    }, 2000);
-  }
+  if (!loaderContainer) return;
+  // One pending reveal at a time. Overwriting the handle used to orphan the
+  // previous track's timer, which then fired after this track's hide.
+  if (ContainerShowLoaderTimeout) clearTimeout(ContainerShowLoaderTimeout);
+  ContainerShowLoaderTimeout = setTimeout(() => {
+    ContainerShowLoaderTimeout = null;
+    if (isStaleFetch(uri) || inFlightUri !== uri) return;
+    loaderContainer.classList.add("active");
+  }, 2000);
 }
 
 /**
@@ -398,6 +472,10 @@ function ShowLoaderContainer(): void {
  * closed (no-ops if there's no loader in the current DOM).
  */
 export function ShowQueueLoader(message: string = LYRICS_QUEUE_MESSAGE): void {
+  if (IsLyricsSkeletonEnabled()) {
+    ShowLyricsSkeleton(message);
+    return;
+  }
   const loaderContainer = PageContainer?.querySelector<HTMLElement>(
     ".LyricsContainer .loaderContainer"
   );
@@ -423,19 +501,45 @@ export function ShowQueueLoader(message: string = LYRICS_QUEUE_MESSAGE): void {
 /**
  * Hide the loader container and clear any pending timeout
  */
-function HideLoaderContainer(): void {
+export function HideLoaderContainer(): void {
+  if (ContainerShowLoaderTimeout) {
+    clearTimeout(ContainerShowLoaderTimeout);
+    ContainerShowLoaderTimeout = null;
+  }
   const loaderContainer = PageContainer?.querySelector<HTMLElement>(
     ".LyricsContainer .loaderContainer"
   );
   if (loaderContainer) {
-    if (ContainerShowLoaderTimeout) {
-      clearTimeout(ContainerShowLoaderTimeout);
-      ContainerShowLoaderTimeout = null;
-    }
     loaderContainer.classList.remove("active", "queued");
     loaderContainer.querySelector(".loaderMessage")?.remove();
   }
 }
+
+// The CSS hides whichever loader the experiment isn't using, so flipping it
+// mid-fetch would hide the one that went up and leave nothing in its place.
+// Hand the loading state, and any queue message, across to the other one.
+onExperimentChange((experiment) => {
+  if (experiment.id !== "lyricsSkeleton") return;
+  const loaderContainer = PageContainer?.querySelector<HTMLElement>(
+    ".LyricsContainer .loaderContainer"
+  );
+  const skeleton = PageContainer?.querySelector<HTMLElement>(".LyricsContainer .LyricsSkeleton");
+  const queuedMessage = loaderContainer?.classList.contains("queued")
+    ? loaderContainer.querySelector(".loaderMessage")?.textContent
+    : skeleton?.classList.contains("active") && skeleton.classList.contains("LongLabel")
+      ? skeleton.querySelector(".SkeletonLabel")?.textContent
+      : null;
+  if (!$currentlyFetching.get() && !queuedMessage) return;
+
+  if (IsLyricsSkeletonEnabled()) {
+    HideLoaderContainer();
+    ShowLyricsSkeleton(queuedMessage ?? undefined);
+  } else {
+    HideLyricsSkeleton();
+    if (queuedMessage) ShowQueueLoader(queuedMessage);
+    else loaderContainer?.classList.add("active");
+  }
+});
 
 /**
  * Clear the lyrics container content

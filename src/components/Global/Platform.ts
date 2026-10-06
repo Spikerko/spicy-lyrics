@@ -42,17 +42,43 @@ const OnSpotifyReady = new Promise<void>((resolve) => {
 let tokenProviderResponse: TokenProviderResponse | undefined;
 let accessTokenPromise: Promise<string> | undefined;
 
-/** A cached token is reusable until it's within this margin of expiring. */
-const TOKEN_EXPIRY_MARGIN_MS = 2;
+/**
+ * The token the API has told us it will not accept, if any.
+ *
+ * Cleared as soon as a *different* token is adopted, so it never outlives the
+ * rotation it was waiting for. See `InvalidateSpotifyAccessToken`.
+ */
+let rejectedAccessToken: string | undefined;
 
-function isUsable(response: TokenProviderResponse | undefined): response is TokenProviderResponse {
+/**
+ * How long before its stated expiry a token stops being trusted.
+ *
+ * Clients hand out tokens that are already dead a little before their own
+ * `accessTokenExpirationTimestampMs` says they should be, and that timestamp is
+ * the client's clock rather than the server's either way. Re-reading costs a
+ * synchronous property lookup, so a wide margin is nearly free — while using a
+ * dead token costs the user their lyrics.
+ */
+const TOKEN_EXPIRY_MARGIN_MS = 60_000;
+
+function isUsable(response: TokenProviderResponse | undefined): boolean {
   if (!response?.accessToken) return false;
+  if (response.accessToken === rejectedAccessToken) return false;
   // Some sources don't report an expiry — treat those as usable and let a 401
   // from the API drive the next refresh.
   if (typeof response.expiresAtTime !== "number" || !Number.isFinite(response.expiresAtTime)) {
     return true;
   }
   return response.expiresAtTime - Date.now() > TOKEN_EXPIRY_MARGIN_MS;
+}
+
+/** Take a token as the current one, retiring any rejection it supersedes. */
+function adopt(response: TokenProviderResponse): string {
+  tokenProviderResponse = response;
+  if (rejectedAccessToken && rejectedAccessToken !== response.accessToken) {
+    rejectedAccessToken = undefined;
+  }
+  return response.accessToken;
 }
 
 /**
@@ -114,18 +140,35 @@ async function tokenFromLegacySources(): Promise<TokenProviderResponse | undefin
 async function resolveAccessToken(): Promise<string> {
   await OnSpotifyReady;
 
-  const response = tokenFromAuthorizationAPI() ?? (await tokenFromLegacySources());
-
-  if (!response?.accessToken) {
-    throw new Error("Unable to obtain a Spotify access token");
+  const fromAuthorizationAPI = tokenFromAuthorizationAPI();
+  if (fromAuthorizationAPI && isUsable(fromAuthorizationAPI)) {
+    return adopt(fromAuthorizationAPI);
   }
 
-  tokenProviderResponse = response;
-  return response.accessToken;
+  const fromLegacy = await tokenFromLegacySources();
+  if (fromLegacy && isUsable(fromLegacy)) return adopt(fromLegacy);
+
+  // Every source gave back something expired, or the very token we were just
+  // told is bad. A doubtful token still beats no token — the request will come
+  // back 401 and we will ask again — so hand back the best of what we have and
+  // drop the rejection, rather than sending nothing until the client rotates.
+  const lastResort = fromLegacy ?? fromAuthorizationAPI;
+  if (lastResort?.accessToken) {
+    rejectedAccessToken = undefined;
+    return adopt(lastResort);
+  }
+
+  throw new Error("Unable to obtain a Spotify access token");
 }
 
 const GetSpotifyAccessToken = (): Promise<string> => {
-  if (isUsable(tokenProviderResponse)) {
+  // The platform keeps its own token fresh and `getState()` is a synchronous
+  // read, so look there on every call rather than trusting our copy. A token
+  // the client has already rotated away from is then never handed out.
+  const fresh = tokenFromAuthorizationAPI();
+  if (fresh && isUsable(fresh)) return Promise.resolve(adopt(fresh));
+
+  if (tokenProviderResponse && isUsable(tokenProviderResponse)) {
     return Promise.resolve(tokenProviderResponse.accessToken);
   }
 
@@ -143,9 +186,29 @@ const GetSpotifyAccessToken = (): Promise<string> => {
   return pending;
 };
 
+/**
+ * Report that the API refused `token` with a 401: it looked valid to us, and
+ * the server disagrees. The server is right.
+ *
+ * The token is remembered as rejected rather than merely dropped, because the
+ * platform's store keeps offering the same string back until it rotates —
+ * without this, a "refresh and retry" would resend exactly what was refused.
+ * A refresh already in flight is left alone; it is fetching a new token anyway.
+ */
+function InvalidateSpotifyAccessToken(token?: string): void {
+  const rejected = token ?? tokenProviderResponse?.accessToken;
+  if (!rejected) return;
+
+  rejectedAccessToken = rejected;
+  if (tokenProviderResponse?.accessToken === rejected) {
+    tokenProviderResponse = undefined;
+  }
+}
+
 const Platform = {
   OnSpotifyReady,
   GetSpotifyAccessToken,
+  InvalidateSpotifyAccessToken,
   get SpotifyVersion(): number[] {
     return Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
   }

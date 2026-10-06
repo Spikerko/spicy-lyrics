@@ -1,89 +1,181 @@
-/*
- * Sonner toast — iOS light glass.
- * Translucent white material, dark text, no per-status surface color.
- * Status icon stays subtly tinted but the toast itself is neutral.
- */
+/* Toasts wear the same lavender field as the update dialogs; the --sl-* tokens live in NoticeDialog.css.
+   Selectors lead with [data-sonner-toaster][data-sonner-theme] to outrank Sonner's own styles without !important. */
 
-[data-sonner-toaster][data-theme='dark'] {
-  --normal-bg: var(--material-regular-bg);
-  --normal-border: var(--on-material-hairline);
-  --normal-text: var(--on-material-text-primary);
-
-  --success-bg: var(--material-regular-bg);
-  --success-border: var(--on-material-hairline);
-  --success-text: var(--on-material-text-primary);
-
-  --error-bg: var(--material-regular-bg);
-  --error-border: var(--on-material-hairline);
-  --error-text: var(--on-material-text-primary);
-
-  --warning-bg: var(--material-regular-bg);
-  --warning-border: var(--on-material-hairline);
-  --warning-text: var(--on-material-text-primary);
-
-  --info-bg: var(--material-regular-bg);
-  --info-border: var(--on-material-hairline);
-  --info-text: var(--on-material-text-primary);
-
-  --border-radius: var(--radius-md);
-  --shadow:
-    var(--liquid-cast-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 0 0 1px var(--on-material-hairline);
-  --description-color: var(--on-material-text-tertiary);
-  font-size: 0.85rem;
+[data-sonner-toaster] {
+  --sl-toast-ease: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-[data-sonner-toast] {
-  border-radius: var(--radius-md) !important;
+/* Errors switch to the loader's red band, so a failure reads as one before the text is read. */
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-type="error"] {
+  --sl-field: oklch(0.315 0.092 20);
+  --sl-field-deep: oklch(0.245 0.075 20);
+  --sl-ink: oklch(0.875 0.068 22);
+  --sl-ink-muted: oklch(0.78 0.05 22);
+  --sl-cta: oklch(0.958 0.018 22);
+  --sl-cta-ink: oklch(0.26 0.09 20);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] {
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in oklab, var(--sl-ink) 16%, transparent);
+  border-radius: 14px;
+  background-color: var(--sl-field);
+  background-image: linear-gradient(165deg, var(--sl-field) 0%, var(--sl-field-deep) 100%);
   box-shadow:
-    var(--liquid-cast-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 0 1px var(--on-material-hairline),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.22) !important;
-  background: var(--material-regular-bg) !important;
-  -webkit-backdrop-filter: var(--material-regular-blur) !important;
-  backdrop-filter: var(--material-regular-blur) !important;
-  color: var(--on-material-text-primary) !important;
-  font-size: 0.85rem !important;
-  font-family: inherit !important;
+    inset 0 1px 0 color-mix(in oklab, var(--sl-ink) 22%, transparent),
+    0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  color: var(--sl-ink);
+  font-family: var(--encore-body-font-stack, var(--fallback-fonts, sans-serif));
+  font-size: 0.85rem;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Status icons — neutral primary on light material */
-[data-sonner-toast][data-type='success'] [data-icon],
-[data-sonner-toast][data-type='error'] [data-icon],
-[data-sonner-toast][data-type='warning'] [data-icon],
-[data-sonner-toast][data-type='info'] [data-icon] {
-  color: var(--on-material-text-primary) !important;
+/* Sonner owns transform for stacking and swiping, so the entrance scale rides the separate `scale` property. */
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast] {
+  transition-property: transform, opacity, height, box-shadow, scale;
+  transition-duration: 0.4s, 0.32s, 0.4s, 0.2s, 0.4s;
+  transition-timing-function: var(--sl-toast-ease);
 }
 
-[data-sonner-toast] [data-title] {
-  font-size: var(--text-headline-size) !important;
-  font-weight: var(--w-medium) !important;
-  color: var(--on-material-text-primary) !important;
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast]:not([data-mounted="true"]),
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-removed="true"] {
+  scale: 0.96;
 }
 
-[data-sonner-toast] [data-description] {
-  font-size: var(--text-caption-size) !important;
-  font-weight: var(--w-regular) !important;
-  color: var(--on-material-text-tertiary) !important;
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-swiping="true"] {
+  transition: none;
 }
 
-[data-sonner-toast] [data-close-button] {
-  background: var(--on-material-tint-bg) !important;
-  border: 1px solid var(--on-material-hairline) !important;
-  color: var(--on-material-text-secondary) !important;
-  border-radius: 6px !important;
-  transition: background 0.15s, color 0.15s !important;
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast] [data-icon] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  color: var(--sl-ink);
 }
 
-[data-sonner-toast] [data-close-button]:hover {
-  background: var(--on-material-tint-bg-hover) !important;
-  color: var(--on-material-text-primary) !important;
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast] [data-icon] svg {
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
-[data-sonner-toast] [data-button] {
-  border-radius: 7px !important;
-  font-size: var(--text-caption-size) !important;
-  font-weight: var(--w-semibold) !important;
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast] [data-content] {
+  gap: 3px;
+  min-width: 0;
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast] [data-title] {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--sl-ink);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast] [data-description] {
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--sl-ink-muted);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-button] {
+  position: relative;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition:
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.12s ease;
+}
+
+/* The visible button stays compact; the hit area reaches 44px. */
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-button]::before {
+  content: "";
+  position: absolute;
+  inset: -6px -2px;
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-button]:active {
+  transform: scale(0.97);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-action] {
+  background-color: var(--sl-cta);
+  color: var(--sl-cta-ink);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-action]:hover {
+  background-color: #fff;
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-cancel] {
+  background-color: transparent;
+  color: var(--sl-ink-muted);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-cancel]:hover {
+  background-color: color-mix(in oklab, var(--sl-ink) 12%, transparent);
+  color: var(--sl-ink);
+}
+
+/* Sonner parks the close button on the corner; here it sits inside, top right, with room kept for it. */
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"]:has([data-close-button]) {
+  padding-right: 44px;
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  top: 50%;
+  right: 10px;
+  left: auto;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sl-ink-muted);
+  transform: translateY(-50%);
+  transition:
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-close-button]::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"]:hover [data-close-button]:hover {
+  background-color: color-mix(in oklab, var(--sl-ink) 12%, transparent);
+  color: var(--sl-ink);
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  width: 14px;
+  height: 14px;
+}
+
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-button]:focus-visible,
+[data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-styled="true"] [data-close-button]:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--sl-ink) 70%, transparent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sonner-toaster][data-sonner-theme] [data-sonner-toast] {
+    transition-property: opacity, height;
+    transition-duration: 0.2s;
+  }
+
+  [data-sonner-toaster][data-sonner-theme] [data-sonner-toast]:not([data-mounted="true"]),
+  [data-sonner-toaster][data-sonner-theme] [data-sonner-toast][data-removed="true"] {
+    scale: none;
+  }
 }

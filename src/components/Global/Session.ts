@@ -1,4 +1,3 @@
-import { Query } from "../../utils/API/Query.ts";
 import { $spicyLyricsVersion } from "../../utils/stores.ts";
 import Global from "./Global.ts";
 
@@ -20,6 +19,11 @@ type VersionParsedData =
 
 let sessionHistory: Location[] = [];
 
+// Plain-text version lookup on the edge, separate from /query, so the frequent
+// update checks don't count against the batched API or its circuit breaker.
+const LATEST_VERSION_URL = "https://api.spicylyrics.org/edge/service?lookup=version";
+const LATEST_VERSION_TIMEOUT_MS = 15_000;
+
 const Session = {
   Navigate: (data: Location) => {
     Spicetify.Platform.History.push(data);
@@ -31,6 +35,15 @@ const Session = {
     } else {
       Session.Navigate({ pathname: "/" });
     }
+  },
+  /**
+   * GoBack, but only while still on `pathname`. For flows that await something
+   * (an exit animation) before navigating: if the user already went elsewhere
+   * in the meantime, going back would undo *their* navigation instead.
+   */
+  GoBackFrom: (pathname: string) => {
+    if (Spicetify.Platform.History.location?.pathname !== pathname) return;
+    Session.GoBack();
   },
   GetPreviousLocation: () => {
     if (sessionHistory.length > 1) {
@@ -74,20 +87,20 @@ const Session = {
       return Session.SpicyLyrics.ParseVersion($spicyLyricsVersion.get());
     },
     GetLatestVersion: async (): Promise<VersionParsedData> => {
-      const res = await Query([
-        {
-          operation: "ext_version",
-        },
-      ]);
-      const versionJob = res.get("0");
-      if (!versionJob || versionJob.httpStatus !== 200 || versionJob.format !== "text") return undefined;
-      const data = versionJob.data;
-      return Session.SpicyLyrics.ParseVersion(data);
+      const res = await fetch(LATEST_VERSION_URL, {
+        cache: "no-store",
+        signal: AbortSignal.timeout(LATEST_VERSION_TIMEOUT_MS),
+      });
+      if (!res.ok) return undefined;
+      return Session.SpicyLyrics.ParseVersion(await res.text());
     },
     IsOutdated: async (): Promise<boolean> => {
       const latestVersion = await Session.SpicyLyrics.GetLatestVersion();
       const currentVersion = Session.SpicyLyrics.GetCurrentVersion();
-
+      return Session.SpicyLyrics.IsBehind(currentVersion, latestVersion);
+    },
+    /** Pure comparison, for callers that already hold both versions. */
+    IsBehind: (currentVersion: VersionParsedData, latestVersion: VersionParsedData): boolean => {
       if (latestVersion === undefined || currentVersion === undefined) return false;
 
       return (

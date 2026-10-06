@@ -138,27 +138,39 @@
 }
 
 
-/* Take the elapsed time out of normal layout flow to avoid document-wide reflow
- * when the text updates every second. The progress bar is offset manually to
- * preserve spacing.
- */
-body:has(#SpicyLyricsPage):not(:has(
-  [id*="dribbblish"]
-)):not(
-  .sltm__ThemeMatch__textdt
-) {
+
+/* SpicyLyrics_StockPlaybar: held only while the page is open, and only when no
+   theme has already moved the bar or its time labels (see syncStockPlaybarClass).
+   Keep :has() off <body> here: ahead of a descendant selector it made every DOM
+   change in the app restyle most of the document. */
+body.SpicyLyrics_StockPlaybar:not(.sltm__ThemeMatch__textdt) {
   .playback-bar {
     position: relative;
   }
-  .playback-bar > .playback-bar__progress-time-elapsed {
+  .playback-bar > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"]) {
     height: 100%;
     position: absolute;
   }
+  /* 1.3.x hashes the wrapper's class; it still follows the position label.
+     Only where nothing inside it is .playback-progressbar either: builds that
+     still have that class get the bar padding below, and both together pushed
+     the progress bar in twice (1.2.93: 116px instead of 58px). */
   .playback-bar > .playback-progressbar-container,
-  .playback-bar > :has(.playback-progressbar) {
+  .playback-bar:not(:has(.playback-progressbar)) > [data-testid="playback-position"] + div {
     margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
   }
+  /* Builds whose progress wrapper lacks that class: pad the bar instead of
+     targeting the wrapper. A selector ending in a bare :has() under this
+     body:has() gate made Blink restyle the whole document on every DOM change. */
+  .playback-bar:has(> :not(.playback-progressbar-container) .playback-progressbar) {
+    padding-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
+  }
+  .playback-bar:has(> :not(.playback-progressbar-container) .playback-progressbar)
+    > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"]) {
+    left: 0;
+  }
 }
+
 
 @property --sl_rsb-wrapperFade {
   syntax: '<percentage>';
@@ -166,26 +178,16 @@ body:has(#SpicyLyricsPage):not(:has(
   initial-value: 0%;
 }
 
-body:has(aside.spicy-dynamic-bg-in-this) {
+/* Mirrors aside.spicy-dynamic-bg-in-this (toggled together in app.tsx). Was
+   body:has(aside.spicy-dynamic-bg-in-this); `html` keeps the same specificity. */
+html body.SpicyLyrics_NPVDynamicBackground {
   /* npv buttons */
   .yiRHu4qsmlXpKcnFQsm2:hover,
   .main-nowPlayingView-headerButton:hover,
-
-  /* switch to video button */
-  :is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) button,
-  :is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) .fetnShpUoCol51CFSqwn > div,
-
-  .search-searchCategory-carouselButton,
-  .main-nowPlayingView-section a time:has(p),
-  /* npv topbar */
-  :is(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo),
-  .NowPlayingView > div :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) {
-    background-color: transparent !important;
-    backdrop-filter: blur(6px) !important;
-  }
+  .NowPlayingView .main-nowPlayingView-headerWrapper > span > div > button:hover,
 
   /* npv topbar */
-  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu) {
+  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5, .Md4BJN3odqZUJlsWlwlo)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .reoKRnUF1d0YUCkSGwV2, ._WXoQxsGVuSUBWYEu1bY) {
     transition: backdrop-filter .5s ease;
     -webkit-box-shadow: none !important;
     box-shadow: none !important;
@@ -193,7 +195,32 @@ body:has(aside.spicy-dynamic-bg-in-this) {
     isolation: isolate;
   }
 
-  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo)::before {
+  /* switch to video button */
+  .search-searchCategory-carouselButton,
+  .main-nowPlayingView-section a time:has(p),
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard) a time:has(p),
+  /* npv topbar */
+  :is(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo),
+  .NowPlayingView > div :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) {
+    background-color: transparent !important;
+    backdrop-filter: blur(6px) !important;
+  }
+
+  :is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) button,
+  :is(.main-nowPlayingView-actionButtonContainer, .fetnShpUoCol51CFSqwn) .fetnShpUoCol51CFSqwn > div,
+  /* "Switch to video": the container keeps Encore's unhashed media-set class on 1.3.x */
+  [data-testid="NPV_Panel_OpenDiv"] .encore-over-media-set > button,
+  ._uLgxi8fZ9VwTaKwJAkL.hKxJslHNZklIP_ONgdL5,
+  .main-nowPlayingView-headerButtonWrapper > button:hover {
+    background-color: rgba(255, 255, 255, 0.078) !important;
+    backdrop-filter: blur(6px) !important;
+  }
+
+  .Md4BJN3odqZUJlsWlwlo .reoKRnUF1d0YUCkSGwV2 {
+    background-color: transparent !important;
+  }
+
+  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo):not(.reoKRnUF1d0YUCkSGwV2)::before {
     content: "";
     position: absolute;
    /*  mask-image: linear-gradient(to bottom, black 90%, transparent 100%); */
@@ -207,17 +234,17 @@ body:has(aside.spicy-dynamic-bg-in-this) {
     transition: backdrop-filter .5s ease, margin-bottom .5s ease, padding-bottom .5s ease;
   }
 
-  :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) {
+  :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, ._WXoQxsGVuSUBWYEu1bY) {
     padding-inline: 0px !important;
     margin-bottom: -20px;
     padding-bottom: 16px !important;
   }
 
-  :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) > div {
+  :is(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, ._WXoQxsGVuSUBWYEu1bY) > div {
     padding-inline: 16px;
   }
 
-  .NowPlayingView > div :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua) {
+  .NowPlayingView :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua) {
     --sl_rsb-wrapperFade: 0%;
     top: 0;
     margin-bottom: 0;
@@ -225,18 +252,22 @@ body:has(aside.spicy-dynamic-bg-in-this) {
     transition: top .5s ease, margin-bottom .5s ease, --sl_rsb-wrapperFade .5s ease;
   }
 
-  .NowPlayingView > div:has(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua) {
+  .NowPlayingView > div:has(.pHNOePN5RT09utW9, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK, .Md4BJN3odqZUJlsWlwlo) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua) {
     --sl_rsb-wrapperFade: 20%;
-    --push: 4.2rem;
+    --push: 2rem;
     top: var(--push);
     margin-bottom: var(--push);
   }
 
-  .NowPlayingView > div:has(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua) {
+  .NowPlayingView > div:has(.BEeVmHj340c0PYHe, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .Md4BJN3odqZUJlsWlwlo, ._WXoQxsGVuSUBWYEu1bY) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua) {
     --sl_rsb-wrapperFade: 10%;
   }
 }
 
-.NowPlayingView:not(:hover):not(:has(:focus-visible)) .main-nowPlayingView-headerCloseButton {
+/* 1.3.x drops the close button's class. Its fallback uses :focus-within: under
+   :has() the bare `button` made Blink restyle every button in the app on any
+   DOM change. */
+.NowPlayingView:not(:hover):not(:has(:focus-visible)) .main-nowPlayingView-headerCloseButton,
+.NowPlayingView:not(:hover):not(:focus-within) .main-nowPlayingView-headerWrapper > button:first-child {
   transform: translate(-200%) !important;
 }

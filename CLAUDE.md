@@ -54,3 +54,6 @@ Read it once at build time and set `rebuildsNowBar: true` so the fullscreen over
 **Rules:** `id` is permanent once shipped (it is the storage key). Both states must work — "off" restores the previous behaviour in full, not an approximation. `default: true` for a change you intend to become the norm; `false` for genuinely unfinished work.
 
 `src/utils/experiments.ts` has the full contract in its header comment. `newProgressBarStyling` (the glass progress/volume bars) is the reference implementation — a pure `pageClass` switch, with both skins living side by side in `ContentBox.css`.
+
+## Testing changes in development
+Check if 127.0.0.1 port 8088 is running Spotify's chromium debugger. If it is, use that for testing changed features. You should do this automatically, don't ask for the user to do so unless they explicitly opted out in their message.

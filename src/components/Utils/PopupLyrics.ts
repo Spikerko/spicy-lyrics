@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import Session from "../Global/Session.ts";
-import PageView from "../Pages/PageView.ts";
+import PageView, { PageContainer } from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
 import { NPVCardOwnsPage, DeRenderNPVCard, RequestNPVCardEvaluate } from "./NPVLyrics.ts";
 
@@ -13,6 +13,32 @@ export let IsPIPOpening = false;
 
 let currentPipWindow = null;
 let pipPageHideHandler: ((event: Event) => void) | null = null;
+
+// Smallest popup viewport the layout is built for: the NowBar (artwork +
+// metadata) plus room for a couple of lyric lines below it. Document PiP has no
+// min-size option, so the window is snapped back up instead.
+const PIP_MIN_WIDTH = 260;
+const PIP_MIN_HEIGHT = 180;
+// Snap once the user lets go — resizing mid-drag fights the OS resize loop.
+const PIP_MIN_SIZE_SETTLE_MS = 200;
+let pipMinSizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const EnforcePipMinSize = (pipWindow: Window) => {
+  if (pipWindow.closed) return;
+  const missingWidth = Math.max(0, PIP_MIN_WIDTH - pipWindow.innerWidth);
+  const missingHeight = Math.max(0, PIP_MIN_HEIGHT - pipWindow.innerHeight);
+  if (!missingWidth && !missingHeight) return;
+  // resizeTo takes the outer size; grow it by exactly what the viewport lacks.
+  pipWindow.resizeTo(pipWindow.outerWidth + missingWidth, pipWindow.outerHeight + missingHeight);
+};
+
+const pipResizeHandler = () => {
+  if (pipMinSizeTimer) clearTimeout(pipMinSizeTimer);
+  pipMinSizeTimer = setTimeout(() => {
+    pipMinSizeTimer = null;
+    if (currentPipWindow) EnforcePipMinSize(currentPipWindow);
+  }, PIP_MIN_SIZE_SETTLE_MS);
+};
 
 export const OpenPopupLyrics = async () => {
   IsPIPOpening = true;
@@ -32,14 +58,10 @@ const OpenPopupLyricsFlow = async () => {
   if (NPVCardOwnsPage()) await DeRenderNPVCard();
 
   if (PageView.IsOpened && !IsPIP) {
-    if (Fullscreen.IsOpen) {
-      // If in any fullscreen mode, close it first
-      await Fullscreen.Close();
-      Session.GoBack();
-    } else {
-      await PageView.Destroy();
-      Session.GoBack();
-    }
+    // Destroy leaves fullscreen itself and is synchronous, so the page is
+    // guaranteed closed before we recurse — whether or not GoBack applies.
+    await PageView.Destroy();
+    Session.GoBackFrom("/SpicyLyrics");
 
     await OpenPopupLyricsFlow();
     return;
@@ -149,13 +171,29 @@ const OpenPopupLyricsFlow = async () => {
 
   currentPipWindow.document.head.appendChild(additionalStylingElement);
 
+  // The awaits above (requestWindow, the style fetch) leave room for the main
+  // page to open, or for the user to close the still-empty window. Either way
+  // PiP can no longer take the page over; bail and drop the window.
+  if (PageView.IsOpened || currentPipWindow.closed) {
+    if (!currentPipWindow.closed) currentPipWindow.close();
+    currentPipWindow = null;
+    return;
+  }
+
   currentPipWindow.document.body.innerHTML = `<div class="app-drag-region"></div><div class="spicy-pip-wrapper"></div>`;
 
   const pipWrapper = currentPipWindow.document.body.querySelector(".spicy-pip-wrapper") as HTMLElement;
 
   IsPIP = true;
 
-  PageView.Open(pipWrapper);
+  await PageView.Open(pipWrapper);
+  if (!PageView.IsOpened || !pipWrapper.contains(PageContainer)) {
+    // The open was refused or raced; don't leave a blank window claiming PiP.
+    IsPIP = false;
+    currentPipWindow.close();
+    currentPipWindow = null;
+    return;
+  }
 
   Fullscreen.Open(true, false);
 
@@ -165,6 +203,11 @@ const OpenPopupLyricsFlow = async () => {
   };
 
   currentPipWindow.addEventListener("pagehide", pipPageHideHandler);
+
+  // Chrome reopens the popup at the last size the user dragged it to, which may
+  // be below the minimum.
+  EnforcePipMinSize(currentPipWindow);
+  currentPipWindow.addEventListener("resize", pipResizeHandler);
 
   _IsPIP_after = true;
 };
@@ -180,6 +223,11 @@ export const ClosePopupLyrics = async () => {
   if (pipPageHideHandler) {
     currentPipWindow.removeEventListener("pagehide", pipPageHideHandler);
     pipPageHideHandler = null;
+  }
+  currentPipWindow.removeEventListener("resize", pipResizeHandler);
+  if (pipMinSizeTimer) {
+    clearTimeout(pipMinSizeTimer);
+    pipMinSizeTimer = null;
   }
 
   currentPipWindow.close()

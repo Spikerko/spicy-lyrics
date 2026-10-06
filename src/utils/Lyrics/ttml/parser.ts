@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import Logger from '../../Logger.ts';
+import { HasLyricsText, HasRenderableText } from '../EmptyLines.ts';
 
 const ttmlLogger = new Logger("TTML Parser");
 
@@ -347,6 +348,54 @@ const createAdjacencyScanner = (xml: string): AdjacencyScanner => {
   };
 };
 
+/**
+ * The lead text of each `<text for="...">` transliteration entry, keyed by
+ * `for`, read from the raw XML.
+ *
+ * The parsed tree can't give this: fast-xml-parser merges an element's text
+ * nodes into one `#text`, so the spaces *between* per-word spans are lost
+ * (joining the spans gave "konnichiwasekai"), and an entry holding plain text
+ * with no spans at all is dropped. Text inside an `x-bg` wrapper is the
+ * background vocal's and is left out.
+ */
+function extractTransliterationLineTexts(xml: string): Map<string, string> {
+  const texts = new Map<string, string>();
+  const bodyIndex = xml.indexOf('<body');
+  const head = bodyIndex === -1 ? xml : xml.slice(0, bodyIndex);
+
+  const entryPattern = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
+  const forPattern = /\bfor\s*=\s*(["'])(.*?)\1/;
+  const bgPattern = /\bttm:role\s*=\s*(["'])x-bg\1/;
+  const tokenPattern = /<(\/?)span\b([^>]*?)(\/?)>|<[^>]*>|[^<]+/g;
+
+  for (const entry of head.matchAll(entryPattern)) {
+    const key = entry[1].match(forPattern)?.[2];
+    if (!key) continue;
+
+    let text = '';
+    // One flag per open span: whether it (or an ancestor) is an x-bg wrapper.
+    const bgStack: boolean[] = [];
+    for (const token of entry[2].matchAll(tokenPattern)) {
+      const raw = token[0];
+      const inBg = bgStack.length > 0 && bgStack[bgStack.length - 1];
+      if (!raw.startsWith('<')) {
+        if (!inBg) text += raw;
+      } else if (token[1] === '/') {
+        bgStack.pop();
+      } else if (raw.startsWith('<span') && token[3] !== '/') {
+        bgStack.push(inBg || bgPattern.test(token[2] ?? ''));
+      }
+    }
+
+    const normalized = decodeXmlEntities(text).replace(/\s+/g, ' ').trim();
+    if (normalized === '') continue;
+    const existing = texts.get(key);
+    texts.set(key, existing ? `${existing} ${normalized}` : normalized);
+  }
+
+  return texts;
+}
+
 /** Divs, tolerating documents that hang <p> straight off <body>. */
 const getDivs = (ttml: TtmlDocument): TtmlDiv[] => {
   const body = ttml?.tt?.body;
@@ -511,15 +560,22 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
         divp.forEach((p) => {
           if (p == null) return;
           const text = getLineText(p) ?? "";
-          const line: ParsedStaticLine = {
-            Text: text.trim(),
-          };
 
           // Static never carries iTunesMetadata transliterations; only inline
           // x-roman / x-translation spans apply, placed at line level.
           const roles = getInlineRoleTexts(p);
-          if (roles.roman !== undefined && roles.roman.trim() !== "") {
-            line.TransliteratedText = roles.roman.trim();
+          const roman = roles.roman?.trim() ?? "";
+
+          // getLineText skips role spans, so a <p> holding nothing but x-roman
+          // reads as empty here — keep it, the romanized view can show it.
+          if (!HasLyricsText(text) && !HasLyricsText(roman)) return;
+
+          const line: ParsedStaticLine = {
+            Text: text.trim(),
+          };
+
+          if (roman !== "") {
+            line.TransliteratedText = roman;
             line.HasTransliterations = true;
           }
           if (roles.translation !== undefined && roles.translation.trim() !== "") {
@@ -536,6 +592,7 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
 
     case 'Line': {
       ttmlLogger.debug('Processing line-synced lyrics');
+      const transliterationLineTexts = extractTransliterationLineTexts(ttmlInput);
 
       const buildLine = (p: TtmlPNode): ParsedLineVocal => {
         const pSpans = p != null && typeof p === 'object' && p.span ? toArray(p.span) : [];
@@ -554,9 +611,14 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
         const roles = getInlineRoleTexts(p);
         const lineKey = p && typeof p === 'object' ? p['itunes:key'] : undefined;
         const itmTranslit = lineKey ? Transliterations?.get(lineKey)?.spans : undefined;
+        const rawTranslit = lineKey ? transliterationLineTexts.get(lineKey) : undefined;
 
         let translit: string | undefined;
-        if (itmTranslit && itmTranslit.length > 0) {
+        if (rawTranslit !== undefined && rawTranslit !== '') {
+          // Read from the raw XML: keeps the spaces between spans, and covers
+          // plain-text entries that have no spans at all.
+          translit = rawTranslit;
+        } else if (itmTranslit && itmTranslit.length > 0) {
           translit = itmTranslit.map((s) => s.text).join('');
         } else if (roles.roman !== undefined) {
           translit = roles.roman;
@@ -581,9 +643,9 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
       };
 
       const timedDivs = divs.filter((div) => div["itunes:songPart"] !== "Instrumental");
-      lineLyrics.Content = timedDivs.flatMap((div) =>
-        toArray(div.p).filter((p) => p != null).map(buildLine),
-      );
+      lineLyrics.Content = timedDivs
+        .flatMap((div) => toArray(div.p).filter((p) => p != null).map(buildLine))
+        .filter((line) => HasRenderableText(line));
 
       const firstDiv = timedDivs[0] ?? divs[0];
       const lastDiv = timedDivs[timedDivs.length - 1] ?? divs[divs.length - 1];
@@ -642,13 +704,19 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
             scanner,
           });
 
+          const leadRoles = getInlineRoleTexts(p);
+          const leadRoman = leadRoles.roman?.trim() ?? '';
+
           // A word-timed document can still contain a line-timed <p> with no
           // syllable spans — keep its text instead of emitting a blank line.
+          // The romanization stands in when there is no source text at all,
+          // since only syllables are ever rendered.
           if (vocal.Lead.Syllables.length === 0) {
             const fallbackText = (getLineText(p) ?? '').trim();
-            if (fallbackText !== '') {
+            if (fallbackText !== '' || leadRoman !== '') {
               vocal.Lead.Syllables.push({
                 Text: fallbackText,
+                ...(leadRoman !== '' ? { TransliteratedText: leadRoman } : {}),
                 IsPartOfWord: false,
                 StartTime: convertTimeToSeconds(p.begin),
                 EndTime: convertTimeToSeconds(p.end),
@@ -661,9 +729,8 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
           if (vocal.Lead.StartTime === undefined) vocal.Lead.StartTime = firstSyllable?.StartTime;
           if (vocal.Lead.EndTime === undefined) vocal.Lead.EndTime = lastSyllable?.EndTime;
 
-          const leadRoles = getInlineRoleTexts(p);
-          if (leadRoles.roman !== undefined && leadRoles.roman.trim() !== '') {
-            vocal.Lead.TransliteratedText = leadRoles.roman.trim();
+          if (leadRoman !== '') {
+            vocal.Lead.TransliteratedText = leadRoman;
           }
           if (leadRoles.translation !== undefined && leadRoles.translation.trim() !== '') {
             vocal.Lead.TranslatedText = leadRoles.translation.trim();
@@ -727,11 +794,7 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
                 bgVocal.HasTransliterations = true;
               }
 
-              if (
-                bgVocal.Syllables.length === 0 &&
-                bgVocal.TransliteratedText === undefined &&
-                bgVocal.TranslatedText === undefined
-              ) {
+              if (!bgVocal.Syllables.some((syllable) => HasRenderableText(syllable))) {
                 return;
               }
 
@@ -758,10 +821,10 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
           }
 
           const isEmpty =
-            vocal.Lead.Syllables.length === 0 &&
-            (vocal.Background === undefined || vocal.Background.length === 0) &&
-            vocal.Lead.TransliteratedText === undefined &&
-            vocal.Lead.TranslatedText === undefined;
+            !vocal.Lead.Syllables.some((syllable) => HasRenderableText(syllable)) &&
+            !(vocal.Background ?? []).some((background) =>
+              background.Syllables.some((syllable) => HasRenderableText(syllable)),
+            );
 
           if (isEmpty) {
             skippedEmptyLines++;

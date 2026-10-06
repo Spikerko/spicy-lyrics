@@ -45,9 +45,15 @@
 
 .spicy-pip-wrapper #SpicyLyricsPage .ContentBox {
   --default-font-size: clamp(0.4rem, calc(1cqw * 3), 1.5rem);
-  /* Floor the NowBar height so very short popup windows still fit the
-     artwork + controls; grows naturally for taller windows. */
-  --Compact_NowBarHeight: max(54px, 15cqh);
+  /* The popup's layout is driven by both window dimensions, so these use
+     vw/vh: the popup document's viewport is the window, and unlike cq units
+     they resolve the same no matter which container the var is read in.
+     Floor the NowBar height so very short popups still fit the artwork +
+     metadata; it grows with height but is capped by width (tall, narrow
+     popups) and absolutely (tall popups), so the artwork doesn't balloon. */
+  --Compact_NowBarHeight: clamp(54px, min(15vh, 22vw), 96px);
+  /* Gap above the NowBar, and below the hover-expanded artwork. */
+  --PiP_EdgeInset: clamp(12px, 6vh, 32px);
 }
 
 #SpicyLyricsPage {
@@ -71,12 +77,14 @@
   padding-right: var(--LyricsRightSidePadding) !important;
 }
 
-#SpicyLyricsPage:not(.SpicyRenderer):has(.NowBar.Active)
+/* NowBarStatus__Open / NowBarSide__* mirror the NowBar's .Active / .RightSide
+   (NowBar.ts toggles them together). Use them rather than :has(.NowBar.Active):
+   with `.Active` inside a :has(), every lyric line turning active made Blink
+   re-check the page's ancestors, up to <html>. */
+#SpicyLyricsPage:not(.SpicyRenderer).NowBarStatus__Open
   .LyricsContainer
   .LyricsContent,
-#SpicyLyricsPage:not(.SpicyRenderer):not(.Fullscreen):has(
-    .NowBar.Active
-  )
+#SpicyLyricsPage:not(.SpicyRenderer):not(.Fullscreen).NowBarStatus__Open
   .LyricsContainer
   .LyricsContent {
   padding-left: calc(var(--LyricsLeftSidePadding) - 2.5cqw) !important;
@@ -92,14 +100,12 @@
   padding-left: calc(var(--LyricsRightSidePadding) * 1.45 - 2.5cqw) !important;
 }
 
-#SpicyLyricsPage:not(.CompactMode):has(.NowBar.Active) {
+#SpicyLyricsPage:not(.CompactMode).NowBarStatus__Open {
   --LyricsLeftSidePadding: calc(50cqw - var(--NowBarRightSpacing) * 0.3);
   --LyricsRightSidePadding: calc(var(--NowBarLeftSpacing) * 0.35);
 }
 
-#SpicyLyricsPage:not(.Fullscreen):not(.CompactMode):has(
-    .NowBar.Active
-  ) {
+#SpicyLyricsPage:not(.Fullscreen):not(.CompactMode).NowBarStatus__Open {
   --NowBarLeftSpacing: calc(
     calc(50cqw - var(--NowBarWidth) - var(--NowBarRightSpacing)) * 0.7
   );
@@ -108,8 +114,8 @@
   );
 }
 
-#SpicyLyricsPage.CompactMode:has(.NowBar.Active),
-#SpicyLyricsPage.ForcedCompactMode:has(.NowBar.Active) {
+#SpicyLyricsPage.CompactMode.NowBarStatus__Open,
+#SpicyLyricsPage.ForcedCompactMode.NowBarStatus__Open {
   --NowBarLeftSpacing: 0px !important;
 }
 
@@ -445,7 +451,7 @@
     order: 3;
 } */
 
-#SpicyLyricsPage:has(.ContentBox .NowBar.Active.RightSide)
+#SpicyLyricsPage.NowBarStatus__Open.NowBarSide__Right
   .ScrollbarScrollable
   .simplebar-track.simplebar-vertical {
   left: 5px;
@@ -1369,7 +1375,14 @@
   .NowBar.Active:is(.RightSide)
   + .LyricsContainer
   .LyricsContent
-  .LyricsNotice {
+  .LyricsNotice,
+/* The loading skeleton mirrors the lines' padding (LyricsSkeleton.css). */
+#SpicyLyricsPage
+  .ContentBox
+  .NowBar.Active:is(.RightSide)
+  + .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
   padding-right: var(--LyricsLeftSidePadding) !important;
   padding-left: calc(var(--LyricsRightSidePadding) * 1.45) !important;
 }
@@ -1453,9 +1466,9 @@
   margin-right: 0px !important;
 }
 
-/* In PIP, cap the (square) MediaBox by NowBar width too — otherwise on tall,
-   narrow popups the height-driven MediaBox overflows horizontally when the
-   NowBar expands on hover. */
+/* In PIP, cap the (square) MediaBox by the width left between the side
+   paddings too — otherwise on tall, narrow popups the height-driven MediaBox
+   overflows horizontally when the NowBar expands on hover. */
 .spicy-pip-wrapper
   #SpicyLyricsPage.CompactMode
   .ContentBox
@@ -1468,7 +1481,27 @@
   .NowBar
   .CenteredView
   .Header {
-  --MediaBoxSize: min(100cqh, 90cqw);
+  --MediaBoxSize: min(
+    100cqh,
+    100vw - var(--LyricsLeftSidePadding) - var(--LyricsRightSidePadding)
+  );
+}
+
+.spicy-pip-wrapper
+  #SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .NowBar {
+  margin-top: var(--PiP_EdgeInset);
+}
+
+/* Start the lyrics where the NowBar actually ends. A fixed fraction of the
+   height drifts away from it as soon as the NowBar hits its floor or cap, which
+   slid the lyrics under the header on short popups. */
+.spicy-pip-wrapper
+  #SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .LyricsContainer {
+  margin-top: calc(var(--PiP_EdgeInset) + var(--Compact_NowBarHeight));
 }
 
 #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .MediaBox,
@@ -1620,7 +1653,11 @@
   .LyricsContainer
   .LyricsContent
   .simplebar-content-wrapper
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode)
+  .LyricsContainer
+  .LyricsSkeleton
+  .SkeletonLines {
   padding-top: 5cqh !important;
 }
 
@@ -1692,7 +1729,7 @@
   #SpicyLyricsPage.SpicyRenderer:has(.MediaBox:hover)
   .ContentBox
   .LyricsContainer {
-  margin-top: 21cqh !important;
+  margin-top: calc(var(--PiP_EdgeInset) + var(--Compact_NowBarHeight)) !important;
   opacity: 0 !important;
 }
 
@@ -1860,6 +1897,13 @@
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart {
+  transition: opacity 0.95s;
+}
+
+/* The scale lives on the icon, not on .Heart: .Heart is the hover target, and
+   shrinking it pulled its edge out from under a pointer resting near the edge,
+   which ended the hover, sprang it back under the pointer and looped. */
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart svg {
   transition: scale 0.85s
       linear(
         0,
@@ -1885,8 +1929,7 @@
         0.997 60.4%,
         1.01 66.8%,
         1
-      ),
-    opacity 0.95s
+      );
 }
 
 #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart {
@@ -1894,15 +1937,15 @@
   --press-scale-padding: 0.245;
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart:hover {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart:hover svg {
   scale: calc(1 - var(--hover-scale-padding));
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.press02 {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.press02 svg {
   scale: calc(1 + var(--press-scale-padding)) !important;
 }
 
-#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.reverse_press02 {
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart.reverse_press02 svg {
   scale: calc(1 - var(--press-scale-padding)) !important;
 }
 
@@ -2001,13 +2044,12 @@
   #SpicyLyricsPage
   .ContentBox
   .NowBar:has(.CenteredView .Header .MediaBox:hover) {
-  /* Hover-expanded NowBar should grow with popup height, but never exceed
-     popup height and never exceed what the (square) MediaBox can render
-     (capped by popup width on tall, narrow popups). */
+  /* The hover-expanded NowBar is exactly the (square) MediaBox: as tall as the
+     popup allows below its top inset, and no taller than the width between the
+     side paddings, so it never runs off the bottom or right edge. */
   height: min(
-    95cqh,
-    calc(var(--Compact_NowBarHeight) + 73.5cqh),
-    calc(var(--Compact_NowBarHeight) + 90cqw)
+    100vh - 2 * var(--PiP_EdgeInset),
+    100vw - var(--LyricsLeftSidePadding) - var(--LyricsRightSidePadding)
   ) !important;
 }
 
@@ -2032,7 +2074,8 @@
   .LyricsContainer
   .LyricsContent
   .simplebar-content-wrapper
-  .SpicyLyricsScrollContainer {
+  .SpicyLyricsScrollContainer,
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsSkeleton .SkeletonLines {
   padding-top: 14.5cqh !important;
 }
 

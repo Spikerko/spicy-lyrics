@@ -4,6 +4,8 @@
 * @return {Object} - Lyrics in Static format
 */
 
+import { HasLyricsText, RemoveEmptyLyricsLines } from "./EmptyLines.ts";
+
 // --- Types ---
 export type Syllable = {
   Text: string;
@@ -87,7 +89,7 @@ export function convertToStaticLyrics(lyrics: AnyLyrics): StaticLyrics {
       staticLyrics.Lines = convertLineToStatic(input as LineLyrics);
       break;
     case "Static":
-      staticLyrics.Lines = (input as StaticLyrics).Lines ?? [];
+      staticLyrics.Lines = RemoveEmptyLyricsLines((input as StaticLyrics).Lines);
       break;
     default:
       throw new Error("Unsupported lyrics format");
@@ -185,7 +187,7 @@ export function convertToLineLyrics(lyrics: AnyLyrics): LineLyrics {
       lineLyrics.Content = convertSyllableToLine(input as SyllableLyrics);
       break;
     case "Line":
-      lineLyrics.Content = input.Content ?? [];
+      lineLyrics.Content = RemoveEmptyLyricsLines(input.Content);
       break;
     default:
       throw new Error("Unsupported lyrics format");
@@ -269,7 +271,7 @@ function convertLineToStatic(lineLyrics: LineLyrics): StaticLine[] {
   // Process each content item
   if (lineLyrics.Content && Array.isArray(lineLyrics.Content)) {
     lineLyrics.Content.forEach((content) => {
-      if (content.Type === "Vocal" && content.Text) {
+      if (content.Type === "Vocal" && HasLyricsText(content.Text)) {
         lines.push({ Text: content.Text });
       }
     });

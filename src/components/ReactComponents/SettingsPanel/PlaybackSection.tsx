@@ -1,7 +1,7 @@
 import { useStore } from "@nanostores/react";
 import React from "react";
-import { $playbackOffset } from "../../../utils/stores.ts";
-import { matches, Row, SectionTitle, Slider } from "./components.tsx";
+import { $playbackOffset, $seekFadeCompensation } from "../../../utils/stores.ts";
+import { matches, Row, SectionTitle, Slider, Toggle } from "./components.tsx";
 
 const SECTION_NAME = "Playback";
 
@@ -12,6 +12,7 @@ interface Props {
 
 export default function PlaybackSection({ query, sectionFilter }: Props) {
   const playbackOffset = useStore($playbackOffset);
+  const seekFadeCompensation = useStore($seekFadeCompensation);
 
   if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
 
@@ -20,8 +21,13 @@ export default function PlaybackSection({ query, sectionFilter }: Props) {
     "Playback Offset",
     "Shift lyrics timing earlier or later, in milliseconds."
   );
+  const r2 = matches(
+    query,
+    "Seek Fade-in Compensation",
+    "Clicking a line jumps 300ms before it, so Spotify's fade-in doesn't cut off the start."
+  );
 
-  if (!r1) return null;
+  if (!r1 && !r2) return null;
 
   return (
     <>
@@ -41,6 +47,18 @@ export default function PlaybackSection({ query, sectionFilter }: Props) {
             defaultValue={0}
             unit="ms"
             onChange={(v) => $playbackOffset.set(v)}
+          />
+        </Row>
+      )}
+
+      {r2 && (
+        <Row
+          label="Seek Fade-in Compensation"
+          description="Clicking a line jumps 300ms before it, so Spotify's fade-in doesn't cut off the start. Best for rap or fast-paced songs."
+        >
+          <Toggle
+            checked={seekFadeCompensation}
+            onChange={(v) => $seekFadeCompensation.set(v)}
           />
         </Row>
       )}

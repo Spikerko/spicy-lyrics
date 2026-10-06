@@ -1,0 +1,257 @@
+/* The update dialogs share the loader popup's look (builds/main/entrypoint.mjs), so both
+   read as one product: lavender band ramp, cropped brand mark, light ink. */
+.sl-notice-overlay {
+  --sl-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0);
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
+  font-family: var(--encore-body-font-stack, var(--fallback-fonts, sans-serif));
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 0.22s var(--sl-ease),
+    -webkit-backdrop-filter 0.22s var(--sl-ease),
+    backdrop-filter 0.22s var(--sl-ease);
+}
+
+.sl-notice-overlay.is-open {
+  background-color: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.sl-notice-overlay.is-closing,
+.sl-notice-overlay.is-closing .sl-notice {
+  transition-duration: 0.16s;
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+.sl-notice-overlay.is-closing {
+  pointer-events: none;
+}
+
+.sl-notice,
+[data-sonner-toaster] {
+  --sl-field: oklch(0.3 0.095 297);
+  --sl-field-deep: oklch(0.235 0.08 297);
+  --sl-tint: oklch(0.435 0.105 297);
+  --sl-ink: oklch(0.87 0.08 297);
+  --sl-ink-muted: oklch(0.775 0.058 297);
+  --sl-cta: oklch(0.955 0.022 297);
+  --sl-cta-ink: oklch(0.25 0.09 297);
+}
+
+.sl-notice {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  width: min(30rem, 100%);
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid color-mix(in oklab, var(--sl-ink) 16%, transparent);
+  border-radius: 16px;
+  outline: none;
+  background-color: var(--sl-field);
+  background-image: linear-gradient(165deg, var(--sl-field) 0%, var(--sl-field-deep) 100%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--sl-ink) 22%, transparent),
+    0 20px 48px -20px rgba(0, 0, 0, 0.55);
+  color: var(--sl-ink);
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 0.22s var(--sl-ease),
+    transform 0.22s var(--sl-ease);
+}
+
+.sl-notice-overlay.is-open .sl-notice {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sl-notice > :not(.sl-notice-mark) {
+  transition:
+    opacity 0.36s var(--sl-ease),
+    transform 0.46s var(--sl-ease);
+  transition-delay: calc(60ms + var(--sl-i, 0) * 35ms);
+}
+
+.sl-notice-overlay:not(.is-open):not(.is-closing) .sl-notice > :not(.sl-notice-mark) {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.sl-notice-mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sl-notice-mark > svg {
+  position: absolute;
+  top: -26%;
+  right: -20%;
+  width: 72%;
+  color: var(--sl-tint);
+  opacity: 0.55;
+  transform: rotate(-24deg);
+  transition: transform 0.7s var(--sl-ease);
+}
+
+.sl-notice-overlay.is-open .sl-notice-mark > svg {
+  transform: rotate(-14deg);
+}
+
+.sl-notice-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.sl-notice .sl-notice-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sl-ink-muted);
+}
+
+.sl-notice-brand > svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sl-notice .sl-notice-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--sl-ink);
+  overflow-wrap: anywhere;
+}
+
+.sl-notice .sl-notice-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--sl-ink-muted);
+}
+
+.sl-notice .sl-notice-text--quiet {
+  font-size: 0.82rem;
+}
+
+.sl-notice-version {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--sl-ink);
+}
+
+.sl-notice a.sl-notice-link {
+  color: var(--sl-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--sl-ink) 45%, transparent);
+  text-underline-offset: 2px;
+  border-radius: 2px;
+}
+
+.sl-notice a.sl-notice-link:hover {
+  color: var(--sl-ink);
+  text-decoration-color: currentColor;
+}
+
+.sl-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sl-notice-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  white-space: nowrap;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background-color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.12s ease;
+}
+
+.sl-notice-button:active {
+  transform: scale(0.97);
+}
+
+.sl-notice-button--primary {
+  background-color: var(--sl-cta);
+  color: var(--sl-cta-ink);
+}
+
+.sl-notice-button--primary:hover {
+  background-color: #fff;
+}
+
+.sl-notice-button--quiet {
+  padding: 0 16px;
+  background-color: transparent;
+  color: var(--sl-ink-muted);
+}
+
+.sl-notice-button--quiet:hover {
+  background-color: color-mix(in oklab, var(--sl-ink) 12%, transparent);
+  color: var(--sl-ink);
+}
+
+.sl-notice-button:focus-visible,
+.sl-notice a.sl-notice-link:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--sl-ink) 70%, transparent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sl-notice-overlay,
+  .sl-notice,
+  .sl-notice > *,
+  .sl-notice-mark > svg {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+
+  .sl-notice,
+  .sl-notice > :not(.sl-notice-mark) {
+    transform: none !important;
+  }
+}

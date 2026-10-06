@@ -8,12 +8,14 @@ import Footer from "./Footer.tsx";
 import InterfaceSection from "./InterfaceSection.tsx";
 import LyricsSection from "./LyricsSection.tsx";
 import PlaybackSection from "./PlaybackSection.tsx";
+import ScrollingSection from "./ScrollingSection.tsx";
 import { FilterDropdown, SearchBar } from "./components.tsx";
 
 const SECTIONS = [
   "Background",
   "Lyrics Display",
   "Playback",
+  "Scrolling",
   "Appearance",
   "Interface",
   "Experiments",
@@ -35,6 +37,7 @@ export default function SettingsPanel({ onOpenExperiments }: { onOpenExperiments
       <BackgroundSection query={query} sectionFilter={sectionFilter} />
       <LyricsSection query={query} sectionFilter={sectionFilter} />
       <PlaybackSection query={query} sectionFilter={sectionFilter} />
+      <ScrollingSection query={query} sectionFilter={sectionFilter} />
       <AppearanceSection query={query} sectionFilter={sectionFilter} />
       <InterfaceSection query={query} sectionFilter={sectionFilter} />
       <ExperimentsSection

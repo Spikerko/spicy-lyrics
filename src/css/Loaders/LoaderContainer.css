@@ -20,7 +20,8 @@
   z-index: 9;
 }
 
-#SpicyLyricsPage .LyricsContainer .loaderContainer:is(.active) + .LyricsContent {
+/* `~`, not `+`: the skeleton sits between the two. */
+#SpicyLyricsPage .LyricsContainer .loaderContainer:is(.active) ~ .LyricsContent {
   display: none;
 }
 
