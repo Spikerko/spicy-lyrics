@@ -17,6 +17,29 @@
   --BlurAmount: 0px !important;
 }
 
+/* --DefaultLyricsSize is an unregistered var holding cqw, so every element that
+   reads it (each word and letter, through the animator's per-frame
+   translate3d(0, calc(var(--DefaultLyricsSize) * n), 0)) resolves container
+   units on its own. Blink recomputes all such elements whenever Spotify's
+   .Root (an inline-size container) is laid out, i.e. every frame of any NPV
+   layout animation: the canvas expand/compact dropped to ~15fps with the card
+   open. Resolving it once per line as a registered <length> and handing the
+   descendants plain px keeps the value identical (nothing between a line and
+   its words is a container) and leaves only the lines container-dependent. */
+@property --SL-LineLyricsSize {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line {
+  --SL-LineLyricsSize: var(--DefaultLyricsSize);
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line * {
+  --DefaultLyricsSize: var(--SL-LineLyricsSize);
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line {
   --font-size: var(--DefaultLyricsSize);
   display: flex;

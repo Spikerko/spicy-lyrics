@@ -22,17 +22,32 @@
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
+  /* Out of the layout tree once faded out. Hidden but displayed, its
+     container-unit bars were restyled and relaid out on every frame of any
+     Spotify layout animation (the NPV canvas expand/compact lost ~10fps to
+     it). The discrete display transition keeps the fade-out. */
+  display: none;
   transition:
     opacity 0.25s ease-out,
-    visibility 0s linear 0.25s;
+    visibility 0s linear 0.25s,
+    display 0s linear 0.25s allow-discrete;
 }
 
-#SpicyLyricsPage .LyricsContainer .LyricsSkeleton.active {
+/* .Exp_LyricsSkeleton keeps this from beating the experiment-off display: none. */
+#SpicyLyricsPage.Exp_LyricsSkeleton .LyricsContainer .LyricsSkeleton.active {
+  display: block;
   opacity: 1;
   visibility: visible;
   transition:
     opacity 0.2s ease-out,
-    visibility 0s;
+    visibility 0s,
+    display 0s allow-discrete;
+}
+
+@starting-style {
+  #SpicyLyricsPage.Exp_LyricsSkeleton .LyricsContainer .LyricsSkeleton.active {
+    opacity: 0;
+  }
 }
 
 /* Same type scale the lyrics use in the NPV card and the popup, so the bars

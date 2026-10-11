@@ -275,7 +275,15 @@ body:not(.SpicyLyrics_StaticBackground)
   .main-nowPlayingView-section:is(.main-nowPlayingView-aboutArtist, .main-nowPlayingView-aboutArtistV2) :is(.jHqD4CkJSTwpZihD, .main-nowPlayingView-aboutArtistV2TextContent),
 body:not(.SpicyLyrics_StaticBackground)
   .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
-  .aN6RjOsDo5DSOGDMRF2G {
+  .aN6RjOsDo5DSOGDMRF2G,
+body:not(.SpicyLyrics_StaticBackground)
+  .Root__right-sidebar:has(.spicy-dynamic-bg):has(.main-nowPlayingView-section, canvas)
+  .dYRZ9rexJXs7DswS,
+/* About the artist's text block (1.2.98's .jHqD4CkJSTwpZihD): the one div that
+   holds the artist link directly. */
+body:not(.SpicyLyrics_StaticBackground)
+  aside.NowPlayingView.spicy-dynamic-bg-in-this
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard) div:has(> a[href^="/artist/"]) {
     background-color: transparent !important;
 }
 
@@ -287,7 +295,9 @@ body:not(.SpicyLyrics_StaticBackground)
   .main-nowPlayingView-aboutArtist,
 body:not(.SpicyLyrics_StaticBackground)
   aside.NowPlayingView.spicy-dynamic-bg-in-this
-  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard):not(:has(button[type="button"])) {
+  /* Every section but the carousel ("Related music videos"), About the artist
+     included, as the classed rules above do on 1.2.98. */
+  [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard, .dYRZ9rexJXs7DswS):not(:has([data-carousel-item])) {
   background-color: var(--background-tinted-base) !important;
   backdrop-filter: blur(6px);
 }

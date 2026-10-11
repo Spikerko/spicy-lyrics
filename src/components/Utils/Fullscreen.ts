@@ -168,6 +168,35 @@ const Page_MouseOut = () => {
   ControlsMaid.Clean("MouseMoveChecker");
 };
 
+/* Hides Spotify's UI behind the fullscreen page. content-visibility rather than
+   display: none, so everything inside keeps its laid-out size. With display:
+   none the global nav's ResizeObserver saw its width drop to 0, and Spotify
+   collapsed the search bar to an icon. It only re-expands when the window
+   grows, so it stayed collapsed after fullscreen. The contents are still
+   skipped for paint, layout, focus and the accessibility tree. Fixed at the
+   same full-window box takes #main out of the flow like display: none did, so
+   a page that ends up in flow (themes that set position: relative on it)
+   still starts at the top. */
+const HIDDEN_MAIN_STYLES = {
+  "content-visibility": "hidden",
+  position: "fixed",
+  inset: "0",
+} as const;
+
+function hideMainElement(mainElement: HTMLElement) {
+  for (const [property, value] of Object.entries(HIDDEN_MAIN_STYLES)) {
+    mainElement.style.setProperty(property, value);
+  }
+}
+
+function showMainElement() {
+  const mainElement = document.querySelector<HTMLElement>("#main");
+  if (!mainElement) return;
+  for (const property of Object.keys(HIDDEN_MAIN_STYLES)) {
+    mainElement.style.removeProperty(property);
+  }
+}
+
 export const ExitFullscreenElement = async () => {
   if (document.fullscreenElement) {
     await document.exitFullscreen();
@@ -178,7 +207,7 @@ export const ExitFullscreenElement = async () => {
 export const EnterSpicyLyricsFullscreen = async () => {
   const mainElement = document.querySelector<HTMLElement>("#main");
   if (mainElement) {
-    mainElement.style.display = "none";
+    hideMainElement(mainElement);
   }
 
   try {
@@ -240,7 +269,7 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
 
     // Hide the main element
     if (mainElement && moveElement) {
-      mainElement.style.display = "none";
+      hideMainElement(mainElement);
     }
 
     // Safely destroy tooltip if it exists
@@ -406,7 +435,7 @@ function Close(isPip: boolean = false): Promise<boolean> {
     return Promise.resolve(true);
   }
 
-  document.querySelector<HTMLElement>("#main")?.style.removeProperty("display");
+  showMainElement();
 
   // Apply exit animation and block all interaction for its duration
   SpicyPage.classList.add("frame_F_Exit");
@@ -462,7 +491,7 @@ function CloseImmediately() {
     return;
   }
 
-  document.querySelector<HTMLElement>("#main")?.style.removeProperty("display");
+  showMainElement();
   finishClose(SpicyPage, false);
 }
 
