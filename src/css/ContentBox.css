@@ -43,6 +43,15 @@
   transition: opacity 0.34s;
 }
 
+/* The page is absolutely positioned and sizes itself to the popup window, so
+   the wrapper never needed a height. Give it one anyway. Spicy Themes sets
+   #SpicyLyricsPage.CompactMode { position: relative }, and the popup is always
+   compact. In flow, the page's height: 100% resolves against this wrapper, and
+   without a height here the whole popup collapses to 0px. */
+.spicy-pip-wrapper {
+  height: 100%;
+}
+
 .spicy-pip-wrapper #SpicyLyricsPage .ContentBox {
   --default-font-size: clamp(0.4rem, calc(1cqw * 3), 1.5rem);
   /* The popup's layout is driven by both window dimensions, so these use

@@ -65,15 +65,15 @@ div:has(> [data-testid="track-visual-enhancement"] + * img) {
 
 /* The :not() hashes are the cover's collapsed (square) state per Spotify build:
    yiy_EezkGycfPvS3 on 1.2.98, Xb7R370pCgtlIa7FdCEC on 1.3.1, pDnmSSubLQYcPyfsjA7x
-   on 1.3.3. */
+   on 1.3.3, b0n6pOXewnXGFfFfcGCh on 1.3.4. */
 aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC) :is(video, .main-nowPlayingView-canvasVisualEnhancement div:has(> img)),
 .main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC) :is(video),
 /* 1.3.3 leaves the cover container unmapped. The image wrapper is reached
    through the cover's own child rather than a :has() on the container: a
    non-subject :has() ahead of a bare `div` made Blink restyle every div in the
    app on any DOM change. */
-aside div:has(> [data-testid="track-visual-enhancement"]):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x) video,
-aside div:not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x) > [data-testid="track-visual-enhancement"] + * div:has(> img) {
+aside div:has(> [data-testid="track-visual-enhancement"]):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x, .b0n6pOXewnXGFfFfcGCh) video,
+aside div:not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x, .b0n6pOXewnXGFfFfcGCh) > [data-testid="track-visual-enhancement"] + * div:has(> img) {
   --sl_videocanvas_mask-stop: 80% !important;
 }
 
