@@ -66,15 +66,51 @@ const run = (callback: FrameCallback, timestamp: number) => {
   }
 };
 
+const frame = (timestamp: number) => {
+  if (!shouldRender(timestamp)) return;
+  for (const callback of callbacks) run(callback, timestamp);
+  if (pending.size > 0) {
+    // Swap first: callbacks that schedule themselves again land on the next frame.
+    const due = pending;
+    pending = new Map();
+    for (const callback of due.values()) run(callback, timestamp);
+  }
+};
+
+// Popup Lyrics shows the page in a Document PiP window, which paints on its own
+// frame clock. Driven from the main window's frames, about one popup frame in
+// twenty was painted between two updates and showed the scroll standing still.
+// While the popup is open its frames drive the loop; the main window keeps
+// ticking only to notice it closing, since a closed window's frames just stop.
+// Spotify's own Miniplayer is a Document PiP window too, hence the wrapper check.
+const popupWindow = (): Window | null => {
+  const w = (window as { documentPictureInPicture?: { window?: Window | null } })
+    .documentPictureInPicture?.window;
+  return w && !w.closed && w.document.querySelector(".spicy-pip-wrapper") ? w : null;
+};
+
+let drivingPopup: Window | null = null;
+
+const popupLoop = (timestamp: number) => {
+  const popup = popupWindow();
+  if (!popup || popup !== drivingPopup) {
+    drivingPopup = null;
+    return;
+  }
+  // Callers compare against this window's performance.now(); the popup's clock
+  // has its own origin.
+  frame(timestamp + (popup.performance.timeOrigin - performance.timeOrigin));
+  popup.requestAnimationFrame(popupLoop);
+};
+
 const loop = (timestamp: number) => {
-  if (shouldRender(timestamp)) {
-    for (const callback of callbacks) run(callback, timestamp);
-    if (pending.size > 0) {
-      // Swap first: callbacks that schedule themselves again land on the next frame.
-      const due = pending;
-      pending = new Map();
-      for (const callback of due.values()) run(callback, timestamp);
-    }
+  const popup = popupWindow();
+  if (!popup) {
+    drivingPopup = null;
+    frame(timestamp);
+  } else if (drivingPopup !== popup) {
+    drivingPopup = popup;
+    popup.requestAnimationFrame(popupLoop);
   }
   requestAnimationFrame(loop);
 };
