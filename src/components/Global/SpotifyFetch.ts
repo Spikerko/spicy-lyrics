@@ -21,17 +21,21 @@ export const SpotifyFetch = async (url: string, init: RequestInit = {}): Promise
 		});
 	};
 
-	const send = (accessToken: string) =>
-		fetch(url, {
-			...init,
-			headers: {
-				"Accept": "application/json",
-				"Authorization": `Bearer ${accessToken}`,
-				"Spotify-App-Version": Spicetify.Platform.version,
-				"App-Platform": Spicetify.Platform.PlatformData.app_platform,
-				...init.headers,
-			},
-		});
+	const send = (accessToken: string) => {
+		// Normalised through `Headers` so every `HeadersInit` form (object, pair
+		// array, `Headers`) is honoured. The caller's headers win over these.
+		const headers = new Headers(init.headers);
+		const defaults: Record<string, string> = {
+			"Accept": "application/json",
+			"Authorization": `Bearer ${accessToken}`,
+			"Spotify-App-Version": Spicetify.Platform.version,
+			"App-Platform": Spicetify.Platform.PlatformData.app_platform,
+		};
+		for (const [name, value] of Object.entries(defaults)) {
+			if (!headers.has(name)) headers.set(name, value);
+		}
+		return fetch(url, { ...init, headers });
+	};
 
 	const accessToken = await getToken();
 	const res = await send(accessToken);

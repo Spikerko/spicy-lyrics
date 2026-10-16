@@ -147,10 +147,34 @@ function toResponse(token: SpotifyToken | null | undefined): TokenProviderRespon
   };
 }
 
-/** Ask the provider to load the native client's current token. */
-async function tokenFromProvider(provider: SpotifyTokenProvider): Promise<TokenProviderResponse | undefined> {
+const TIMED_OUT = Symbol("timed out");
+
+/** Settle with `TIMED_OUT` if `promise` hasn't settled within `ms`. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Ask the provider to load the native client's current token.
+ *
+ * Bounded on its own (`token.sourceTimeoutMs`): a provider that stops answering
+ * must leave time for the legacy sources and the last-resort token, rather than
+ * running out the whole lookup's deadline.
+ */
+async function tokenFromProvider(
+  provider: SpotifyTokenProvider
+): Promise<TokenProviderResponse | undefined | typeof TIMED_OUT> {
   try {
-    return toResponse(await provider.getToken());
+    const token = await withTimeout(provider.getToken(), getRemoteConfig().token.sourceTimeoutMs);
+    if (token === TIMED_OUT) {
+      console.warn("TokenProvider.getToken() timed out");
+      return TIMED_OUT;
+    }
+    return toResponse(token);
   } catch (error) {
     console.warn("TokenProvider.getToken() failed", error);
     return undefined;
@@ -186,17 +210,15 @@ function renewToken(provider: SpotifyTokenProvider): Promise<TokenProviderRespon
   })();
   // Every GetSpotifyAccessToken caller waits on this, so a native call that
   // never answers (offline, bridge gone) must not hold them forever.
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<undefined>((resolve) => {
-    timer = setTimeout(() => {
+  const pending = withTimeout(renew, getRemoteConfig().token.renewTimeoutMs)
+    .then((result) => {
+      if (result !== TIMED_OUT) return result;
       console.warn("Token renew timed out");
-      resolve(undefined);
-    }, getRemoteConfig().token.renewTimeoutMs);
-  });
-  const pending = Promise.race([renew, timeout]).finally(() => {
-    clearTimeout(timer);
-    if (renewPromise === pending) renewPromise = undefined;
-  });
+      return undefined;
+    })
+    .finally(() => {
+      if (renewPromise === pending) renewPromise = undefined;
+    });
   renewPromise = pending;
   return pending;
 }
@@ -207,8 +229,13 @@ function renewToken(provider: SpotifyTokenProvider): Promise<TokenProviderRespon
  */
 async function tokenFromLegacySources(): Promise<TokenProviderResponse | undefined> {
   try {
-    const result: TokenProviderResponse = await SpotifyInternalFetch.get("sp://oauth/v2/token");
-    if (result?.accessToken) {
+    const result = await withTimeout<TokenProviderResponse>(
+      SpotifyInternalFetch.get("sp://oauth/v2/token"),
+      getRemoteConfig().token.sourceTimeoutMs
+    );
+    if (result === TIMED_OUT) {
+      console.warn("sp://oauth/v2/token timed out, falling back to Platform.Session");
+    } else if (result?.accessToken) {
       return {
         accessToken: result.accessToken,
         expiresAtTime: result.expiresAtTime,
@@ -246,12 +273,17 @@ async function resolveAccessToken(): Promise<string> {
   const provider = getTokenProvider();
   let fromProvider: TokenProviderResponse | undefined;
   if (provider) {
-    fromProvider = await tokenFromProvider(provider);
-    if (fromProvider && isUsable(fromProvider)) return adopt(fromProvider);
+    const loaded = await tokenFromProvider(provider);
+    // A provider that didn't answer won't answer the renew's follow-up load
+    // either, so go straight to the legacy sources.
+    if (loaded !== TIMED_OUT) {
+      fromProvider = loaded;
+      if (fromProvider && isUsable(fromProvider)) return adopt(fromProvider);
 
-    const renewed = await renewToken(provider);
-    if (renewed && isUsable(renewed)) return adopt(renewed);
-    fromProvider = renewed ?? fromProvider;
+      const renewed = await renewToken(provider);
+      if (renewed && isUsable(renewed)) return adopt(renewed);
+      fromProvider = renewed ?? fromProvider;
+    }
   }
 
   // Older clients without the provider. On 1.3.5 both of these are dead.
