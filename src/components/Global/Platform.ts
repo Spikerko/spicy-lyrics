@@ -109,6 +109,98 @@ function tokenFromAuthorizationAPI(): TokenProviderResponse | undefined {
   }
 }
 
+type SpotifyToken = {
+  accessToken: string;
+  accessTokenExpirationTimestampMs?: number;
+};
+
+/** Spotify's desktop token provider (TokenProviderDesktop in xpui-modules). */
+type SpotifyTokenProvider = {
+  getToken(options?: { preferCached?: boolean; forceRefresh?: boolean }): Promise<SpotifyToken | null>;
+  /** The native login5 AccessTokenClient. */
+  _client?: { getToken(request: { renew?: boolean }): Promise<unknown> };
+};
+
+/**
+ * The object behind `AuthorizationAPI`. Its `getState()` is only a snapshot,
+ * updated when something calls `getToken()` on this provider. Spotify's own
+ * transport does that only when it needs a token itself, so the snapshot can
+ * sit on an expired or revoked token for a long time.
+ */
+function getTokenProvider(): SpotifyTokenProvider | undefined {
+  let provider: SpotifyTokenProvider | undefined;
+  try {
+    provider = (SpotifyPlatform as any)?.Registry?.resolve(Symbol.for("TokenProvider"));
+  } catch {
+    // Not registered under that name on this client.
+  }
+  provider ??= (SpotifyPlatform as any)?.AuthorizationAPI?._tokenProvider;
+  return typeof provider?.getToken === "function" ? provider : undefined;
+}
+
+function toResponse(token: SpotifyToken | null | undefined): TokenProviderResponse | undefined {
+  if (!token?.accessToken) return undefined;
+  return {
+    accessToken: token.accessToken,
+    expiresAtTime: token.accessTokenExpirationTimestampMs as number,
+    tokenType: "Bearer",
+  };
+}
+
+/** Ask the provider to load the native client's current token. */
+async function tokenFromProvider(provider: SpotifyTokenProvider): Promise<TokenProviderResponse | undefined> {
+  try {
+    return toResponse(await provider.getToken());
+  } catch (error) {
+    console.warn("TokenProvider.getToken() failed", error);
+    return undefined;
+  }
+}
+
+let renewPromise: Promise<TokenProviderResponse | undefined> | undefined;
+let lastRenewAt = 0;
+
+/**
+ * Make the native client fetch a brand-new token from login5.
+ *
+ * `getToken({forceRefresh: true})` alone isn't enough: Spotify's provider
+ * always asks the native client with `renew: false`, which hands back the same
+ * token until its own expiry, revoked or not. The old token keeps working after
+ * a renew, so this doesn't disturb anything else holding it. The follow-up
+ * `forceRefresh` load puts the new token into `AuthorizationAPI`'s state.
+ */
+function renewToken(provider: SpotifyTokenProvider): Promise<TokenProviderResponse | undefined> {
+  if (renewPromise) return renewPromise;
+  if (typeof provider._client?.getToken !== "function") return Promise.resolve(undefined);
+  if (Date.now() - lastRenewAt < getRemoteConfig().token.renewCooldownMs) return Promise.resolve(undefined);
+
+  lastRenewAt = Date.now();
+  const renew = (async () => {
+    try {
+      await provider._client!.getToken({ renew: true });
+      return toResponse(await provider.getToken({ forceRefresh: true }));
+    } catch (error) {
+      console.warn("Token renew failed", error);
+      return undefined;
+    }
+  })();
+  // Every GetSpotifyAccessToken caller waits on this, so a native call that
+  // never answers (offline, bridge gone) must not hold them forever.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn("Token renew timed out");
+      resolve(undefined);
+    }, getRemoteConfig().token.renewTimeoutMs);
+  });
+  const pending = Promise.race([renew, timeout]).finally(() => {
+    clearTimeout(timer);
+    if (renewPromise === pending) renewPromise = undefined;
+  });
+  renewPromise = pending;
+  return pending;
+}
+
 /**
  * Legacy path, kept as the fallback: the Cosmos oauth resolver, and — on clients
  * where that resolver is gone — `Platform.Session`.
@@ -148,6 +240,21 @@ async function resolveAccessToken(): Promise<string> {
     return adopt(fromAuthorizationAPI);
   }
 
+  // The snapshot is expired or was refused, so ask the native client. A plain
+  // load picks up a token it has already rotated to; if that is still the bad
+  // one, make it renew.
+  const provider = getTokenProvider();
+  let fromProvider: TokenProviderResponse | undefined;
+  if (provider) {
+    fromProvider = await tokenFromProvider(provider);
+    if (fromProvider && isUsable(fromProvider)) return adopt(fromProvider);
+
+    const renewed = await renewToken(provider);
+    if (renewed && isUsable(renewed)) return adopt(renewed);
+    fromProvider = renewed ?? fromProvider;
+  }
+
+  // Older clients without the provider. On 1.3.5 both of these are dead.
   const fromLegacy = await tokenFromLegacySources();
   if (fromLegacy && isUsable(fromLegacy)) return adopt(fromLegacy);
 
@@ -155,7 +262,7 @@ async function resolveAccessToken(): Promise<string> {
   // told is bad. A doubtful token still beats no token — the request will come
   // back 401 and we will ask again — so hand back the best of what we have and
   // drop the rejection, rather than sending nothing until the client rotates.
-  const lastResort = fromLegacy ?? fromAuthorizationAPI;
+  const lastResort = fromProvider ?? fromLegacy ?? fromAuthorizationAPI;
   if (lastResort?.accessToken) {
     rejectedAccessToken = undefined;
     return adopt(lastResort);
@@ -182,7 +289,17 @@ const GetSpotifyAccessToken = (): Promise<string> => {
   // settlement: a rejection must not poison every later call.
   if (accessTokenPromise) return accessTokenPromise;
 
-  const pending = resolveAccessToken().finally(() => {
+  // Bounded as a whole: every source here is a native or Cosmos call that can
+  // stop answering, and every caller shares this promise.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error("Timed out obtaining a Spotify access token")),
+      getRemoteConfig().token.resolveTimeoutMs
+    );
+  });
+  const pending = Promise.race([resolveAccessToken(), timeout]).finally(() => {
+    clearTimeout(timer);
     if (accessTokenPromise === pending) accessTokenPromise = undefined;
   });
   accessTokenPromise = pending;

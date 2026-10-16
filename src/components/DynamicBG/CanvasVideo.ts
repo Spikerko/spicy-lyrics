@@ -2,6 +2,7 @@
 // The canvaz `canvas.url` .mp4 is H.264, which this Chromium build can't decode.
 import Logger from "../../utils/Logger.ts";
 import { getRemoteConfig } from "../../utils/remoteConfig.ts";
+import { SpotifyFetch } from "../Global/SpotifyFetch.ts";
 
 const canvasLogger = new Logger("Canvas Video");
 
@@ -151,17 +152,17 @@ export function LoadCanvasMedia(info: CanvasInfo): Promise<CanvasMedia | null> {
 
   const signal = AbortSignal.timeout(getRemoteConfig().canvas.loadTimeoutMs);
   const request = (async (): Promise<CanvasMedia | null> => {
-    // CosmosAsync resolves an HTTP error as `{ code, message }` instead of rejecting, and its
-    // `timeout` option does nothing, so both have to surface here as a throw. A resolved null
-    // would stay cached and block every later attempt at this canvas until a reload.
-    const manifest = (await untilAborted(
-      Spicetify.CosmosAsync.get(MANIFEST_URL(info.fileId)),
-      signal
-    )) as Partial<Manifest> & { code?: number; message?: string };
+    // Not CosmosAsync: on some clients it's the native bridge, which fails https URLs with
+    // "Resolver not found!". Every failure has to throw, because a resolved null would stay
+    // cached and block every later attempt at this canvas until a reload.
+    // `untilAborted` also covers the token lookup, whose legacy path can stall.
+    const res = await untilAborted(SpotifyFetch(MANIFEST_URL(info.fileId), { signal }), signal);
+    if (!res.ok) throw new Error(`Manifest HTTP ${res.status}`);
+    const manifest = (await untilAborted(res.json(), signal)) as Partial<Manifest>;
     const content = manifest?.contents?.[0];
     const base = manifest?.base_urls?.[0];
     if (!content || !base || !manifest.initialization_template || !manifest.segment_template) {
-      throw new Error(`Bad manifest: ${manifest?.code ?? "no code"} ${manifest?.message ?? ""}`.trim());
+      throw new Error("Bad manifest");
     }
     const { initialization_template, segment_template } = manifest;
 

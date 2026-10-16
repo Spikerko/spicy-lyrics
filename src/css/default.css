@@ -385,6 +385,62 @@ body:not(.SpicyLyrics_StaticBackground)
   border: 1px solid hsla(0, 0%, 100%, 0.5);
 }
 
+/* Spotify's newer NPV layout (enableNowPlayingViewTraits). Its classes are hashed
+   differently on every build, but the panel root carries [data-npv-root] and
+   paints through variables: itself with --background-base, every section card
+   with --section-background-base. Inside the scroll content, the cards are the
+   children of the info block's children (the sections list and the "Next in
+   queue" wrapper); nested cards such as "About the artist" reuse the same
+   variable, so it's cleared below the cards to keep the tint from stacking. */
+body:not(.SpicyLyrics_StaticBackground)
+  aside.spicy-dynamic-bg-in-this > [data-npv-root] {
+  --background-tint: color-mix(in srgb, rgb(var(--spice-rgb-selected-row)) 7%, transparent);
+  --spice-card: var(--background-tint);
+  --background-tinted-base: var(--background-tint);
+  --section-background-base: var(--background-tint);
+  background-color: transparent;
+}
+
+body:not(.SpicyLyrics_StaticBackground)
+  aside.spicy-dynamic-bg-in-this > [data-npv-root]
+  [data-overlayscrollbars-viewport] > * > * > * > * > * {
+  --section-background-base: transparent;
+}
+
+/* Tour date badges paint --background-base, the old panel colour. */
+body:not(.SpicyLyrics_StaticBackground)
+  aside.spicy-dynamic-bg-in-this > [data-npv-root] a time:has(> p) {
+  background: rgba(255, 255, 255, 0.078);
+}
+
+/* The header fills in with --background-base as the panel scrolls (a scroll-driven
+   animation on --npv-scroll). Replaced with the blur the legacy layout's header
+   gets once scrolled, on the same timeline. */
+body:not(.SpicyLyrics_StaticBackground)
+  aside.spicy-dynamic-bg-in-this > [data-npv-root] > :first-child:not([data-scroll-background-disabled]) {
+  animation: SpicyLyrics_NPVHeaderBlur 1ms linear both;
+  animation-timeline: --npv-scroll;
+  animation-range: 0px 32px;
+}
+
+@keyframes SpicyLyrics_NPVHeaderBlur {
+  from {
+    backdrop-filter: blur(0);
+  }
+  to {
+    backdrop-filter: blur(6px);
+  }
+}
+
+/* The Canvas's scrims darken to the old panel colour, solid at the bottom, which
+   cut a hard edge across the dynamic background. The video sits in the first
+   child of the surface's wrapper and the scrims in the one after it; the video
+   already fades out on its own (spicy-dynamic-bg.css). */
+body:not(.SpicyLyrics_StaticBackground)
+  aside.spicy-dynamic-bg-in-this [data-canvas-surface] > * > :not(:first-child) {
+  display: none;
+}
+
 /* Mirrors Spotify's .main-nowPlayingBar-lyricsButton rule, which our buttons no longer carry. */
 .SpicyLyrics_PlaybarButton {
   flex-shrink: 0;

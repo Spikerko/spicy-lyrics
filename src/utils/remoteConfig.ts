@@ -60,6 +60,7 @@ export const DEFAULT_REMOTE_CONFIG = {
     lyricsTtlDays: 3,
     artistVisualsTtlDays: 3,
     audioAnalysisTtlMonths: 1,
+    audioAnalysisNotFoundTtlHours: 24,
     canvasMediaCacheSize: 4,
   },
   canvas: {
@@ -89,6 +90,13 @@ export const DEFAULT_REMOTE_CONFIG = {
   },
   token: {
     expiryMarginMs: 60000,
+    renewCooldownMs: 10000,
+    renewTimeoutMs: 10000,
+    // Bounds the whole lookup, renew included, so keep it above renewTimeoutMs.
+    resolveTimeoutMs: 20000,
+  },
+  audioAnalysis: {
+    timeoutMs: 15000,
   },
   experimentsSync: {
     timeoutMs: 5000,
