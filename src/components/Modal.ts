@@ -119,7 +119,7 @@ class _HTMLGenericModal extends HTMLElement {
 		<div class="${isLarge ? "sl-modal-container-large" : "sl-modal-container"}">
 			<div class="sl-modal-header">
 				<h1 class="sl-modal-title" as="h1">${title}</h1>
-				${closeBtn ? '<button aria-label="Close" class="sl-modal-close-btn"><svg width="18" height="18" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><title>Close</title><path d="M31.098 29.794L16.955 15.65 31.097 1.51 29.683.093 15.54 14.237 1.4.094-.016 1.508 14.126 15.65-.016 29.795l1.414 1.414L15.54 17.065l14.144 14.143" fill="currentColor" fill-rule="evenodd"></path></svg></button>' : ""}
+				${closeBtn ? '<button aria-label="Close" class="sl-modal-close-btn"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="m3 3 10 10M13 3 3 13"/></svg></button>' : ""}
 			</div>
 			<div class="sl-modal-main-section">
 				<main class="sl-modal-content"></main>
@@ -139,8 +139,14 @@ class _HTMLGenericModal extends HTMLElement {
 		// Listen for click events on Overlay
 		const overlay = this.querySelector(".sl-modal-overlay");
 		if (overlay) {
+			// Only a press that also started on the overlay closes the modal. A drag that
+			// began inside (a slider) and ended outside clicks the overlay too.
+			let pressedOverlay = false;
+			overlay.addEventListener("pointerdown", (event: PointerEvent) => {
+				pressedOverlay = event.target === event.currentTarget;
+			});
 			overlay.addEventListener("click", (event: MouseEvent) => {
-				if (closeOnOutsideClick && event.target === event.currentTarget) hidePopup();
+				if (closeOnOutsideClick && pressedOverlay && event.target === event.currentTarget) hidePopup();
 			});
 		}
 

@@ -1,18 +1,19 @@
 /*
- * Spicy Lyrics — Icon System
+ * View-control icons share one grid: 24×24, 2-unit round stroke, ink centred on 12,12.
+ * Layout icons draw the page as it actually lays out (frame, cover square, lyric lines),
+ * so they mirror and move with the page. Parts tagged `SL_Icon*` are driven by state
+ * classes in default.css and NPVLyrics.css, which is why those buttons are never rebuilt
+ * just to change state.
  *
- * Unified visual language for every icon we ship:
- *  • 24×24 viewBox, designed on a 1px-aligned grid
- *  • Outline icons: stroke="currentColor", stroke-width=2, round caps/joins
- *  • Action icons (playback / liked-state): solid fill="currentColor", with matching
- *    rounded geometry so they sit alongside outline icons without looking foreign
- *  • `NoFill` class on every outline icon so the existing CSS treats them as stroke icons
- *  • `aria-hidden` on decorative SVGs
- *
- * Excluded from this redesign per project intent:
- *  • Icons.LyricsPage (the sparkle / magic-wand brand mark)
- *  • The settings cog inlined at the bottom of app.tsx (Spotify menu item)
+ * Left as they are: the brand mark (LyricsPage), PiPMode (it sits in Spotify's playbar
+ * and matches Spotify's own glyphs), and the filled transport/heart/volume set, whose
+ * IDs, classes and aspect ratios the NowBar CSS depends on.
  */
+
+const Line = (body: string) =>
+  `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+const Frame = `<rect x="3" y="4" width="18" height="16" rx="3"/>`;
 
 const TrackSkip = `
 	<div class="PlaybackControl TrackSkip REPLACEME">
@@ -32,10 +33,28 @@ export const Icons = {
             <path d="M3.85932 3.38018C3.90765 3.24958 4.09235 3.24958 4.14068 3.38018L5.05643 5.85495C5.07162 5.89601 5.10399 5.92838 5.14505 5.94357L7.61982 6.85932C7.75042 6.90765 7.75042 7.09235 7.61982 7.14068L5.14505 8.05643C5.10399 8.07162 5.07162 8.10399 5.05643 8.14505L4.14068 10.6198C4.09235 10.7504 3.90765 10.7504 3.85932 10.6198L2.94357 8.14505C2.92838 8.10399 2.89601 8.07162 2.85495 8.05643L0.380176 7.14068C0.249583 7.09235 0.249583 6.90765 0.380176 6.85932L2.85495 5.94357C2.89601 5.92838 2.92838 5.89601 2.94357 5.85495L3.85932 3.38018Z"/>
         </svg>
     `,
-  Close: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`,
-  NowBar: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><rect x="6" y="7.5" width="6" height="6" rx="1"/><path d="M14.5 9h3.5"/><path d="M14.5 12h3.5"/><path d="M6.5 17h11"/></svg>`,
-  Fullscreen: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/></svg>`,
-  CloseFullscreen: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>`,
+  Close: Line(`<path d="m5.5 5.5 13 13"/><path d="m18.5 5.5-13 13"/>`),
+  // The page in miniature: cover and title on the NowBar's side, lyric lines on the other.
+  NowBar: Line(
+    `<g class="SL_IconPart SL_IconCover"><rect x="3" y="5" width="9" height="9" rx="2"/><path d="M4.5 18.5h6"/></g><g class="SL_IconPart SL_IconLyrics"><path d="M15.5 7.5h5"/><path d="M15.5 11.5h5"/><path d="M15.5 15.5h3"/></g>`
+  ),
+  // Screen edges, no window: the whole display.
+  Fullscreen: Line(
+    `<path class="SL_IconPart SL_NudgeTL" d="M3.5 8.5V6A2.5 2.5 0 0 1 6 3.5h2.5"/><path class="SL_IconPart SL_NudgeTR" d="M15.5 3.5H18A2.5 2.5 0 0 1 20.5 6v2.5"/><path class="SL_IconPart SL_NudgeBR" d="M20.5 15.5V18a2.5 2.5 0 0 1-2.5 2.5h-2.5"/><path class="SL_IconPart SL_NudgeBL" d="M8.5 20.5H6A2.5 2.5 0 0 1 3.5 18v-2.5"/>`
+  ),
+  // Fullscreen turned inside out: the way back to Cinema View from fullscreen. Each corner
+  // leans toward the centre on hover, so it carries the opposite nudge to its position.
+  CloseFullscreen: Line(
+    `<path class="SL_IconPart SL_NudgeBR" d="M8.5 3.5V6A2.5 2.5 0 0 1 6 8.5H3.5"/><path class="SL_IconPart SL_NudgeBL" d="M20.5 8.5H18A2.5 2.5 0 0 1 15.5 6V3.5"/><path class="SL_IconPart SL_NudgeTL" d="M15.5 20.5V18a2.5 2.5 0 0 1 2.5-2.5h2.5"/><path class="SL_IconPart SL_NudgeTR" d="M3.5 15.5H6A2.5 2.5 0 0 1 8.5 18v2.5"/>`
+  ),
+  // The Spotify window, with the lyrics growing to its edges.
+  CinemaView: Line(
+    `${Frame}<path class="SL_IconPart SL_NudgeTL" d="M10.5 10.5 7 7m0 3V7h3"/><path class="SL_IconPart SL_NudgeBR" d="M13.5 13.5 17 17m0-3v3h-3"/>`
+  ),
+  // Spotify's layout: lyrics leave the right sidebar for the main view.
+  OpenPage: Line(
+    `${Frame}<path d="M15 4v16"/><path class="SL_NudgeL" d="M11.5 12H6.5m2.5-2.5L6.5 12 9 14.5"/>`
+  ),
 
   PrevTrack: TrackSkip.replace("REPLACEME", "PrevTrack"),
   Play: `
@@ -75,12 +94,20 @@ export const Icons = {
 			<path id="SpicyLyrics_VolumeMute" d="M15.3 8.8a1 1 0 0 1 1.4 0l1.8 1.8 1.8-1.8a1 1 0 1 1 1.4 1.4L19.9 12l1.8 1.8a1 1 0 0 1-1.4 1.4l-1.8-1.8-1.8 1.8a1 1 0 0 1-1.4-1.4l1.8-1.8-1.8-1.8a1 1 0 0 1 0-1.4z"/>
 		</svg>
 	`,
-  CinemaView: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="m10.5 8.5 3.5 2-3.5 2z" fill="currentColor"/></svg>`,
-  Collapse: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>`,
-  Uncollapse: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`,
-  Maximize: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
-  Minimize: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
-  NowBarSideSwap: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M12 3v18"/><path d="m8.5 9-3 3 3 3"/><path d="m15.5 9 3 3-3 3"/></svg>`,
+  // One chevron for both card states; NPVLyrics.css turns the whole svg over when the card
+  // collapses. The card's morph keeps the main thread busy, so only composited motion shows.
+  CardToggle: Line(`<path d="m6 15 6-6 6 6"/>`),
+  // The card stretching to the sidebar's top and bottom, then the arrows turned inward once
+  // it has. Both are stacked so NPVLyrics.css can cross-fade them on the compositor.
+  CardExpand: `<span class="SL_IconStack">${Line(
+    `<path d="M6 3.5h12"/><path d="M6 20.5h12"/><path d="M12 10.5v-4m-2.5 2.5L12 6.5l2.5 2.5"/><path d="M12 13.5v4m-2.5-2.5 2.5 2.5 2.5-2.5"/>`
+  )}${Line(
+    `<path d="M6 3.5h12"/><path d="M6 20.5h12"/><path d="M12 6.5v4m-2.5-2.5 2.5 2.5 2.5-2.5"/><path d="M12 17.5v-4m-2.5 2.5 2.5-2.5 2.5 2.5"/>`
+  )}</span>`,
+  // Cover on the NowBar's current side, pointing at the side it will move to.
+  NowBarSideSwap: Line(
+    `${Frame}<rect class="SL_IconPart SL_IconCover" x="6" y="9.5" width="5" height="5" rx="1.25"/><path class="SL_IconPart SL_IconSwapArrow" d="M14 12h4m-1.75-1.75L18 12l-1.75 1.75"/>`
+  ),
   Heart: `
         <svg viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="SpicyLyrics_HeartFrame">
@@ -110,25 +137,29 @@ export const Icons = {
             </defs>
         </svg>
     `,
-  LyricsManager: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1.5"/><path d="M6.5 3v18"/><path d="M14.5 3.7 13 4.3a1 1 0 0 0-.56 1.3l5.4 14.1a1 1 0 0 0 1.3.56l1.5-.6a1 1 0 0 0 .56-1.3L15.8 4.26a1 1 0 0 0-1.3-.56Z"/></svg>`,
-  "panel-right-close": `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M15 3v18"/><path d="m8 9 3 3-3 3"/></svg>`,
-  "panel-right-open": `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M15 3v18"/><path d="m10 15-3-3 3-3"/></svg>`,
-  DisableRomanization: `
-    <svg role="img" height="20" width="20" aria-hidden="true" viewBox="0 0 750 900" data-encore-id="icon" class="Svg-sc-ytk21e-0 Svg-img-16-icon">
-        <path class="cls-1" d="m529.42,632.32H214.71l-81.89,163.5H13.31L377.06,80.35l350.9,715.47h-121.41l-77.13-163.5Zm-45.23-95.48l-109.03-228.9-114.27,228.9h223.3Z"></path>
-    </svg>
-  `,
-  EnableRomanization: `
-    <svg role="img" height="17" width="17" aria-hidden="true" viewBox="0 0 125.45 131.07" data-encore-id="icon" class="Svg-sc-ytk21e-0 Svg-img-16-icon">
-        <path class="cls-1" d="m53.38,130.41c-12.54-2.87-20.86-14.36-19.98-27.42.59-7.62,5.8-15.12,13.07-18.69,4.28-2.11,11.02-3.4,17.75-3.46h4.8v-12.71c.06-16,.64-17.99,5.98-20.74,4.86-2.46,10.96-.47,13.3,4.34,1.17,2.34,1.23,3.52,1.23,17.23v14.65l2.81,1.05c13.59,5.1,30.59,17.87,32.34,24.38,1.17,4.34-.88,8.79-4.92,10.72-4.1,1.93-5.63,1.41-13.89-5.27-4.69-3.69-12.83-9.02-15.29-9.96-.88-.29-1.05,0-1.05,1.64,0,2.93-1.58,8.5-3.34,11.78-1.93,3.46-6.74,8.03-10.43,9.79-6.21,2.99-15.88,4.16-22.38,2.7v-.03Zm11.84-20.51c1.05-.47,2.4-1.46,2.87-2.29,1-1.52,1.41-5.39.7-6.15-.64-.59-12.66-.18-13.95.53-1.23.64-1.46,4.92-.29,6.45,1.82,2.34,6.86,3.05,10.66,1.46h0Z"></path>
-        <path class="cls-1" d="m6.33,103.4c-4.39-1.99-6.91-6.04-6.21-9.9.23-1.11,2.23-4.8,4.51-8.32,7.21-11.19,17.64-31.23,18.98-36.56l.35-1.46h-8.67c-7.62,0-8.91-.18-10.66-1.17-2.99-1.76-4.34-3.93-4.34-6.91,0-3.52,1.64-6.04,5.1-7.73,2.81-1.41,3.4-1.46,13.89-1.46h10.96l.64-3.93c.35-2.23,1.05-6.86,1.58-10.43,1-7.21,1.93-9.79,4.22-12.19,2.34-2.46,4.39-3.34,7.85-3.34,5.74,0,9.26,3.34,9.26,8.79,0,1.46-.64,5.8-1.46,9.67-.76,3.87-1.46,7.27-1.46,7.56,0,.94,2.99-.29,7.97-3.28,6.04-3.57,9.32-4.22,12.42-2.23,4.51,2.81,4.92,10.84.82,16.35-2.7,3.63-10.9,6.33-20.92,6.91l-6.45.35-1.99,5.33c-3.63,9.67-9.43,22.73-15.35,34.34-6.74,13.3-9.43,17.64-11.72,18.98-2.46,1.46-6.86,1.76-9.32.64h0Z"></path>
-        <path class="cls-1" d="m109.17,57.17c-11.19-4.69-29.82-13.3-30.88-14.24-4.69-4.22-3.46-12.42,2.17-15.12,4.28-1.99,6.56-1.29,24.9,7.73,15.12,7.38,16.88,8.44,18.34,10.61,1.99,2.87,2.34,6.8.76,9.2-1.29,1.99-5.21,3.81-8.26,3.81-1.35,0-4.34-.88-7.03-1.99Z"></path>
-    </svg>
-  `,
-  EnableCompactModeIcon: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`,
-  DisableCompactModeIcon: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`,
+  // A stack of lyric sheets: the local TTML files this panel manages.
+  LyricsManager: Line(
+    `<path d="M8 3h8.5A2.5 2.5 0 0 1 19 5.5V16"/><rect x="5" y="6" width="11" height="15" rx="2.5"/><path d="M8 10.5h5"/><path d="M8 14h5"/><path d="M8 17.5h3"/>`
+  ),
+  // A and ア are both "a", which is the whole idea of romanization. The script the
+  // button switches to is drawn at full strength, the one it leaves dimmed.
+  DisableRomanization: Line(
+    `<g opacity=".4"><path d="M2.5 18 6.75 6 11 18"/><path d="M4 14h5.5"/></g><path d="M13.5 6.5h8L19 9.75"/><path d="M17.25 9.75v1.75c0 2.75-1.25 5-3.75 6.5"/>`
+  ),
+  EnableRomanization: Line(
+    `<path d="M2.5 18 6.75 6 11 18"/><path d="M4 14h5.5"/><g opacity=".4"><path d="M13.5 6.5h8L19 9.75"/><path d="M17.25 9.75v1.75c0 2.75-1.25 5-3.75 6.5"/></g>`
+  ),
+  // Compact layout: small cover and title on one row, lyrics underneath.
+  EnableCompactModeIcon: Line(
+    `<rect x="3.5" y="4.5" width="6" height="6" rx="1.5"/><path d="M13 5.75h7.5"/><path d="M13 9.25h4.5"/><path d="M3.5 15h17"/><path d="M3.5 19.5h11"/>`
+  ),
+  // Regular layout: large cover with its title, lyrics beside it.
+  DisableCompactModeIcon: Line(
+    `<rect x="3" y="5" width="9" height="9" rx="2"/><path d="M4.5 18.5h6"/><path d="M15.5 7.5h5"/><path d="M15.5 11.5h5"/><path d="M15.5 15.5h3"/>`
+  ),
   PiPMode: `<svg data-encore-id="icon" role="img" aria-hidden="true" class="e-91000-icon e-91000-baseline" viewBox="0 0 16 16" style="--encore-icon-height: var(--encore-graphic-size-decorative-smaller); --encore-icon-width: var(--encore-graphic-size-decorative-smaller);"><path d="M16 2.45c0-.8-.65-1.45-1.45-1.45H1.45C.65 1 0 1.65 0 2.45v11.1C0 14.35.65 15 1.45 15h5.557v-1.5H1.5v-11h13V7H16z"></path><path d="M15.25 9.007a.75.75 0 0 1 .75.75v4.493a.75.75 0 0 1-.75.75H9.325a.75.75 0 0 1-.75-.75V9.757a.75.75 0 0 1 .75-.75z"></path></svg>`,
-  Settings: `<svg class="NoFill" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/></svg>`,
-  Spinner: `<svg xmlns="http://www.w3.org/2000/svg" width="{SIZE}" height="{SIZE}" viewBox="0 0 24 24" fill="none" color="currentColor" class="SL_spinAnimation" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" role="status" aria-label="Loading"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M21 12h-3"/><path d="M6 12H3"/><path d="m18.36 5.64-2.12 2.12"/><path d="m7.76 16.24-2.12 2.12"/><path d="m18.36 18.36-2.12-2.12"/><path d="m7.76 7.76-2.12-2.12"/></svg>`,
-  ArrowUpRight: `<svg xmlns="http://www.w3.org/2000/svg" width="{SIZE}" height="{SIZE}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="NoFill" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>`,
+  // Eight teeth, so the 45° hover turn in default.css lands on an identical gear.
+  Settings: Line(
+    `<g class="SL_IconPart SL_IconGear"><path d="M10.07 5.69L10.48 3.38A8.75 8.75 0 0 1 13.52 3.38L13.93 5.69A6.6 6.6 0 0 1 15.1 6.17L17.02 4.83A8.75 8.75 0 0 1 19.17 6.98L17.83 8.9A6.6 6.6 0 0 1 18.31 10.07L20.62 10.48A8.75 8.75 0 0 1 20.62 13.52L18.31 13.93A6.6 6.6 0 0 1 17.83 15.1L19.17 17.02A8.75 8.75 0 0 1 17.02 19.17L15.1 17.83A6.6 6.6 0 0 1 13.93 18.31L13.52 20.62A8.75 8.75 0 0 1 10.48 20.62L10.07 18.31A6.6 6.6 0 0 1 8.9 17.83L6.98 19.17A8.75 8.75 0 0 1 4.83 17.02L6.17 15.1A6.6 6.6 0 0 1 5.69 13.93L3.38 13.52A8.75 8.75 0 0 1 3.38 10.48L5.69 10.07A6.6 6.6 0 0 1 6.17 8.9L4.83 6.98A8.75 8.75 0 0 1 6.98 4.83L8.9 6.17A6.6 6.6 0 0 1 10.07 5.69Z"/><circle cx="12" cy="12" r="2.75"/></g>`
+  ),
 };

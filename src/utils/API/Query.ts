@@ -1,6 +1,7 @@
 import Defaults from "../../components/Global/Defaults.ts";
 import Session from "../../components/Global/Session.ts";
 import Logger from "../Logger.ts";
+import { getRemoteConfig } from "../remoteConfig.ts";
 import {
   Acquire,
   IsTripStatus,
@@ -31,14 +32,6 @@ export interface QueryResultGetter {
 }
 
 const queryLogger = new Logger("API Query");
-
-/**
- * Hard deadline for a single `/query`, covering the response body as well as
- * the headers. Generous next to a healthy round trip, and well inside the
- * breaker's shortest pause, so a stalled request is recorded as a failure long
- * before the next scheduled one goes out.
- */
-const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * The request reached the network and came back refused.
@@ -112,9 +105,11 @@ export async function Query(
   // A request that never returns is worse than one that fails: it holds a probe
   // slot, and during an overload it is the shape a stalled origin most often
   // takes. `fetch` has no timeout of its own, so impose one — the abort surfaces
-  // as a rejection and counts against the breaker like any other refusal.
+  // as a rejection and counts against the breaker like any other refusal. The
+  // deadline covers the body as well as the headers, and sits well inside the
+  // breaker's shortest pause so a stall is recorded before the next request.
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), getRemoteConfig().query.requestTimeoutMs);
 
   try {
     let res: Response;

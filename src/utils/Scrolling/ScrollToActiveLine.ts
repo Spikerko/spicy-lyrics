@@ -18,7 +18,12 @@ import {
 } from "../Lyrics/lyrics.ts";
 import { ScrollIntoCenterViewCSS } from "../ScrollIntoView/Center.ts";
 import { ScrollIntoTopViewCSS } from "../ScrollIntoView/Top.ts";
-import { getLyricsVirtualizer, scrollLyricsToIndex } from "../Lyrics/LyricsVirtualizer.ts";
+import {
+  getLyricsVirtualizer,
+  lyricsUseRefreshedLayout,
+  scrollLyricsToIndex,
+} from "../Lyrics/LyricsVirtualizer.ts";
+import { IsScrollbarDragging } from "./Simplebar/ScrollSimplebar.ts";
 
 // Define intersection types that include _LineIndex
 type LyricsLineWithIndex = LyricsLine & { _LineIndex: number };
@@ -332,6 +337,10 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
 
   lastPosition = Position;
 
+  // A held scrollbar thumb is user scrolling too; without this the list slid
+  // out from under it on the next line change.
+  if (IsScrollbarDragging()) handleUserScroll(ScrollSimplebar);
+
   if (isSmoothForceScrollQueued) {
     if (!allowForceScrolling) return;
     const container = ScrollSimplebar?.getScrollElement() as HTMLElement;
@@ -530,10 +539,12 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
             scrolledToFirstLine = false;
           };
           // Leaving a "•••" interlude: normally wait for it to collapse first.
-          // With Smooth Scrolling the rows glide as it collapses, so scrolling at
-          // the same moment makes the two read as one motion instead of two.
+          // With Smooth Scrolling (or Refreshed Simple Lyrics) the rows glide as
+          // it collapses, so scrolling at the same moment makes the two read as
+          // one motion instead of two.
           if (
             !$smoothScrolling.get() &&
+            !lyricsUseRefreshedLayout() &&
             Lines[currentLine._LineIndex - 1] &&
             Lines[currentLine._LineIndex - 1].DotLine === true
           ) {

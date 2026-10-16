@@ -1,40 +1,29 @@
-import { EXPERIMENTS } from "../../../utils/experiments.ts";
-import { matches, Row, SectionTitle } from "./components.tsx";
+import { getVisibleExperiments, RefreshExperimentOverrides } from "../../../utils/experiments.ts";
+import { ExperimentRow, SyncStatus } from "./ExperimentsPanel.tsx";
+import { ExperimentsIcon } from "./icons.tsx";
+import type { SectionDef } from "./model.ts";
 
-const SECTION_NAME = "Experiments";
-
-const LABEL = "Experiments";
-const DESCRIPTION =
-  "Try out in-progress features, and switch back if you prefer the old behaviour.";
-
-interface Props {
-  query: string;
-  sectionFilter: string;
-  onOpen: () => void;
-}
-
-export default function ExperimentsSection({ query, sectionFilter, onOpen }: Props) {
-  if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
-
-  // Searching for an experiment by its own name should surface this row too,
-  // otherwise the flags would be invisible to the search box.
-  const hit =
-    matches(query, LABEL, DESCRIPTION) ||
-    EXPERIMENTS.some((exp) => matches(query, exp.label, exp.description));
-
-  if (!hit) return null;
-
-  const count = EXPERIMENTS.length;
-
-  return (
-    <>
-      <SectionTitle>Experiments</SectionTitle>
-
-      <Row label={LABEL} description={DESCRIPTION}>
-        <button className="sl-sp-btn" onClick={onOpen} disabled={count === 0}>
-          {count > 0 ? `Open (${count})` : "None available"}
-        </button>
-      </Row>
-    </>
-  );
-}
+export const experimentsSection: SectionDef = {
+  id: "experiments",
+  title: "Experiments",
+  icon: ExperimentsIcon,
+  intro: "Features still being shaped. Turn one off if you prefer how things worked before.",
+  emptyText: "No experiments right now.",
+  Accessory: SyncStatus,
+  // Before the tab renders, so its first frame is already locked and loading.
+  onEnter: () => void RefreshExperimentOverrides(),
+  // Rebuilt each render so remote overrides (labels, hidden rows) show at once.
+  // The rows stay mounted across rebuilds: they are keyed by id, and `render`
+  // returns an element of the same ExperimentRow type every time.
+  groups: () => [
+    {
+      settings: getVisibleExperiments().map((experiment) => ({
+        id: `experiment:${experiment.id}`,
+        label: experiment.label,
+        description: experiment.description,
+        keywords: "experiment",
+        render: (label) => <ExperimentRow experiment={experiment} label={label} />,
+      })),
+    },
+  ],
+};

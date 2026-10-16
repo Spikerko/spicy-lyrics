@@ -1,6 +1,7 @@
 import { GetInstantStore } from "../../modules/Store.ts";
 import Logger from "../Logger.ts";
 import { jitter } from "../jitter.ts";
+import { getRemoteConfig, onRemoteConfigChange } from "../remoteConfig.ts";
 
 const breakerLogger = new Logger("Query Breaker");
 
@@ -24,56 +25,35 @@ const breakerLogger = new Logger("Query Breaker");
  *   experiencing the outage.
  */
 
-/** Transport statuses that mean the edge refused us, not that nothing is there. */
-const TRIP_STATUSES = new Set([403, 408, 425, 429, 500, 502, 503, 504]);
-
-/** Consecutive qualifying failures before the breaker opens. */
-const FAILURE_THRESHOLD = 2;
-
 /**
- * Escalating pause ladder — one rung per successive trip, the last one sticky.
- * Each rung is jittered 0.5x-1.5x when applied.
+ * Tuning, from the remote config's `breaker` group. Read at the point of use so
+ * a pushed change applies without a restart.
  *
- * The head is short so an ordinary blip costs a listener half a minute rather
- * than two, and the tail is long so a client that has failed a dozen times in a
- * row settles at a rate the whole fleet can sustain against a struggling API.
+ * - `tripStatuses` — transport statuses that mean the edge refused us, not that
+ *   nothing is there.
+ * - `failureThreshold` — consecutive qualifying failures before the breaker opens.
+ * - `ladderMs` — escalating pause ladder, one rung per successive trip, the last
+ *   one sticky, each jittered by `ladderJitterRatio` when applied. The head is
+ *   short so an ordinary blip costs a listener half a minute rather than two, and
+ *   the tail is long so a client that has failed a dozen times in a row settles
+ *   at a rate the whole fleet can sustain against a struggling API.
+ * - `openUntilSanityMs` — a persisted `openUntil` further out than this can only
+ *   come from a corrupt record or a backwards system-clock change; without the
+ *   clamp such a value would silence the client indefinitely. Kept well clear of
+ *   the longest rung rather than derived from it: the same bound caps a
+ *   `Retry-After` the origin sent us, and clamping that down to a ladder rung
+ *   would make us noisier than the server asked for.
+ * - `ladderDecayMs` — quiet period after which the ladder drops back to its
+ *   first rung.
+ * - `probeMinIntervalMs` — minimum spacing between user-initiated lyrics probes
+ *   while open.
+ * - `probeStaleAfterMs` — a probe still unsettled after this long is treated as
+ *   abandoned. `Query` holds every request to its own deadline, so this is a
+ *   backstop rather than the main defence — but it is the one that matters,
+ *   because a probe slot left held forever would stop the breaker ever closing
+ *   again for the rest of the session.
  */
-const LADDER_MS = [
-  // A blip: three quick attempts before conceding something is really wrong.
-  30_000, 30_000, 30_000,
-  60_000,
-  // The long middle, where a genuine outage is waited out.
-  120_000, 120_000, 120_000, 120_000, 120_000, 120_000, 120_000, 120_000,
-  // Sticky: this rung and every trip after it.
-  300_000,
-];
-
-/**
- * A persisted `openUntil` further out than this can only come from a corrupt
- * record or a backwards system-clock change; without the clamp such a value
- * would silence the client indefinitely.
- *
- * Deliberately well clear of the longest rung rather than derived from it: the
- * same bound caps a `Retry-After` the origin sent us, and clamping that down to
- * a ladder rung would make us noisier than the server asked for.
- */
-const OPEN_UNTIL_SANITY_MS = 2_700_000;
-
-/** Quiet period after which the ladder drops back to its first rung. */
-const LADDER_DECAY_MS = 3_600_000;
-
-/** Minimum spacing between user-initiated lyrics probes while open. */
-const PROBE_MIN_INTERVAL_MS = 30_000;
-
-/**
- * A probe still unsettled after this long is treated as abandoned.
- *
- * `Query` holds every request to a 15s deadline, so this is a backstop rather
- * than the main defence — but it is the one that matters, because a probe slot
- * left held forever would stop the breaker ever closing again for the rest of
- * the session.
- */
-const PROBE_STALE_AFTER_MS = 60_000;
+const cfg = () => getRemoteConfig().breaker;
 
 type BreakerState = {
   /** Epoch ms. Requests are suppressed until this moment. */
@@ -153,7 +133,7 @@ let generation = 0;
 function probeIsHeld(now: number): boolean {
   if (!probeInFlight) return false;
 
-  if (now - probeStartedAt > PROBE_STALE_AFTER_MS) {
+  if (now - probeStartedAt > cfg().probeStaleAfterMs) {
     breakerLogger.warn("Probe never settled, releasing the slot");
     probeInFlight = false;
     // Drop the token too, so if the abandoned request does eventually settle it
@@ -170,7 +150,7 @@ function probeIsHeld(now: number): boolean {
  *
  * Returns false when the lease no longer describes the breaker's current view of
  * the world, in which case the caller must leave breaker state alone. `Query`'s
- * 15s timeout bounds how long a lease can stay open, but not the order in which
+ * deadline bounds how long a lease can stay open, but not the order in which
  * two settles arrive, so both ways of getting there are reachable:
  *
  * - **A superseded probe.** Released as stale while its request was still open,
@@ -219,7 +199,7 @@ function normalizeState(): void {
   const now = Date.now();
   let changed = false;
 
-  if (state.openUntil - now > OPEN_UNTIL_SANITY_MS) {
+  if (state.openUntil - now > cfg().openUntilSanityMs) {
     breakerLogger.warn("openUntil beyond sanity bound, resetting", state.openUntil);
     state.openUntil = 0;
     state.ladderIndex = 0;
@@ -238,7 +218,7 @@ function normalizeState(): void {
   }
 
   // A long quiet spell should not leave us starting at the 30 minute rung.
-  if (state.ladderIndex > 0 && now - state.lastTripAt > LADDER_DECAY_MS) {
+  if (state.ladderIndex > 0 && now - state.lastTripAt > cfg().ladderDecayMs) {
     breakerLogger.info("Ladder decayed back to its first rung");
     state.ladderIndex = 0;
     changed = true;
@@ -249,9 +229,20 @@ function normalizeState(): void {
 
 normalizeState();
 
+// A tightened bound pushed mid-outage should reach clients already waiting out a
+// pause, not only their next trip. Capped rather than cleared: the window was
+// legitimate, it is just longer than the server now wants.
+onRemoteConfigChange(({ breaker }) => {
+  const now = Date.now();
+  if (state.openUntil - now <= breaker.openUntilSanityMs) return;
+  state.openUntil = now + breaker.openUntilSanityMs;
+  store.SaveChanges();
+  breakerLogger.info("Open window capped by a new sanity bound");
+});
+
 /** True when a response status means the edge refused us. */
 export function IsTripStatus(status: number): boolean {
-  return TRIP_STATUSES.has(status);
+  return cfg().tripStatuses.includes(status);
 }
 
 /** Milliseconds until the breaker closes, or 0 when it is not open. */
@@ -269,7 +260,7 @@ export function IsOpen(): boolean {
  * `probeCandidate` marks a user-initiated lyrics fetch, which may pass even
  * while the breaker is open — an actively-listening user then recovers as soon
  * as the API relents, and their request doubles as the health check. It is
- * bounded by `PROBE_MIN_INTERVAL_MS` and the single-in-flight guard, so a user
+ * bounded by `probeMinIntervalMs` and the single-in-flight guard, so a user
  * skipping tracks still costs at most two requests a minute.
  *
  * @throws {ServiceUnavailableError} when the request must not be made.
@@ -282,8 +273,8 @@ export function Acquire(probeCandidate: boolean): BreakerLease {
     if (probeIsHeld(now)) throw new ServiceUnavailableError(state.openUntil - now);
 
     const sinceLastProbe = now - state.lastProbeAt;
-    if (sinceLastProbe < PROBE_MIN_INTERVAL_MS) {
-      throw new ServiceUnavailableError(PROBE_MIN_INTERVAL_MS - sinceLastProbe);
+    if (sinceLastProbe < cfg().probeMinIntervalMs) {
+      throw new ServiceUnavailableError(cfg().probeMinIntervalMs - sinceLastProbe);
     }
 
     return grantProbe("earlyProbe", now);
@@ -291,7 +282,7 @@ export function Acquire(probeCandidate: boolean): BreakerLease {
 
   // Past the window but never closed: the next request is the health check.
   if (state.openUntil !== 0) {
-    if (probeIsHeld(now)) throw new ServiceUnavailableError(PROBE_MIN_INTERVAL_MS);
+    if (probeIsHeld(now)) throw new ServiceUnavailableError(cfg().probeMinIntervalMs);
     return grantProbe("halfOpen", now);
   }
 
@@ -344,17 +335,18 @@ export function SettleFailure(lease: BreakerLease, retryAfterHeaderMs?: number):
   }
 
   consecutiveFailures += 1;
-  if (consecutiveFailures >= FAILURE_THRESHOLD) trip(retryAfterHeaderMs);
+  if (consecutiveFailures >= cfg().failureThreshold) trip(retryAfterHeaderMs);
 }
 
 function trip(retryAfterHeaderMs?: number): void {
   const now = Date.now();
-  const rung = LADDER_MS[Math.min(state.ladderIndex, LADDER_MS.length - 1)];
-  const pause = Math.min(retryAfterHeaderMs ?? jitter(rung, 0.5), OPEN_UNTIL_SANITY_MS);
+  const { ladderMs, ladderJitterRatio, openUntilSanityMs } = cfg();
+  const rung = ladderMs[Math.min(state.ladderIndex, ladderMs.length - 1)];
+  const pause = Math.min(retryAfterHeaderMs ?? jitter(rung, ladderJitterRatio), openUntilSanityMs);
 
   state.openUntil = now + pause;
   state.lastTripAt = now;
-  state.ladderIndex = Math.min(state.ladderIndex + 1, LADDER_MS.length - 1);
+  state.ladderIndex = Math.min(state.ladderIndex + 1, ladderMs.length - 1);
   generation += 1;
   consecutiveFailures = 0;
   store.SaveChanges();

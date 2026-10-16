@@ -23,9 +23,11 @@ import {
   ClearScrollSimplebar,
   ScrollSimplebar,
 } from "../../utils/Scrolling/Simplebar/ScrollSimplebar.ts";
-import ApplyDynamicBackground, { KawarpMap } from "../DynamicBG/dynamicBackground.ts";
+import ApplyDynamicBackground, { KawarpMap, PAGE_BACKGROUND_KEY } from "../DynamicBG/dynamicBackground.ts";
 import {
+  $creditsFollowLastLine,
   $currentLyricsData,
+  $duetLinePadding,
   $lineHoverBackground,
   $lyricsContainerExists,
   $minimalLyricsMode,
@@ -65,7 +67,11 @@ import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
 import Logger from "../../utils/Logger.ts";
 import { setStockPlaybarPage } from "../../utils/themeMatcher.ts";
-import { ApplyExperimentClasses, onExperimentChange } from "../../utils/experiments.ts";
+import {
+  ApplyExperimentClasses,
+  onExperimentChange,
+  onExperimentDefinitionChange,
+} from "../../utils/experiments.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
@@ -291,6 +297,14 @@ async function OpenPage(
     elem.classList.add("NoLineHoverBackground");
   }
 
+  if ($duetLinePadding.get()) {
+    elem.classList.add("DuetLinePadding");
+  }
+
+  if ($creditsFollowLastLine.get()) {
+    elem.classList.add("CreditsFollowLastLine");
+  }
+
   // Gates the raised .PlaybackControls / tightened .Heart offsets that make room for
   // the volume band — without it, turning the setting off would leave a gap.
   if ($showVolumeSlider.get()) {
@@ -305,7 +319,7 @@ async function OpenPage(
   // Card mode stays transparent — the NPV's own dynamic background shows through.
   if (contentBox && !IsCardMode) {
     try {
-      ApplyDynamicBackground(contentBox, "lpagebg");
+      ApplyDynamicBackground(contentBox, PAGE_BACKGROUND_KEY);
     } catch (err) {
       pageLogger.error("Error applying dynamic background", err);
     }
@@ -427,8 +441,8 @@ async function DestroyPage() {
   // close already playing, so it can't re-insert this page afterwards.
   Fullscreen.CloseImmediately();
 
-  KawarpMap.get("lpagebg")?.dispose();
-  KawarpMap.delete("lpagebg");
+  KawarpMap.get(PAGE_BACKGROUND_KEY)?.dispose();
+  KawarpMap.delete(PAGE_BACKGROUND_KEY);
   ResetLastLine();
   CleanupScrollEvents();
   PageResizeListener?.disconnect(); // Disconnect the observer
@@ -834,6 +848,16 @@ $lineHoverBackground.listen((v) => {
   PageContainer.classList.toggle("NoLineHoverBackground", !v);
 });
 
+$duetLinePadding.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("DuetLinePadding", v);
+});
+
+$creditsFollowLastLine.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.classList.toggle("CreditsFollowLastLine", v);
+});
+
 $skipSpicyFont.listen((v) => {
   if (!PageContainer) return;
   PageContainer.classList.toggle("UseSpicyFont", !v);
@@ -847,7 +871,17 @@ $showVolumeSlider.listen((v) => {
 
 // Experiments own their CSS hook here; NowBar.ts handles the rebuild for the ones
 // that need one. Adding an experiment requires no change to this file.
-onExperimentChange(() => {
+onExperimentChange((experiment) => {
+  if (!PageContainer) return;
+  ApplyExperimentClasses(PageContainer);
+  // Its letter split and word springs are fixed when the lyrics are built, so rebuild them.
+  if (experiment.id === "refreshedSimpleLyrics" && $simpleLyricsMode.get()) {
+    const uri = SpotifyPlayer.GetUri();
+    $currentLyricsData.set("");
+    if (uri) fetchLyrics(uri).then(ApplyLyrics);
+  }
+});
+onExperimentDefinitionChange(() => {
   if (!PageContainer) return;
   ApplyExperimentClasses(PageContainer);
 });

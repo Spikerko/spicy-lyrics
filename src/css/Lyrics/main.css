@@ -75,7 +75,21 @@
   );
 }
 
-.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent:has(.LyricsNotice) {
+/* Once SimpleBar is up, the popup masks its wrapper instead: the scrollbar
+   tracks are the wrapper's siblings, so the fades no longer hide the thumb when
+   it sits at the top or bottom of the list. */
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent[data-simplebar] {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent[data-simplebar] > .simplebar-wrapper {
+  -webkit-mask-image: var(--ImageMask);
+  mask-image: var(--ImageMask);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent:has(.LyricsNotice),
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent:has(.LyricsNotice) > .simplebar-wrapper {
   -webkit-mask-image: none;
   mask-image: none;
 }

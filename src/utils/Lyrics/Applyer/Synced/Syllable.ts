@@ -25,10 +25,11 @@ import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "../Utils/PickDisplayText.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "../Credits/ApplyIsByCommunity.tsx";
-import { ApplyLyricsCredits } from "../Credits/ApplyLyricsCredits.ts";
+import { ApplyLyricsCredits, MarkLastLineSide } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
 import Emphasize from "../Utils/Emphasize.ts";
-import { IsLetterCapable } from "../Utils/IsLetterCapable.ts";
+import { IsLetterCapable, MinLetterCapableDuration } from "../Utils/IsLetterCapable.ts";
+import { SplitLetters } from "../Utils/SplitLetters.ts";
 import { ApplyLyricsProvider } from "../Credits/ApplyProvider.ts";
 import { HasRenderableText, IsEmptySyllableGroup, RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
 
@@ -95,6 +96,12 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
     line.Background?.some(bg => bg.Syllables.some(syllable => isRtl(syllable.Text))) === true
   );
   LyricsContainer.classList.toggle("HasRtlLines", hasRtlLines);
+  const lastLine = content[content.length - 1];
+  MarkLastLineSide(
+    LyricsContainer,
+    !!lastLine?.OppositeAligned,
+    !!lastLine?.Lead.Syllables.some(syllable => isRtl(syllable.Text))
+  );
 
   LyricsContainer.setAttribute("data-lyrics-type", "Syllable");
 
@@ -248,15 +255,15 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         PickDisplayText(lead, UseRomanized)
       );
 
-      const letterLength = leadRenderText.split("").length;
+      // Too short to split whatever its letters: skip the grapheme split.
+      const letters = totalDuration >= MinLetterCapableDuration() ? SplitLetters(leadRenderText) : [];
+      const letterLength = letters.length;
 
       const IfLetterCapable =
         letterLength > 0 && IsLetterCapable(letterLength, totalDuration) && !isRtl(leadRenderText);
 
       if (IfLetterCapable) {
         word = document.createElement("div");
-        const letters = leadRenderText.split(""); // Split word into individual letters
-
         Emphasize(letters, word, lead);
 
         iL === aL.length - 1
@@ -357,15 +364,15 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             PickDisplayText(bw, UseRomanized)
           );
 
-          const letterLength = bgRenderText.split("").length;
+          // Too short to split whatever its letters: skip the grapheme split.
+          const letters = totalDuration >= MinLetterCapableDuration() ? SplitLetters(bgRenderText) : [];
+          const letterLength = letters.length;
 
           const IfLetterCapable =
             letterLength > 0 && IsLetterCapable(letterLength, totalDuration) && !isRtl(bgRenderText);
 
           if (IfLetterCapable) {
             bwE = document.createElement("div");
-            const letters = bgRenderText.split(""); // Split word into individual letters
-
             Emphasize(letters, bwE, bw, true);
 
             bI === bA.length - 1

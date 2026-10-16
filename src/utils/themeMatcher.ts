@@ -111,7 +111,9 @@ const STOCK_PLAYBAR_CLASS = "SpicyLyrics_StockPlaybar";
 const getPlaybar = () =>
   document.querySelector<HTMLElement>(".Root__now-playing-bar .playback-bar") ??
   document.querySelector<HTMLElement>('[data-testid="now-playing-bar"] .playback-bar') ??
-  document.querySelector<HTMLElement>(".playback-bar");
+  document.querySelector<HTMLElement>(".playback-bar") ??
+  // 1.3.5 no longer maps .playback-bar; default.scss lists this hash next to it.
+  document.querySelector<HTMLElement>('[data-testid="now-playing-bar"] .cBGHFhO702FCP9WRLR3X');
 
 const getElapsed = (bar: HTMLElement) =>
   bar.querySelector<HTMLElement>(

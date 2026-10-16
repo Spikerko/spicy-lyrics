@@ -20,7 +20,7 @@ import { StripZeroWidth } from "./Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "./Utils/PickDisplayText.ts";
 import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 import { ApplyIsByCommunity } from "./Credits/ApplyIsByCommunity.tsx";
-import { ApplyLyricsCredits } from "./Credits/ApplyLyricsCredits.ts";
+import { ApplyLyricsCredits, MarkLastLineSide } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
 import { ApplyLyricsProvider } from "./Credits/ApplyProvider.ts";
 import { RemoveEmptyLyricsLines } from "../EmptyLines.ts";
@@ -65,6 +65,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   const lines = RemoveEmptyLyricsLines(data.Lines);
 
   LyricsContainer.classList.remove("HasDuetLines");
+  MarkLastLineSide(LyricsContainer, false, false);
   const hasRtlLines = lines.some(line => isRtl(line.Text));
   LyricsContainer.classList.toggle("HasRtlLines", hasRtlLines);
 

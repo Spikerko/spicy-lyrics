@@ -124,6 +124,8 @@
 
   /* ─── Motion (for new usage; existing tuned curves preserved verbatim) ── */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Entrances and state swaps: moves at once, settles long. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --dur-fast: 0.15s;
   --dur-base: 0.25s;
   --dur-slow: 0.4s;

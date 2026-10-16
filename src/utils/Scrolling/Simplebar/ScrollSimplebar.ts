@@ -26,8 +26,10 @@ export function MountScrollSimplebar() {
     return;
   }
 
-  // @ts-expect-error abc
-  ScrollSimplebar = new SimpleBar(LyricsContainer, { autoHide: false });
+  // The popup's lyrics can be a few hundred px tall over a very long list, where
+  // the default 25px thumb is a hard target.
+  const scrollbarMinSize = LyricsContainer.closest(".spicy-pip-wrapper") ? 36 : 25;
+  ScrollSimplebar = new SimpleBar(LyricsContainer, { autoHide: false, scrollbarMinSize });
 
   PageContainer
     .querySelector<HTMLElement>(ElementEventQuery)
@@ -55,13 +57,18 @@ export function RecalculateScrollSimplebar() {
   ScrollSimplebar?.recalculate();
 }
 
+// SimpleBar puts this class on its root for the whole of a thumb drag.
+export function IsScrollbarDragging(): boolean {
+  return ScrollSimplebar?.el?.classList.contains("simplebar-dragging") ?? false;
+}
+
 new IntervalManager(Infinity, () => {
   if (!PageContainer) return;
   const LyricsContainer = PageContainer.querySelector<HTMLElement>(
     ".LyricsContainer .LyricsContent"
   );
   if (!LyricsContainer || !ScrollSimplebar) return;
-  const hide = !IsMouseInLyricsPage && !ScrollSimplebar.isDragging;
+  const hide = !IsMouseInLyricsPage && !IsScrollbarDragging();
   // Unguarded add/remove would queue a MutationObserver record every frame.
   if (LyricsContainer.classList.contains("hide-scrollbar") !== hide) {
     LyricsContainer.classList.toggle("hide-scrollbar", hide);

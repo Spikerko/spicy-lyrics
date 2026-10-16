@@ -7,7 +7,8 @@ import {
 import { Maid } from "../../modules/Maid.ts";
 import { Spring } from "../../modules/Spring.ts";
 import Logger from "../Logger.ts";
-import { $smoothScrolling } from "../stores.ts";
+import { $simpleLyricsMode, $smoothScrolling } from "../stores.ts";
+import { $experiment, isExperimentEnabled } from "../experiments.ts";
 import { cancelCappedFrame, requestCappedFrame } from "../AnimationFrameLoop.ts";
 
 // Gap scale factors relative to 1cqw (containerWidth / 100).
@@ -48,12 +49,51 @@ const SMOOTH_SCROLL_MAX_RECONCILES = 3;
 // With Smooth Scrolling on, rows glide to a new position instead of jumping when
 // something above them changes height — chiefly a "•••" interlude line, which
 // snaps between 0 and a full line height as it becomes active and ends.
-const LAYOUT_GLIDE_TRANSITION = "transform 0.5s cubic-bezier(0.22, 1, 0.36, 1)";
+const LAYOUT_GLIDE_MS = 500;
+const LAYOUT_GLIDE_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+const LAYOUT_GLIDE_TRANSITION = `transform ${LAYOUT_GLIDE_MS / 1000}s ${LAYOUT_GLIDE_EASING}`;
 // Row glides are held off for this long after anything that re-lays the list out
 // wholesale (opening it, instant jumps, resizes, the user scrolling), where rows
 // sliding into place would look like drift rather than motion.
 const LAYOUT_GLIDE_BLOCK_INIT_MS = 1500;
 const LAYOUT_GLIDE_BLOCK_MS = 800;
+
+// Refreshed Simple Lyrics (experiment). Lines sit further apart, by a share of
+// the lyrics' own font size rather than of the container, so the spacing keeps
+// its proportion where the font size is clamped.
+const REFRESHED_GAP_EM = 0.62;
+
+// It also follows the active line in a ripple instead of moving the list as one
+// block: the list jumps to its new place, every row is held where it was, and
+// each lets go a moment after the row above it and springs home.
+const CASCADE_FREQUENCY = 2.1; // Hz
+const CASCADE_STEP_MS = 42; // wait between one row and the next
+// Below the active line the waits shrink, so the rows coming up close ranks.
+const CASCADE_STEP_FALLOFF = 0.9;
+// A move bigger than this share of the viewport is a jump, not a line change.
+const CASCADE_MAX_JUMP = 0.7;
+// A row is home once this close (px) and slower than this (px/s).
+const CASCADE_SETTLE_PX = 0.2;
+const CASCADE_SETTLE_SPEED = 4;
+const CASCADE_MAX_STEP = 0.05;
+const CASCADE_MAX_ELAPSED = 0.1;
+
+// One row of the ripple, as the scroll position it is drawn at: `p` (velocity
+// `v`) springs toward `goal`. A row still waiting its turn takes `next` as its
+// goal once the clock reaches `at` (0 when nothing is waiting).
+type CascadeRow = { p: number; v: number; goal: number; next: number; at: number; drawn: number };
+
+// Critically damped, so a row never overshoots into its neighbours.
+function stepCascadeRow(row: CascadeRow, dt: number, w: number): void {
+  const q = Math.exp(-w * dt);
+  const o = row.p - row.goal;
+  const k = row.v + w * o;
+  row.p = (o + k * dt) * q + row.goal;
+  row.v = (row.v - w * k * dt) * q;
+}
+
+const isRefreshedSimpleLyrics = (): boolean =>
+  $simpleLyricsMode.get() && isExperimentEnabled("refreshedSimpleLyrics");
 
 class LyricsVirtualizer {
   private _virtualizer: Virtualizer<HTMLElement, HTMLElement> | null = null;
@@ -122,6 +162,9 @@ class LyricsVirtualizer {
   // trips on a genuine user scroll.
   private _converging = false;
 
+  // The SimpleBar root, which carries .simplebar-dragging while its thumb is held.
+  private _scrollbarRoot: HTMLElement | null = null;
+
   // Re-entry guard for _onVirtualizerChange. TanStack's resizeItem calls onChange
   // synchronously on a non-zero size delta, so v.measureElement() inside the mount
   // loop can recurse back in; without this guard the outer loop's stale items
@@ -165,6 +208,30 @@ class LyricsVirtualizer {
   // performance.now() until which row glides stay off. See LAYOUT_GLIDE_BLOCK_MS.
   private _layoutGlideBlockedUntil = 0;
 
+  // Refreshed Simple Lyrics state (see REFRESHED_GAP_EM / CASCADE_*). The flag
+  // is cached because _itemGap runs for every row on every estimate.
+  private _refreshed = false;
+  // Font size of a lyrics line, for the refreshed gap; 0 until one is mounted.
+  private _gapFontPx = 0;
+  private _cascadeRows = new Map<number, CascadeRow>();
+  // scrollTop the ripple is converging on.
+  private _cascadeScroll = 0;
+  private _cascadeRAF: number | null = null;
+  private _cascadeLastTs: number | null = null;
+  // The retry chain in flight was started by a ripple scroll.
+  private _cascadeChain = false;
+  // The credits, provider and song info under the list are plain flow content,
+  // so they move with scrollTop alone. They get the last row's ripple offset or
+  // the glide's sub-pixel remainder, whichever is running, through `translate`.
+  private _trailingOffset = 0;
+  // Those elements, kept between frames. The observer watches the list's parent for
+  // children coming and going, and its pending records are checked on every read, so the
+  // cache never lags a change, even one made earlier in the same task.
+  private _trailingCache: HTMLElement[] | null = null;
+  private _trailingObserver: MutationObserver | null = null;
+  // Total size at the last layout pass, so the credits can glide when it changes.
+  private _lastTotalSize = 0;
+
   setOnNewElementMounted(cb: (() => void) | null): void {
     this._onNewElementMounted = cb;
   }
@@ -180,7 +247,60 @@ class LyricsVirtualizer {
     // too so there is no double-gap between the surrounding lines.
     const el = this._allElements[index];
     if (el?.classList.contains("musical-line") && !el.classList.contains("Active")) return 0;
-    return (this._isNextBgLine(index) ? GAP_LINE_TO_BG : GAP_NORMAL) * (this._containerWidth / 100);
+    const cqw = this._containerWidth / 100;
+    if (this._isNextBgLine(index)) return GAP_LINE_TO_BG * cqw;
+    if (this._refreshed && this._gapFontPx > 0) return this._gapFontPx * REFRESHED_GAP_EM;
+    return GAP_NORMAL * cqw;
+  }
+
+  // Reads a mounted lyrics line's font size into _gapFontPx. Costs a style
+  // recalc, so it only runs where a layout read follows anyway. True on change.
+  private _readGapFont(): boolean {
+    for (const idx of this._mountedIndices) {
+      const el = this._allElements[idx];
+      if (!el?.isConnected) continue;
+      if (el.classList.contains("musical-line") || el.classList.contains("bg-line")) continue;
+      const px = parseFloat(getComputedStyle(el).fontSize);
+      if (!(px > 0)) continue;
+      const changed = Math.abs(px - this._gapFontPx) >= 0.5;
+      if (changed) this._gapFontPx = px;
+      return changed;
+    }
+    return false;
+  }
+
+  // Simple Lyrics Mode or the experiment flipped. Rows off screen keep their
+  // measured height, so it is moved by the change in their gap; otherwise the
+  // list would shift as each one next mounts.
+  private _applyRefreshed(next: boolean): void {
+    if (next === this._refreshed) return;
+    const v = this._virtualizer;
+    const sizes = v
+      ? (v as unknown as { itemSizeCache?: Map<number, number> }).itemSizeCache
+      : undefined;
+    const oldGaps = new Map<number, number>();
+    if (sizes) {
+      for (const idx of sizes.keys()) {
+        if (!this._mountedIndices.has(idx)) oldGaps.set(idx, this._itemGap(idx));
+      }
+    }
+    this._refreshed = next;
+    // As in init(): the ripple needs scroll anchoring off.
+    if (this._scrollEl) this._scrollEl.style.overflowAnchor = next ? "none" : "";
+    if (next) this._readGapFont();
+    else this._stopCascade();
+    if (!v || !sizes) return;
+    for (const [idx, oldGap] of oldGaps) {
+      const size = sizes.get(idx);
+      const delta = this._itemGap(idx) - oldGap;
+      if (size !== undefined && Math.abs(delta) >= 0.5) v.resizeItem(idx, size + delta);
+    }
+    this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+    this._remeasureVisible();
+  }
+
+  get refreshedLayout(): boolean {
+    return this._refreshed;
   }
 
   private _estimateSize = (index: number): number => {
@@ -212,6 +332,8 @@ class LyricsVirtualizer {
       mountedCount: this._mountedIndices.size,
       containerWidth: this._containerWidth,
     });
+    // The font can change with the width (it is clamped), so re-read it here.
+    if (this._refreshed) this._readGapFont();
     const toMeasure: HTMLElement[] = [];
     for (const idx of this._mountedIndices) {
       const wrapper = this._wrappers[idx];
@@ -392,6 +514,21 @@ class LyricsVirtualizer {
     this._wrappers = new Array(lineElements.length).fill(null);
     this._virtualContainer = virtualContainer;
     this._scrollEl = scrollEl;
+    this._trailingCache = null;
+    const listParent = virtualContainer.parentElement;
+    if (listParent) {
+      this._trailingObserver = this._maid.Give(
+        new MutationObserver(() => {
+          this._trailingCache = null;
+        })
+      );
+      this._trailingObserver.observe(listParent, { childList: true });
+    }
+    this._refreshed = isRefreshedSimpleLyrics();
+    // The ripple holds rows back with `translate` as the list scrolls past them,
+    // and Chromium's scroll anchoring reads that as the rows moving down, so it
+    // scrolled the list a second time by the same amount.
+    if (this._refreshed) scrollEl.style.overflowAnchor = "none";
 
     const containerWidth = scrollEl.clientWidth || virtualContainer.clientWidth || 0;
     this._containerWidth = containerWidth;
@@ -485,6 +622,9 @@ class LyricsVirtualizer {
         if (!enabled) this._handOffSmoothScroll();
       })
     );
+    const syncRefreshed = () => this._applyRefreshed(isRefreshedSimpleLyrics());
+    this._maid!.Give($simpleLyricsMode.listen(syncRefreshed));
+    this._maid!.Give($experiment("refreshedSimpleLyrics").listen(syncRefreshed));
     this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_INIT_MS);
 
     scrollEl.scrollTop = 0;
@@ -523,6 +663,7 @@ class LyricsVirtualizer {
     // Anything the user does to move the list. The scrollbar lives on the
     // SimpleBar root, outside the scroll element, hence the second target.
     const intentRoot = scrollEl.closest<HTMLElement>("[data-simplebar]") ?? scrollEl;
+    this._scrollbarRoot = intentRoot;
     for (const type of ["wheel", "touchstart", "keydown"] as const) {
       scrollEl.addEventListener(type, this._onUserScrollIntent, { passive: true });
     }
@@ -726,6 +867,16 @@ class LyricsVirtualizer {
 
     const totalSize = v.getTotalSize();
     this._virtualContainer.style.height = `${totalSize}px`;
+    const sizeDelta = totalSize - this._lastTotalSize;
+    if (
+      this._lastTotalSize > 0 &&
+      Math.abs(sizeDelta) >= 0.5 &&
+      this._mountedIndices.has(this._allElements.length - 1) &&
+      this._layoutGlideEnabled()
+    ) {
+      this._glideTrailing(sizeDelta);
+    }
+    this._lastTotalSize = totalSize;
 
     const items = v.getVirtualItems();
     const nextVisible = new Set(items.map((i) => i.index));
@@ -765,6 +916,10 @@ class LyricsVirtualizer {
           wrapper.style.paddingBottom = `${gap}px`;
         }
         unmountWrappers.push(wrapper);
+        if (this._cascadeRows.delete(idx)) {
+          wrapper.style.translate = "";
+          if (idx === this._allElements.length - 1) this._setTrailingOffset(0);
+        }
       }
       this._mountedIndices.delete(idx);
     }
@@ -811,8 +966,19 @@ class LyricsVirtualizer {
         this._resizeObserver?.observe(wrapper);
         toMeasure.push(wrapper);
         mountedAny = true;
+        if (this._cascadeRows.size > 0) this._joinCascade(item.index);
       } else if (gapChanged) {
         toMeasure.push(wrapper);
+      }
+    }
+    // The first rows of a list: the refreshed gap needs a mounted line's font,
+    // so set their padding again now that there is one.
+    if (mountedAny && this._refreshed && this._gapFontPx === 0 && this._readGapFont()) {
+      for (const item of items) {
+        const wrapper = this._wrappers[item.index];
+        if (!wrapper) continue;
+        wrapper.style.paddingBottom = `${this._itemGap(item.index)}px`;
+        if (!toMeasure.includes(wrapper)) toMeasure.push(wrapper);
       }
     }
     for (const wrapper of toMeasure) v.measureElement(wrapper);
@@ -827,6 +993,53 @@ class LyricsVirtualizer {
         }
       });
     }
+  }
+
+  private _trailingElements(): HTMLElement[] {
+    if (this._trailingObserver?.takeRecords().length) this._trailingCache = null;
+    if (this._trailingCache) return this._trailingCache;
+    const out: HTMLElement[] = [];
+    let el = this._virtualContainer?.nextElementSibling;
+    while (el) {
+      if (el !== this._spacer) out.push(el as HTMLElement);
+      el = el.nextElementSibling;
+    }
+    // Without an observer nothing would clear the cache, so the list is walked every time.
+    if (this._trailingObserver) this._trailingCache = out;
+    return out;
+  }
+
+  private _setTrailingOffset(offset: number): void {
+    if (Math.abs(offset - this._trailingOffset) < 0.01 && offset !== 0) return;
+    if (offset === 0 && this._trailingOffset === 0) return;
+    this._trailingOffset = offset;
+    const value = offset === 0 ? "" : `0 ${offset.toFixed(2)}px`;
+    for (const el of this._trailingElements()) el.style.translate = value;
+  }
+
+  // The list grew or shrank by `delta` while its rows glide to their new places:
+  // start the credits where they were and glide them along with the last row.
+  // Additive, so a glide started mid-glide stacks instead of jumping.
+  private _glideTrailing(delta: number): void {
+    for (const el of this._trailingElements()) {
+      el.animate(
+        [{ transform: `translateY(${-delta}px)` }, { transform: "translateY(0)" }],
+        { duration: LAYOUT_GLIDE_MS, easing: LAYOUT_GLIDE_EASING, composite: "add" }
+      );
+    }
+  }
+
+  /**
+   * How much a "•••" interlude line right above `index` will give up. Once the
+   * line after it starts the interlude collapses to nothing, but a scroll to
+   * that line often starts first (Early Scroll, the ripple, Smooth Scrolling).
+   * Aimed at the line's current place, it would end up this far above centre
+   * when the collapse lands, so the scroll aims where the line is going.
+   */
+  private _collapsingAbove(v: Virtualizer<HTMLElement, HTMLElement>, index: number): number {
+    if (!this._allElements[index - 1]?.classList.contains("musical-line")) return 0;
+    const above = v.measurementsCache[index - 1] as { size: number } | undefined;
+    return above ? above.size : 0;
   }
 
   getVirtualizer(): Virtualizer<HTMLElement, HTMLElement> | null {
@@ -853,6 +1066,16 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    // Refreshed Simple Lyrics follows lines with the ripple, in place of either
+    // kind of smooth scroll. The list itself moves instantly; the rows animate.
+    this._cascadeChain = !instant && this._refreshed;
+    if (this._cascadeChain) {
+      this._stopSmoothScroll();
+      this._setConverging(true);
+      this._scrollToIndexWithRetry(index, align, true, padding, 0, null);
+      return;
+    }
+    this._stopCascade();
     if (!instant && $smoothScrolling.get()) {
       this._smoothScrollToIndex(index, align, padding);
       return;
@@ -860,6 +1083,133 @@ class LyricsVirtualizer {
     this._stopSmoothScroll();
     this._setConverging(true);
     this._scrollToIndexWithRetry(index, align, instant, padding, 0, null);
+  }
+
+  /**
+   * Hand a scroll the list just made (`from` → `to`) to the rows, so they reach
+   * it in a ripple. `target` is the line being scrolled to, or -1 for a retry
+   * correcting the same move, which leaves each row's place in the ripple as it
+   * was. Must run in the same task as the scrollTop write, before paint.
+   */
+  private _cascadeTo(
+    from: number,
+    to: number,
+    target: number,
+    containerOffset: number,
+    viewportHeight: number
+  ): void {
+    const v = this._virtualizer;
+    if (!v || Math.abs(to - from) < 0.5) return;
+    if (target >= 0 && Math.abs(to - from) > viewportHeight * CASCADE_MAX_JUMP) {
+      this._stopCascade();
+      return;
+    }
+    const now = performance.now();
+    let delay = 0;
+    let step = CASCADE_STEP_MS;
+    const indices = [...this._mountedIndices].sort((a, b) => a - b);
+    for (const idx of indices) {
+      let row = this._cascadeRows.get(idx);
+      if (!row) {
+        // At rest where the list was.
+        row = { p: from, v: 0, goal: from, next: from, at: 0, drawn: 0 };
+        this._cascadeRows.set(idx, row);
+      }
+      if (target < 0) {
+        if (row.at) row.next = to;
+        else row.goal = to;
+        continue;
+      }
+      const item = v.measurementsCache[idx] as { end: number } | undefined;
+      if (item && containerOffset + item.end - from <= 0) {
+        // Above the viewport: nobody sees it, so it needn't wait.
+        row.goal = to;
+        row.at = 0;
+        continue;
+      }
+      row.next = to;
+      row.at = now + delay;
+      delay += step;
+      if (idx >= target) step *= CASCADE_STEP_FALLOFF;
+    }
+    this._cascadeScroll = to;
+    // Hold every row where it was for this frame; the scroll already moved.
+    for (const [idx, row] of this._cascadeRows) this._drawCascadeRow(idx, row);
+    if (this._cascadeRAF === null) {
+      this._cascadeLastTs = null;
+      this._cascadeRAF = requestCappedFrame(this._cascadeStep);
+    }
+  }
+
+  // A row mounted mid-ripple (scrolled into the window) moves with its neighbour.
+  private _joinCascade(index: number): void {
+    for (let d = 1; d < 8; d++) {
+      const near = this._cascadeRows.get(index - d) ?? this._cascadeRows.get(index + d);
+      if (!near) continue;
+      const row = { ...near, drawn: 0 };
+      this._cascadeRows.set(index, row);
+      this._drawCascadeRow(index, row);
+      return;
+    }
+  }
+
+  private _drawCascadeRow(index: number, row: CascadeRow): void {
+    const offset = this._cascadeScroll - row.p;
+    if (Math.abs(offset - row.drawn) < 0.01) return;
+    row.drawn = offset;
+    const wrapper = this._wrappers[index];
+    if (wrapper) wrapper.style.translate = offset === 0 ? "" : `0 ${offset.toFixed(2)}px`;
+    if (index === this._allElements.length - 1) this._setTrailingOffset(offset);
+  }
+
+  private _cascadeStep = (ts: number): void => {
+    this._cascadeRAF = null;
+    const elapsed =
+      this._cascadeLastTs === null
+        ? 1 / 60
+        : Math.min((ts - this._cascadeLastTs) / 1000, CASCADE_MAX_ELAPSED);
+    this._cascadeLastTs = ts;
+    const now = performance.now();
+    const w = CASCADE_FREQUENCY * 2 * Math.PI;
+    for (const [idx, row] of this._cascadeRows) {
+      if (row.at && now >= row.at) {
+        row.goal = row.next;
+        row.at = 0;
+      }
+      for (let left = elapsed; left > 0; left -= CASCADE_MAX_STEP) {
+        stepCascadeRow(row, Math.min(left, CASCADE_MAX_STEP), w);
+      }
+      const home =
+        row.at === 0 &&
+        row.goal === this._cascadeScroll &&
+        Math.abs(row.p - row.goal) < CASCADE_SETTLE_PX &&
+        Math.abs(row.v) < CASCADE_SETTLE_SPEED;
+      if (home) {
+        row.p = row.goal;
+        this._drawCascadeRow(idx, row);
+        this._cascadeRows.delete(idx);
+      } else {
+        this._drawCascadeRow(idx, row);
+      }
+    }
+    if (this._cascadeRows.size > 0) this._cascadeRAF = requestCappedFrame(this._cascadeStep);
+    else this._cascadeLastTs = null;
+  };
+
+  // Puts every row back where the list has it, at once.
+  private _stopCascade(): void {
+    if (this._cascadeRAF !== null) {
+      cancelCappedFrame(this._cascadeRAF);
+      this._cascadeRAF = null;
+    }
+    for (const idx of this._cascadeRows.keys()) {
+      const wrapper = this._wrappers[idx];
+      if (wrapper) wrapper.style.translate = "";
+    }
+    this._cascadeRows.clear();
+    this._setTrailingOffset(0);
+    this._cascadeLastTs = null;
+    this._cascadeChain = false;
   }
 
   // Where item N sits in the virtual container. Unmeasured items fall back to an
@@ -982,7 +1332,7 @@ class LyricsVirtualizer {
       Math.min(
         maxScroll,
         this._computeFinalScrollTop(
-          item.start,
+          item.start - this._collapsingAbove(v, target.index),
           item.size,
           geometry.viewportHeight,
           geometry.containerOffset,
@@ -1085,6 +1435,7 @@ class LyricsVirtualizer {
     if (this._virtualContainer) {
       this._virtualContainer.style.translate = fraction === 0 ? "" : `0 ${-fraction}px`;
     }
+    this._setTrailingOffset(-fraction);
   }
 
   private _stopSmoothScroll(): void {
@@ -1110,6 +1461,13 @@ class LyricsVirtualizer {
       virtualizerLogger.debug("Smooth scroll cancelled: user scroll");
       this._stopSmoothScroll();
     }
+    // Rows still waiting their turn in a ripple head home now, so the list
+    // settles under the user's hand instead of trailing behind it.
+    for (const row of this._cascadeRows.values()) {
+      if (!row.at) continue;
+      row.goal = row.next;
+      row.at = 0;
+    }
   };
 
   private _blockLayoutGlide(ms: number): void {
@@ -1117,7 +1475,10 @@ class LyricsVirtualizer {
   }
 
   private _layoutGlideEnabled(): boolean {
-    return $smoothScrolling.get() && performance.now() >= this._layoutGlideBlockedUntil;
+    return (
+      ($smoothScrolling.get() || this._refreshed) &&
+      performance.now() >= this._layoutGlideBlockedUntil
+    );
   }
 
   // Converging (a programmatic scroll in flight): we are the only scrollTop
@@ -1139,6 +1500,9 @@ class LyricsVirtualizer {
     instance: Virtualizer<HTMLElement, HTMLElement>
   ): boolean => {
     if (this._converging) return false;
+    // A thumb drag sets scrollTop from the pointer on every move, so a correction
+    // here only bounces the list for one frame before the next move undoes it.
+    if (this._scrollbarRoot?.classList.contains("simplebar-dragging")) return false;
     // Rows are gliding to absorb the size change; shifting scrollTop by the same
     // amount instantly would move the list twice.
     if (this._layoutGlideEnabled()) return false;
@@ -1214,7 +1578,9 @@ class LyricsVirtualizer {
       return;
     }
 
-    const { start: itemStart, size: itemSize } = this._getItemRect(v, index);
+    const rect = this._getItemRect(v, index);
+    const itemStart = rect.start - this._collapsingAbove(v, index);
+    const itemSize = rect.size;
 
     const containerRect = this._virtualContainer.getBoundingClientRect();
     const scrollElRect = scrollEl.getBoundingClientRect();
@@ -1254,8 +1620,10 @@ class LyricsVirtualizer {
     }
 
     // An instant jump re-lays out the whole window; rows gliding around after it
-    // would look like the list settling. Extended on every retry.
-    if (instant) this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+    // would look like the list settling. Extended on every retry. A ripple
+    // scroll moves instantly too, but its rows are meant to be seen moving.
+    if (instant && !this._cascadeChain) this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+    const scrollTopBefore = this._cascadeChain ? scrollEl.scrollTop : 0;
 
     if (instant) {
       scrollEl.classList.add("InstantScroll");
@@ -1319,6 +1687,17 @@ class LyricsVirtualizer {
       this._onVirtualizerChange(v);
     }
 
+    // After the mount above, so rows scrolled into view join the ripple too.
+    if (this._cascadeChain) {
+      this._cascadeTo(
+        scrollTopBefore,
+        observedScrollTop,
+        retry === 0 ? index : -1,
+        containerOffset,
+        viewportHeight
+      );
+    }
+
     if (retry < LyricsVirtualizer._MAX_SCROLL_RETRIES) {
       this._scrollVerifyRAF = requestAnimationFrame(() => {
         this._scrollVerifyRAF = null;
@@ -1333,7 +1712,8 @@ class LyricsVirtualizer {
         // Did the cache move item N's position/size since we read it? Newly-mounted
         // items above N can shift its `start` even if N itself wasn't measured.
         const drift = fresh
-          ? Math.abs(fresh.start - itemStart) + Math.abs(fresh.size - itemSize)
+          ? Math.abs(fresh.start - this._collapsingAbove(v, index) - itemStart) +
+            Math.abs(fresh.size - itemSize)
           : 0;
         const wasClamped = finalScrollTop - maxScrollTop > 1;
         // By now the issued scroll has fired and onChange remounted the window, so
@@ -1372,13 +1752,21 @@ class LyricsVirtualizer {
       this._scrollVerifyRAF = null;
     }
     this._stopSmoothScroll();
+    this._stopCascade();
+    this._trailingOffset = 0;
+    this._trailingCache = null;
+    this._trailingObserver = null;
+    this._lastTotalSize = 0;
+    this._gapFontPx = 0;
     this._smoothSpring = null;
     this._layoutGlideBlockedUntil = 0;
     // Reset convergence so the next virtualizer instance doesn't inherit a stale `true`
     // (the hook would then refuse every adjustment for the new instance).
     this._converging = false;
+    this._scrollbarRoot = null;
     this._maid?.Destroy();
     this._maid = null;
+    if (this._scrollEl) this._scrollEl.style.overflowAnchor = "";
     this._scrollEl = null;
     this._resizeObserver = null;
     this._widthObserver = null;
@@ -1435,6 +1823,12 @@ export function scrollLyricsToIndex(
   padding: number = 0
 ): void {
   lyricsVirtualizer.scrollToIndex(index, align, instant, padding);
+}
+
+// Refreshed Simple Lyrics is on for the current list: rows glide when one
+// above them changes height, and line changes ripple instead of scrolling.
+export function lyricsUseRefreshedLayout(): boolean {
+  return lyricsVirtualizer.refreshedLayout;
 }
 
 export function destroyLyricsVirtualizer(): void {

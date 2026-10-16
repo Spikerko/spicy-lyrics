@@ -167,8 +167,53 @@ body.player-floating:has(.glassify-bg) #SpicyLyricsPage:not(.Fullscreen) .ViewCo
   fill: none !important;
 }
 
-#SpicyLyricsPage .ViewControls .ViewControl#Close svg {
-  scale: 1.15;
+/* Icon parts (Icons.ts) follow page state, so the icon always shows the layout the page has. */
+#SpicyLyricsPage .ViewControls .SL_IconPart {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform var(--dur-base, 0.25s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+#SpicyLyricsPage.NowBarSide__Right .ViewControls #NowBarToggle .SL_IconCover {
+  transform: translateX(9px);
+}
+
+#SpicyLyricsPage.NowBarSide__Right .ViewControls #NowBarToggle .SL_IconLyrics {
+  transform: translateX(-12.5px);
+}
+
+#SpicyLyricsPage.NowBarSide__Right .ViewControls #NowBarSideToggle .SL_IconCover {
+  transform: translateX(7px);
+}
+
+#SpicyLyricsPage.NowBarSide__Right .ViewControls .SL_IconSwapArrow {
+  transform: translateX(-8px) rotate(180deg);
+}
+
+/* Hover leans each part toward what the button will do: corners out, the gear a tooth on. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  #SpicyLyricsPage .ViewControls .ViewControl:hover .SL_NudgeTL { translate: -1px -1px; }
+  #SpicyLyricsPage .ViewControls .ViewControl:hover .SL_NudgeTR { translate: 1px -1px; }
+  #SpicyLyricsPage .ViewControls .ViewControl:hover .SL_NudgeBR { translate: 1px 1px; }
+  #SpicyLyricsPage .ViewControls .ViewControl:hover .SL_NudgeBL { translate: -1px 1px; }
+  #SpicyLyricsPage .ViewControls .ViewControl:hover .SL_IconGear { rotate: 45deg; }
+}
+
+#SpicyLyricsPage .ViewControls .SL_NudgeTL,
+#SpicyLyricsPage .ViewControls .SL_NudgeTR,
+#SpicyLyricsPage .ViewControls .SL_NudgeBR,
+#SpicyLyricsPage .ViewControls .SL_NudgeBL,
+#SpicyLyricsPage .ViewControls .SL_IconGear {
+  transition:
+    transform var(--dur-base, 0.25s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    translate 0.2s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    rotate 0.3s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ViewControls .SL_IconPart {
+    transition: none;
+  }
 }
 
 /* #SpicyLyricsPage:not(.Fullscreen, .NowBarSide__Right) .ViewControls:hover {
@@ -394,7 +439,7 @@ button:has(#SpicyLyricsPageSvg)::after {
   transform: translateX(-50%) !important;
 }
 
-button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-genericButton-buttonActiveDot)::after {
+button:has(#SpicyLyricsPageSvg):not(.main-genericButton-buttonActive, .main-genericButton-buttonActiveDot, .OJsKOflU3SmUHnQ5_QKE)::after {
   content: unset;
 }
 

@@ -77,6 +77,54 @@
   fill: none !important;
 }
 
+/* The chevron turns over and the expand arrows turn inward with the card's state. Both move
+   whole svgs, which stay on the compositor while the card's morph holds the main thread. */
+#SpicyLyricsNPVCard #NPVCardToggle svg,
+#SpicyLyricsNPVCard .SL_IconStack svg {
+  transition:
+    transform var(--dur-base, 0.25s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    opacity var(--dur-base, 0.25s) var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+#SpicyLyricsNPVCard.Collapsed #NPVCardToggle svg {
+  transform: rotate(180deg);
+}
+
+#SpicyLyricsNPVCard .SL_IconStack {
+  display: grid;
+}
+
+#SpicyLyricsNPVCard .SL_IconStack svg {
+  grid-area: 1 / 1;
+}
+
+#SpicyLyricsNPVCard:not(.Expanded) .SL_IconStack svg:last-child,
+#SpicyLyricsNPVCard.Expanded .SL_IconStack svg:first-child {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+#SpicyLyricsNPVCard #NPVCardExpand .SL_NudgeL {
+  transition: translate 0.2s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  #SpicyLyricsNPVCard #NPVCardExpand:hover .SL_NudgeL {
+    translate: -1.5px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsNPVCard #NPVCardToggle svg,
+  #SpicyLyricsNPVCard .SL_IconStack svg {
+    transition: opacity var(--dur-base, 0.25s) var(--ease-standard, ease);
+  }
+
+  #SpicyLyricsNPVCard.Collapsed #NPVCardToggle svg {
+    transition: none;
+  }
+}
+
 /* Body hosts the absolutely-positioned, container-type:size page. */
 /* flex-shrink: 0 matters for the open/close morph: as a shrinkable flex item the
    body absorbed the card's animated height, so every frame re-resolved the

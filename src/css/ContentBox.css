@@ -369,7 +369,8 @@
   padding-right: var(--ContentPadding);
 }
 
-#SpicyLyricsPage:has(.ContentBox.LyricsHidden) {
+/* Compact mode keeps its full-width strip: centring it pushed it half off the page. */
+#SpicyLyricsPage:not(.CompactMode):has(.ContentBox.LyricsHidden) {
   --NowBarLeftSpacing: calc(50cqw - var(--NowBarWidth) * 0.5) !important;
 }
 
@@ -604,7 +605,7 @@
 }
 
 .spicy-pip-wrapper
-  #SpicyLyricsPage.Fullscreen
+  #SpicyLyricsPage.Fullscreen:not(.Exp_PopupDock)
   .ContentBox
   .NowBar
   .CenteredView
@@ -651,7 +652,7 @@
 }
 
 .spicy-pip-wrapper
-  #SpicyLyricsPage.Fullscreen
+  #SpicyLyricsPage.Fullscreen:not(.Exp_PopupDock)
   .ContentBox
   .NowBar
   .CenteredView
@@ -661,7 +662,7 @@
   .PlaybackControls
   .PlaybackControl.ShuffleToggle,
 .spicy-pip-wrapper
-  #SpicyLyricsPage.Fullscreen
+  #SpicyLyricsPage.Fullscreen:not(.Exp_PopupDock)
   .ContentBox
   .NowBar
   .CenteredView
@@ -686,7 +687,7 @@
 }
 
 .spicy-pip-wrapper
-  #SpicyLyricsPage.Fullscreen
+  #SpicyLyricsPage.Fullscreen:not(.Exp_PopupDock)
   .ContentBox
   .NowBar
   .CenteredView
@@ -847,10 +848,21 @@
   fill: var(--accent);
 }
 
-/* #SpicyLyricsPage.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.ShuffleToggle.Enabled svg,
-#SpicyLyricsPage.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.LoopToggle.Enabled svg {
-    filter: drop-shadow(0 0 5px white);
-} */
+/* --accent is often white here, which left an enabled shuffle or repeat looking exactly like a
+   disabled one; the glow is what tells them apart. Two stacked shadows: a tight one that traces the
+   glyph and a wide, faint halo. The svg's filter transition fades it in and out. */
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .PlaybackControls
+  .PlaybackControl:is(.ShuffleToggle, .LoopToggle).Enabled
+  > svg {
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.28));
+}
 
 @keyframes pressAnimation {
   0% {
@@ -1735,7 +1747,7 @@
 }
 
 .spicy-pip-wrapper
-  #SpicyLyricsPage.SpicyRenderer:has(.MediaBox:hover)
+  #SpicyLyricsPage.SpicyRenderer:not(.Exp_PopupDock):has(.MediaBox:hover)
   .ContentBox
   .LyricsContainer {
   margin-top: calc(var(--PiP_EdgeInset) + var(--Compact_NowBarHeight)) !important;
@@ -1755,7 +1767,7 @@
   .Header:has(.MediaBox:hover)
   .Metadata,
 .spicy-pip-wrapper
-  #SpicyLyricsPage
+  #SpicyLyricsPage:not(.Exp_PopupDock)
   .ContentBox
   .NowBar
   .CenteredView
@@ -2050,7 +2062,7 @@
 }
 
 .spicy-pip-wrapper
-  #SpicyLyricsPage
+  #SpicyLyricsPage:not(.Exp_PopupDock)
   .ContentBox
   .NowBar:has(.CenteredView .Header .MediaBox:hover) {
   /* The hover-expanded NowBar is exactly the (square) MediaBox: as tall as the
@@ -2067,7 +2079,7 @@
 }
 
 .spicy-pip-wrapper
-  #SpicyLyricsPage.Fullscreen
+  #SpicyLyricsPage.Fullscreen:not(.Exp_PopupDock)
   .ContentBox
   .NowBar
   .CenteredView
@@ -2119,6 +2131,29 @@
   .MediaImageContainer {
   border-radius: 9cqh !important;
   --BorderRadius: 9cqh !important;
+}
+
+/* No Lyrics Notice off, without the popup dock: nothing to show under the header, so the popup
+   holds the enlarged cover the header otherwise opens to on hover. */
+.spicy-pip-wrapper #SpicyLyricsPage:not(.Exp_PopupDock) .ContentBox.LyricsHidden .NowBar {
+  height: min(
+    100vh - 2 * var(--PiP_EdgeInset),
+    100vw - var(--LyricsLeftSidePadding) - var(--LyricsRightSidePadding)
+  ) !important;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage:not(.Exp_PopupDock) .ContentBox.LyricsHidden .NowBar .CenteredView .Header {
+  margin-right: 0 !important;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage:not(.Exp_PopupDock) .ContentBox.LyricsHidden .NowBar .CenteredView .Header .Metadata {
+  opacity: 0;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage:not(.Exp_PopupDock) .ContentBox.LyricsHidden .NowBar .Header .MediaBox .MediaImageContainer {
+  opacity: 1;
+  border-radius: 3cqh !important;
+  --BorderRadius: 3cqh !important;
 }
 
 

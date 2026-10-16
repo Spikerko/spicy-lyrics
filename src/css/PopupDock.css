@@ -1,0 +1,488 @@
+/* Popup Dock experiment (Exp_PopupDock). The popup gives the lyrics the whole window and docks the
+   player along the bottom, the way the Canvas Stage does: title, artist and the progress bar at
+   rest, with the transport rising in under them on mouse move. --DockLift is the 0 to 1 spring in
+   Fullscreen.ts that rises with the controls and only falls once they've faded out.
+
+   The popup is always compact mode, so none of the Canvas Stage's rules reach it; the look is
+   rebuilt here. Everything is sized off --PD_U, the smaller of the window's width and height, so
+   the dock scales with the popup in either direction (down to its 260 x 180 minimum). The compact
+   rules this replaces are switched off with :not(.Exp_PopupDock) in ContentBox.css, so turning the
+   experiment off restores them as they were. */
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox {
+  /* vw/vh: the popup's viewport is the window, and unlike cq units they resolve the same in every
+     container down the tree. */
+  --PD_U: min(1vw, 1.2vh);
+  --PD_Gutter: clamp(12px, calc(var(--PD_U) * 5), 28px);
+  --PD_Bottom: clamp(8px, calc(var(--PD_U) * 3.5), 20px);
+  --PD_Gap: clamp(3px, calc(var(--PD_U) * 1.5), 8px);
+  --PD_MetaH: clamp(30px, calc(var(--PD_U) * 10), 52px);
+  --PD_TitleSize: clamp(12.5px, calc(var(--PD_U) * 4.2), 20px);
+  --PD_ArtistSize: clamp(10.5px, calc(var(--PD_U) * 3.2), 15px);
+  --PD_BarRow: clamp(8px, calc(var(--PD_U) * 2.4), 12px);
+  --PD_BarH: clamp(3px, calc(var(--PD_U) * 1.1), 6px);
+  --PD_TimeSize: clamp(9px, calc(var(--PD_U) * 2.6), 12px);
+  --PD_TimelineH: calc(var(--PD_BarRow) + 3px + var(--PD_TimeSize) * 1.3);
+  --PD_PlayH: clamp(12px, calc(var(--PD_U) * 4.4), 24px);
+  --PD_SkipH: clamp(9px, calc(var(--PD_U) * 3.2), 17px);
+  --PD_ToggleH: clamp(9px, calc(var(--PD_U) * 3), 16px);
+  --PD_ControlsH: calc(var(--PD_PlayH) * 1.6);
+  --PD_ControlGap: clamp(2px, calc(var(--PD_U) * 2), 14px);
+  --PD_HeartW: clamp(13px, calc(var(--PD_U) * 4.4), 24px);
+  --PD_VolumeW: clamp(40px, calc(var(--PD_U) * 14), 96px);
+  --PD_VolumeH: clamp(4px, calc(var(--PD_U) * 1.3), 7px);
+  --PD_VolumeIcon: clamp(11px, calc(var(--PD_U) * 3.4), 18px);
+  --PD_ViewSize: clamp(22px, calc(var(--PD_U) * 7), 34px);
+  --PD_ViewInset: clamp(6px, calc(var(--PD_U) * 2.5), 12px);
+  /* The slot the transport rises into. */
+  --PD_Reserve: calc(var(--PD_ControlsH) + var(--PD_Gap));
+  /* The control rows: timeline over transport. */
+  --PD_BoxH: calc(var(--PD_Gap) + var(--PD_TimelineH) + var(--PD_Reserve));
+  /* What the dock covers at rest. */
+  --PD_IdleH: calc(var(--PD_Bottom) + var(--PD_TimelineH) + var(--PD_Gap) + var(--PD_MetaH));
+}
+
+/* Short popups keep the bar and drop the times under it. */
+@media (max-height: 230px) {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox {
+    --PD_TimelineH: var(--PD_BarRow);
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .Time {
+    display: none;
+  }
+}
+
+/* The lyrics take the window down to the resting dock. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .LyricsContainer {
+  height: calc(100% - var(--PD_IdleH));
+  margin-top: 0 !important;
+  margin-bottom: auto;
+}
+
+/* The NowBar spans the window so the dock can pin to its bottom; only the dock takes the pointer. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar {
+  height: 100% !important;
+  margin-top: 0 !important;
+  pointer-events: none;
+  transition: none;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header {
+  /* Resolved here, where Fullscreen.ts sets --DockLift, and inherited by the rows. */
+  --PD_Drop: calc((1 - var(--DockLift, 0)) * var(--PD_Reserve));
+  /* The transport drops the bottom inset further, clear of the window: at rest it's invisible, and
+     a strip left on screen would still skip or pause on a click. */
+  --PD_TransportDrop: calc((1 - var(--DockLift, 0)) * var(--PD_Bottom));
+  position: absolute;
+  inset: 0;
+  display: block;
+  margin: 0 !important;
+}
+
+/* Keeps the dock readable over bright backgrounds; rises with it. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--PD_Bottom) + var(--PD_BoxH) + var(--PD_MetaH) + 28px);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.4) 55%, transparent 100%);
+  translate: 0 var(--PD_Drop);
+  pointer-events: none;
+}
+
+/* The cover is already the background; the dock doesn't repeat it. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaImageContainer {
+  display: none;
+}
+
+/* With the No Lyrics Notice off there are no lyrics to give the window to, so the cover fills it,
+   sitting on the caption's gutter. It hangs off the MediaBox, so it rises with the dock; --PD_Art
+   is sized for the raised dock, which keeps its top inside the window. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden {
+  --PD_ArtGap: clamp(8px, calc(var(--PD_U) * 3), 16px);
+  --PD_Art: min(
+    100vh - var(--PD_Gutter) - var(--PD_ArtGap) - var(--PD_MetaH) - var(--PD_BoxH) - var(--PD_Bottom),
+    100vw - 2 * var(--PD_Gutter)
+  );
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaImageContainer {
+  display: block;
+  position: absolute;
+  left: var(--PD_Gutter);
+  bottom: calc(100% + var(--PD_MetaH) + var(--PD_ArtGap));
+  width: var(--PD_Art);
+  height: var(--PD_Art);
+  border-radius: calc(var(--PD_Art) * 0.045) !important;
+  --BorderRadius: calc(var(--PD_Art) * 0.045) !important;
+  opacity: 1;
+  /* The brightness spring dims the cover under the old layout's controls; nothing sits on it here. */
+  filter: none;
+  /* It lives in the MediaBox, which is the dock's hover target; resting on it would pin the dock up. */
+  pointer-events: none;
+  transform-origin: bottom left;
+  /* !important to get past the compact popup's radius transition. */
+  transition:
+    opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+    scale 0.3s cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+@starting-style {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaImageContainer {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+/* The image layers size off the MediaBox's container units, and the MediaBox is the control rows. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .MediaImageContainer .ib_ImageBox,
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .MediaImageContainer .fi_FromImage::before {
+  width: 100%;
+  height: 100%;
+}
+
+/* Title and artist: a caption on the gutter, above the control rows. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .Metadata {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--PD_Bottom) + var(--PD_BoxH));
+  width: auto;
+  height: var(--PD_MetaH);
+  margin: 0;
+  /* The spans carry 6px of start padding under the edge fade; this puts the glyphs on the gutter. */
+  padding: 0 var(--PD_Gutter) 0 calc(var(--PD_Gutter) - 6px);
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0;
+  opacity: 1;
+  translate: 0 var(--PD_Drop);
+  pointer-events: auto;
+  z-index: 4;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .Metadata :is(.SongName, .Artists) {
+  max-width: 100%;
+  text-align: left;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 6px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 6px, #000 calc(100% - 14px), transparent 100%);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .Metadata :is(.SongName, .Artists) > span {
+  padding: 0 14px 0 6px;
+  text-align: left;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .Metadata .SongName {
+  font-size: var(--PD_TitleSize) !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .Metadata .Artists {
+  font-size: var(--PD_ArtistSize) !important;
+  line-height: 1.35 !important;
+}
+
+/* The control rows. The MediaBox is the hover target, so it is exactly the rows. At rest only the
+   transport's slot drops away, which leaves the timeline sitting on the bottom inset. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header .MediaBox {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--PD_Bottom);
+  width: auto;
+  height: var(--PD_BoxH);
+  translate: 0 var(--PD_Drop);
+  pointer-events: auto;
+  z-index: 3;
+}
+
+/* Timeline over the transport; like button and volume either side of it, the transport centered.
+   The timeline stays up at rest, so the fade moves from this box onto each of the other rows. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent {
+  inset: 0;
+  width: auto;
+  height: auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: var(--PD_TimelineH) var(--PD_ControlsH);
+  row-gap: var(--PD_Gap);
+  align-items: center;
+  padding: var(--PD_Gap) var(--PD_Gutter) 0;
+  opacity: 1;
+  /* Only the controls take clicks; the gaps between them hover through to the MediaBox. */
+  pointer-events: none;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent > * {
+  pointer-events: auto;
+}
+
+/* The spring drives these every frame, so a transition would only make them trail it. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent > :is(.Heart, .PlaybackControls, .VolumeControl, .ViewControls) {
+  opacity: var(--ControlsOpacity) !important;
+  transition: none !important;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent > :is(.Heart, .PlaybackControls) {
+  translate: 0 var(--PD_TransportDrop);
+}
+
+/* Times sit under the bar, so the bar runs the full width. Its row is fixed, so it can thicken on
+   hover without nudging the times. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .Timeline {
+  position: relative;
+  inset: auto;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: var(--PD_BarRow) auto;
+  row-gap: 3px;
+  align-content: start;
+  width: auto;
+  height: 100%;
+  padding: 0;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .SliderBar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  align-self: center;
+  height: var(--PD_BarH);
+  margin: 0;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Exp_NewProgressBar .ContentBox .NowBar .MediaContent .Timeline .SliderBar:is(:hover, .Dragging) {
+  height: calc(var(--PD_BarH) * 1.8);
+}
+
+/* The legacy skin is a line with a handle, not a capsule. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock:not(.Exp_NewProgressBar) .ContentBox .NowBar .MediaContent .Timeline .SliderBar {
+  height: calc(var(--PD_BarH) * 0.65);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .Time {
+  grid-row: 2;
+  min-width: 0;
+  font-size: var(--PD_TimeSize) !important;
+  line-height: 1.3;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .Time.Position {
+  grid-column: 1;
+  text-align: left;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .Time.Duration {
+  grid-column: 3;
+  text-align: right;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .Heart {
+  position: relative;
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: start;
+  top: auto;
+  width: var(--PD_HeartW);
+  margin: 0;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls {
+  position: relative;
+  grid-column: 2;
+  grid-row: 2;
+  bottom: auto;
+  width: auto;
+  height: 100%;
+  padding: 0;
+  gap: var(--PD_ControlGap);
+  justify-content: center;
+  /* A size container would collapse the auto column to nothing. */
+  container-type: normal;
+}
+
+/* Each button's hit area is the row's height; the glyph inside is sized on its own. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl {
+  height: 100%;
+  width: calc(var(--PD_PlayH) * 1.45);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl svg {
+  width: auto;
+  height: var(--PD_SkipH);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.PlayStateToggle svg {
+  height: var(--PD_PlayH);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl:is(.ShuffleToggle, .LoopToggle) svg {
+  height: var(--PD_ToggleH);
+}
+
+/* Laid flat at the end of the transport row. NowBar.ts reads the drag axis from the capsule's shape. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen.ShowVolumeSlider .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl {
+  --CapsuleWidth: var(--PD_VolumeH);
+  --CapsuleHeight: var(--PD_VolumeW);
+  position: relative;
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  top: auto;
+  right: auto;
+  translate: 0 var(--PD_TransportDrop);
+  /* Room in the column for the glyph, which hangs off the capsule's start. */
+  margin-left: calc(var(--PD_VolumeIcon) + 6px);
+  width: var(--PD_VolumeW);
+  height: var(--CapsuleWidth);
+  /* The glyph hangs outside the capsule, so the fill clips itself instead. */
+  overflow: visible;
+  transition: height 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen.ShowVolumeSlider.Exp_NewProgressBar .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl:is(:hover, .Dragging) {
+  --CapsuleWidth: calc(var(--PD_VolumeH) * 1.5);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen.ShowVolumeSlider:not(.Exp_NewProgressBar) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl {
+  --CapsuleWidth: calc(var(--PD_VolumeH) * 0.5);
+  background: linear-gradient(
+    90deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--VolumeLevel)),
+    var(--RemainingColor) calc(100% * var(--VolumeLevel)),
+    var(--RemainingColor)
+  );
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .VolumeControl .VolumeFill {
+  border-radius: inherit;
+  transform: none;
+  clip-path: inset(0 calc((1 - var(--VolumeLevel)) * 100%) 0 0);
+  transition: clip-path 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .VolumeControl.Dragging .VolumeFill {
+  transition: none;
+}
+
+/* A few px of track is a hard thing to grab; widen the hit area in both skins. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .VolumeControl::after {
+  content: "";
+  position: absolute;
+  inset: -8px 0;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock:not(.Exp_NewProgressBar) .NowBar .VolumeControl .Handle {
+  left: 0;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%) translateX(calc(var(--CapsuleHeight) * var(--VolumeLevel)));
+}
+
+/* The glyph sits before the capsule, so the thin track doesn't have to hold it in either skin. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .VolumeControl .VolumeIcon {
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  right: calc(100% + 6px);
+  width: var(--PD_VolumeIcon);
+  height: var(--PD_VolumeIcon);
+  transform: translateY(-50%);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .VolumeControl.IconOnFill .VolumeIcon {
+  fill: #fff;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .VolumeControl .VolumeIcon svg {
+  height: calc(var(--PD_VolumeIcon) * 0.8);
+}
+
+/* Window chrome, so the top outer corner. The row lives in the MediaBox at the bottom of the window:
+   the offset reaches back up to the top, and the translate cancels the dock's drop so it drops in
+   from the top edge instead. The buttons are already no-drag, so they work over the drag strip. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  --ViewControlSize: var(--PD_ViewSize);
+  container-type: normal;
+  top: calc(var(--PD_ViewInset) - 100vh + var(--PD_Bottom) + var(--PD_BoxH));
+  left: auto;
+  right: var(--PD_ViewInset);
+  width: auto;
+  height: auto;
+  translate: 0 calc(-1 * var(--PD_Drop) - (1 - var(--DockLift, 0)) * 8px);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .ViewControls svg {
+  height: calc(var(--PD_ViewSize) * 0.42);
+}
+
+/* Narrow popups: the like button goes first, then shuffle and repeat. With the like button gone the
+   transport moves onto the gutter and the volume takes the rest of the row. */
+@media (max-width: 330px) {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent {
+    grid-template-columns: auto 1fr;
+    column-gap: clamp(10px, calc(var(--PD_U) * 4), 20px);
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .Heart {
+    display: none;
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls {
+    grid-column: 1;
+    justify-self: start;
+    /* The first button's hit area is wider than its glyph (shuffle's viewBox is 25 x 20); this puts
+       the glyph on the gutter. Previous, which leads once shuffle is hidden, nearly fills its own. */
+    --PD_LeadInset: calc((var(--PD_ToggleH) * 1.25 - var(--PD_PlayH) * 1.45) / 2);
+    margin-left: var(--PD_LeadInset);
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen.ShowVolumeSlider .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl {
+    grid-column: 2;
+    justify-self: stretch;
+    width: auto;
+  }
+
+  /* --CapsuleHeight is a fixed length, which a stretched capsule no longer has. */
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock:not(.Exp_NewProgressBar) .NowBar .VolumeControl .Handle {
+    left: calc(100% * var(--VolumeLevel));
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (max-width: 280px) {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls {
+    --PD_LeadInset: 0px;
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl:is(.ShuffleToggle, .LoopToggle) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The rows stay raised, so the lyrics stop above all of them; only the controls fade. */
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .LyricsContainer {
+    height: calc(100% - var(--PD_IdleH) - var(--PD_Reserve));
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .CenteredView .Header {
+    --PD_Drop: 0px;
+    --PD_TransportDrop: 0px;
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+    translate: none;
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaImageContainer {
+    transition: opacity 0.2s ease !important;
+  }
+}

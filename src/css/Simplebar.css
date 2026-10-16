@@ -235,6 +235,33 @@
   opacity: 0;
 }
 
+/* Popup: a wider grab column holding a thin pill that thickens while the pointer
+   is in the column or the thumb is held. It starts below the top 40px, where the
+   window's drag strip (.app-drag-region, PopupLyrics.ts) takes presses before
+   the page sees them and the view controls' close button sits over the column,
+   and it is left out of the lyrics mask (Lyrics/main.css) so it never fades. */
+.spicy-pip-wrapper #SpicyLyricsPage .ScrollbarScrollable .simplebar-track.simplebar-vertical {
+  top: 40px;
+  width: 16px;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .ScrollbarScrollable .simplebar-vertical .simplebar-scrollbar:before {
+  left: 6px;
+  right: 6px;
+  border-radius: 100px;
+  transition:
+    left 0.15s ease,
+    right 0.15s ease,
+    opacity 0.15s ease !important;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .ScrollbarScrollable .simplebar-vertical.simplebar-hover .simplebar-scrollbar:before,
+.spicy-pip-wrapper #SpicyLyricsPage .ScrollbarScrollable.simplebar-dragging .simplebar-vertical .simplebar-scrollbar:before {
+  left: 4px;
+  right: 4px;
+  opacity: 0.8 !important;
+}
+
 #SpicyLyricsPage [data-simplebar]:not(.simplebar-dragging) .simplebar-content-wrapper {
   scroll-behavior: smooth !important;
 }

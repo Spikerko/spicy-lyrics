@@ -1,80 +1,97 @@
 import { useStore } from "@nanostores/react";
-import React from "react";
 import {
+  $creditsFollowLastLine,
+  $duetLinePadding,
   $lineHoverBackground,
   $minimalLyricsMode,
   $simpleLyricsMode,
-  $simpleLyricsModeRenderingType
 } from "../../../utils/stores.ts";
-import { matches, Row, Select, SectionTitle, Toggle } from "./components.tsx";
+import { Toggle } from "./components.tsx";
+import { LyricsIcon } from "./icons.tsx";
+import type { GroupDef, SectionDef } from "./model.ts";
 
-const SECTION_NAME = "Lyrics Display";
-const renderingTypeOptions = ["calculate", "animate"];
-
-interface Props {
-  query: string;
-  sectionFilter: string;
-}
-
-export default function LyricsSection({ query, sectionFilter }: Props) {
-  const simpleLyricsMode = useStore($simpleLyricsMode);
-  const simpleLyricsModeRenderingType = useStore($simpleLyricsModeRenderingType);
-  const minimalLyricsMode = useStore($minimalLyricsMode);
-  const lineHoverBackground = useStore($lineHoverBackground);
-
-  if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
-
-  const r1 = matches(query, "Simple Lyrics Mode", "Remove extra visual effects from lyrics");
-  const r2 = matches(query, "Simple Mode: Text Animation Style", "How lyrics text transitions are rendered in Simple Lyrics Mode.");
-  const r3 = matches(query, "Minimal Lyrics Mode", "Hides sung lyrics lines in Fullscreen and Cinema Mode");
-  const r4 = matches(query, "Line Hover Background", "Shows a highlight box behind a lyrics line when you hover over it");
-
-  if (!r1 && !r2 && !r3 && !r4) return null;
-
-  return (
-    <>
-      <SectionTitle>Lyrics Display</SectionTitle>
-
-      {r1 && (
-        <Row label="Simple Lyrics Mode" description="Remove extra visual effects from lyrics">
-          <Toggle checked={simpleLyricsMode} onChange={(v) => $simpleLyricsMode.set(v)} />
-        </Row>
-      )}
-
-      {r2 && (
-        <Row
-          label="Simple Mode: Text Animation Style"
-          description="How lyrics text transitions are rendered in Simple Lyrics Mode."
-          disabled={!simpleLyricsMode}
-          disabledReason="Enable Simple Lyrics Mode to modify this setting"
-        >
-          <Select
-            value={simpleLyricsModeRenderingType}
-            options={renderingTypeOptions}
-            onChange={(v) => $simpleLyricsModeRenderingType.set(v)}
-            disabled={!simpleLyricsMode}
+// Built once: the Control components must keep their identity across renders.
+const groups: GroupDef[] = [
+  {
+    title: "Style",
+    settings: [
+      {
+        id: "simpleLyricsMode",
+        label: "Simple Lyrics Mode",
+        description: "Drop the extra visual effects from the lyrics.",
+        keywords: "effects plain",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($simpleLyricsMode)}
+            onChange={(v) => $simpleLyricsMode.set(v)}
           />
-        </Row>
-      )}
+        ),
+      },
+      {
+        id: "minimalLyricsMode",
+        label: "Minimal Lyrics Mode",
+        description: "Hide lines that have already been sung in Fullscreen and Cinema View.",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($minimalLyricsMode)}
+            onChange={(v) => $minimalLyricsMode.set(v)}
+          />
+        ),
+      },
+    ],
+  },
+  {
+    title: "Lines",
+    settings: [
+      {
+        id: "lineHoverBackground",
+        label: "Highlight on Hover",
+        description: "Show a soft box behind a line when you point at it.",
+        keywords: "line hover background",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($lineHoverBackground)}
+            onChange={(v) => $lineHoverBackground.set(v)}
+          />
+        ),
+      },
+      {
+        id: "duetLinePadding",
+        label: "Duet Line Padding",
+        description: "Indent each singer's lines toward their side, so duets read as two columns.",
+        keywords: "indent voices",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($duetLinePadding)}
+            onChange={(v) => $duetLinePadding.set(v)}
+          />
+        ),
+      },
+      {
+        id: "creditsFollowLastLine",
+        label: "Credits Follow the Last Singer",
+        description:
+          "When a song ends on a duet line on the right, show the songwriter and provider lines on the right too.",
+        keywords: "duet credits written by songwriters provided by provider align side",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($creditsFollowLastLine)}
+            onChange={(v) => $creditsFollowLastLine.set(v)}
+          />
+        ),
+      },
+    ],
+  },
+];
 
-      {r3 && (
-        <Row
-          label="Minimal Lyrics Mode"
-          description="Hides sung lyrics lines in Fullscreen and Cinema Mode"
-        >
-          <Toggle checked={minimalLyricsMode} onChange={(v) => $minimalLyricsMode.set(v)} />
-        </Row>
-      )}
-
-      {r4 && (
-        <Row
-          label="Line Hover Background"
-          description="Shows a highlight box behind a lyrics line when you hover over it"
-        >
-          <Toggle checked={lineHoverBackground} onChange={(v) => $lineHoverBackground.set(v)} />
-        </Row>
-      )}
- 
-    </>
-  );
-}
+export const lyricsSection: SectionDef = {
+  id: "lyrics",
+  title: "Lyrics",
+  icon: LyricsIcon,
+  groups: () => groups,
+};

@@ -3,65 +3,22 @@ import ReactDOM from "react-dom/client";
 import { flushSync } from "react-dom";
 import { PopupModal } from "../components/Modal.ts";
 import SettingsPanel from "../components/ReactComponents/SettingsPanel/index.tsx";
-import ExperimentsPanel from "../components/ReactComponents/SettingsPanel/ExperimentsPanel.tsx";
 
 const MODAL_ID = "settingsPanel";
 
-type Direction = "forward" | "back";
-
-/**
- * Render a panel into a fresh container + root. The direction class drives the
- * slide-in, so the modal frame stays put while its contents navigate.
- */
-function renderPanel(element: React.ReactElement, direction?: Direction) {
-  const container = document.createElement("div");
-  container.className = direction ? `sl-sp-page sl-sp-page--${direction}` : "sl-sp-page";
-  const root = ReactDOM.createRoot(container);
-  // Render synchronously so the modal never shows an empty frame mid-swap.
-  flushSync(() => root.render(element));
-  return { container, root };
-}
-
 export function openSettingsPanel() {
-  const { container, root } = renderPanel(
-    React.createElement(SettingsPanel, { onOpenExperiments: openExperimentsPanel })
-  );
+  const container = document.createElement("div");
+  container.className = "sl-sp-page";
+  const root = ReactDOM.createRoot(container);
+  // Render synchronously so the modal never opens on an empty frame.
+  flushSync(() => root.render(React.createElement(SettingsPanel)));
 
+  // The panel draws its own title and close button (see .slmodal-settingsPanel
+  // in settings-panel.css); the title here only names the dialog.
   PopupModal.display({
     title: "Settings",
     content: container,
     isLarge: true,
-    modalId: MODAL_ID,
-    onClose: () => root.unmount(),
-  });
-}
-
-/** Back navigation from a sub-panel — swaps content without reopening the modal. */
-function backToSettings() {
-  const { container, root } = renderPanel(
-    React.createElement(SettingsPanel, { onOpenExperiments: openExperimentsPanel }),
-    "back"
-  );
-
-  PopupModal.transition({
-    title: "Settings",
-    content: container,
-    modalId: MODAL_ID,
-    onClose: () => root.unmount(),
-  });
-}
-
-function openExperimentsPanel() {
-  const { container, root } = renderPanel(
-    React.createElement(ExperimentsPanel, { onBack: backToSettings }),
-    "forward"
-  );
-
-  // No closeHandler: the X closes the modal outright, and the panel's own Back
-  // button is what returns to Settings.
-  PopupModal.transition({
-    title: "Experiments",
-    content: container,
     modalId: MODAL_ID,
     onClose: () => root.unmount(),
   });
@@ -73,9 +30,32 @@ export function registerSettingsMenu(icon: string) {
   const profileSelector = '[data-testid="user-widget-link"]';
   const menuSelector = '#context-menu ul[role="menu"]';
 
-  new Spicetify.Menu.Item(name, false, openSettingsPanel, icon).register();
+  // From Spotify 1.3.5 the profile menu is a React Aria collection, and Spicetify's
+  // Menu.Item throws inside it ("cannot be rendered outside a collection"), which
+  // takes the whole menu down. There the entry is only injected into the DOM below;
+  // Menu.Item is kept as the fallback if that injection fails.
+  let menuItemRegistered = false;
+  const registerMenuItem = () => {
+    if (menuItemRegistered) return;
+    menuItemRegistered = true;
+    new Spicetify.Menu.Item(name, false, openSettingsPanel, icon).register();
+  };
+  const [major = 0, minor = 0, patch = 0] = Spicetify.Platform.version
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const domOnly = major > 1 || (major === 1 && (minor > 3 || (minor === 3 && patch >= 5)));
+  if (!domOnly) registerMenuItem();
 
   const syncMenu = () => {
+    try {
+      injectMenuRow();
+    } catch (error) {
+      if (!domOnly || menuItemRegistered) throw error;
+      registerMenuItem();
+    }
+  };
+
+  const injectMenuRow = () => {
     const profile = document.querySelector<HTMLButtonElement>(profileSelector);
     const owned = document.getElementById(itemId);
     const menu = document.querySelector<HTMLUListElement>(menuSelector);
@@ -94,7 +74,12 @@ export function registerSettingsMenu(icon: string) {
 
     const template = rows.find(row => row.querySelector('[role="menuitem"]'));
     const nativeButton = template?.querySelector<HTMLElement>('[role="menuitem"]');
-    if (!template || !nativeButton) return;
+    if (!template || !nativeButton) {
+      // Rows rendered but none to copy from: let Spicetify render the entry instead.
+      // (No rows yet just means the menu is still mounting.)
+      if (domOnly && rows.length > 0) registerMenuItem();
+      return;
+    }
 
     const row = document.createElement("li");
     row.id = itemId;

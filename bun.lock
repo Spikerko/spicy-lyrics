@@ -5,7 +5,7 @@
     "": {
       "name": "spicy-lyrics",
       "dependencies": {
-        "@kawarp/core": "^1.2.0",
+        "@kawarp/core": "1.3.1",
         "@nanostores/react": "^1.1.0",
         "@spicemod/creator": "^0.0.35",
         "@tanstack/react-query": "^5.100.14",
@@ -209,7 +209,7 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.4", "", { "os": "win32", "cpu": "x64" }, "sha512-+knoa0BDoeXgkNvvV1vvbZX4+hizelrkwmGJBdT17t8FNPwG2lKemmuMZlmaNQ3ws3DKKCxpb4zRZEIp3UxFCg=="],
 
-    "@kawarp/core": ["@kawarp/core@1.2.0", "", {}, "sha512-PmwhFeoDjpuKImSptQugb9INCwk/S/QHsQ5foXhKjUERpwEzZZ12Hyf5FggedhZ70SQQ9RDPKHEunys454qbqA=="],
+    "@kawarp/core": ["@kawarp/core@1.3.1", "", {}, "sha512-gDR4d5kMr/viItEzZb5XBlHHi5WcWRsIPbnSj3ToVdLfc6ykP03VlTUpAhxA4mn/ZayICJbgFqZkGWSrySCQPQ=="],
 
     "@nanostores/react": ["@nanostores/react@1.1.0", "", { "peerDependencies": { "nanostores": "^1.2.0", "react": ">=18.0.0" } }, "sha512-MbH35fjhcf7LAubYX5vhOChYUfTLzNLqH/mBGLVsHkcvjy0F8crO1WQwdmQ2xKbAmtpalDa2zBt3Hlg5kqr8iw=="],
 
