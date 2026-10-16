@@ -1347,14 +1347,21 @@ class LyricsVirtualizer {
     let last = first;
     while (last + 1 < items.length && items[last + 1].start < bottom) last++;
 
-    const hold = new Set<number>([...(this._glideHold ?? []), ...this._mountedIndices]);
-    const from = Math.max(0, first - OVERSCAN);
-    const to = Math.min(items.length - 1, last + OVERSCAN);
-    for (let i = from; i <= to; i++) hold.add(i);
-    if (hold.size > GLIDE_HOLD_MAX_ROWS) {
+    // Every row from those mounted now through the destination's, so nothing in
+    // between mounts as the glide passes over it. A longer stretch than the cap
+    // isn't held at all: it would mount too much up front.
+    let from = Math.max(0, first - OVERSCAN);
+    let to = Math.min(items.length - 1, last + OVERSCAN);
+    for (const idx of [...(this._glideHold ?? []), ...this._mountedIndices]) {
+      if (idx < from) from = idx;
+      if (idx > to) to = idx;
+    }
+    if (to - from + 1 > GLIDE_HOLD_MAX_ROWS) {
       this._releaseGlideHold();
       return;
     }
+    const hold = new Set<number>();
+    for (let i = from; i <= to; i++) hold.add(i);
     this._glideHold = hold;
     this._onVirtualizerChange(v);
   }
