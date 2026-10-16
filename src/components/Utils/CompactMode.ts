@@ -1,9 +1,8 @@
 import { PageContainer } from "./../Pages/PageView.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
-import { $currentLyricsData, $lockedMediaBox } from "../../utils/stores.ts";
+import { SyncNoLyricsLayout } from "../../utils/Lyrics/LyricsNotice.ts";
+import { $lockedMediaBox } from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
-import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
-import Fullscreen from "./Fullscreen.ts";
 import { Session_NowBar_SetSide } from "./NowBar.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 
@@ -12,15 +11,6 @@ let CompactMode = false;
 export const EnableCompactMode = () => {
   const SpicyLyricsPage = PageContainer;
   if (!SpicyLyricsPage) return;
-
-  const isNoLyrics =
-    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetUri()}`;
-  if (isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen || IsPIP)) {
-    SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.remove(
-      "Hidden"
-    );
-    SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
-  }
 
   SpicyLyricsPage.classList.add("CompactMode", "NowBarSide__Left");
   SpicyLyricsPage.classList.remove("NowBarSide__Right");
@@ -38,6 +28,7 @@ export const EnableCompactMode = () => {
   }
 
   CompactMode = true;
+  SyncNoLyricsLayout();
   GetCurrentLyricsContainerInstance()?.Resize();
   Global.Event.evoke("compact-mode:enable");
 };
@@ -46,18 +37,10 @@ export const DisableCompactMode = () => {
   const SpicyLyricsPage = PageContainer;
   if (!SpicyLyricsPage) return;
 
-  const isNoLyrics =
-    $currentLyricsData.get() === `NO_LYRICS:${SpotifyPlayer.GetUri()}`;
-  if (isNoLyrics && (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen || IsPIP)) {
-    SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox .LyricsContainer")?.classList.add(
-      "Hidden"
-    );
-    SpicyLyricsPage.querySelector<HTMLElement>(".ContentBox")?.classList.add("LyricsHidden");
-  }
-
   SpicyLyricsPage.classList.remove("CompactMode");
   Session_NowBar_SetSide();
   CompactMode = false;
+  SyncNoLyricsLayout();
   GetCurrentLyricsContainerInstance()?.Resize();
 
   Global.Event.evoke("compact-mode:disable");

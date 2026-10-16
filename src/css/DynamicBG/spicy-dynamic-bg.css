@@ -65,15 +65,15 @@ div:has(> [data-testid="track-visual-enhancement"] + * img) {
 
 /* The :not() hashes are the cover's collapsed (square) state per Spotify build:
    yiy_EezkGycfPvS3 on 1.2.98, Xb7R370pCgtlIa7FdCEC on 1.3.1, pDnmSSubLQYcPyfsjA7x
-   on 1.3.3, b0n6pOXewnXGFfFfcGCh on 1.3.4. */
+   on 1.3.3, b0n6pOXewnXGFfFfcGCh on 1.3.4, UkkkYEcyxWrvPluOK8qf on 1.3.5. */
 aside .main-nowPlayingView-coverArtContainer:not(.XixZ4ftG53tYcM4KohE1, .yiy_EezkGycfPvS3, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC) :is(video, .main-nowPlayingView-canvasVisualEnhancement div:has(> img)),
 .main-nowPlayingView-nowPlayingGrid > div:has(video):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC) :is(video),
 /* 1.3.3 leaves the cover container unmapped. The image wrapper is reached
    through the cover's own child rather than a :has() on the container: a
    non-subject :has() ahead of a bare `div` made Blink restyle every div in the
    app on any DOM change. */
-aside div:has(> [data-testid="track-visual-enhancement"]):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x, .b0n6pOXewnXGFfFfcGCh) video,
-aside div:not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x, .b0n6pOXewnXGFfFfcGCh) > [data-testid="track-visual-enhancement"] + * div:has(> img) {
+aside div:has(> [data-testid="track-visual-enhancement"]):not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x, .b0n6pOXewnXGFfFfcGCh, .UkkkYEcyxWrvPluOK8qf) video,
+aside div:not(.yiy_EezkGycfPvS3, .XixZ4ftG53tYcM4KohE1, .pUIBQ9cykHKYx2A2ZIPA, .Xb7R370pCgtlIa7FdCEC, .pDnmSSubLQYcPyfsjA7x, .b0n6pOXewnXGFfFfcGCh, .UkkkYEcyxWrvPluOK8qf) > [data-testid="track-visual-enhancement"] + * div:has(> img) {
   --sl_videocanvas_mask-stop: 80% !important;
 }
 
@@ -129,24 +129,75 @@ aside:has(.spicy-dynamic-bg) .iHa_q9pq4un3VNRQgwTx {
   position: relative;
 }
 
-/* Low quality mode styles - kept unchanged as requested */
-#SpicyLyricsPage .spicy-dynamic-bg.StaticBackground {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+/* Artist Image and Cover Art. The layer carries the image as --BackgroundImage. */
+#SpicyLyricsPage:not(.Exp_RefinedBackground) .spicy-dynamic-bg.StaticBackground {
+  background: var(--BackgroundImage) center / cover no-repeat;
   filter: brightness(0.55) contrast(1.05) saturate(1.7)
-    blur(var(--StaticBackgroundBlur, 0px));
+    blur(var(--BackgroundImageBlur, 0px));
   /* The 1.25 upscale crops the transparent fringe blur samples in at the edges. */
   scale: 1.25;
   transform: translateX(0);
   will-change: transform, filter;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.StaticBackground.transition_In {
+#SpicyLyricsPage:not(.Exp_RefinedBackground) .spicy-dynamic-bg.StaticBackground.transition_In {
   animation: SDB_StaticBG_T_IN forwards 850ms cubic-bezier(0.66, 0, 0.34, 1);
 }
-#SpicyLyricsPage .spicy-dynamic-bg.StaticBackground.transition_Out {
+#SpicyLyricsPage:not(.Exp_RefinedBackground) .spicy-dynamic-bg.StaticBackground.transition_Out {
   animation: SDB_StaticBG_T_OUT forwards 850ms cubic-bezier(0.66, 0, 0.34, 1);
+}
+
+/* Refined: the image sits on a pseudo-element that overhangs the layer by twice the
+   blur radius, so the blur's soft rim falls outside the clip and nothing is cropped
+   when there's no blur. */
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.StaticBackground {
+  filter: none;
+}
+
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.StaticBackground::before {
+  content: "";
+  position: absolute;
+  inset: calc(var(--BackgroundImageBlur, 0px) * -2);
+  background: var(--BackgroundImage) center / cover no-repeat;
+  filter: brightness(0.55) contrast(1.05) saturate(1.7)
+    blur(var(--BackgroundImageBlur, 0px));
+}
+
+/* Refined layer changes: a new layer fades in over the old one, which holds still
+   underneath until it's removed, so the picture never dips through black. The slight
+   settle in scale reads as the image arriving rather than a plain dissolve. */
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.is-pending {
+  opacity: 0;
+}
+
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.transition_In {
+  animation:
+    SDB_Layer_FadeIn 900ms cubic-bezier(0.45, 0, 0.25, 1) both,
+    SDB_Layer_Settle 1400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+/* Important to beat the opacity retireLayers pins inline. */
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.transition_Away {
+  opacity: 0 !important;
+  transition: opacity 500ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes SDB_Layer_FadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes SDB_Layer_Settle {
+  from {
+    scale: 1.035;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.transition_In {
+    animation: SDB_Layer_FadeIn 600ms ease both;
+  }
 }
 
 @keyframes SDB_StaticBG_T_IN {
@@ -181,20 +232,13 @@ body:has(#SpicyLyricsPage.Fullscreen) aside.NowPlayingView .spicy-dynamic-bg {
   z-index: 1;
 }
 
+/* Cover Colors: Spotify's palette for the cover, the brighter tone washing down
+   from the top. */
 #SpicyLyricsPage .spicy-dynamic-bg.ColorBackground {
-  /* background-color: rgba(0, 0, 0, 0.25); */
-  /* background: linear-gradient(var(--ColorBackgroundRotation), var(--DesaturatedColor), var(--VibrantColor), var(--DarkVibrantColor), var(--BaseColor), var(--DesaturatedColor)); */
   background-color: rgba(var(--MinContrastColor));
-  /* animation: ColorBackgroundBackgroundRotation 20s linear infinite; */
   transition: background-color 1.5s;
   filter: none;
 }
-
-/* @property --ColorBackgroundRotation {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-} */
 
 #SpicyLyricsPage .spicy-dynamic-bg.ColorBackground::before {
   content: "";
@@ -229,20 +273,36 @@ body:has(#SpicyLyricsPage.Fullscreen) aside.NowPlayingView .spicy-dynamic-bg {
   height: 100%;
 }
 
-#SpicyLyricsPage .spicy-dynamic-bg.ColorBackground {
+#SpicyLyricsPage:not(.Exp_RefinedBackground) .spicy-dynamic-bg.ColorBackground {
   z-index: -1 !important;
+}
+
+/* Isolated rather than pushed to z-index -1, so it stacks in order with the other
+   layers and can crossfade over them; its pseudo-elements stay inside it. */
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.ColorBackground {
+  background-color: rgba(var(--DeepColor));
+  isolation: isolate;
+}
+
+#SpicyLyricsPage.Exp_RefinedBackground .spicy-dynamic-bg.ColorBackground::before {
+  background-color: rgba(var(--WashColor));
 }
 
 /* The close button is the header wrapper's first child; 1.3.x drops its class. */
 .NowPlayingView .main-nowPlayingView-headerCloseButton,
-.NowPlayingView .main-nowPlayingView-headerWrapper > button:first-child {
+.NowPlayingView :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I) > button:first-child {
   color: var(--spice-text);
   opacity: .8 !important;
 }
 
 .NowPlayingView .main-nowPlayingView-headerCloseButton:hover,
 .NowPlayingView .main-nowPlayingView-headerCloseButton:focus,
-.NowPlayingView .main-nowPlayingView-headerWrapper > button:first-child:hover,
-.NowPlayingView .main-nowPlayingView-headerWrapper > button:first-child:focus {
+.NowPlayingView :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I) > button:first-child:hover,
+.NowPlayingView :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I) > button:first-child:focus {
   opacity: 1 !important;
+}
+/* Background: None. The popup's document has no theme behind the page, so it gets
+   the theme's base colour instead of showing through to nothing. */
+.spicy-pip-wrapper #SpicyLyricsPage.NoBackground {
+  background-color: var(--spice-main, #121212);
 }

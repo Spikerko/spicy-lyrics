@@ -1,138 +1,218 @@
 
+/* Lyrics notices (no lyrics, errors, unsupported tracks). The notice covers the
+   whole lyrics area and centres its content in it; with the Now Bar open,
+   ContentBox.css pads it like the lyric lines so it sits in the lyrics column.
+   Only the root reads cq units. Everything inside is sized in em off it. */
 #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent {
   .LyricsNotice {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 80cqw;
+    inset: 0;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: safe center;
+    padding: 2rem 8%;
+    overflow-y: auto;
     text-align: center;
     color: var(--color-text-primary);
-    transform: translate(-50%, -50%);
-    font-weight: var(--w-semibold);
-    letter-spacing: -0.01em;
+    font-size: clamp(14px, 1.45cqw, 19px);
+    animation: SL_NoticeIn 0.35s var(--ease-out) both;
 
     transition:
       padding-right 0.4s,
       padding-left 0.4s;
 
-    .notice-descriptor {
-      font-size: clamp(1.25rem, 3.5cqw, 2.5rem);
+    > * {
+      max-width: 34em;
+      margin: 0;
     }
 
-    .notice-footer {
-      font-size: clamp(0.95rem, 3.5cqw, 1.45rem);
-      margin-top: 1cqh;
+    .notice-title {
+      font-size: 1.85em;
+      font-weight: var(--w-bold);
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+    }
+
+    .notice-body {
+      margin-top: 0.85em;
+      font-size: 1em;
       font-weight: var(--w-regular);
+      line-height: 1.55;
       color: var(--color-text-secondary);
-      letter-spacing: 0;
+      text-wrap: pretty;
+    }
+
+    .notice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.6em;
+      margin-top: 1.6em;
+    }
+
+    .notice-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5em;
+      height: 2.6em;
+      padding: 0 1.15em;
+      border: none;
+      border-radius: var(--radius-pill);
+      background: var(--on-material-tint-bg);
+      box-shadow: inset 0 0 0 1px var(--on-material-hairline);
+      color: var(--color-text-primary);
+      font: inherit;
+      font-size: 0.9em;
+      font-weight: var(--w-semibold);
       white-space: nowrap;
+      cursor: pointer;
+      transition:
+        background-color var(--dur-fast) var(--ease-standard),
+        transform var(--dur-fast) var(--ease-standard);
 
-      a {
-        display: inline-block;
-        anchor-name: --anchor-notice-footer-anchor;
-        isolation: isolate;
+      svg {
+        width: 1.15em;
+        height: 1.15em;
+        flex-shrink: 0;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
 
-        cursor: pointer;
-        color: var(--color-text-primary);
+      &:hover {
+        background: var(--on-material-tint-bg-hover);
+      }
 
-        --hover-after-push: 3px;
+      &:active {
+        transform: scale(0.97);
+      }
 
-        transition: 800ms
-          linear(
-            0,
-            0.029 1.6%,
-            0.123 3.5%,
-            0.651 10.6%,
-            0.862 14.1%,
-            1.002 17.7%,
-            1.046 19.6%,
-            1.074 21.6%,
-            1.087 23.9%,
-            1.086 26.6%,
-            1.014 38.5%,
-            0.994 46.3%,
-            1
-          ),
-          color 0.2s ease;
+      &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
 
-        margin: 0px;
-        padding-top: 2px;
-        padding-bottom: 2px;
+    }
 
-        &::after {
-          content: "";
-          position: absolute;
-          z-index: -1;
-          top: calc(anchor(bottom) - 5px);
-          left: anchor(left);
-          right: anchor(right);
-          bottom: calc(anchor(bottom) + 2.5px);
-          width: anchor(width);
+    .notice-action-primary {
+      background: var(--accent);
+      box-shadow: none;
+      color: var(--accent-on-fill);
 
-          border-radius: 100em;
+      &:hover {
+        background: var(--accent-hover);
+      }
+    }
 
-          position-anchor: --anchor-notice-footer-anchor;
+    /* Copy details: one icon + label face per state, all in one grid cell,
+       crossfading on data-state. visibility (not just opacity) keeps the hidden
+       faces out of the button's accessible name. */
+    .notice-swap {
+      display: grid;
+      place-items: center;
+    }
 
-          background: var(--hairline);
+    .notice-face {
+      grid-area: 1 / 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5em;
+      opacity: 0;
+      visibility: hidden;
+      filter: blur(2px);
+      transition:
+        opacity var(--dur-fast) var(--ease-out),
+        filter var(--dur-fast) var(--ease-out),
+        visibility 0s var(--dur-fast);
 
-          transition: 800ms
-            linear(
-              0,
-              0.029 1.6%,
-              0.123 3.5%,
-              0.651 10.6%,
-              0.862 14.1%,
-              1.002 17.7%,
-              1.046 19.6%,
-              1.074 21.6%,
-              1.087 23.9%,
-              1.086 26.6%,
-              1.014 38.5%,
-              0.994 46.3%,
-              1
-            );
-        }
+      svg {
+        transform: scale(0.7);
+        transition: transform var(--dur-base) var(--ease-out);
+      }
+    }
 
-        &:hover {
-          text-decoration: none !important;
-          color: var(--accent);
-          margin-left: var(--hover-after-push);
-          margin-right: var(--hover-after-push);
-          padding-left: 10px;
-          padding-right: 10px;
-        }
+    .notice-copy {
+      &[data-state="idle"] [data-for="idle"],
+      &[data-state="done"] [data-for="done"],
+      &[data-state="failed"] [data-for="failed"] {
+        opacity: 1;
+        visibility: visible;
+        filter: none;
+        transition-delay: 0s;
 
-        &:hover::after {
-          background: rgba(29, 185, 84, 0.18);
-          top: calc(anchor(top) - var(--hover-after-push));
-          bottom: calc(anchor(bottom) - var(--hover-after-push));
-          left: calc(anchor(left) - var(--hover-after-push));
-          right: calc(anchor(right) - var(--hover-after-push));
+        svg {
+          transform: none;
         }
       }
+
+      /* The check draws itself in, and rewinds only once it has faded out. */
+      [data-for="done"] path {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        transition: stroke-dashoffset 0s var(--dur-fast);
+      }
+
+      &[data-state="done"] [data-for="done"] path {
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset var(--dur-base) var(--ease-out) 0.05s;
+      }
+    }
+
+    .notice-code {
+      margin-top: 1.4em;
+      font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      font-size: 0.78em;
+      font-weight: var(--w-regular);
+      color: var(--color-text-tertiary);
+      user-select: text;
     }
   }
 }
 
-.spicy-pip-wrapper #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent {
-  
-  .LyricsNotice {
-    top: 8cqh;
-    left: var(--LyricsLeftSidePadding);
-    transform: none;
-    width: 80cqw;
-    align-items: flex-start;
-    text-align: start;
+@keyframes SL_NoticeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
 
-    .notice-descriptor {
-      font-size: clamp(1rem, 3.5cqw, 2.5rem);
+@keyframes SL_NoticeFade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* No travel. The fade and the copy-button crossfade stay. */
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent .LyricsNotice {
+    animation-name: SL_NoticeFade;
+
+    .notice-face svg {
+      transform: none;
+    }
+  }
+}
+
+/* The popup window is small: top-left aligned like its lyrics, smaller type. */
+.spicy-pip-wrapper #SpicyLyricsPage .ContentBox .LyricsContainer .LyricsContent {
+  .LyricsNotice {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 8cqh var(--LyricsLeftSidePadding);
+    text-align: start;
+    font-size: clamp(12px, 3.2cqw, 16px);
+
+    .notice-title {
+      font-size: 1.5em;
     }
 
-    .notice-footer {
-      font-size: clamp(0.85rem, 3.5cqw, 1.45rem);
+    .notice-actions {
+      justify-content: flex-start;
     }
   }
 }
@@ -144,28 +224,29 @@
    Keep :has() off <body> here: ahead of a descendant selector it made every DOM
    change in the app restyle most of the document. */
 body.SpicyLyrics_StockPlaybar:not(.sltm__ThemeMatch__textdt) {
-  .playback-bar {
+  :is(.playback-bar, .cBGHFhO702FCP9WRLR3X) {
     position: relative;
   }
-  .playback-bar > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"]) {
+  :is(.playback-bar, .cBGHFhO702FCP9WRLR3X) > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"]) {
     height: 100%;
     position: absolute;
   }
   /* 1.3.x hashes the wrapper's class; it still follows the position label.
      Only where nothing inside it is .playback-progressbar either: builds that
      still have that class get the bar padding below, and both together pushed
-     the progress bar in twice (1.2.93: 116px instead of 58px). */
-  .playback-bar > .playback-progressbar-container,
-  .playback-bar:not(:has(.playback-progressbar)) > [data-testid="playback-position"] + div {
+     the progress bar in twice (1.2.93: 116px instead of 58px).
+     The arrangement classes come from themeMatcher.ts rather than :has() here:
+     any :has() in this block made every DOM insertion restyle the document. */
+  :is(.playback-bar, .cBGHFhO702FCP9WRLR3X) > .playback-progressbar-container,
+  &.SpicyLyrics_PlaybarUnclassed :is(.playback-bar, .cBGHFhO702FCP9WRLR3X) > [data-testid="playback-position"] + div {
     margin-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
   }
   /* Builds whose progress wrapper lacks that class: pad the bar instead of
-     targeting the wrapper. A selector ending in a bare :has() under this
-     body:has() gate made Blink restyle the whole document on every DOM change. */
-  .playback-bar:has(> :not(.playback-progressbar-container) .playback-progressbar) {
+     targeting the wrapper. */
+  &.SpicyLyrics_PlaybarPadded :is(.playback-bar, .cBGHFhO702FCP9WRLR3X) {
     padding-left: calc(var(--playback-bar-grid-gap, 8px) + 50px);
   }
-  .playback-bar:has(> :not(.playback-progressbar-container) .playback-progressbar)
+  &.SpicyLyrics_PlaybarPadded :is(.playback-bar, .cBGHFhO702FCP9WRLR3X)
     > :is(.playback-bar__progress-time-elapsed, [data-testid="playback-position"]) {
     left: 0;
   }
@@ -183,15 +264,17 @@ body.SpicyLyrics_StockPlaybar:not(.sltm__ThemeMatch__textdt) {
    The header's scroll states have no stable hook, so each build's hashes are
    listed. 1.3.4: .E_1gyB1Q4Jd6iDL0gDvd is 1.2.98's .pHNOePN5RT09utW9,
    .i6GYaRQaWpax5zhL3PRh its .BEeVmHj340c0PYHe, and .z5LlcLjY7QXNKAKlui7E the
-   main container. */
+   main container.
+   1.3.5: .szWwjswdmpTweR72owzg, .KUVZt1zexrM6Da3wfIu4 and .Mui6Tg7HfuOMyrl1at1i,
+   with the header wrapper as .SXRxI_I0h6US43_Nf59I. */
 html body.SpicyLyrics_NPVDynamicBackground {
   /* npv buttons */
   .yiRHu4qsmlXpKcnFQsm2:hover,
   .main-nowPlayingView-headerButton:hover,
-  .NowPlayingView .main-nowPlayingView-headerWrapper > span > div > button:hover,
+  .NowPlayingView :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I) > span > div > button:hover,
 
   /* npv topbar */
-  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5, .Md4BJN3odqZUJlsWlwlo)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .reoKRnUF1d0YUCkSGwV2, ._WXoQxsGVuSUBWYEu1bY) {
+  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5, .Md4BJN3odqZUJlsWlwlo)) :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .reoKRnUF1d0YUCkSGwV2, ._WXoQxsGVuSUBWYEu1bY) {
     transition: backdrop-filter .5s ease;
     -webkit-box-shadow: none !important;
     box-shadow: none !important;
@@ -206,8 +289,8 @@ html body.SpicyLyrics_NPVDynamicBackground {
   .main-nowPlayingView-section a time:has(p),
   [data-testid="NPV_Panel_OpenDiv"] > div:not(:first-child, #SpicyLyricsNPVCard) a time:has(p),
   /* npv topbar */
-  :is(.pHNOePN5RT09utW9, .E_1gyB1Q4Jd6iDL0gDvd, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo),
-  .NowPlayingView > div :is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) {
+  :is(.pHNOePN5RT09utW9, .E_1gyB1Q4Jd6iDL0gDvd, .szWwjswdmpTweR72owzg, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK) :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I, .cSZJwcwYgJfwduUmXOOV, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo),
+  .NowPlayingView > div :is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo) {
     background-color: transparent !important;
     backdrop-filter: blur(6px) !important;
   }
@@ -218,7 +301,7 @@ html body.SpicyLyrics_NPVDynamicBackground {
   [data-testid="NPV_Panel_OpenDiv"] .encore-over-media-set > button,
   ._uLgxi8fZ9VwTaKwJAkL.hKxJslHNZklIP_ONgdL5,
   .main-nowPlayingView-headerButtonWrapper > button:hover,
-  .NowPlayingView .main-nowPlayingView-headerWrapper > span > div > button:hover {
+  .NowPlayingView :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I) > span > div > button:hover {
     background-color: rgba(255, 255, 255, 0.078) !important;
     backdrop-filter: blur(6px) !important;
   }
@@ -227,7 +310,7 @@ html body.SpicyLyrics_NPVDynamicBackground {
     background-color: transparent !important;
   }
 
-  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo)) :is(.main-nowPlayingView-headerWrapper, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo):not(.reoKRnUF1d0YUCkSGwV2)::before {
+  :not(.main-nowPlayingView-headerContainer:is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo)) :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I, .cSZJwcwYgJfwduUmXOOV, .BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo):not(.reoKRnUF1d0YUCkSGwV2)::before {
     content: "";
     position: absolute;
    /*  mask-image: linear-gradient(to bottom, black 90%, transparent 100%); */
@@ -242,17 +325,17 @@ html body.SpicyLyrics_NPVDynamicBackground {
     transition: backdrop-filter .5s ease, margin-bottom .5s ease, padding-bottom .5s ease;
   }
 
-  :is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, ._WXoQxsGVuSUBWYEu1bY) {
+  :is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, ._WXoQxsGVuSUBWYEu1bY) {
     padding-inline: 0px !important;
     margin-bottom: -20px;
     padding-bottom: 16px !important;
   }
 
-  :is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, ._WXoQxsGVuSUBWYEu1bY) > div {
+  :is(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, ._WXoQxsGVuSUBWYEu1bY) > div {
     padding-inline: 16px;
   }
 
-  .NowPlayingView :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua, .z5LlcLjY7QXNKAKlui7E) {
+  .NowPlayingView :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua, .z5LlcLjY7QXNKAKlui7E, .Mui6Tg7HfuOMyrl1at1i) {
     --sl_rsb-wrapperFade: 0%;
     top: 0;
     margin-bottom: 0;
@@ -260,14 +343,14 @@ html body.SpicyLyrics_NPVDynamicBackground {
     transition: top .5s ease, margin-bottom .5s ease, --sl_rsb-wrapperFade .5s ease;
   }
 
-  .NowPlayingView > div:has(.pHNOePN5RT09utW9, .E_1gyB1Q4Jd6iDL0gDvd, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK, .Md4BJN3odqZUJlsWlwlo) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua, .z5LlcLjY7QXNKAKlui7E) {
+  .NowPlayingView > div:has(.pHNOePN5RT09utW9, .E_1gyB1Q4Jd6iDL0gDvd, .szWwjswdmpTweR72owzg, .niJOWstqVyfckHcXQxP1, .vDev2BqBHloweL24GNHK, .Md4BJN3odqZUJlsWlwlo) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua, .z5LlcLjY7QXNKAKlui7E, .Mui6Tg7HfuOMyrl1at1i) {
     --sl_rsb-wrapperFade: 20%;
     --push: 2rem;
     top: var(--push);
     margin-bottom: var(--push);
   }
 
-  .NowPlayingView > div:has(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .Md4BJN3odqZUJlsWlwlo, ._WXoQxsGVuSUBWYEu1bY) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua, .z5LlcLjY7QXNKAKlui7E) {
+  .NowPlayingView > div:has(.BEeVmHj340c0PYHe, .i6GYaRQaWpax5zhL3PRh, .KUVZt1zexrM6Da3wfIu4, .EnViFhuIR5WVeEopJHu3, .fNXmHtlrj4UVWmhQrJ_5.yvZooOj0rpfRS__cAUCo, .mdMUqcSHFw1lZIcYEblu, .Md4BJN3odqZUJlsWlwlo, ._WXoQxsGVuSUBWYEu1bY) :is(.main-nowPlayingView-mainContainer, .cZCuJDjrGA2QMXja_Sua, .z5LlcLjY7QXNKAKlui7E, .Mui6Tg7HfuOMyrl1at1i) {
     --sl_rsb-wrapperFade: 10%;
   }
 }
@@ -277,6 +360,6 @@ html body.SpicyLyrics_NPVDynamicBackground {
    It checks the button's own :focus-visible instead. :focus-within on the panel
    kept the button out for good after any mouse click inside the NPV. */
 .NowPlayingView:not(:hover):not(:has(:focus-visible)) .main-nowPlayingView-headerCloseButton,
-.NowPlayingView:not(:hover) .main-nowPlayingView-headerWrapper > button:first-child:not(:focus-visible) {
+.NowPlayingView:not(:hover) :is(.main-nowPlayingView-headerWrapper, .SXRxI_I0h6US43_Nf59I) > button:first-child:not(:focus-visible) {
   transform: translate(-200%) !important;
 }

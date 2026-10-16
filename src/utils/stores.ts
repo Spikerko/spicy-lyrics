@@ -21,6 +21,9 @@ function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
   const renames: Record<string, string> = {
     "skip-spicy-font": "skipSpicyFont",
     show_npv_dynamic_bg: "showNpvDynamicBg",
+    // Was an experiment; carry over the choice of anyone who toggled it.
+    "experiment:duetLinePadding": "duetLinePadding",
+    staticBackgroundBlur: "backgroundBlur",
   };
   let changed = false;
   for (const [oldKey, newKey] of Object.entries(renames)) {
@@ -29,6 +32,24 @@ function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
       delete blob[oldKey];
       changed = true;
     }
+  }
+  // The old "Static Background" select. Its "auto" did exactly what "artistHeader" did.
+  if ("staticBackgroundMode" in blob) {
+    const styles: Record<string, BackgroundStyle> = {
+      off: "dynamic",
+      auto: "artist",
+      artistHeader: "artist",
+      coverArt: "cover",
+      color: "color",
+    };
+    blob.backgroundStyle ??= styles[blob.staticBackgroundMode] ?? "dynamic";
+    delete blob.staticBackgroundMode;
+    changed = true;
+  }
+  // Simple Lyrics Mode lost its "Animate" style; everyone gets the one that was the default.
+  if ("simpleLyricsModeRenderingType" in blob) {
+    delete blob.simpleLyricsModeRenderingType;
+    changed = true;
   }
   if (changed) saveSettingsBlob(blob);
   return blob;
@@ -51,17 +72,22 @@ export function persistAtom<T>(key: string, defaultValue: T) {
 }
 
 // Setting atoms (persisted)
-export const $staticBackgroundMode = persistAtom<string>("staticBackgroundMode", "off");
-// Blur radius (px) applied to image-based static backgrounds — not the "color" mode.
-export const $staticBackgroundBlur = persistAtom<number>("staticBackgroundBlur", 0);
+// "none" paints nothing, so a theme's own background (an image, say) shows through.
+export type BackgroundStyle = "dynamic" | "artist" | "cover" | "color" | "none";
+export const BACKGROUND_STYLES: readonly BackgroundStyle[] = ["dynamic", "artist", "cover", "color", "none"];
+export const $backgroundStyle = persistAtom<BackgroundStyle>("backgroundStyle", "dynamic");
+// Blur radius (px) for the two image styles, "artist" and "cover".
+export const $backgroundBlur = persistAtom<number>("backgroundBlur", 0);
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
-export const $simpleLyricsModeRenderingType = persistAtom<string>(
-  "simpleLyricsModeRenderingType",
-  "calculate"
-);
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
 // Tinted box drawn behind a lyrics line while the pointer is over it.
 export const $lineHoverBackground = persistAtom<boolean>("lineHoverBackground", true);
+// Wide inset on the side a duet line leans away from, so the two voices read as
+// separate columns. Off gives duet lines the same slight padding as every line.
+export const $duetLinePadding = persistAtom<boolean>("duetLinePadding", true);
+// When a song ends on a duet line sung from the right, the credits under it
+// (writers, provider, community info) move to the right with it.
+export const $creditsFollowLastLine = persistAtom<boolean>("creditsFollowLastLine", false);
 export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
 export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
 // Never inject the lyrics card into the Now Playing sidebar at all.
@@ -72,6 +98,10 @@ export const $hideNpvLyricsWhenUnavailable = persistAtom<boolean>(
   "hideNpvLyricsWhenUnavailable",
   true
 );
+// Off: a song that simply has no lyrics (not found, local file, DJ, podcast...) shows
+// only the song info instead of the notice. Errors still show theirs. The NPV card
+// has its own switch above.
+export const $showNoLyricsNotice = persistAtom<boolean>("showNoLyricsNotice", true);
 // Hide Spotify's own lyrics button in the playback bar (ours is left alone).
 export const $removeSpotifyLyricsButton = persistAtom<boolean>("removeSpotifyLyricsButton", false);
 export const $lockedMediaBox =persistAtom<boolean>("lockedMediaBox", false);

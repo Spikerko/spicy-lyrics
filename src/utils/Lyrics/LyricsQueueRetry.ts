@@ -4,18 +4,17 @@ import Global from "../../components/Global/Global.ts";
 import Logger from "../Logger.ts";
 import ApplyLyrics from "./Global/Applyer.ts";
 import fetchLyrics, { ShowQueueLoader, type FetchLyricsResult } from "./fetchLyrics.ts";
+import { getRemoteConfig } from "../remoteConfig.ts";
 
 const queueLogger = new Logger("Lyrics Queue Retry");
 
-// Backoff schedule for the server-side queue (HTTP 503): start at 2s and grow
-// by 1.5x with each consecutive error, capped at 10s.
-const BASE_DELAY_MS = 2000;
-const MAX_DELAY_MS = 10000;
-const BACKOFF_FACTOR = 1.5;
-
+// Backoff schedule for the server-side queue (HTTP 503), from the remote
+// config's `lyricsQueue` group: start at `baseDelayMs` and grow by
+// `backoffFactor` with each consecutive error, capped at `maxDelayMs`.
 function computeDelay(attempt: number): number {
-  const scaled = BASE_DELAY_MS * Math.pow(BACKOFF_FACTOR, attempt);
-  return Math.min(MAX_DELAY_MS, Math.round(scaled));
+  const { baseDelayMs, maxDelayMs, backoffFactor } = getRemoteConfig().lyricsQueue;
+  const scaled = baseDelayMs * Math.pow(backoffFactor, attempt);
+  return Math.min(maxDelayMs, Math.round(scaled));
 }
 
 type FetchResult = FetchLyricsResult;

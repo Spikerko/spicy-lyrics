@@ -73,7 +73,7 @@ export function GetNPVObserverRoot(): Element | null {
   // The top container's child holding the panel is what .Root__right-sidebar
   // names on older builds, so swaps of it still reach the top observer.
   return document.querySelector(".Root__right-sidebar") ??
-    panel?.closest(".Root__top-container > *") ??
+    panel?.closest(".Root__top-container > *, .LiEjwLua6RNBCvlysAT2 > *") ??
     panel?.closest("[aria-hidden]") ?? panel?.parentElement ?? null;
 }
 
@@ -407,14 +407,14 @@ function refreshCardUI(): void {
   // NPVLyrics.css hides the card's wrapper siblings off this, for when the card
   // is nested inside .main-nowPlayingView-content.
   document.body.classList.toggle("SpicyLyrics_NPVCardExpanded", expanded);
-  // Only rewrite the buttons when the state actually changed — these DOM
+  // Only retitle the buttons when the state actually changed — these DOM
   // writes land inside the observed sidebar subtree and would otherwise
-  // re-trigger the observer on every evaluate.
+  // re-trigger the observer on every evaluate. The icons themselves follow
+  // .Collapsed / .Expanded in NPVLyrics.css, so they can animate.
   if (lastToggleOpen !== open) {
     lastToggleOpen = open;
     const toggle = cardEl.querySelector<HTMLElement>("#NPVCardToggle");
     if (toggle) {
-      toggle.innerHTML = open ? Icons.Collapse : Icons.Uncollapse;
       setTooltip(toggle, open ? "Hide Lyrics" : "Show Lyrics", "toggle-tip");
     }
   }
@@ -422,7 +422,6 @@ function refreshCardUI(): void {
     lastExpanded = expanded;
     const maximize = cardEl.querySelector<HTMLElement>("#NPVCardMaximize");
     if (maximize) {
-      maximize.innerHTML = expanded ? Icons.Minimize : Icons.Maximize;
       setTooltip(
         maximize,
         expanded ? "Exit Expanded" : "Expand Lyrics",
@@ -460,9 +459,9 @@ function renderCardShell(npv: HTMLElement): boolean {
         <div class="CardHeader">
             <span class="CardTitle">Lyrics</span>
             <div class="CardControls">
-                <button id="NPVCardExpand" class="CardControl">${Icons.CinemaView}</button>
-                <button id="NPVCardMaximize" class="CardControl">${Icons.Maximize}</button>
-                <button id="NPVCardToggle" class="CardControl">${Icons.Collapse}</button>
+                <button id="NPVCardExpand" class="CardControl">${Icons.OpenPage}</button>
+                <button id="NPVCardMaximize" class="CardControl">${Icons.CardExpand}</button>
+                <button id="NPVCardToggle" class="CardControl">${Icons.CardToggle}</button>
             </div>
         </div>
         <div class="CardBody"></div>
@@ -689,7 +688,10 @@ function attachWatchers(): void {
 
   // Spotify swaps the sidebar element itself (e.g. for cinema view) — watch
   // its parent and re-attach the sidebar observer when that happens.
-  const topContainer = document.querySelector(".Root__top-container");
+  // 1.3.5 no longer maps .Root__top-container; it is #main-view's parent on every build.
+  const topContainer =
+    document.querySelector(".Root__top-container, .LiEjwLua6RNBCvlysAT2") ??
+    document.getElementById("main-view")?.parentElement ?? null;
   const watchRoot =
     topContainer ?? document.querySelector(".Root") ?? document.body;
   // Without .Root__right-sidebar (Spotify 1.3.x) the observer root is found

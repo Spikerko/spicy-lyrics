@@ -1,5 +1,6 @@
 import { GetInstantStore } from "../../modules/Store.ts";
 import { jitter } from "../jitter.ts";
+import { getRemoteConfig } from "../remoteConfig.ts";
 import type { PingConfigData } from "./types.ts";
 
 export const OPERATIONS = {
@@ -26,31 +27,24 @@ export const DEFAULT_PING_CONFIG: PingConfigData = {
 };
 
 /**
- * Jitter ratios. These are mean-preserving, so the average request rate is
- * unchanged — they exist purely to stop the fleet from firing in unison. Any
- * global event (a restart, an outage) phase-locks every client, and without
- * meaningful spread they stay locked forever, arriving as one spike and looking
- * like coordinated bot traffic to the edge.
+ * Backoff and jitter tuning, from the remote config's `session` group. Read it
+ * at the point of use so a pushed change applies to the next scheduled timer.
+ *
+ * - The `*JitterRatio`s are mean-preserving, so the average request rate is
+ *   unchanged — they exist purely to stop the fleet from firing in unison. Any
+ *   global event (a restart, an outage) phase-locks every client, and without
+ *   meaningful spread they stay locked forever, arriving as one spike and
+ *   looking like coordinated bot traffic to the edge.
+ * - `recoverSpreadMs` is the window a fleet-wide session-death wave is smeared
+ *   across; `pingFailureMaxMs` caps the escalating ping-failure backoff.
+ * - The refresh-failure backoff should stay well under the TTL slack (the
+ *   refresh fires at 80% of a 1 hour TTL, leaving ~12 minutes), so 1-2-4-8
+ *   minutes covers a recovery; past that the session simply dies and
+ *   `recover()` takes over.
  */
-const PING_JITTER_RATIO = 0.2;
-const REFRESH_JITTER_RATIO = 0.1;
-
-export const BACKOFF_BASE_MS = 5000;
-export const BACKOFF_MAX_MS = 60000;
-
-/** Window that a fleet-wide session-death wave is smeared across. */
-export const RECOVER_SPREAD_MS = 45000;
-
-/** Ceiling for the escalating ping-failure backoff. */
-export const PING_FAILURE_MAX_MS = 1800000;
-
-/**
- * Refresh-failure backoff. Bounded well under the TTL slack (the refresh fires
- * at 80% of a 1 hour TTL, leaving ~12 minutes), so 1-2-4-8 minutes covers a
- * recovery; past that the session simply dies and `recover()` takes over.
- */
-export const REFRESH_FAILURE_BASE_MS = 60000;
-export const REFRESH_FAILURE_MAX_MS = 900000;
+export function sessionTuning() {
+  return getRemoteConfig().session;
+}
 
 /**
  * Last-known-good config, persisted. Without this a client that boots while the
@@ -146,7 +140,7 @@ export function basePingDelayMs(): number {
 }
 
 export function pingDelayMs(): number {
-  return Math.min(jitter(basePingDelayMs(), PING_JITTER_RATIO), MAX_TIMER_MS);
+  return jitter(basePingDelayMs(), sessionTuning().pingJitterRatio);
 }
 
 export function refreshDelayMs(): number {
@@ -155,5 +149,5 @@ export function refreshDelayMs(): number {
   const base = clamp(ttlMs * fraction, MIN_REFRESH_DELAY_MS, MAX_TIMER_MS);
   // Jitter must not carry a late-fraction refresh past the expiry itself.
   const latest = clamp(ttlMs, MIN_REFRESH_DELAY_MS, MAX_TIMER_MS);
-  return Math.min(jitter(base, REFRESH_JITTER_RATIO), latest);
+  return Math.min(jitter(base, sessionTuning().refreshJitterRatio), latest);
 }

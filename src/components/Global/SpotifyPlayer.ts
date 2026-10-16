@@ -232,6 +232,8 @@ export const SpotifyPlayer = {
     let rightContainer: HTMLElement | null;
     const buttonsStash = new Set<HTMLElement>();
     const NATIVE_LYRICS_BUTTON_CLASSES = new Set(["main-nowPlayingBar-lyricsButton", "vVsHwFW9rx4CZOne"]);
+    // Active-state hashes per build (1.2.98, then 1.3.5), never copied from a native sibling.
+    const ACTIVE_STATE_CLASSES = new Set(["ZfsMQKTLl695iPvUo3GK", "Tjk9xHexUrsjejB5PBbF", "OJsKOflU3SmUHnQ5_QKE"]);
 
     type ButtonOnClick = (btn: Button) => void;
 
@@ -314,6 +316,9 @@ export const SpotifyPlayer = {
         this._active = bool;
         this.element.classList.toggle("main-genericButton-buttonActive", bool);
         this.element.classList.toggle("ZfsMQKTLl695iPvUo3GK", bool);
+        // 1.3.5 hashes of buttonActive / buttonActiveDot (Spicetify no longer maps them).
+        this.element.classList.toggle("Tjk9xHexUrsjejB5PBbF", bool);
+        this.element.classList.toggle("OJsKOflU3SmUHnQ5_QKE", bool);
         this.element.classList.toggle(
           "main-genericButton-buttonActiveDot",
           bool
@@ -382,7 +387,7 @@ export const SpotifyPlayer = {
       }
       if (!sibling) return;
       for (const className of Array.from(sibling.classList)) {
-        if (className.startsWith("main-genericButton") || className === "ZfsMQKTLl695iPvUo3GK") continue;
+        if (className.startsWith("main-genericButton") || ACTIVE_STATE_CLASSES.has(className)) continue;
         if (NATIVE_LYRICS_BUTTON_CLASSES.has(className)) continue;
         element.classList.add(className);
       }
@@ -484,9 +489,10 @@ export const SpotifyPlayer = {
     }
 
     function waitForWidgetMounted() {
-      nowPlayingWidget = document.querySelector<HTMLElement>(
-        ".main-nowPlayingWidget-nowPlaying"
-      );
+      nowPlayingWidget =
+        document.querySelector<HTMLElement>(".main-nowPlayingWidget-nowPlaying") ??
+        // 1.3.5: .main-nowPlayingWidget-nowPlaying is no longer mapped.
+        document.querySelector<HTMLElement>(".nH2R2U626Rdlv05YEt09");
       if (!nowPlayingWidget) {
         setTimeout(waitForWidgetMounted, 300);
         return;
@@ -497,6 +503,8 @@ export const SpotifyPlayer = {
     (function attachObserver() {
       const leftPlayer =
         document.querySelector<HTMLElement>(".main-nowPlayingBar-left") ??
+        // 1.3.5: .main-nowPlayingBar-left is no longer mapped.
+        document.querySelector<HTMLElement>(".Xaz3TDhhjakUcSaES5TR") ??
         document.querySelector<HTMLElement>(".qqAX5M23YurntqVJ_8Dt") ??
         document.querySelector<HTMLElement>(".main-nowPlayingWidget-actionButtonWrapper") ??
         document.querySelector<HTMLElement>(

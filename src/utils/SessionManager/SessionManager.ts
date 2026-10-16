@@ -2,17 +2,7 @@ import Platform from "../../components/Global/Platform.ts";
 import { ServiceUnavailableError } from "../API/CircuitBreaker.ts";
 import { fullJitter, jitter } from "../jitter.ts";
 import Logger from "../Logger.ts";
-import {
-  basePingDelayMs,
-  BACKOFF_BASE_MS,
-  BACKOFF_MAX_MS,
-  PING_FAILURE_MAX_MS,
-  pingDelayMs,
-  RECOVER_SPREAD_MS,
-  REFRESH_FAILURE_BASE_MS,
-  REFRESH_FAILURE_MAX_MS,
-  refreshDelayMs,
-} from "./config.ts";
+import { basePingDelayMs, pingDelayMs, refreshDelayMs, sessionTuning } from "./config.ts";
 import { opCreateSession, opPing, opRefreshSession } from "./operations.ts";
 import { clearTk, getTk, markPing, setTk } from "./state.ts";
 import { SessionStatus, type OpResult } from "./types.ts";
@@ -35,7 +25,7 @@ export class SessionManager {
 
   private ensurePromise: Promise<void> | null = null;
   private recreateBackoffMs = 0;
-  private createBackoffMs = BACKOFF_BASE_MS;
+  private createBackoffMs = sessionTuning().backoffBaseMs;
   private pingFailures = 0;
   private refreshFailures = 0;
 
@@ -247,13 +237,14 @@ export class SessionManager {
    * the delay costs the user nothing.
    */
   private nextRecreateDelay(): number {
+    const { backoffBaseMs, backoffMaxMs, recoverSpreadMs, recreateJitterRatio } = sessionTuning();
     if (this.recreateBackoffMs === 0) {
-      this.recreateBackoffMs = BACKOFF_BASE_MS;
-      return fullJitter(RECOVER_SPREAD_MS);
+      this.recreateBackoffMs = backoffBaseMs;
+      return fullJitter(recoverSpreadMs);
     }
 
-    this.recreateBackoffMs = Math.min(this.recreateBackoffMs * 2, BACKOFF_MAX_MS);
-    return jitter(this.recreateBackoffMs, 0.3);
+    this.recreateBackoffMs = Math.min(this.recreateBackoffMs * 2, backoffMaxMs);
+    return jitter(this.recreateBackoffMs, recreateJitterRatio);
   }
 
   private resetRecreateBackoff(): void {
@@ -262,26 +253,29 @@ export class SessionManager {
 
   /** Doubles the healthy ping interval per failure: 5m, 10m, 20m, capped at 30m. */
   private nextPingFailureDelay(): number {
+    const { pingFailureMaxMs, pingFailureJitterRatio } = sessionTuning();
     const base = basePingDelayMs() * Math.pow(2, this.pingFailures);
     this.pingFailures += 1;
-    return jitter(Math.min(base, PING_FAILURE_MAX_MS), 0.2);
+    return jitter(Math.min(base, pingFailureMaxMs), pingFailureJitterRatio);
   }
 
   /** 1m, 2m, 4m, 8m, capped at 15m — bounded by the TTL slack, see config.ts. */
   private nextRefreshFailureDelay(): number {
-    const base = REFRESH_FAILURE_BASE_MS * Math.pow(2, this.refreshFailures);
+    const { refreshFailureBaseMs, refreshFailureMaxMs, refreshFailureJitterRatio } = sessionTuning();
+    const base = refreshFailureBaseMs * Math.pow(2, this.refreshFailures);
     this.refreshFailures += 1;
-    return jitter(Math.min(base, REFRESH_FAILURE_MAX_MS), 0.2);
+    return jitter(Math.min(base, refreshFailureMaxMs), refreshFailureJitterRatio);
   }
 
   private nextCreateDelay(): number {
+    const { backoffMaxMs, createJitterRatio } = sessionTuning();
     const delay = this.createBackoffMs;
-    this.createBackoffMs = Math.min(this.createBackoffMs * 2, BACKOFF_MAX_MS);
-    return jitter(delay, 0.3);
+    this.createBackoffMs = Math.min(this.createBackoffMs * 2, backoffMaxMs);
+    return jitter(delay, createJitterRatio);
   }
 
   private resetCreateBackoff(): void {
-    this.createBackoffMs = BACKOFF_BASE_MS;
+    this.createBackoffMs = sessionTuning().backoffBaseMs;
   }
 
   private sleep(ms: number): Promise<void> {

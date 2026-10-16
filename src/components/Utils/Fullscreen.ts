@@ -1,8 +1,10 @@
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
+import { SyncNoLyricsLayout } from "../../utils/Lyrics/LyricsNotice.ts";
 import { ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import { $currentLyricsData } from "../../utils/stores.ts";
 import { $forceCompactMode, $isNowBarOpen } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
+import { SetKawarpSuspended } from "../DynamicBG/dynamicBackground.ts";
 import PageView, { Compactify, GetPageRoot, PageContainer, Tooltips } from "../Pages/PageView.ts";
 import { EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
 import { CleanUpNowBarComponents, CloseNowBar, DeregisterNowBarBtn, OpenNowBar } from "./NowBar.ts";
@@ -25,8 +27,35 @@ const ControlsMaid = new Maid();
 
 const controlsOpacitySpring = new Spring(0, 2, 2, 0); // Goal: 0.65
 const artworkBrightnessSpring = new Spring(0, 2, 2, 0); // Goal: 0.78
+// Canvas Stage's dock rows: up with the controls, down only once they've fully faded.
+const dockLiftSpring = new Spring(0, 2.5, 1, 0);
 
 let animationLastTimestamp: number | undefined;
+
+// The layouts whose dock rows read --DockLift (Canvas Stage, the popup dock). Nothing else does.
+const isDockLayout = () =>
+  (PageContainer?.classList.contains("CanvasImmersive") ||
+    (IsPIP && PageContainer?.classList.contains("Exp_PopupDock"))) ??
+  false;
+
+// --DockLift sits on the Header, so every write restyles the whole Header; identical values are skipped.
+let dockLiftWritten: { el: HTMLElement; value: string } | null = null;
+
+function writeDockLift(header: HTMLElement, dockLift: number) {
+  const value = dockLift.toString();
+  if (dockLiftWritten?.el === header && dockLiftWritten.value === value) return;
+  header.style.setProperty("--DockLift", value);
+  dockLiftWritten = { el: header, value };
+}
+
+// Canvas Stage's stage element, kept between frames instead of looked up on each one.
+let canvasStage: HTMLElement | null = null;
+
+function getCanvasStage(): HTMLElement | null {
+  if (canvasStage?.isConnected && PageContainer?.contains(canvasStage)) return canvasStage;
+  canvasStage = PageContainer?.querySelector<HTMLElement>(".ContentBox > .CanvasStage") ?? null;
+  return canvasStage;
+}
 
 let visualsApplied = false;
 let pageHover = false;
@@ -61,6 +90,15 @@ const RunMediaBoxAnimation = () => {
     const deltaTime = (timestampNow - animationLastTimestamp) / 1000;
     const controlsOpacity = controlsOpacitySpring.Step(deltaTime);
     const artworkBrightness = artworkBrightnessSpring.Step(deltaTime);
+    if (controlsOpacitySpring.GetGoal() > 0) {
+      dockLiftSpring.SetGoal(1);
+    } else if (controlsOpacity <= 0.005) {
+      dockLiftSpring.SetGoal(0);
+    }
+    // Outside the dock layouts nothing reads the lift, so it isn't animated there: it sits at
+    // its goal, ready for a dock layout that turns on, and doesn't keep this loop running.
+    if (!isDockLayout()) dockLiftSpring.SetGoal(dockLiftSpring.GetGoal(), true);
+    const dockLift = dockLiftSpring.Step(deltaTime);
 
     const MediaBox = PageContainer?.querySelector<HTMLElement>(
       ".ContentBox .NowBar .Header .MediaBox"
@@ -69,9 +107,11 @@ const RunMediaBoxAnimation = () => {
     if (MediaBox) {
       MediaBox.style.setProperty("--ArtworkBrightness", artworkBrightness.toString());
       MediaBox.style.setProperty("--ControlsOpacity", controlsOpacity.toString());
+      if (MediaBox.parentElement) writeDockLift(MediaBox.parentElement, dockLift);
     }
+    getCanvasStage()?.style.setProperty("--StageBrightness", artworkBrightness.toString());
 
-    if (controlsOpacitySpring.CanSleep() && artworkBrightnessSpring.CanSleep()) {
+    if (controlsOpacitySpring.CanSleep() && artworkBrightnessSpring.CanSleep() && dockLiftSpring.CanSleep()) {
       animationLastTimestamp = undefined;
       visualsApplied = false;
       return;
@@ -124,6 +164,14 @@ const ToggleControls = (force: boolean = false) => {
       return 1;
     }
   };
+
+  // Canvas Stage and the popup dock move the dock rows on this spring, so it runs critically
+  // damped at a quicker response there; the cover layout keeps its slow overdamped fade.
+  const immersive = isDockLayout();
+  for (const spring of [controlsOpacitySpring, artworkBrightnessSpring]) {
+    spring.SetFrequency(immersive ? 2.5 : 2);
+    spring.SetDampingRatio(immersive ? 1 : 2);
+  }
 
   controlsOpacitySpring.SetGoal(getControlsOpacityGoal());
   artworkBrightnessSpring.SetGoal(getArtworkBrightnessGoal());
@@ -183,13 +231,16 @@ const HIDDEN_MAIN_STYLES = {
   inset: "0",
 } as const;
 
+// The Now Playing sidebar is inside #main, so its background has nothing to draw while it's hidden.
 function hideMainElement(mainElement: HTMLElement) {
   for (const [property, value] of Object.entries(HIDDEN_MAIN_STYLES)) {
     mainElement.style.setProperty(property, value);
   }
+  SetKawarpSuspended("npvbg", true);
 }
 
 function showMainElement() {
+  SetKawarpSuspended("npvbg", false);
   const mainElement = document.querySelector<HTMLElement>("#main");
   if (!mainElement) return;
   for (const property of Object.keys(HIDDEN_MAIN_STYLES)) {
@@ -346,15 +397,7 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
     if (!stillOpen()) return;
     PageView.AppendViewControls(true);
 
-    const NoLyrics = $currentLyricsData.get().includes("NO_LYRICS");
-    if (NoLyrics && !IsCompactMode()) {
-      SpicyPage
-        ?.querySelector(".ContentBox .LyricsContainer")
-        ?.classList.add("Hidden");
-      SpicyPage
-        ?.querySelector<HTMLElement>(".ContentBox")
-        ?.classList.add("LyricsHidden");
-    }
+    SyncNoLyricsLayout();
   }, 75);
 
   GetCurrentLyricsContainerInstance()?.Resize();
@@ -383,11 +426,8 @@ function finishClose(SpicyPage: HTMLElement, transfer: boolean) {
     if (transfer) setTimeout(() => PageView.AppendViewControls(true), 50);
   });
 
-  if ($currentLyricsData.get().includes("NO_LYRICS")) {
-    SpicyPage.querySelector(".ContentBox .LyricsContainer")?.classList.remove("Hidden");
-    SpicyPage.querySelector<HTMLElement>(".ContentBox")?.classList.remove("LyricsHidden");
-    if (transfer) DeregisterNowBarBtn();
-  }
+  SyncNoLyricsLayout();
+  if (transfer && $currentLyricsData.get().includes("NO_LYRICS")) DeregisterNowBarBtn();
 
   ResetLastLine();
 

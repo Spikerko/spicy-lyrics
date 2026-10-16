@@ -1,76 +1,79 @@
 import { useStore } from "@nanostores/react";
-import React from "react";
 import {
   $animationFpsCap,
   $animationFpsCapEnabled,
   $skipSpicyFont,
 } from "../../../utils/stores.ts";
-import { matches, Row, SectionTitle, Slider, Toggle } from "./components.tsx";
+import { Slider, Toggle } from "./components.tsx";
+import { AppearanceIcon } from "./icons.tsx";
+import type { GroupDef, SectionDef } from "./model.ts";
 
-const SECTION_NAME = "Appearance";
-
-const FPS_CAP_DESCRIPTION =
-  "Limit how often the lyrics, the animated background and the scroll glide are redrawn. Lower values use less CPU, especially on high refresh rate displays. Turn off to redraw on every display refresh.";
-const FPS_SLIDER_DESCRIPTION = "Frames per second while the cap is on.";
-
-interface Props {
-  query: string;
-  sectionFilter: string;
-}
-
-export default function AppearanceSection({ query, sectionFilter }: Props) {
-  const skipSpicyFont = useStore($skipSpicyFont);
-  const fpsCapEnabled = useStore($animationFpsCapEnabled);
-  const fpsCap = useStore($animationFpsCap);
-
-  if (sectionFilter !== "All" && sectionFilter !== SECTION_NAME) return null;
-
-  const r1 = matches(
-    query,
-    "Use Default Font",
-    "Disable the custom Spicy Lyrics font and fall back to your root font."
-  );
-  const r2 = matches(query, "Limit Animation Frame Rate", FPS_CAP_DESCRIPTION);
-  const r3 = fpsCapEnabled && matches(query, "Animation Frame Rate", FPS_SLIDER_DESCRIPTION);
-
-  if (!r1 && !r2 && !r3) return null;
-
-  return (
-    <>
-      <SectionTitle>Appearance</SectionTitle>
-
-      {r1 && (
-        <Row
-          label="Use System Font"
-          description="Disable the custom Spicy Lyrics font and fall back to your system font."
-        >
-          <Toggle checked={skipSpicyFont} onChange={(v) => $skipSpicyFont.set(v)} />
-        </Row>
-      )}
-
-      {r2 && (
-        <Row label="Limit Animation Frame Rate" description={FPS_CAP_DESCRIPTION}>
-          <Toggle checked={fpsCapEnabled} onChange={(v) => $animationFpsCapEnabled.set(v)} />
-        </Row>
-      )}
-
-      {r3 && (
-        <Row
-          label="Animation Frame Rate"
-          description={FPS_SLIDER_DESCRIPTION}
-          stacked
-        >
+// Built once: the Control components must keep their identity across renders.
+const groups: GroupDef[] = [
+  {
+    title: "Text",
+    settings: [
+      {
+        id: "skipSpicyFont",
+        label: "Use System Font",
+        description: "Use your system font instead of the Spicy Lyrics font.",
+        keywords: "default font typeface",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($skipSpicyFont)}
+            onChange={(v) => $skipSpicyFont.set(v)}
+          />
+        ),
+      },
+    ],
+  },
+  {
+    title: "Performance",
+    settings: [
+      {
+        id: "animationFpsCapEnabled",
+        label: "Limit Frame Rate",
+        description:
+          "Redraw the lyrics, background and scroll less often to save CPU, especially on high refresh rate displays.",
+        keywords: "fps cap animation",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($animationFpsCapEnabled)}
+            onChange={(v) => $animationFpsCapEnabled.set(v)}
+          />
+        ),
+      },
+      {
+        id: "animationFpsCap",
+        label: "Frame Rate",
+        description: "Frames per second while the limit is on.",
+        keywords: "fps cap animation",
+        stacked: true,
+        useDisabled: () =>
+          !useStore($animationFpsCapEnabled) && "Turn on Limit Frame Rate to change this.",
+        Control: ({ disabled, label }) => (
           <Slider
-            value={fpsCap}
+            label={label}
+            value={useStore($animationFpsCap)}
             min={15}
             max={240}
             step={5}
             defaultValue={60}
             unit="FPS"
             onChange={(v) => $animationFpsCap.set(v)}
+            disabled={disabled}
           />
-        </Row>
-      )}
-    </>
-  );
-}
+        ),
+      },
+    ],
+  },
+];
+
+export const appearanceSection: SectionDef = {
+  id: "appearance",
+  title: "Appearance",
+  icon: AppearanceIcon,
+  groups: () => groups,
+};

@@ -116,6 +116,88 @@
   );
 }
 
+/* Refreshed Simple Lyrics (experiment). The sung edge is a fade of fixed width
+   (--SLR_FadeWidth, in em) instead of half the word, so short and long words
+   light up alike. The gradient is drawn on an image of 2 × the word + the fade
+   (bright half, fade, dim half) and slid across by background-position, which
+   maps --SLM_GradientPosition's -50%…100% onto fully dim…fully lit. Both
+   rendering types drive that same variable, so this covers them both. The
+   part still to come stays a little brighter than before. */
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line.Active
+  .word:not(.dot),
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line.Active
+  .letter {
+  --SLR_FadeWidth: 0.55em;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, var(--gradient-alpha)) calc(50% - var(--SLR_FadeWidth) / 2),
+    rgba(255, 255, 255, var(--gradient-alpha-end)) calc(50% + var(--SLR_FadeWidth) / 2)
+  );
+  background-size: calc(200% + var(--SLR_FadeWidth)) 100%;
+  background-repeat: no-repeat;
+  background-position: calc((100% - var(--SLM_GradientPosition)) / 1.5) 0;
+}
+
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line.Active
+  .letter {
+  --SLR_FadeWidth: 0.4em;
+}
+
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line.Active:not(.bg-line)
+  :is(.word:not(.dot), .letter) {
+  --gradient-alpha-end: 0.4;
+}
+
+/* Split letters are built shrunk and low, and only lines being sung are
+   animated. Here they wait as plain text like the words around them, so a
+   split word doesn't grow into place as its line starts. Sung lines are left
+   alone: the last word's letters settle there after the line ends. */
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line:not(.Active, .Sung)
+  .letter {
+  scale: 1 !important;
+  transform: none !important;
+  translate: none !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line.Sung
+  .letter {
+  text-shadow:
+    0 0 var(--BlurAmount, 0)
+      rgba(var(--gradient-color), var(--gradient-color), var(--gradient-color), var(--gradient-alpha)),
+    0 0 var(--text-shadow-blur-radius) rgba(255, 255, 255, var(--text-shadow-opacity));
+}
+
+#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+  .LyricsContainer
+  .LyricsContent
+  .line.rtl.Active
+  .word:not(.dot) {
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, var(--gradient-alpha-end)) calc(50% - var(--SLR_FadeWidth) / 2),
+    rgba(255, 255, 255, var(--gradient-alpha)) calc(50% + var(--SLR_FadeWidth) / 2)
+  );
+  background-position: calc((var(--SLM_GradientPosition) + 50%) / 1.5) 0;
+}
+
 /* Syllable words paint their own gradient. A gradient clipped to their parent
    paints the same glyphs again while the words move. The interlude dots paint
    their own too, in every lyrics type: left on the line, its gradient drew a
@@ -640,7 +722,7 @@
   transform: translateY(calc(var(--DefaultLyricsSize) * 0)) !important;
 } */
 
-/* Exp_DuetLinePadding — how far a duet line is inset on the side it leans away
+/* DuetLinePadding (setting) — how far a duet line is inset on the side it leans away
    from. On, the inset is wide enough that the two voices read as separate
    columns; off, duet lines keep the same slight padding every other line gets. */
 #SpicyLyricsPage.SpicyRenderer
@@ -650,7 +732,7 @@
   --DuetLineInset: 5cqw;
 }
 
-#SpicyLyricsPage.SpicyRenderer.Exp_DuetLinePadding
+#SpicyLyricsPage.SpicyRenderer.DuetLinePadding
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer.HasDuetLines {
@@ -885,6 +967,25 @@
   margin: max(.75cqw, 0.4em) 1px 0 !important;
   scale: 1;
   color: white;
+}
+
+/* CreditsFollowLastLine (setting): a song that ends on a duet line sung from the
+   right keeps its credits on that side, under the line. EndsOnOppositeLine is set
+   by the appliers from the lyrics data. */
+#SpicyLyricsPage.SpicyRenderer.CreditsFollowLastLine
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer.EndsOnOppositeLine
+  > :is(.Credits, .LyricsProvider, .SongInfo) {
+  text-align: end;
+}
+
+#SpicyLyricsPage.SpicyRenderer.CreditsFollowLastLine
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer.EndsOnOppositeLine
+  > .SongInfo {
+  align-items: flex-end;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .song-info-profile-section {

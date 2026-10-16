@@ -1,14 +1,15 @@
-const BlobURLCache = new Map<string, { blobUrl: string; expiresAt: number }>();
+// Least recently used first. Image URLs are content-addressed, so an entry never goes stale;
+// the cap is what keeps a long session from holding every image it ever showed.
+const BlobURLCache = new Map<string, string>();
+const MAX_ENTRIES = 32;
 
 export default async function BlobURLMaker(url: string): Promise<string | null> {
   if (!url) throw new Error("SpicyLyrics: BlobURLMaker: url Missing");
   const existingBlobURL = BlobURLCache.get(url);
   if (existingBlobURL) {
-    const expiresAt = existingBlobURL.expiresAt;
-    if (expiresAt < Date.now()) {
-      BlobURLCache.delete(url);
-    }
-    return existingBlobURL.blobUrl;
+    BlobURLCache.delete(url);
+    BlobURLCache.set(url, existingBlobURL);
+    return existingBlobURL;
   }
   try {
     const response = await fetch(url);
@@ -17,13 +18,17 @@ export default async function BlobURLMaker(url: string): Promise<string | null> 
     }
 
     const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
+    // A concurrent call for the same URL got there first; keep one blob.
+    const raced = BlobURLCache.get(url);
+    if (raced) return raced;
 
-    const expiresAt = Date.now() + 1000 * 60 * 60;
-    BlobURLCache.set(url, {
-      blobUrl,
-      expiresAt,
-    });
+    const blobUrl = URL.createObjectURL(blob);
+    BlobURLCache.set(url, blobUrl);
+    if (BlobURLCache.size > MAX_ENTRIES) {
+      const [oldestUrl, oldestBlobUrl] = BlobURLCache.entries().next().value!;
+      BlobURLCache.delete(oldestUrl);
+      URL.revokeObjectURL(oldestBlobUrl);
+    }
     return blobUrl;
   } catch (error) {
     console.error("Error fetching and converting to blob URL:", error);

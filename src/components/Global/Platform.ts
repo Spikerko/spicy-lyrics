@@ -1,3 +1,5 @@
+import { getRemoteConfig } from "../../utils/remoteConfig.ts";
+
 // Spotify Types
 type TokenProviderResponse = {
   accessToken: string;
@@ -51,7 +53,8 @@ let accessTokenPromise: Promise<string> | undefined;
 let rejectedAccessToken: string | undefined;
 
 /**
- * How long before its stated expiry a token stops being trusted.
+ * How long before its stated expiry a token stops being trusted
+ * (`token.expiryMarginMs` in the remote config).
  *
  * Clients hand out tokens that are already dead a little before their own
  * `accessTokenExpirationTimestampMs` says they should be, and that timestamp is
@@ -59,7 +62,7 @@ let rejectedAccessToken: string | undefined;
  * synchronous property lookup, so a wide margin is nearly free — while using a
  * dead token costs the user their lyrics.
  */
-const TOKEN_EXPIRY_MARGIN_MS = 60_000;
+const tokenExpiryMarginMs = () => getRemoteConfig().token.expiryMarginMs;
 
 function isUsable(response: TokenProviderResponse | undefined): boolean {
   if (!response?.accessToken) return false;
@@ -69,7 +72,7 @@ function isUsable(response: TokenProviderResponse | undefined): boolean {
   if (typeof response.expiresAtTime !== "number" || !Number.isFinite(response.expiresAtTime)) {
     return true;
   }
-  return response.expiresAtTime - Date.now() > TOKEN_EXPIRY_MARGIN_MS;
+  return response.expiresAtTime - Date.now() > tokenExpiryMarginMs();
 }
 
 /** Take a token as the current one, retiring any rejection it supersedes. */

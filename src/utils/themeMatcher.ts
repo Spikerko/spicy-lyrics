@@ -99,6 +99,15 @@ export function watchMarketplaceUserCss(): () => void {
 }
 
 const STOCK_PLAYBAR_CLASS = "SpicyLyrics_StockPlaybar";
+// Which arrangement of the progress wrapper the bar has, for default.scss. These
+// were :has() checks there, but a :has() in a rule that applies while the page is
+// open made every element insertion in the app restyle most of the document
+// (~25 ms at 1.3.3), which is a dropped frame each time the lyrics mount a line.
+// - UNCLASSED: nothing in the bar is .playback-progressbar (1.3.x hashes it all).
+// - PADDED: .playback-progressbar sits in a wrapper that isn't
+//   .playback-progressbar-container.
+const PLAYBAR_UNCLASSED_CLASS = "SpicyLyrics_PlaybarUnclassed";
+const PLAYBAR_PADDED_CLASS = "SpicyLyrics_PlaybarPadded";
 
 // default.scss pins the elapsed time out of the playback bar's flow while the
 // page is open, and pads the progress bar to make room for it. That assumes
@@ -111,7 +120,9 @@ const STOCK_PLAYBAR_CLASS = "SpicyLyrics_StockPlaybar";
 const getPlaybar = () =>
   document.querySelector<HTMLElement>(".Root__now-playing-bar .playback-bar") ??
   document.querySelector<HTMLElement>('[data-testid="now-playing-bar"] .playback-bar') ??
-  document.querySelector<HTMLElement>(".playback-bar");
+  document.querySelector<HTMLElement>(".playback-bar") ??
+  // 1.3.5 no longer maps .playback-bar; default.scss lists this hash next to it.
+  document.querySelector<HTMLElement>('[data-testid="now-playing-bar"] .cBGHFhO702FCP9WRLR3X');
 
 const getElapsed = (bar: HTMLElement) =>
   bar.querySelector<HTMLElement>(
@@ -209,7 +220,7 @@ const watchPlaybar = (bar: HTMLElement | null) => {
 export function syncStockPlaybarClass(tries = 0) {
   clearTimeout(pendingPlaybarSync);
   stopWatchingPlaybar();
-  document.body.classList.remove(STOCK_PLAYBAR_CLASS);
+  document.body.classList.remove(STOCK_PLAYBAR_CLASS, PLAYBAR_UNCLASSED_CLASS, PLAYBAR_PADDED_CLASS);
   if (!stockPlaybarPage?.isConnected) return;
   const bar = getPlaybar();
   if ((!bar || !getElapsed(bar)) && tries < PLAYBAR_WAIT_MAX_TRIES) {
@@ -219,7 +230,15 @@ export function syncStockPlaybarClass(tries = 0) {
     );
     return;
   }
-  document.body.classList.toggle(STOCK_PLAYBAR_CLASS, isStockPlaybar());
+  const stock = isStockPlaybar();
+  document.body.classList.toggle(STOCK_PLAYBAR_CLASS, stock);
+  if (stock && bar) {
+    document.body.classList.toggle(PLAYBAR_UNCLASSED_CLASS, !bar.querySelector(".playback-progressbar"));
+    document.body.classList.toggle(
+      PLAYBAR_PADDED_CLASS,
+      !!bar.querySelector(":scope > :not(.playback-progressbar-container) .playback-progressbar")
+    );
+  }
   watchPlaybar(bar);
 }
 

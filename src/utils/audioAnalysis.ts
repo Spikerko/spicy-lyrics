@@ -1,5 +1,6 @@
 import type { AudioAnalysisData } from "../components/DynamicBG/BackgroundAnimationController";
 import { GetExpireStore } from "../modules/Store";
+import { getRemoteConfig } from "./remoteConfig";
 
 interface CachedAudioAnalysis {
     analysis?: AudioAnalysisData;
@@ -21,8 +22,11 @@ function getCosmosErrorStatus(error: unknown): number | undefined {
     return undefined;
 }
 
+// A getter so a pushed TTL applies to every write from then on.
 export const AudioAnalysisStore = GetExpireStore<CachedAudioAnalysis>("SpicyLyrics_AudioAnalysis", 1, {
-    Duration: 1,
+    get Duration() {
+        return getRemoteConfig().cache.audioAnalysisTtlMonths;
+    },
     Unit: "Months"
 });
 

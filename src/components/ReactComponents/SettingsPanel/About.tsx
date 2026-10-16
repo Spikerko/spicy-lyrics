@@ -18,7 +18,7 @@ const LINKS: Link[] = [
 ];
 
 /** "checking" until the fetch lands; "unknown" if it never does. */
-type UpdateStatus = "checking" | "latest" | "outdated" | "unknown";
+export type UpdateStatus = "checking" | "latest" | "outdated" | "unknown";
 
 interface Version {
   Major: number;
@@ -33,31 +33,8 @@ function isNewer(a: Version, b: Version): boolean {
   return a.Patch > b.Patch;
 }
 
-function ExternalArrow() {
-  return (
-    <svg
-      className="sl-sp-footer-arrow"
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M2.5 7.5L7.5 2.5M7.5 2.5H3.5M7.5 2.5V6.5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export default function Footer() {
-  const version = useStore($spicyLyricsVersion);
-  const build = App.isDev() ? "dev" : "public";
+/** Checks once per mount. The panel owns it, so the sidebar can flag an update too. */
+export function useUpdateStatus(): UpdateStatus {
   const [status, setStatus] = useState<UpdateStatus>("checking");
 
   useEffect(() => {
@@ -85,54 +62,79 @@ export default function Footer() {
     };
   }, []);
 
-  const showStatus = status === "latest" || status === "outdated";
+  return status;
+}
+
+function ExternalArrow() {
+  return (
+    <svg
+      className="sl-sp-about-arrow"
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M2.5 7.5L7.5 2.5M7.5 2.5H3.5M7.5 2.5V6.5"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export default function About({ status }: { status: UpdateStatus }) {
+  const version = useStore($spicyLyricsVersion);
+  const build = App.isDev() ? "dev" : "public";
 
   return (
-    <div className="sl-sp-footer">
-      <div className="sl-sp-footer-links">
+    <div className="sl-sp-about">
+      <div className="sl-sp-about-hero">
+        <span className="sl-sp-about-wordmark">Spicy Lyrics</span>
+        <div className="sl-sp-about-status-row">
+          <span className="sl-sp-about-version">Version {version}</span>
+          {(status === "latest" || status === "outdated") && (
+            <>
+              <span className="sl-sp-about-sep" aria-hidden="true">
+                ·
+              </span>
+              <span className={`sl-sp-about-status sl-sp-about-status--${status}`}>
+                {status === "latest" ? "Up to date" : "Update available"}
+              </span>
+            </>
+          )}
+          {status === "outdated" && (
+            <button
+              type="button"
+              className="sl-sp-about-update"
+              onClick={() => Session.Navigate({ pathname: "/SpicyLyrics/Update" })}
+            >
+              Update
+            </button>
+          )}
+        </div>
+        <span className="sl-sp-about-build">
+          Build <span className="sl-sp-about-build-value">{build}</span>
+        </span>
+      </div>
+
+      <div className="sl-sp-about-links">
         {LINKS.map(({ label, url, brand }) => (
           <button
             key={label}
             type="button"
-            className={`sl-sp-footer-link${brand ? " sl-sp-footer-link--brand" : ""}`}
+            className={`sl-sp-about-link${brand ? " sl-sp-about-link--brand" : ""}`}
             style={brand ? ({ "--brand": brand } as React.CSSProperties) : undefined}
             onClick={() => window.open(url, "_blank")}
           >
-            <span className="sl-sp-footer-link-label">{label}</span>
+            <span>{label}</span>
             <ExternalArrow />
           </button>
         ))}
-      </div>
-
-      <div className="sl-sp-footer-meta">
-        <span className="sl-sp-footer-build">
-          Build: <span className="sl-sp-footer-build-value">{build}</span>
-        </span>
-        <div className="sl-sp-footer-brand">
-          <span className="sl-sp-footer-wordmark">Spicy Lyrics</span>
-          <div className="sl-sp-footer-status-row">
-            {showStatus && (
-              <>
-                <span className={`sl-sp-footer-status sl-sp-footer-status--${status}`}>
-                  {status === "latest" ? "Latest" : "Outdated"}
-                </span>
-                {status === "outdated" && (
-                  <button
-                    type="button"
-                    className="sl-sp-footer-update"
-                    onClick={() => Session.Navigate({ pathname: "/SpicyLyrics/Update" })}
-                  >
-                    Update
-                  </button>
-                )}
-                <span className="sl-sp-footer-sep" aria-hidden="true">
-                  ·
-                </span>
-              </>
-            )}
-            <span className="sl-sp-footer-version">v{version}</span>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -32,6 +32,90 @@ const EnforcePipMinSize = (pipWindow: Window) => {
   pipWindow.resizeTo(pipWindow.outerWidth + missingWidth, pipWindow.outerHeight + missingHeight);
 };
 
+// Spotify's native side grows every Document PiP window (its own Miniplayer
+// too) by about one window-frame inset, once right after it opens and again a
+// few seconds later; nothing in the page asks for it. Chromium then remembers
+// the grown size, so each open starts bigger than the last. Each jump arrives as
+// a single, isolated resize event that grows both axes by the same step, which a
+// user drag (a stream of small resize events) never looks like. The first
+// jump teaches us the step; any matching jump during the guard is undone.
+const PIP_GROWTH_GUARD_MS = 10000;
+const PIP_GROWTH_FIRST_JUMP_MS = 1000;
+const PIP_GROWTH_SETTLE_MS = 100;
+const PIP_GROWTH_TOLERANCE = 2;
+const PIP_GROWTH_MAX_STEP = { width: 40, height: 60 };
+
+type PipGrowthGuard = {
+  openedAt: number;
+  last: { width: number; height: number };
+  burstFrom: { width: number; height: number } | null;
+  burstEvents: number;
+  step: { width: number; height: number } | null;
+  timer: ReturnType<typeof setTimeout> | null;
+  handler: () => void;
+};
+let pipGrowthGuard: PipGrowthGuard | null = null;
+
+const SettlePipGrowthBurst = (pipWindow: Window, guard: PipGrowthGuard) => {
+  guard.timer = null;
+  const from = guard.burstFrom;
+  const events = guard.burstEvents;
+  guard.burstFrom = null;
+  guard.burstEvents = 0;
+  if (!from || events !== 1 || pipWindow.closed) return;
+
+  const grewWidth = pipWindow.innerWidth - from.width;
+  const grewHeight = pipWindow.innerHeight - from.height;
+  if (grewWidth <= 0 || grewHeight <= 0) return;
+
+  if (!guard.step) {
+    if (performance.now() - guard.openedAt > PIP_GROWTH_FIRST_JUMP_MS) return;
+    if (grewWidth > PIP_GROWTH_MAX_STEP.width || grewHeight > PIP_GROWTH_MAX_STEP.height) return;
+    guard.step = { width: grewWidth, height: grewHeight };
+  } else if (
+    Math.abs(grewWidth - guard.step.width) > PIP_GROWTH_TOLERANCE ||
+    Math.abs(grewHeight - guard.step.height) > PIP_GROWTH_TOLERANCE
+  ) {
+    return;
+  }
+
+  pipWindow.resizeTo(pipWindow.outerWidth - grewWidth, pipWindow.outerHeight - grewHeight);
+};
+
+const StartPipGrowthGuard = (pipWindow: Window) => {
+  const guard: PipGrowthGuard = {
+    openedAt: performance.now(),
+    last: { width: pipWindow.innerWidth, height: pipWindow.innerHeight },
+    burstFrom: null,
+    burstEvents: 0,
+    step: null,
+    timer: null,
+    handler: () => {
+      if (performance.now() - guard.openedAt > PIP_GROWTH_GUARD_MS) {
+        StopPipGrowthGuard(pipWindow);
+        return;
+      }
+      // Opening also fires resizes that only update the outer size; they'd
+      // turn the jump that follows into a two-event "drag".
+      if (pipWindow.innerWidth === guard.last.width && pipWindow.innerHeight === guard.last.height) return;
+      if (!guard.burstFrom) guard.burstFrom = guard.last;
+      guard.burstEvents++;
+      guard.last = { width: pipWindow.innerWidth, height: pipWindow.innerHeight };
+      if (guard.timer) clearTimeout(guard.timer);
+      guard.timer = setTimeout(() => SettlePipGrowthBurst(pipWindow, guard), PIP_GROWTH_SETTLE_MS);
+    },
+  };
+  pipGrowthGuard = guard;
+  pipWindow.addEventListener("resize", guard.handler);
+};
+
+const StopPipGrowthGuard = (pipWindow: Window | null) => {
+  if (!pipGrowthGuard) return;
+  pipWindow?.removeEventListener("resize", pipGrowthGuard.handler);
+  if (pipGrowthGuard.timer) clearTimeout(pipGrowthGuard.timer);
+  pipGrowthGuard = null;
+};
+
 const pipResizeHandler = () => {
   if (pipMinSizeTimer) clearTimeout(pipMinSizeTimer);
   pipMinSizeTimer = setTimeout(() => {
@@ -78,14 +162,24 @@ const OpenPopupLyricsFlow = async () => {
     throw new Error("documentPictureInPicture API is not available in this browser.");
   }
 
+  // The first native growth can land before requestWindow resolves, so the
+  // guard starts from "enter", which fires as soon as the window exists.
+  const startGuardOnEnter = (event: any) => StartPipGrowthGuard(event.window);
+  docPiP.addEventListener("enter", startGuardOnEnter, { once: true });
+
   // Open a Picture-in-Picture window.
-  // @ts-ignore: requestWindow is not yet standard
-  currentPipWindow = await docPiP.requestWindow({
-    disallowReturnToOpener: true,
-    preferInitialWindowPlacement: false,
-    width: 390,
-    height: 379,
-  });
+  try {
+    // @ts-ignore: requestWindow is not yet standard
+    currentPipWindow = await docPiP.requestWindow({
+      disallowReturnToOpener: true,
+      preferInitialWindowPlacement: false,
+      width: 390,
+      height: 379,
+    });
+  } finally {
+    docPiP.removeEventListener("enter", startGuardOnEnter);
+  }
+  if (!pipGrowthGuard) StartPipGrowthGuard(currentPipWindow);
 
   // Copy style sheets over from the initial document
   // so that the player looks the same.
@@ -175,6 +269,7 @@ const OpenPopupLyricsFlow = async () => {
   // page to open, or for the user to close the still-empty window. Either way
   // PiP can no longer take the page over; bail and drop the window.
   if (PageView.IsOpened || currentPipWindow.closed) {
+    StopPipGrowthGuard(currentPipWindow);
     if (!currentPipWindow.closed) currentPipWindow.close();
     currentPipWindow = null;
     return;
@@ -190,6 +285,7 @@ const OpenPopupLyricsFlow = async () => {
   if (!PageView.IsOpened || !pipWrapper.contains(PageContainer)) {
     // The open was refused or raced; don't leave a blank window claiming PiP.
     IsPIP = false;
+    StopPipGrowthGuard(currentPipWindow);
     currentPipWindow.close();
     currentPipWindow = null;
     return;
@@ -225,6 +321,7 @@ export const ClosePopupLyrics = async () => {
     pipPageHideHandler = null;
   }
   currentPipWindow.removeEventListener("resize", pipResizeHandler);
+  StopPipGrowthGuard(currentPipWindow);
   if (pipMinSizeTimer) {
     clearTimeout(pipMinSizeTimer);
     pipMinSizeTimer = null;

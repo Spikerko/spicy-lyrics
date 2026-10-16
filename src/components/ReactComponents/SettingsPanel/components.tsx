@@ -1,11 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { forwardRef, useContext, useRef } from "react";
+import { searchTerms } from "./model.ts";
 
-export function matches(query: string, label: string, description?: string): boolean {
-  if (!query.trim()) return true;
-  const q = query.toLowerCase();
-  return label.toLowerCase().includes(q) || (description ?? "").toLowerCase().includes(q);
-}
+/**
+ * Peeking clears the panel away so the lyrics behind it show: the row passed in
+ * stays (a slider being dragged), or nothing does (null, the hold-to-peek button).
+ * `end` brings the panel back. A no-op outside the settings panel.
+ */
+export const PeekContext = React.createContext<{
+  start: (keep: HTMLElement | null) => void;
+  end: () => void;
+}>({ start: () => {}, end: () => {} });
 
 export function Row({
   label,
@@ -13,44 +17,122 @@ export function Row({
   children,
   disabled,
   disabledReason,
+  note,
   stacked,
+  badge,
 }: {
-  label: string;
+  label: React.ReactNode;
   description?: string;
   children: React.ReactNode;
   disabled?: boolean;
+  /** Shown under the description while the row is disabled, so the way out is in plain sight. */
   disabledReason?: string;
+  /** Shown under the description whether or not the row is disabled, e.g. another setting overriding it. */
+  note?: string;
   stacked?: boolean;
+  /** Inline tag after the label, e.g. a "Forced on" marker. */
+  badge?: React.ReactNode;
 }) {
   return (
     <div
-      className={`sl-sp-row sl-list-row${disabled ? " sl-sp-row--disabled" : ""}${stacked ? " sl-sp-row--stacked" : ""}`}
+      className={`sl-sp-row${disabled ? " sl-sp-row--disabled" : ""}${stacked ? " sl-sp-row--stacked" : ""}`}
     >
       <div className="sl-sp-label-wrap">
-        <span className="sl-sp-label">{label}</span>
+        <span className="sl-sp-label">
+          {label}
+          {badge}
+        </span>
         {description && <span className="sl-sp-description">{description}</span>}
+        {disabled && disabledReason && <span className="sl-sp-reason">{disabledReason}</span>}
+        {note && <span className="sl-sp-reason">{note}</span>}
       </div>
       <div className="sl-sp-control">{children}</div>
-      {disabled && disabledReason && <div className="sl-sp-row-tooltip">{disabledReason}</div>}
     </div>
+  );
+}
+
+/** Marks every search term inside `text`. */
+export function Highlight({ text, query }: { text: string; query: string }) {
+  const terms = searchTerms(query);
+  if (terms.length === 0) return <>{text}</>;
+  const pattern = new RegExp(
+    `(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+    "gi"
+  );
+  const parts = text.split(pattern);
+  return (
+    <>
+      {parts.map((part, i) =>
+        // split() with one capture group puts the matches at the odd indices.
+        i % 2 === 1 ? (
+          <mark key={i} className="sl-sp-mark">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
   );
 }
 
 export function Toggle({
   checked,
   onChange,
+  locked,
+  onLockedPress,
+  busy,
+  disabled,
+  label,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  /** Shown but unchangeable. Pressing it nudges the knob and snaps it back. */
+  locked?: boolean;
+  onLockedPress?: () => void;
+  /**
+   * Briefly unchangeable while something it depends on settles. Behaves like
+   * `locked`, but leaves the look to the parent so a short wait never flickers.
+   */
+  busy?: boolean;
+  disabled?: boolean;
+  label?: string;
 }) {
+  const frozen = locked || busy;
+  const trackRef = useRef<HTMLSpanElement>(null);
+
+  // A locked toggle still answers the press: the knob leans a few px toward the
+  // state it can't reach and springs back, so the click isn't met with silence.
+  const nudge = () => {
+    onLockedPress?.();
+    const track = trackRef.current;
+    if (!track || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const rest = checked ? 18 : 0;
+    const lean = checked ? rest - 4 : rest + 4;
+    track.animate(
+      [
+        { transform: `translateX(${rest}px)` },
+        { transform: `translateX(${lean}px)`, offset: 0.35 },
+        { transform: `translateX(${rest}px)` },
+      ],
+      { duration: 260, easing: "cubic-bezier(0.23, 1, 0.32, 1)", pseudoElement: "::after" }
+    );
+  };
+
   return (
-    <label className="sl-sp-toggle">
+    <label
+      className={`sl-sp-toggle${locked ? " sl-sp-toggle--locked" : ""}${busy ? " sl-sp-toggle--busy" : ""}`}
+      onPointerDown={frozen ? nudge : undefined}
+    >
       <input
         type="checkbox"
+        role="switch"
+        aria-label={label}
         checked={checked}
+        disabled={frozen || disabled}
         onChange={(e) => onChange(e.currentTarget.checked)}
       />
-      <span className="sl-sp-toggle-track" />
+      <span className="sl-sp-toggle-track" ref={trackRef} />
     </label>
   );
 }
@@ -61,16 +143,19 @@ export function Select({
   labels,
   onChange,
   disabled,
+  label,
 }: {
   value: string;
   options: string[];
   labels?: string[];
   onChange: (v: string) => void;
   disabled?: boolean;
+  label?: string;
 }) {
   return (
     <select
       className="sl-sp-select"
+      aria-label={label}
       value={value}
       onChange={(e) => onChange(e.currentTarget.value)}
       disabled={disabled}
@@ -100,6 +185,7 @@ export function Slider({
   unit,
   onChange,
   disabled,
+  label,
 }: {
   value: number;
   min: number;
@@ -109,6 +195,7 @@ export function Slider({
   unit?: string;
   onChange: (v: number) => void;
   disabled?: boolean;
+  label?: string;
 }) {
   // Keep in sync with the thumb width in settings-panel.css.
   const THUMB = 16;
@@ -136,6 +223,21 @@ export function Slider({
       }
     : { left: "0px", width: posFor(frac) };
 
+  const peek = useContext(PeekContext);
+  // Dragging a slider shows its effect on the lyrics live, so the panel steps aside
+  // until it's let go. The window hears the release even off the thumb.
+  const peekWhileDragging = (event: React.PointerEvent<HTMLInputElement>) => {
+    if (event.button !== 0) return;
+    peek.start(event.currentTarget.closest<HTMLElement>(".sl-sp-row"));
+    const release = () => {
+      peek.end();
+      window.removeEventListener("pointerup", release, true);
+      window.removeEventListener("pointercancel", release, true);
+    };
+    window.addEventListener("pointerup", release, true);
+    window.addEventListener("pointercancel", release, true);
+  };
+
   const sign = isBipolar && clamped > 0 ? "+" : "";
   const valueLabel = `${sign}${clamped}${unit ? ` ${unit}` : ""}`;
   const changed = defaultValue !== undefined && clamped !== defaultValue;
@@ -149,17 +251,20 @@ export function Slider({
         <input
           type="range"
           className="sl-sp-slider-input"
+          aria-label={label}
+          aria-valuetext={valueLabel}
           min={min}
           max={max}
           step={step}
           value={clamped}
           onChange={(e) => onChange(Number(e.currentTarget.value))}
+          onPointerDown={peekWhileDragging}
           disabled={disabled}
         />
       </div>
       <div className="sl-sp-slider-meta">
         <span className="sl-sp-slider-value">{valueLabel}</span>
-        {changed && (
+        {changed && !disabled && (
           <button
             type="button"
             className="sl-sp-slider-reset"
@@ -173,11 +278,15 @@ export function Slider({
   );
 }
 
-export function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="sl-sp-section-title">{children}</p>;
-}
-
-export function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export const SearchBar = forwardRef<
+  HTMLInputElement,
+  {
+    value: string;
+    onChange: (v: string) => void;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+  }
+>(function SearchBar({ value, onChange, onKeyDown, placeholder = "Search settings" }, ref) {
   return (
     <div className="sl-sp-search-wrap">
       <svg
@@ -187,6 +296,7 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
         viewBox="0 0 14 14"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
       >
         <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.5" />
         <line
@@ -200,15 +310,19 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
         />
       </svg>
       <input
+        ref={ref}
         className="sl-sp-search"
-        type="text"
-        placeholder="Search settings…"
+        type="search"
+        aria-label="Search all settings"
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.currentTarget.value)}
+        onKeyDown={onKeyDown}
         spellCheck={false}
       />
       {value && (
         <button
+          type="button"
           className="sl-sp-search-clear"
           onClick={() => onChange("")}
           aria-label="Clear search"
@@ -219,6 +333,7 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
             viewBox="0 0 10 10"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <line
               x1="1"
@@ -243,164 +358,4 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
       )}
     </div>
   );
-}
-
-export function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
-  return (
-    <div className="sl-sp-tooltip-wrap">
-      {children}
-      <div className="sl-sp-tooltip-bubble">{text}</div>
-    </div>
-  );
-}
-
-export function FilterDropdown({
-  sections,
-  value,
-  onChange,
-}: {
-  sections: string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const updateCoords = useCallback(() => {
-    const btn = btnRef.current;
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-    setCoords({
-      top: rect.bottom + 6,
-      right: window.innerWidth - rect.right,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    updateCoords();
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (wrapRef.current?.contains(target)) return;
-      if (menuRef.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const onReflow = () => updateCoords();
-    document.addEventListener("mousedown", handler);
-    window.addEventListener("resize", onReflow);
-    window.addEventListener("scroll", onReflow, true);
-    return () => {
-      document.removeEventListener("mousedown", handler);
-      window.removeEventListener("resize", onReflow);
-      window.removeEventListener("scroll", onReflow, true);
-    };
-  }, [open, updateCoords]);
-
-  const allOptions = ["All", ...sections];
-
-  const portalTarget =
-    open && typeof document !== "undefined"
-      ? (document.querySelector(
-          "sl-generic-modal.SpicyLyricsModal .sl-modal-overlay"
-        ) as HTMLElement | null)
-      : null;
-
-  return (
-    <div className={`sl-sp-filter-wrap${open ? " sl-sp-filter-wrap--open" : ""}`} ref={wrapRef}>
-      <button
-        ref={btnRef}
-        className={`sl-sp-filter-btn${open ? " open" : ""}${value !== "All" ? " active" : ""}`}
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <svg
-          className="sl-sp-filter-icon"
-          width="13"
-          height="12"
-          viewBox="0 0 13 12"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M1 1h11M3 5h7M5 9h3"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-        <span className="sl-sp-filter-label">{value === "All" ? "Filter" : value}</span>
-        <svg
-          className={`sl-sp-filter-chevron${open ? " rotated" : ""}`}
-          width="10"
-          height="10"
-          viewBox="0 0 10 10"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M2 3.5L5 6.5L8 3.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-
-      {open &&
-        coords &&
-        portalTarget &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="sl-sp-filter-menu"
-            role="listbox"
-            style={{ position: "fixed", top: coords.top, right: coords.right }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {allOptions.map((s) => {
-              const isActive = value === s;
-              return (
-                <button
-                  key={s}
-                  role="option"
-                  aria-selected={isActive}
-                  className={`sl-sp-filter-item${isActive ? " sl-sp-filter-item--active" : ""}`}
-                  onClick={() => {
-                    onChange(s);
-                    setOpen(false);
-                  }}
-                >
-                  <span className="sl-sp-filter-item-check">
-                    {isActive && (
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 10 10"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M1.5 5L4 7.5L8.5 2.5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </span>
-                  {s}
-                </button>
-              );
-            })}
-          </div>,
-          portalTarget
-        )}
-    </div>
-  );
-}
+});
