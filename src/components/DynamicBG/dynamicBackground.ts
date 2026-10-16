@@ -171,14 +171,20 @@ interface TrackSnapshot {
   previewUrl: string | null;
   artistId?: string;
   trackId?: string;
-  /** True once the track changed or the host left the page, so results must not be painted. */
+  /**
+   * True once the track changed, the host left the page, or the style this apply paints
+   * is no longer the selected one, so results must not be painted.
+   */
   isStale: () => boolean;
 }
+
+const styleForKey = (key: string): BackgroundStyle =>
+  key === PAGE_BACKGROUND_KEY ? getBackgroundStyle() : "dynamic";
 
 const toImageUrl = (uri: string) =>
   uri.startsWith("spotify:image:") ? uri.replace("spotify:image:", "https://i.scdn.co/image/") : uri;
 
-function snapshotTrack(host: HTMLElement): TrackSnapshot {
+function snapshotTrack(host: HTMLElement, key: string, style: BackgroundStyle): TrackSnapshot {
   const coverUri = SpotifyPlayer.GetCover("large") ?? "";
   const trackUri = SpotifyPlayer.GetUri();
   // GetCover falls back to the placeholder when there is no small size; never preview that.
@@ -198,7 +204,9 @@ function snapshotTrack(host: HTMLElement): TrackSnapshot {
     isStale: () =>
       !host.isConnected ||
       SpotifyPlayer.GetUri() !== trackUri ||
-      (SpotifyPlayer.GetCover("large") ?? "") !== coverUri,
+      (SpotifyPlayer.GetCover("large") ?? "") !== coverUri ||
+      // Switched to another style (None included) while this one was loading.
+      styleForKey(key) !== style,
   };
 }
 
@@ -387,7 +395,7 @@ export default async function ApplyDynamicBackground(host: HTMLElement, key: str
   if (!host) return;
   // The NPV lyrics card must stay transparent: the NPV's own background shows through.
   if (host.closest("#SpicyLyricsPage.CardMode")) return;
-  const style = key === PAGE_BACKGROUND_KEY ? getBackgroundStyle() : "dynamic";
+  const style = styleForKey(key);
   dynamicBgLogger.debug("Applying background", { key, style });
   if (key === PAGE_BACKGROUND_KEY) host.closest("#SpicyLyricsPage")?.classList.toggle("NoBackground", style === "none");
   if (style === "none") {
@@ -395,7 +403,7 @@ export default async function ApplyDynamicBackground(host: HTMLElement, key: str
     return;
   }
 
-  const track = snapshotTrack(host);
+  const track = snapshotTrack(host, key, style);
   // Nothing to paint, and a fetch of "" would load the app page itself.
   if (!track.coverUri) return;
   if (style === "color") return applyColorBackground(host, track);
@@ -671,6 +679,15 @@ function reapplyPageBackground() {
     KawarpMap.get(PAGE_BACKGROUND_KEY)?.dispose();
     KawarpMap.delete(PAGE_BACKGROUND_KEY);
     contentBox.querySelectorAll(OWN_LAYERS).forEach((el) => el.remove());
+  } else {
+    // A canvas still loading belongs to the style being left: its apply is stale now and
+    // won't reveal it, and switching back would otherwise find it and skip building one.
+    for (const pending of contentBox.querySelectorAll(":scope > canvas.spicy-dynamic-bg.is-pending")) {
+      const kawarp = canvasKawarps.get(pending);
+      if (kawarp && KawarpMap.get(PAGE_BACKGROUND_KEY) === kawarp) KawarpMap.delete(PAGE_BACKGROUND_KEY);
+      kawarp?.dispose();
+      pending.remove();
+    }
   }
   void ApplyDynamicBackground(contentBox, PAGE_BACKGROUND_KEY);
 }

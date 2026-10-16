@@ -48,6 +48,9 @@ type Layer = {
   video: HTMLVideoElement;
   detach: (() => void) | null;
   fileId: string | null;
+  // Clears the layer once it has faded out. Releasing the layer (which reusing it does)
+  // cancels it, so a late timer can't clear a canvas loaded into it since.
+  releaseTimer: ReturnType<typeof setTimeout> | null;
 };
 
 type Mount = {
@@ -102,7 +105,7 @@ function createLayer(): Layer {
   box.className = "CanvasLayer";
   const video = createVideo();
   box.append(video);
-  return { box, video, detach: null, fileId: null };
+  return { box, video, detach: null, fileId: null, releaseTimer: null };
 }
 
 // Resizing a canvas resets its context, the filter included.
@@ -191,6 +194,8 @@ function Unmount() {
 }
 
 function releaseLayer(layer: Layer) {
+  if (layer.releaseTimer) clearTimeout(layer.releaseTimer);
+  layer.releaseTimer = null;
   layer.video.pause();
   layer.box.classList.remove("Current", "Leaving");
   if (layer.detach) {
@@ -521,7 +526,9 @@ async function Refresh(isRetry = false) {
   activate();
   syncPlayback();
 
-  setTimeout(() => {
+  if (previous.releaseTimer) clearTimeout(previous.releaseTimer);
+  previous.releaseTimer = setTimeout(() => {
+    previous.releaseTimer = null;
     if (mount === m && m.layers[m.current] !== previous) releaseLayer(previous);
   }, FADE_MS);
 }

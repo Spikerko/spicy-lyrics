@@ -140,7 +140,7 @@ export function basePingDelayMs(): number {
 }
 
 export function pingDelayMs(): number {
-  return Math.min(jitter(basePingDelayMs(), sessionTuning().pingJitterRatio), MAX_TIMER_MS);
+  return jitter(basePingDelayMs(), sessionTuning().pingJitterRatio);
 }
 
 export function refreshDelayMs(): number {
