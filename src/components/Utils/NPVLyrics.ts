@@ -54,20 +54,6 @@ export const GetNPVElement = (): HTMLElement | null =>
     `aside#Desktop_PanelContainer_Id:has([data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer, ${NPV_COVER_MARKERS})`
   );
 
-/**
- * The NPV the dynamic background can use, or null. The newer layout isn't
- * styled for it yet: its panel and section cards paint opaque backgrounds that
- * would hide the canvas, which would still be rendering every frame.
- */
-export const GetNPVElementForBackground = (): HTMLElement | null => {
-  const npv = GetNPVElement();
-  if (!npv) return null;
-  const restyled =
-    !npv.matches("aside.NowPlayingView") &&
-    !npv.querySelector("[data-testid='NPV_Panel_OpenDiv'], .main-nowPlayingView-coverArtContainer");
-  return restyled ? null : npv;
-};
-
 export function GetNPVObserverRoot(): Element | null {
   const panel = document.getElementById("Desktop_PanelContainer_Id") ?? GetNPVElement();
   // The top container's child holding the panel is what .Root__right-sidebar

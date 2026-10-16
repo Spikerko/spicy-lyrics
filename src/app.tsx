@@ -58,7 +58,7 @@ import "./css/NPVLyrics.css";
 import "./css/PopupDock.css";
 import { showUpdatedDialog } from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
-import { GetNPVCardElement, GetNPVElementForBackground, GetNPVObserverRoot, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
+import { GetNPVCardElement, GetNPVElement, GetNPVObserverRoot, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";
 import ReactDOM from "react-dom/client";
 import { runThemeMatcher } from "./utils/themeMatcher.ts";
 import { guardSpicetifyScrollingFix } from "./utils/scrollFixGuard.ts";
@@ -513,7 +513,7 @@ async function main() {
     let nowPlayingBarObservedRoot: Element | null = null;
     let nowPlayingBarMutationTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    const getNowPlayingBarElement = GetNPVElementForBackground;
+    const getNowPlayingBarElement = GetNPVElement;
 
     const scheduleNowPlayingBarDynamicBackgroundApply = () => {
       if (nowPlayingBarMutationTimeout) {
@@ -594,7 +594,11 @@ async function main() {
         KawarpMap.delete("npvbg");
       }
       nowPlayingBar?.querySelector<HTMLElement>(".spicy-dynamic-bg")?.remove();
-      nowPlayingBar?.classList.remove("spicy-dynamic-bg-in-this");
+      // Guarded: even a no-op classList write queues a `class` record, which the
+      // NPV observer turns into another apply — and another cleanup — every 50 ms.
+      if (nowPlayingBar?.classList.contains("spicy-dynamic-bg-in-this")) {
+        nowPlayingBar.classList.remove("spicy-dynamic-bg-in-this");
+      }
       syncNPVDynamicBackgroundClass();
       lastNowPlayingBarElement = null;
       lastImgUrl = null;
@@ -696,9 +700,19 @@ async function main() {
           return;
         }
         lastNowPlayingBarElement = nowPlayingBar;
-        if (coverUrl === lastImgUrl) return;
+        // Spotify re-renders the aside when the NPV layout changes, dropping the
+        // class and the canvas; the cover is the same, but it needs painting again.
+        if (
+          coverUrl === lastImgUrl &&
+          nowPlayingBar.classList.contains("spicy-dynamic-bg-in-this") &&
+          nowPlayingBar.querySelector(":scope > .spicy-dynamic-bg")
+        ) return;
 
-        nowPlayingBar.classList.add("spicy-dynamic-bg-in-this");
+        // Guarded for the same reason as in CleanupNowBarDynamicBgLets: when no layer
+        // can be painted, an unconditional add would re-trigger this apply forever.
+        if (!nowPlayingBar.classList.contains("spicy-dynamic-bg-in-this")) {
+          nowPlayingBar.classList.add("spicy-dynamic-bg-in-this");
+        }
         syncNPVDynamicBackgroundClass();
 
         await ApplyDynamicBackground(nowPlayingBar, "npvbg");

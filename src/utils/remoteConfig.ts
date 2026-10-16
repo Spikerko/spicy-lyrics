@@ -60,6 +60,7 @@ export const DEFAULT_REMOTE_CONFIG = {
     lyricsTtlDays: 3,
     artistVisualsTtlDays: 3,
     audioAnalysisTtlMonths: 1,
+    audioAnalysisNotFoundTtlHours: 24,
     canvasMediaCacheSize: 4,
   },
   canvas: {
@@ -89,6 +90,16 @@ export const DEFAULT_REMOTE_CONFIG = {
   },
   token: {
     expiryMarginMs: 60000,
+    renewCooldownMs: 10000,
+    renewTimeoutMs: 10000,
+    // Bounds each single source: the provider load and the Cosmos oauth lookup.
+    sourceTimeoutMs: 4000,
+    // Bounds the whole lookup, so keep it above 2 × sourceTimeoutMs +
+    // renewTimeoutMs, or a slow chain never reaches the last-resort token.
+    resolveTimeoutMs: 20000,
+  },
+  audioAnalysis: {
+    timeoutMs: 15000,
   },
   experimentsSync: {
     timeoutMs: 5000,

@@ -1,14 +1,18 @@
 import type { AudioAnalysisData } from "../components/DynamicBG/BackgroundAnimationController";
 import { GetExpireStore } from "../modules/Store";
 import { getRemoteConfig } from "./remoteConfig";
+import { SpotifyFetch } from "../components/Global/SpotifyFetch.ts";
 
 interface CachedAudioAnalysis {
     analysis?: AudioAnalysisData;
-    /** Persisted when Spotify has no analysis for this track (HTTP 404). */
+    /**
+     * Written by older builds for a 404; no longer read, since it pinned the miss
+     * for the whole analysis TTL. 404s now go to AudioAnalysisNotFoundStore.
+     */
     notFound?: boolean;
 }
 
-function getCosmosErrorStatus(error: unknown): number | undefined {
+function getHttpErrorStatus(error: unknown): number | undefined {
     if (!error || typeof error !== "object") {
         return undefined;
     }
@@ -28,6 +32,15 @@ export const AudioAnalysisStore = GetExpireStore<CachedAudioAnalysis>("SpicyLyri
         return getRemoteConfig().cache.audioAnalysisTtlMonths;
     },
     Unit: "Months"
+});
+
+// Spotify's 404 here isn't always permanent, so a miss is only trusted for a
+// short while (`cache.audioAnalysisNotFoundTtlHours`) before asking again.
+const AudioAnalysisNotFoundStore = GetExpireStore<true>("SpicyLyrics_AudioAnalysisNotFound", 1, {
+    get Duration() {
+        return getRemoteConfig().cache.audioAnalysisNotFoundTtlHours;
+    },
+    Unit: "Hours"
 });
 
 function isAudioAnalysisData(data: unknown): data is AudioAnalysisData {
@@ -60,17 +73,21 @@ export async function getDynamicAudioAnalysis(uri: string): Promise<AudioAnalysi
         return null;
     }
 
-    const cached = await AudioAnalysisStore.GetItem(trackId);
-    if (cached?.notFound) {
+    if (await AudioAnalysisNotFoundStore.GetItem(trackId)) {
         return null;
     }
+    const cached = await AudioAnalysisStore.GetItem(trackId);
     if (cached?.analysis && isAudioAnalysisData(cached.analysis)) {
         return cached.analysis;
     }
 
     const url = `https://spclient.wg.spotify.com/audio-attributes/v1/audio-analysis/${trackId}?format=json`;
     try {
-        const data = await Spicetify.CosmosAsync.get(url) as unknown;
+        // Bounded: the caller keeps this promise as the track's in-flight request,
+        // so a hang here would block audio analysis for the track until reload.
+        const res = await SpotifyFetch(url, { signal: AbortSignal.timeout(getRemoteConfig().audioAnalysis.timeoutMs) });
+        if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+        const data = await res.json() as unknown;
         if (!isAudioAnalysisData(data)) {
             throw new Error("Payload is missing required audio analysis arrays (sections/beats).");
         }
@@ -81,14 +98,14 @@ export async function getDynamicAudioAnalysis(uri: string): Promise<AudioAnalysi
 
         return data;
     } catch (error: unknown) {
-        const httpStatus = getCosmosErrorStatus(error);
+        const httpStatus = getHttpErrorStatus(error);
         const message = error && typeof error === "object" && "message" in error
             ? String((error as { message?: unknown }).message)
             : undefined;
 
         if (httpStatus === 404) {
             console.error("Analysis not found (404)");
-            await AudioAnalysisStore.SetItem(trackId, { notFound: true });
+            await AudioAnalysisNotFoundStore.SetItem(trackId, true);
         } else if (httpStatus === 429) {
             console.error("Rate limited (429)");
         } else {
