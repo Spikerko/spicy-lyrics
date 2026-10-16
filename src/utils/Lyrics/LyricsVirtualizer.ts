@@ -45,6 +45,20 @@ const SMOOTH_SCROLL_MAX_ELAPSED = 0.1;
 // where it steered it (layout changed underneath it) before it just accepts
 // where the browser put it.
 const SMOOTH_SCROLL_MAX_RECONCILES = 3;
+// Rows a glide keeps mounted at most (see _glideHold). Past this the destination
+// is too far to be worth holding, and rows mount and unmount as the window slides.
+const GLIDE_HOLD_MAX_ROWS = 40;
+// Matches the virtualizer's overscan.
+const OVERSCAN = 5;
+
+// scrollTop lands on device pixels, not CSS pixels: one step is 1.44 CSS px at 69%
+// zoom and 0.8 at 125% display scaling. A glide that assumed whole CSS pixels put
+// the list up to half a step from where its sub-pixel translate expected, and the
+// error flipped sign from frame to frame as a visible shimmer. Read per element,
+// since the popup is its own window with its own ratio.
+function scrollStep(el: HTMLElement): number {
+  return 1 / (el.ownerDocument.defaultView?.devicePixelRatio || 1);
+}
 
 // With Smooth Scrolling on, rows glide to a new position instead of jumping when
 // something above them changes height — chiefly a "•••" interlude line, which
@@ -186,6 +200,9 @@ class LyricsVirtualizer {
     padding: number;
   } | null = null;
   private _smoothLastTs: number | null = null;
+  // Running average of the glide's frame interval (seconds). Kept across glides:
+  // it's a property of the display and the frame cap, not of one glide.
+  private _smoothFrameAvg: number | null = null;
   private _smoothLastPosition: number | null = null;
   // Whole-pixel scrollTop last written; the sub-pixel remainder lives in
   // _smoothFraction and is applied as a translate on the virtual container.
@@ -204,6 +221,13 @@ class LyricsVirtualizer {
     totalSize: number;
   } | null = null;
   private _smoothReconciles = 0;
+  // Rows kept mounted for the glide in flight: the ones on screen when it started
+  // plus the ones its destination needs. Mounting or unmounting a row restyles the
+  // whole document (Spotify's CSS has :has() rules that every insertion re-checks,
+  // 20+ ms a time), and mid-glide that dropped frame shows as the list jumping.
+  // With the hold, the mounts happen as the glide starts, from rest, and the
+  // unmounts once it has landed.
+  private _glideHold: Set<number> | null = null;
 
   // performance.now() until which row glides stay off. See LAYOUT_GLIDE_BLOCK_MS.
   private _layoutGlideBlockedUntil = 0;
@@ -604,7 +628,7 @@ class LyricsVirtualizer {
       count: lineElements.length,
       getScrollElement: () => scrollEl,
       estimateSize: this._estimateSize,
-      overscan: 5,
+      overscan: OVERSCAN,
       gap: 0,
       scrollToFn: elementScroll,
       observeElementRect,
@@ -895,9 +919,19 @@ class LyricsVirtualizer {
 
     // Writes and reads are split into separate passes throughout: interleaving an
     // offsetHeight read with each append forced a full page layout per line.
+    // A glide in flight keeps its rows mounted (see _glideHold), on top of the window.
+    const hold = this._glideHold;
+    const rendered = hold
+      ? [
+          ...items,
+          ...[...hold]
+            .filter((idx) => !nextVisible.has(idx) && v.measurementsCache[idx])
+            .map((idx) => v.measurementsCache[idx]),
+        ]
+      : items;
     const toUnmount: number[] = [];
     for (const idx of this._mountedIndices) {
-      if (!nextVisible.has(idx)) toUnmount.push(idx);
+      if (!nextVisible.has(idx) && !hold?.has(idx)) toUnmount.push(idx);
     }
     // Sync the cached size to the line's current classList before unmounting.
     // The animator may have flipped Active/Sung since the wrapper was rendered,
@@ -943,7 +977,7 @@ class LyricsVirtualizer {
     const toMeasure: HTMLElement[] = [];
     let mountedAny = false;
     const glide = this._layoutGlideEnabled();
-    for (const item of items) {
+    for (const item of rendered) {
       const wrapper = this._getOrCreateWrapper(item.index);
       const gap = this._itemGap(item.index);
       const prevPad = parseFloat(wrapper.style.paddingBottom) || 0;
@@ -974,7 +1008,7 @@ class LyricsVirtualizer {
     // The first rows of a list: the refreshed gap needs a mounted line's font,
     // so set their padding again now that there is one.
     if (mountedAny && this._refreshed && this._gapFontPx === 0 && this._readGapFont()) {
-      for (const item of items) {
+      for (const item of rendered) {
         const wrapper = this._wrappers[item.index];
         if (!wrapper) continue;
         wrapper.style.paddingBottom = `${this._itemGap(item.index)}px`;
@@ -1267,6 +1301,7 @@ class LyricsVirtualizer {
     this._smoothTarget = { index, align, padding };
     // We are the only scrollTop writer until the glide settles — see _shouldAdjustScroll.
     this._setConverging(true);
+    this._holdForGlide(v, index, align, padding);
 
     if (!animating) {
       this._smoothLastTs = null;
@@ -1274,6 +1309,61 @@ class LyricsVirtualizer {
       this._smoothLastWhole = null;
       this._smoothRAF = requestCappedFrame(this._smoothStep);
     }
+  }
+
+  /**
+   * Mounts, now, the rows the glide to `index` will end on (with overscan), and
+   * keeps everything mounted until it lands. See _glideHold.
+   */
+  private _holdForGlide(
+    v: Virtualizer<HTMLElement, HTMLElement>,
+    index: number,
+    align: "start" | "center" | "end" | "auto",
+    padding: number
+  ): void {
+    const geometry = this._smoothGeometry;
+    const items = v.measurementsCache;
+    if (!geometry || items.length === 0) return;
+    const item = this._getItemRect(v, index);
+    const goal = Math.min(
+      geometry.maxScroll,
+      this._computeFinalScrollTop(
+        item.start - this._collapsingAbove(v, index),
+        item.size,
+        geometry.viewportHeight,
+        geometry.containerOffset,
+        align,
+        padding
+      )
+    );
+    // The destination's viewport, in the virtual container's coordinates. The
+    // virtualizer itself (no scrollMargin) takes scrollTop as the container's own
+    // offset, so its window runs on below the real one by containerOffset; hold
+    // both, or the row at its far edge still mounts mid-glide.
+    const top = goal - geometry.containerOffset;
+    const bottom = goal + geometry.viewportHeight;
+    let first = items.findIndex((m) => m.end > top);
+    if (first < 0) first = items.length - 1;
+    let last = first;
+    while (last + 1 < items.length && items[last + 1].start < bottom) last++;
+
+    const hold = new Set<number>([...(this._glideHold ?? []), ...this._mountedIndices]);
+    const from = Math.max(0, first - OVERSCAN);
+    const to = Math.min(items.length - 1, last + OVERSCAN);
+    for (let i = from; i <= to; i++) hold.add(i);
+    if (hold.size > GLIDE_HOLD_MAX_ROWS) {
+      this._releaseGlideHold();
+      return;
+    }
+    this._glideHold = hold;
+    this._onVirtualizerChange(v);
+  }
+
+  // Drops the hold and lets the window shrink back to what's on screen.
+  private _releaseGlideHold(): void {
+    if (!this._glideHold) return;
+    this._glideHold = null;
+    if (this._virtualizer) this._onVirtualizerChange(this._virtualizer);
   }
 
   // Layout reads for the glide. Done at retarget and after invalidation only —
@@ -1326,11 +1416,14 @@ class LyricsVirtualizer {
     }
 
     const maxScroll = Math.max(0, geometry.maxScroll + (v.getTotalSize() - geometry.totalSize));
+    const step = scrollStep(scrollEl);
+    const maxWhole = Math.floor(maxScroll / step + 1e-6) * step;
     const item = this._getItemRect(v, target.index);
-    // Rounded so the glide ends on a whole pixel with no translate left over.
-    const goal = Math.round(
-      Math.min(
-        maxScroll,
+    // On a scroll step, so the glide ends where scrollTop can actually sit, with no
+    // translate left over.
+    const goal = Math.min(
+      maxWhole,
+      Math.round(
         this._computeFinalScrollTop(
           item.start - this._collapsingAbove(v, target.index),
           item.size,
@@ -1338,19 +1431,22 @@ class LyricsVirtualizer {
           geometry.containerOffset,
           target.align,
           target.padding
-        )
-      )
+        ) / step
+      ) * step
     );
 
     spring.SetGoal(goal);
     // Step the spring in slices of at most SMOOTH_SCROLL_MAX_STEP so a low frame
-    // rate cap (15 fps is ~67 ms a frame) keeps the glide's wall-clock timing,
-    // while a real stall (hidden window, long task) still can't jump it forward.
-    let elapsed =
-      this._smoothLastTs === null
-        ? 1 / 60
-        : Math.min((ts - this._smoothLastTs) / 1000, SMOOTH_SCROLL_MAX_ELAPSED);
+    // rate cap (15 fps is ~67 ms a frame) keeps the glide's wall-clock timing.
+    // A frame that arrives well after the usual interval (a dropped frame) only
+    // advances by twice that interval: the glide resumes from where it was shown
+    // instead of leaping to where it would have been, which is the jump people see.
+    const raw =
+      this._smoothLastTs === null ? 1 / 60 : Math.min((ts - this._smoothLastTs) / 1000, SMOOTH_SCROLL_MAX_ELAPSED);
     this._smoothLastTs = ts;
+    const usual = this._smoothFrameAvg ?? raw;
+    let elapsed = Math.min(raw, Math.max(usual * 2, 1 / 60));
+    this._smoothFrameAvg = usual * 0.9 + raw * 0.1;
     let stepped = spring.Step(Math.min(elapsed, SMOOTH_SCROLL_MAX_STEP));
     elapsed -= SMOOTH_SCROLL_MAX_STEP;
     while (elapsed > 0) {
@@ -1367,13 +1463,13 @@ class LyricsVirtualizer {
       moved < SMOOTH_SCROLL_SETTLE_SPEED &&
       this._mountedIndices.has(target.index);
 
-    // scrollTop only moves in whole pixels, which near the slow end of the ease
-    // shows up as the list ticking one pixel at a time. Scroll by the whole part
-    // and carry the remainder as a compositor-only translate on the list.
-    const whole = settled ? goal : Math.min(Math.round(position), Math.floor(maxScroll));
+    // scrollTop only moves in whole device pixels (see scrollStep), which near the
+    // slow end of the ease shows up as the list ticking one step at a time. Scroll
+    // by the whole steps and carry the remainder as a compositor-only translate.
+    const whole = settled ? goal : Math.min(Math.round(position / step) * step, maxWhole);
     const fraction = settled ? 0 : Math.max(0, Math.min(position, maxScroll)) - whole;
 
-    if (whole !== this._smoothLastWhole) {
+    if (this._smoothLastWhole === null || Math.abs(whole - this._smoothLastWhole) > step / 2) {
       // `behavior: "instant"` overrides the element's CSS scroll-behavior: smooth,
       // which would otherwise ease every per-frame write and fight the spring.
       scrollEl.scrollTo({ top: whole, behavior: "instant" });
@@ -1451,6 +1547,7 @@ class LyricsVirtualizer {
     this._smoothLastWhole = null;
     this._setSmoothFraction(0);
     if (wasActive) this._setConverging(false);
+    this._releaseGlideHold();
   }
 
   // The user is about to move the list themselves: let go of any glide, and hold
@@ -1751,6 +1848,8 @@ class LyricsVirtualizer {
       cancelAnimationFrame(this._scrollVerifyRAF);
       this._scrollVerifyRAF = null;
     }
+    // Torn down anyway; no point re-rendering the window on the way out.
+    this._glideHold = null;
     this._stopSmoothScroll();
     this._stopCascade();
     this._trailingOffset = 0;
