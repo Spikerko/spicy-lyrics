@@ -9,7 +9,11 @@ import {
   preHiddenDotLineMs,
 } from "../../lyrics.ts";
 import { BlurMultiplier, timeOffset } from "../Shared.ts";
-import { isLyricsListMoving, setOnNewElementMounted } from "../../LyricsVirtualizer.ts";
+import {
+  isLyricsListMoving,
+  setOnNewElementMounted,
+  syncDetachedBackgroundLines,
+} from "../../LyricsVirtualizer.ts";
 import { Spring } from "../../../../modules/Spring.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
 /* import { CurveInterpolator } from "curve-interpolator"; */
@@ -651,8 +655,11 @@ function setStyleIfChanged(
 }
 
 // classList.add/remove queue a MutationObserver record even when nothing changes.
-function setClass(el: HTMLElement, cls: string, on: boolean): void {
-  if (el.classList.contains(cls) !== on) el.classList.toggle(cls, on);
+// True when the class changed.
+function setClass(el: HTMLElement, cls: string, on: boolean): boolean {
+  if (el.classList.contains(cls) === on) return false;
+  el.classList.toggle(cls, on);
+  return true;
 }
 
 // Flags the sung lines that come after an active one (overlapping lines,
@@ -714,7 +721,11 @@ function markSungAfterActive(
 //
 // Off, it makes one pass to clear the marks left from when it was on, then
 // returns at once.
+//
+// The virtualizer only sees class changes on mounted rows, so lines flipped
+// while unmounted are handed to it after the pass, to resize their rows.
 let bgGroupsMarked = false;
+const bgDetachedFlips: HTMLElement[] = [];
 function markBackgroundGroups(
   lines: { HTMLElement: HTMLElement; StartTime: number; EndTime: number; BGLine?: boolean }[],
   position: number,
@@ -741,7 +752,13 @@ function markBackgroundGroups(
       moving ??= isLyricsListMoving();
       open = !moving;
     }
-    setClass(line.HTMLElement, "GroupActive", open);
+    if (setClass(line.HTMLElement, "GroupActive", open) && !line.HTMLElement.isConnected) {
+      bgDetachedFlips.push(line.HTMLElement);
+    }
+  }
+  if (bgDetachedFlips.length > 0) {
+    syncDetachedBackgroundLines(bgDetachedFlips);
+    bgDetachedFlips.length = 0;
   }
 }
 

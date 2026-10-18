@@ -66,6 +66,7 @@ function scrollStep(el: HTMLElement): number {
 const LAYOUT_GLIDE_MS = 500;
 const LAYOUT_GLIDE_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 const LAYOUT_GLIDE_TRANSITION = `transform ${LAYOUT_GLIDE_MS / 1000}s ${LAYOUT_GLIDE_EASING}`;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 // Row glides are held off for this long after anything that re-lays the list out
 // wholesale (opening it, instant jumps, resizes, the user scrolling), where rows
 // sliding into place would look like drift rather than motion.
@@ -341,8 +342,13 @@ class LyricsVirtualizer {
     if (!v || !sizes) return;
     for (const [idx, oldGap] of oldGaps) {
       const size = sizes.get(idx);
-      const delta = this._itemGap(idx) - oldGap;
-      if (size !== undefined && Math.abs(delta) >= 0.5) v.resizeItem(idx, size + delta);
+      const gap = this._itemGap(idx);
+      const delta = gap - oldGap;
+      if (size === undefined || Math.abs(delta) < 0.5) continue;
+      v.resizeItem(idx, size + delta);
+      // Kept in step with the size, which _rowsChanged reads it against.
+      const wrapper = this._wrappers[idx];
+      if (wrapper) wrapper.style.paddingBottom = `${gap}px`;
     }
     this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
     this._remeasureVisible();
@@ -373,14 +379,135 @@ class LyricsVirtualizer {
       const size = sizes.get(idx);
       if (size === undefined) continue;
       const collapsed = this._isCollapsedBg(this._allElements[idx]);
+      const gap = this._itemGap(idx);
       let target: number;
       if (collapsed) target = 0;
       else if (prev.collapsed) target = this._estimateSize(idx);
-      else target = size + this._itemGap(idx) - prev.gap;
-      if (Math.abs(target - size) >= 0.5) v.resizeItem(idx, target);
+      else target = size + gap - prev.gap;
+      if (Math.abs(target - size) < 0.5) continue;
+      v.resizeItem(idx, target);
+      // Kept in step with the size, which _rowsChanged reads it against.
+      const wrapper = this._wrappers[idx];
+      if (wrapper) wrapper.style.paddingBottom = `${gap}px`;
     }
     this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
     this._remeasureVisible();
+  }
+
+  // Rows whose classes changed: each one's gap is set again, and a background
+  // line folding or opening also changes the gap of the rows above it, back to
+  // its lead line. Mounted rows are re-measured. The animator flags background
+  // lines whether they're mounted or not, so a row can also change while
+  // unmounted; it can't be measured then, so its cached size is set to what it
+  // would measure now. Otherwise the rows below keep the old space until it
+  // mounts again, and the list shifts at that point.
+  private _rowsChanged(v: Virtualizer<HTMLElement, HTMLElement>, indices: number[]): void {
+    const sizeOf = (i: number) =>
+      (v as unknown as { itemSizeCache?: Map<number, number> }).itemSizeCache?.get(i);
+    // Lowest background row that collapsed or opened in this batch.
+    let bgFirst = Infinity;
+    if (this._bgPop) {
+      for (const index of indices) {
+        if (index < bgFirst && this._allElements[index]?.classList.contains("bg-line")) bgFirst = index;
+      }
+    }
+    // With reduced motion the rows below a fold jump to their new places
+    // instead of gliding. Blocked before anything is resized, so the scroll
+    // correction for rows above the viewport applies as well.
+    if (bgFirst < Infinity && reducedMotion.matches) this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+
+    const toMeasure: HTMLElement[] = [];
+    // Unmounted rows resized below, with their previous size.
+    const resized: { index: number; prev: number }[] = [];
+    const resize = (index: number, size: number) => {
+      const prev = sizeOf(index);
+      if (prev === undefined || Math.abs(size - prev) < 0.5) return;
+      resized.push({ index, prev });
+      v.resizeItem(index, size);
+    };
+    const repad = (index: number) => {
+      const wrapper = this._wrappers[index];
+      if (!wrapper) return;
+      const gap = this._itemGap(index);
+      const prev = parseFloat(wrapper.style.paddingBottom) || 0;
+      if (Math.abs(gap - prev) < 0.5) return;
+      wrapper.style.paddingBottom = `${gap}px`;
+      if (wrapper.isConnected) {
+        if (!toMeasure.includes(wrapper)) toMeasure.push(wrapper);
+        return;
+      }
+      // The cached size was measured with the old padding (see the unmount pass).
+      const size = sizeOf(index);
+      if (size !== undefined) resize(index, size + gap - prev);
+    };
+    for (const index of indices) {
+      const isBg = this._bgPop && !!this._allElements[index]?.classList.contains("bg-line");
+      const wrapper = this._wrappers[index];
+      if (isBg && !wrapper?.isConnected) {
+        if (wrapper) wrapper.style.paddingBottom = `${this._itemGap(index)}px`;
+        resize(index, this._estimateSize(index));
+      } else {
+        repad(index);
+      }
+      if (!isBg) continue;
+      for (let i = index - 1; i >= 0; i--) {
+        repad(i);
+        if (!this._allElements[i]?.classList.contains("bg-line")) break;
+      }
+    }
+    // Sizes of the rows above the last scroll's target, before measuring, to
+    // tell how far the target moved. Read from the size cache: TanStack only
+    // rebuilds measurementsCache on its next pass.
+    const target = bgFirst < Infinity ? this._lastRetryTarget : null;
+    const above = target
+      ? toMeasure.map((w) => Number(w.dataset.index)).filter((i) => i < target.index)
+      : [];
+    const before = above.map((i) => sizeOf(i) ?? 0);
+    // Forced for a background line: it folds the moment the list starts to
+    // scroll to the next line, exactly when TanStack would hold the size back.
+    this._measureBatch(v, toMeasure, bgFirst < Infinity);
+    // The animator runs a little behind the scroll's clock, so a group that
+    // ends as the next line is scrolled to folds just after the scroll has
+    // aimed. While that scroll is still moving, aim it again: as a retry, so a
+    // ripple keeps each row's place in it. Smooth Scrolling's glide re-reads
+    // the target's place every frame and needs nothing. A list that has come
+    // to rest is left alone; the animator holds an ended group open until the
+    // list next moves, so a fold always lands inside a motion.
+    if (
+      target &&
+      bgFirst < target.index &&
+      this._smoothRAF === null &&
+      this._retryMotion()
+    ) {
+      let moved = 0;
+      above.forEach((i, k) => (moved += (sizeOf(i) ?? 0) - before[k]));
+      for (const { index, prev } of resized) {
+        if (index < target.index) moved += (sizeOf(index) ?? prev) - prev;
+      }
+      if (Math.abs(moved) >= 1) this._reaimNextFrame(v, target);
+    }
+    if (toMeasure.length > 0 && this._resizeRAF === null) {
+      this._resizeRAF = requestAnimationFrame(() => {
+        this._resizeRAF = null;
+        if (this._virtualizer === v) {
+          virtualizerLogger.debug("Class mutation scheduled virtualizer update");
+          v._willUpdate();
+        }
+      });
+    }
+  }
+
+  // Background lines the animator folded or opened while they were unmounted,
+  // which the class observer can't see.
+  detachedRowsChanged(lines: HTMLElement[]): void {
+    const v = this._virtualizer;
+    if (!v) return;
+    const indices: number[] = [];
+    for (const el of lines) {
+      const index = this._indexByElement.get(el);
+      if (index !== undefined) indices.push(index);
+    }
+    if (indices.length > 0) this._rowsChanged(v, indices);
   }
 
   /** Whether a scroll, glide or ripple the list made itself is still moving. */
@@ -668,73 +795,12 @@ class LyricsVirtualizer {
     this._classObserver = this._maid!.Give(new MutationObserver((mutations) => {
       const v = this._virtualizer;
       if (!v) return;
-      const toMeasure: HTMLElement[] = [];
-      const repad = (index: number) => {
-        const wrapper = this._wrappers[index];
-        if (!wrapper?.isConnected) return;
-        const gap = this._itemGap(index);
-        const prev = parseFloat(wrapper.style.paddingBottom) || 0;
-        if (Math.abs(gap - prev) >= 0.5) {
-          wrapper.style.paddingBottom = `${gap}px`;
-          if (!toMeasure.includes(wrapper)) toMeasure.push(wrapper);
-        }
-      };
-      // Lowest background row that collapsed or opened in this batch.
-      let bgFirst = Infinity;
+      const indices: number[] = [];
       for (const mutation of mutations) {
-        const el = mutation.target as HTMLElement;
-        const index = this._indexByElement.get(el);
-        if (index === undefined) continue;
-        repad(index);
-        // A background line collapsing or opening also changes the gap of the
-        // rows above it, back to its lead line.
-        if (this._bgPop && el.classList.contains("bg-line")) {
-          if (index < bgFirst) bgFirst = index;
-          for (let i = index - 1; i >= 0; i--) {
-            repad(i);
-            if (!this._allElements[i]?.classList.contains("bg-line")) break;
-          }
-        }
+        const index = this._indexByElement.get(mutation.target as HTMLElement);
+        if (index !== undefined) indices.push(index);
       }
-      // Sizes of the rows above the last scroll's target, before measuring, to
-      // tell how far the target moved. Read from the size cache: TanStack only
-      // rebuilds measurementsCache on its next pass.
-      const target = bgFirst < Infinity ? this._lastRetryTarget : null;
-      const above = target
-        ? toMeasure.map((w) => Number(w.dataset.index)).filter((i) => i < target.index)
-        : [];
-      const sizeOf = (i: number) =>
-        (v as unknown as { itemSizeCache?: Map<number, number> }).itemSizeCache?.get(i) ?? 0;
-      const before = above.map(sizeOf);
-      // Forced for a background line: it folds the moment the list starts to
-      // scroll to the next line, exactly when TanStack would hold the size back.
-      this._measureBatch(v, toMeasure, bgFirst < Infinity);
-      // The animator runs a little behind the scroll's clock, so a group that
-      // ends as the next line is scrolled to folds just after the scroll has
-      // aimed. While that scroll is still moving, aim it again: as a retry, so a
-      // ripple keeps each row's place in it. Smooth Scrolling's glide re-reads
-      // the target's place every frame and needs nothing. A list that has come
-      // to rest is left alone; the animator holds an ended group open until the
-      // list next moves, so a fold always lands inside a motion.
-      if (
-        target &&
-        bgFirst < target.index &&
-        this._smoothRAF === null &&
-        this._retryMotion()
-      ) {
-        let moved = 0;
-        above.forEach((i, k) => (moved += sizeOf(i) - before[k]));
-        if (Math.abs(moved) >= 1) this._reaimNextFrame(v, target);
-      }
-      if (toMeasure.length > 0 && this._resizeRAF === null) {
-        this._resizeRAF = requestAnimationFrame(() => {
-          this._resizeRAF = null;
-          if (this._virtualizer === v) {
-            virtualizerLogger.debug("Class mutation scheduled virtualizer update");
-            v._willUpdate();
-          }
-        });
-      }
+      this._rowsChanged(v, indices);
     }));
     // Single subtree observer on the virtual container rather than one per element:
     // only mounted elements live there, so it scopes to where gap updates matter.
@@ -2105,6 +2171,11 @@ export function destroyLyricsVirtualizer(): void {
 
 export function setOnNewElementMounted(cb: (() => void) | null): void {
   lyricsVirtualizer.setOnNewElementMounted(cb);
+}
+
+// Background lines whose GroupActive the animator flipped while unmounted.
+export function syncDetachedBackgroundLines(lines: HTMLElement[]): void {
+  lyricsVirtualizer.detachedRowsChanged(lines);
 }
 
 export function isLyricsListMoving(): boolean {
