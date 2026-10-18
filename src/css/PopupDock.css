@@ -273,6 +273,23 @@
   line-height: 1.3;
 }
 
+/* The dock's opacity layer is a backdrop root, so the frost can't blur what's behind
+   the preview here; a denser tint keeps it readable instead. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .ScrubPreview {
+  font-size: var(--PD_TimeSize) !important;
+  background: rgba(18, 18, 22, 0.78);
+}
+
+/* The title stacks above the MediaBox here, so the timeline's preview hangs below the bar,
+   over the times row, instead of above it. */
+@supports (anchor-name: --a) {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .Timeline .ScrubPreview {
+    bottom: auto;
+    top: calc(anchor(bottom) + var(--ScrubPreviewGap));
+    transform-origin: 0 0;
+  }
+}
+
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .Time.Position {
   grid-column: 1;
   text-align: left;

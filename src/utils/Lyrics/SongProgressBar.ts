@@ -53,19 +53,22 @@ export class SongProgressBar {
     return positionMs;
   }
 
-  // Format milliseconds to MM:SS or HH:MM:SS
   private formatTime(timeInMs: number): string {
-    if (Number.isNaN(timeInMs) || timeInMs < 0) {
-      return "0:00";
-    }
-
-    // Convert milliseconds to seconds
-    const totalSeconds = Math.floor(timeInMs / 1000);
-
-    // Format as MM:SS
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    return FormatPlaybackTime(timeInMs);
   }
+}
+
+// Format milliseconds as M:SS
+export function FormatPlaybackTime(timeInMs: number): string {
+  if (Number.isNaN(timeInMs) || timeInMs < 0) {
+    return "0:00";
+  }
+
+  // Convert milliseconds to seconds
+  const totalSeconds = Math.floor(timeInMs / 1000);
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }

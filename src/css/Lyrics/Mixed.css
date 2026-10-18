@@ -120,9 +120,11 @@
    (--SLR_FadeWidth, in em) instead of half the word, so short and long words
    light up alike. The gradient is drawn on an image of 2 × the word + the fade
    (bright half, fade, dim half) and slid across by background-position, which
-   maps --SLM_GradientPosition's -50%…100% onto fully dim…fully lit. Both
-   rendering types drive that same variable, so this covers them both. The
-   part still to come stays a little brighter than before. */
+   maps --SLM_GradientPosition's -50% to 100% onto fully dim to fully lit. The
+   animator places one edge along the whole line and sets each word and letter
+   from it, so words and letters share one fade width (RefreshedSweep.FadeEm in
+   LyricsAnimator.ts) and the fade runs on across them. The part still to come
+   stays a little brighter than before. */
 #SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
   .LyricsContainer
   .LyricsContent
@@ -142,14 +144,6 @@
   background-size: calc(200% + var(--SLR_FadeWidth)) 100%;
   background-repeat: no-repeat;
   background-position: calc((100% - var(--SLM_GradientPosition)) / 1.5) 0;
-}
-
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
-  .LyricsContainer
-  .LyricsContent
-  .line.Active
-  .letter {
-  --SLR_FadeWidth: 0.4em;
 }
 
 #SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
@@ -643,6 +637,8 @@
   vertical-align: middle;
   position: relative;
   top: -0.08em;
+  /* The avatar comes first in the markup, for the refined credits; this look puts it after the name. */
+  order: 1;
 }
 
 /* #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .Credits.Active {
@@ -878,6 +874,18 @@
   opacity: 0;
 }
 
+/* Keep Overlapping Lines (experiment): a sung line after an active one
+   (overlapping lines, background vocals) stays visible at full size, just
+   dimmer. SungAfterActive is set in LyricsAnimator.ts. */
+#SpicyLyricsPage.SpicyRenderer.Fullscreen.MinimalLyricsMode.Exp_KeepOverlappingLines:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent:not(.HideLineBlur)
+  .line.Sung.SungAfterActive:not(.musical-line) {
+  scale: 1;
+  opacity: 0.45;
+  --BlurAmount: 0px !important;
+}
+
 #SpicyLyricsPage.SpicyRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
   .LyricsContainer
   .LyricsContent:not(.HideLineBlur)
@@ -940,6 +948,95 @@
   font-weight: 600 !important;
 }
 
+/* Background Vocal Pop-Out (experiment). A background line takes no space
+   until it or its lead line is sung (GroupActive, set in LyricsAnimator.ts),
+   then slides out from under the lead while the rows below glide down to make
+   room (the virtualizer's layout glide, same duration and curve). Collapsed it
+   keeps overflow visible, so on the way out the text fades over the rows
+   gliding up instead of being cut off. The reveal is on `transform`, which
+   nothing else sets on a line; Minimal Lyrics Mode drives `scale` and
+   `opacity`. The selectors carry .SpicyLyricsScrollContainer and the :not()s
+   so their transition outranks Minimal Lyrics Mode's `!important` one. */
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line.bg-line:not(.musical-line):not(.static) {
+  transform-origin: left top !important;
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    scale 0.4s ease-in-out !important;
+}
+
+/* Opening (a line opens NotSung, with its lead): the fade waits for the rows
+   below to get most of the way clear. Only here, so the brightening as it's
+   sung stays in time with its words. */
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line.bg-line.GroupActive.NotSung:not(.musical-line):not(.static) {
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
+    opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
+    scale 0.4s ease-in-out !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line.bg-line:is(.OppositeAligned, .rtl):not(.musical-line):not(.static) {
+  transform-origin: right top !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line.bg-line.rtl.OppositeAligned:not(.musical-line):not(.static) {
+  transform-origin: left top !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line.bg-line:not(.GroupActive):not(.musical-line):not(.static) {
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0 !important;
+  transform: translateY(-0.6em) scale(0.8);
+  /* Gone before the rows below glide in over it. */
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.12s ease-out,
+    scale 0.4s ease-in-out !important;
+}
+
+/* A translation row of a collapsed line would be left on its own. */
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+  .LyricsContainer
+  .LyricsContent
+  .line.bg-line:not(.GroupActive)
+  + :is(.slt-interleaved-translation, .slt-replace-line, .slt-romanization-line) {
+  display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop
+    .LyricsContainer
+    .LyricsContent
+    .SpicyLyricsScrollContainer
+    .line.bg-line:not(.GroupActive):not(.musical-line):not(.static) {
+    transform: none;
+  }
+}
+
 
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .Credits {
@@ -969,6 +1066,51 @@
   color: white;
 }
 
+/* Sits under "Provided by" inside the same element, so it inherits its opacity and alignment.
+   Lighter weight and tight leading keep it reading as part of that line, not a new row. */
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .LyricsProvider .LyricsProviderVia {
+  display: block;
+  font-size: max(0.85em, 0.65rem);
+  font-weight: 500 !important;
+  line-height: 1.15;
+  opacity: 0.85;
+}
+
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .LyricsProvider .LyricsProviderVia::first-letter {
+  text-transform: uppercase;
+}
+
+/* The source's site, linked from its name. Same tone and weight as the "via" around it; a faint underline marks it as a link. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .LyricsProvider .LyricsProviderViaLink {
+  color: inherit;
+  font-weight: inherit !important;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  transition:
+    color 0.21s,
+    text-decoration-color 0.21s;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .LyricsProvider .LyricsProviderViaLink:is(:hover, :focus-visible) {
+  color: var(--on-material-text-primary, white);
+  text-decoration-color: currentColor;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .LyricsProvider .LyricsProviderViaLabel {
+  font-weight: inherit !important;
+}
+
+/* Without the refined credits, label and value read as one sentence: "Written by: ...". */
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .CreditsLabel::after {
+  content: ":";
+}
+
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent :is(.SongInfoNote, .SongInfoRole) {
+  opacity: 0.5;
+}
+
 /* CreditsFollowLastLine (setting): a song that ends on a duet line sung from the
    right keeps its credits on that side, under the line. EndsOnOppositeLine is set
    by the appliers from the lyrics data. */
@@ -976,6 +1118,7 @@
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer.EndsOnOppositeLine
+  > .SongCredits
   > :is(.Credits, .LyricsProvider, .SongInfo) {
   text-align: end;
 }
@@ -984,20 +1127,180 @@
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer.EndsOnOppositeLine
+  > .SongCredits
   > .SongInfo {
   align-items: flex-end;
 }
 
+/* A button, reset to read as text; the role in front stays out of the underline. */
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .song-info-profile-section {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   font-weight: 700;
-  opacity: 0.55;
-  transition: opacity 0.21s;
-  text-decoration: underline;
+  text-align: inherit;
   cursor: pointer;
 }
 
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .SongInfo .song-info-profile-section:hover {
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .SongInfo .SongInfoRole {
+  margin-inline-end: 0.25em;
+  font-weight: 600 !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .SongInfo .song-info-profile-section :is(.SongInfoName, img) {
+  opacity: 0.55;
+  transition: opacity 0.21s;
+}
+
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .SongInfo .SongInfoName {
+  text-decoration: underline;
+}
+
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .SongInfo .song-info-profile-section:is(:hover, :focus-visible) :is(.SongInfoName, img) {
   opacity: 1;
+}
+
+/* The community lead belongs to the refined credits; the previous look keeps its full sentence. */
+#SpicyLyricsPage.SpicyRenderer:not(.Exp_RefinedCredits) .LyricsContainer .LyricsContent .SongInfo .SongInfoLead {
+  display: none;
+}
+
+/* Refined credits (experiment "refinedCredits"): quiet type close under the last line, the
+   songwriters and then the source, set apart from the lyrics by size and tone rather than a
+   surface. The gap stays smaller than the one between lyric lines, so they read as the song's
+   footnote, and the tones stay near the old credit lines so they never outshine the song. The virtualizer owns the block's translate
+   and transform, so its own motion is opacity. */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits {
+  /* Both tones are a share of the row's colour, so a theme that recolours the rows sets the
+     hue while the credits keep their strength, and labels stay quieter than the names. */
+  --CreditsText: color-mix(in srgb, currentColor 70%, transparent);
+  --CreditsMuted: color-mix(in srgb, currentColor 55%, transparent);
+  font-size: clamp(0.8rem, 3cqw, max(0.34em, 0.875rem)) !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  /* A footnote's measure, so a long list of songwriters doesn't run the full lyrics width. */
+  max-width: min(100%, 46em);
+  margin: max(1cqw, 0.75em) 0 0;
+  line-height: 1.35;
+  color: white;
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+
+/* Synced lyrics: dim like a line still to come, until the last line has been sung
+   (LinesAllSung, from the animator). */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits
+  .LyricsContainer
+  .LyricsContent:not(.LinesAllSung)
+  .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"])
+  > .SongCredits {
+  opacity: 0.55;
+}
+
+/* Following an end-aligned last line, the narrower block moves to that side too. */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits.CreditsFollowLastLine
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer.EndsOnOppositeLine
+  > .SongCredits {
+  margin-inline-start: auto;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits > :is(.Credits, .LyricsProvider, .SongInfo) {
+  font-size: 1em !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+  opacity: 1;
+  color: inherit;
+  text-wrap: pretty;
+}
+
+/* The lyrics set every descendant to 700 !important (main.css); text inside the rows takes the row's weight. */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits :is(.CreditsLabel, .CreditsValue, .LyricsProviderVia, .SongInfoLead, .Maker, .Uploader, .song-info-profile-section, .SongInfoRole) {
+  font-weight: inherit !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .Credits .CreditsValue {
+  color: var(--CreditsText);
+}
+
+/* Everything but the songwriters and the linked names reads muted. */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits :is(.CreditsLabel, .LyricsProvider .CreditsValue, .LyricsProviderViaLabel, .SongInfoLead, .SongInfoRole),
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .SongInfo :is(.Maker, .Uploader)::before {
+  color: var(--CreditsMuted);
+}
+
+/* The second line: "Provided by Apple Music via lrc.red", or "Community lyrics · Made by @..." */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits > :is(.LyricsProvider, .SongInfo) {
+  font-size: max(0.86em, 0.75rem) !important;
+  font-weight: 500 !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits.FromCommunity > .LyricsProvider,
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .SongInfoNote {
+  display: none;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .SongInfo {
+  display: block;
+}
+
+/* Each person stays whole on one line; the dot before them separates, outside the link. */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .SongInfo :is(.Maker, .Uploader) {
+  display: inline;
+  white-space: nowrap;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .SongInfo :is(.Maker, .Uploader)::before {
+  content: "\00b7";
+  margin-inline: 0.45em;
+}
+
+/* Role, avatar, then the name; only the name reads as a link. */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .song-info-profile-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  vertical-align: bottom;
+  line-height: inherit;
+  border-radius: 0.25em;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .song-info-profile-section img {
+  order: 1;
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0;
+  top: 0;
+  opacity: 0.85;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits :is(.SongInfoName, .LyricsProviderViaLink) {
+  order: 2;
+  color: var(--CreditsText);
+  font-weight: 600 !important;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  transition:
+    color var(--dur-fast) ease,
+    text-decoration-color var(--dur-fast) ease;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .song-info-profile-section:is(:hover, :focus-visible) .SongInfoName,
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits .LyricsProviderViaLink:is(:hover, :focus-visible) {
+  color: white;
+  text-decoration-color: currentColor;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer .LyricsContent .SongCredits :is(.song-info-profile-section, .LyricsProviderViaLink):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 #SpicyLyricsPage.SpicyRenderer:not(.NoLineHoverBackground) .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer:not([data-lyrics-type="Static"]) .line:not(.musical-line)::before {
