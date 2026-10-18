@@ -1026,6 +1026,93 @@
   text-align: left;
 }
 
+/* --- Scrub preview ------------------------------------------------------------ */
+/* The time or level a click would set. NowBar.ts moves it along the track with
+   `translate`; this places it on the other axis and fades it. */
+
+/* The hoisted timeline is its containing block. The one inside MediaContent is already absolute. */
+#SpicyLyricsPage .Header > .Timeline {
+  position: relative;
+}
+
+#SpicyLyricsPage .Timeline .SliderBar {
+  anchor-name: --SL-ScrubTrack;
+}
+
+#SpicyLyricsPage .ScrubPreview {
+  --ScrubPreviewGap: 0.55em;
+  position: absolute;
+  z-index: 3;
+  padding: 0.3em 0.5em;
+  border-radius: 0.45em;
+  /* The tracks' frosted material, tinted darker so white digits hold up over bright artwork. */
+  background: rgba(18, 18, 22, 0.42);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow:
+    0 6px 16px -8px rgba(8, 10, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: var(--default-font-size) !important;
+  font-weight: var(--w-medium);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.96;
+  transition:
+    opacity 90ms cubic-bezier(0.23, 1, 0.32, 1),
+    scale 90ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* MediaContent's opacity layer is a backdrop root, so the frost can't reach the artwork
+   from in here; a denser tint keeps the digits readable over it. */
+#SpicyLyricsPage .MediaContent .ScrubPreview {
+  background: rgba(18, 18, 22, 0.58);
+}
+
+#SpicyLyricsPage .ScrubPreview.Visible {
+  opacity: 1;
+  scale: 1;
+  transition-duration: 120ms;
+}
+
+#SpicyLyricsPage:not(.Exp_ScrubPreview) .ScrubPreview {
+  display: none;
+}
+
+/* Above a horizontal track, centered on the pointer and growing out of the track. */
+#SpicyLyricsPage .ScrubPreview:not(.Vertical) {
+  left: 0;
+  bottom: calc(100% + var(--ScrubPreviewGap));
+  transform: translateX(-50%);
+  transform-origin: 0 100%;
+}
+
+/* Rides the timeline bar's live top edge, so it clears the bar as it thickens on hover. */
+@supports (anchor-name: --a) {
+  #SpicyLyricsPage .Timeline .ScrubPreview {
+    position-anchor: --SL-ScrubTrack;
+    bottom: calc(anchor(top) + var(--ScrubPreviewGap));
+  }
+}
+
+/* Beside the vertical volume capsule, on the artwork side. */
+#SpicyLyricsPage .ScrubPreview.Vertical {
+  top: 0;
+  right: calc(100% + var(--ScrubPreviewGap));
+  transform: translateY(-50%);
+  transform-origin: 100% 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ScrubPreview {
+    scale: none;
+  }
+}
+
 /* --- Volume capsule -------------------------------------------------------- */
 /* A vertical, Control-Center-style capsule on the right edge of the artwork,
    vertically centered — the one region that is empty in both timeline states, so
@@ -1070,7 +1157,6 @@
   .MediaBox
   .MediaContent
   .VolumeControl {
-  overflow: hidden;
   background: var(--material-regular-bg);
   -webkit-backdrop-filter: var(--material-regular-blur);
   backdrop-filter: var(--material-regular-blur);
@@ -1096,13 +1182,15 @@
   --CapsuleWidth: 5.4cqw;
 }
 
+/* The fill clips itself rather than the capsule clipping it, so the scrub preview
+   can sit outside the capsule. */
 #SpicyLyricsPage.Exp_NewProgressBar .VolumeControl .VolumeFill {
   position: absolute;
   inset: 0;
   background: #fff;
-  transform: scaleY(var(--VolumeLevel));
-  transform-origin: bottom;
-  transition: transform 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+  border-radius: inherit;
+  clip-path: inset(calc((1 - var(--VolumeLevel)) * 100%) 0 0 0);
+  transition: clip-path 0.18s cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: none;
 }
 

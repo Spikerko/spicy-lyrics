@@ -333,6 +333,10 @@
   font-size: calc(var(--default-font-size) * 0.75) !important;
 }
 
+#SpicyLyricsPage.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .ScrubPreview {
+  font-size: calc(var(--default-font-size) * 0.75) !important;
+}
+
 #SpicyLyricsPage.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .Timeline .Time.Position {
   grid-column: 1;
   text-align: left;

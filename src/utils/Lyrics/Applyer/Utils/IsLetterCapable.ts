@@ -9,13 +9,21 @@ const Simple = (letterLength: number, totalDuration: number) => {
   return totalDuration >= MinDuration;
 };
 
-// Refreshed Simple Lyrics: like Apple Music, only short words are split into
-// letters. A longer held word ("starfucker,") fills like any other word.
+// Refreshed Simple Lyrics: only words held a second or more with
+// two to seven letters are split. A longer held word ("starfucker,") fills like
+// any other word.
 export const RefreshedMaxLetters = 7;
+const RefreshedMinLetters = 2;
 
 const SimpleLyricsModeCapable = (letterLength: number, totalDuration: number) => {
-  const maxLetters = isExperimentEnabled("refreshedSimpleLyrics") ? RefreshedMaxLetters : 12;
-  if (letterLength > maxLetters) {
+  if (isExperimentEnabled("refreshedSimpleLyrics")) {
+    return (
+      letterLength >= RefreshedMinLetters &&
+      letterLength <= RefreshedMaxLetters &&
+      totalDuration >= MinDuration
+    );
+  }
+  if (letterLength > 12) {
     return false;
   }
 
@@ -43,7 +51,8 @@ const _Complex = (letterLength: number, totalDuration: number) => {
  * skip splitting the word just to count its letters.
  */
 export function MinLetterCapableDuration(): number {
-  return $simpleLyricsMode.get() ? SimpleLyricsModeMinDuration : MinDuration;
+  if (!$simpleLyricsMode.get()) return MinDuration;
+  return isExperimentEnabled("refreshedSimpleLyrics") ? MinDuration : SimpleLyricsModeMinDuration;
 }
 
 export function IsLetterCapable(letterLength: number, totalDuration: number) {

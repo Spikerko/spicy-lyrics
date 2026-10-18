@@ -48,118 +48,89 @@ export function ApplyIsByCommunity(data: any, LyricsContainer: HTMLElement): voi
   const songInfoElement = document.createElement("div");
   songInfoElement.classList.add("SongInfo");
 
-  // Static copy – safe to set as text
   const providedByCommunitySpan = document.createElement("span");
-  providedByCommunitySpan.style.opacity = "0.5";
+  providedByCommunitySpan.classList.add("SongInfoNote");
   providedByCommunitySpan.textContent =
     "These lyrics have been provided by our community";
   songInfoElement.appendChild(providedByCommunitySpan);
 
-  const makerUsername = data.TTMLUploadMetadata?.Maker?.username;
-  const makerAvatar = data.TTMLUploadMetadata?.Maker?.avatar;
-  const uploaderUsername = data.TTMLUploadMetadata?.Uploader?.username;
-  const uploaderAvatar = data.TTMLUploadMetadata?.Uploader?.avatar;
+  // The refined credits show this shorter lead instead, with the people after it on the same line.
+  const communityLeadSpan = document.createElement("span");
+  communityLeadSpan.classList.add("SongInfoLead");
+  communityLeadSpan.textContent = "Community lyrics";
+  songInfoElement.appendChild(communityLeadSpan);
 
-  // Helper for creating a profile section (Maker / Uploader) safely
-  const createProfileSection = (
-    type: "Maker" | "Uploader",
-    labelText: string,
-    username: string,
-    avatarUrl?: string
-  ) => {
+  const makerUsername = data.TTMLUploadMetadata?.Maker?.username;
+  const uploaderUsername = data.TTMLUploadMetadata?.Uploader?.username;
+
+  // One button per person: the role, "@username" and the avatar, all opening their profile.
+  const createProfileSection = (type: "Maker" | "Uploader", labelText: string) => {
+    const person = data.TTMLUploadMetadata[type];
+
     const wrapperSpan = document.createElement("span");
     wrapperSpan.classList.add(type);
 
-    const innerSpan = document.createElement("span");
+    const profileButton = document.createElement("button");
+    profileButton.type = "button";
+    profileButton.classList.add("song-info-profile-section");
 
-    const labelSpan = document.createElement("span");
-    labelSpan.style.opacity = "0.5";
-    labelSpan.textContent = `${labelText} `;
-
-    const profileSectionSpan = document.createElement("span");
-    profileSectionSpan.classList.add("song-info-profile-section");
-
-    // "@username"
-    const atText = document.createTextNode("@");
-    profileSectionSpan.appendChild(atText);
-
-    const usernameSpan = document.createElement("span");
-    usernameSpan.textContent = username;
-    profileSectionSpan.appendChild(usernameSpan);
-
-    // Optional avatar image
-    if (avatarUrl) {
-      const avatarWrapper = document.createElement("span");
+    if (person.avatar) {
       const img = document.createElement("img");
-      img.src = avatarUrl;
-      img.alt = `${username}'s avatar`;
+      img.src = person.avatar;
+      // The name is right beside it.
+      img.alt = "";
       img.onerror = () => {
         img.style.display = "none";
       };
-      avatarWrapper.appendChild(img);
-      profileSectionSpan.appendChild(avatarWrapper);
+      profileButton.appendChild(img);
     }
 
-    innerSpan.appendChild(labelSpan);
-    innerSpan.appendChild(profileSectionSpan);
-    wrapperSpan.appendChild(innerSpan);
+    const roleSpan = document.createElement("span");
+    roleSpan.classList.add("SongInfoRole");
+    roleSpan.textContent = labelText;
 
+    const usernameSpan = document.createElement("span");
+    usernameSpan.classList.add("SongInfoName");
+    usernameSpan.textContent = `@${person.username}`;
+
+    profileButton.append(roleSpan, " ", usernameSpan);
+    wrapperSpan.appendChild(profileButton);
     songInfoElement.appendChild(wrapperSpan);
+
+    if (!IsPIP) {
+      madeTippys.add(
+        createTooltip(profileButton, {
+          ...Spicetify.TippyProps,
+          content: `View TTML Profile`,
+        })
+      );
+    }
+    // Spotify's Space shortcut would otherwise cancel the press and toggle playback.
+    profileButton.addEventListener(
+      "keydown",
+      (event) => {
+        if (event.key === " " || event.key === "Enter") event.stopPropagation();
+      },
+      { signal }
+    );
+    profileButton.addEventListener(
+      "click",
+      () => {
+        openProfile(person.id);
+        if (IsPIP) {
+          globalThis.focus();
+        }
+      },
+      { signal }
+    );
   };
 
   if (makerUsername) {
-    createProfileSection("Maker", "Made by", makerUsername, makerAvatar);
+    createProfileSection("Maker", "Made by");
   }
 
   if (uploaderUsername) {
-    const labelText = makerUsername ? "Uploaded by" : "Made by";
-    createProfileSection("Uploader", labelText, uploaderUsername, uploaderAvatar);
+    createProfileSection("Uploader", makerUsername ? "Uploaded by" : "Made by");
   }
   LyricsContainer.appendChild(songInfoElement);
-
-  if (!data.TTMLUploadMetadata) return;
-
-  const uploaderSpan = songInfoElement.querySelector(".Uploader .song-info-profile-section");
-  if (uploaderSpan) {
-    if (!IsPIP) {
-      madeTippys.add(
-        createTooltip(uploaderSpan, {
-          ...Spicetify.TippyProps,
-          content: `View TTML Profile`,
-        })
-      )
-    }
-    uploaderSpan.addEventListener(
-      "click",
-      () => {
-        openProfile(data.TTMLUploadMetadata?.Uploader?.id);
-        if (IsPIP) {
-          globalThis.focus();
-        }
-      },
-      { signal }
-    );
-  }
-
-  const makerSpan = songInfoElement.querySelector(".Maker .song-info-profile-section");
-  if (makerSpan) {
-    if (!IsPIP) {
-      madeTippys.add(
-        createTooltip(makerSpan, {
-          ...Spicetify.TippyProps,
-          content: `View TTML Profile`,
-        })
-      )
-    }
-    makerSpan.addEventListener(
-      "click",
-      () => {
-        openProfile(data.TTMLUploadMetadata?.Maker?.id);
-        if (IsPIP) {
-          globalThis.focus();
-        }
-      },
-      { signal }
-    );
-  }
 }

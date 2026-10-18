@@ -23,6 +23,40 @@ bun run fmt
 
 This is a **Spicetify extension** (not a standalone web app). It runs inside the Spotify desktop client and depends on `window.Spicetify.*` globals being available at runtime. The build tool is `@spicemod/creator` (spicetify-creator), configured in `spice.config.ts`.
 
+## Consulting the advisor
+
+When an `advisor` tool is available (a stronger reviewer model), use it as a second opinion instead of guessing. It takes no input and has no tools: it sees only this conversation (this file, every tool call and result so far). It can only judge what you've actually read or run, so get the real evidence into the transcript first, not your recollection of it.
+
+Skip it for routine work: small fixes, renames, copy changes, factual lookups, or a short task where the next step is dictated by the tool output you just read. A typical non-trivial task needs two or three calls, not one per step. UI work is never routine, however small (see below).
+
+**UI and visual changes always go through the advisor.** The advisor is the stronger judge of visual design, so any change someone will see on screen (new elements, styling, spacing, type, motion) follows this loop:
+1. Before the first edit: read the surrounding CSS/markup, get a screenshot of the current state into the transcript (CDP capture, then Read the PNG), and ask for the design direction.
+2. After implementing: screenshot the rendered result in every state it affects (end-aligned / opposite lines, narrow views like the sidebar card and popup, a bright cover), Read each PNG, and ask for a critique of how it looks, not just whether it works. Computed sizes and a passing probe aren't a visual review.
+3. Repeat step 2 after each visual revision until the advisor has no remaining concerns.
+4. Check computed styles over CDP after each edit. Broad `!important` rules in the lyrics CSS (e.g. the 700 weight on everything inside `.LyricsContent`) silently override new declarations.
+
+Call it when you're **unsure**:
+- Two or more approaches look reasonable and the choice matters.
+- You can't tell why something behaves the way it does, or evidence points in different directions.
+- You're stuck: the same error keeps coming back, a fix isn't converging, or a CDP probe gives results that don't fit.
+- You're about to abandon your current approach for a different one.
+
+Call it before a **big action**:
+- Changes that touch many files, rewrite a subsystem, or change a public surface (experiment ids, stored keys, edge lookup names, remote config shape, hooks partner plugins rely on).
+- Performance-sensitive CSS or frame-loop changes (selectors with `:has()`, container query units, anything that runs every frame).
+- Anything hard to undo: deleting files or large blocks of code, destructive git operations, migrations of persisted data.
+
+How to use it:
+- Orient first (read the relevant files, check the current state, run a probe if one settles a question), then call it before the first edit. A call made before you've looked at anything gets generic advice.
+- When planning, call it before writing the plan or todo list, so its advice shapes the plan.
+- Before calling the work done, make it durable (edits saved, typecheck/probe output in the transcript), then call it once more.
+- Weigh the advice seriously. Adapt only if following it fails, or a primary source (the file's contents, a probe result) contradicts a specific claim. A passing check isn't proof the advice is wrong; it may not test what the advice is about.
+- If you'd already found evidence pointing one way and the advice points another, don't silently switch. Make one more call that names the conflict: "I found X, you suggest Y, which constraint breaks the tie?"
+
+## Comments
+
+This repo is public. Comments, commit messages, experiment descriptions and docs say what the code does and why, never where the idea or implementation came from: no "as in <project>", "like <product>", "based on...", "inspired by...", "ported from...", and no naming of other projects or the references used to build something. This holds even when a feature was modelled on one. Names that are part of real behaviour (a lyrics provider's display name, a CSS variable another project reads) are fine.
+
 ## Experiments
 
 User-facing feature flags, shown in Settings → Experiments. Use one whenever a change alters existing behaviour enough that someone might want the old way back.

@@ -1,6 +1,6 @@
 import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
-import { SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
+import { FormatPlaybackTime, SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
 import { $showVolumeSlider, $timelineOutsideMediaContent } from "../../utils/stores.ts";
 import { onExperimentChange } from "../../utils/experiments.ts";
@@ -30,6 +30,42 @@ function setText(el: HTMLElement, text: string): void {
   } else if (el.textContent !== text) {
     el.textContent = text;
   }
+}
+
+// The readout over a hovered or dragged track: what a click there would set. It follows
+// the pointer through `translate`, so tracking never touches layout; CSS places the other axis.
+function CreateScrubPreview(host: HTMLElement, keepInsideHost: boolean) {
+  const el = document.createElement("div");
+  el.className = "ScrubPreview";
+  el.setAttribute("aria-hidden", "true");
+  host.appendChild(el);
+
+  return {
+    /** `point` is the screen coordinate on the track's long axis the preview points at. */
+    Show: (text: string, point: number, vertical: boolean) => {
+      setText(el, text);
+      el.classList.toggle("Vertical", vertical);
+      // Undo any scale on the overlay (the artwork's press shrink) to get layout px.
+      const rect = host.getBoundingClientRect();
+      const scale = vertical
+        ? rect.height / (host.offsetHeight || 1)
+        : rect.width / (host.offsetWidth || 1);
+      const offset = (point - (vertical ? rect.top : rect.left)) / (scale || 1);
+      if (vertical) {
+        el.style.translate = `0 ${offset}px`;
+      } else if (!keepInsideHost) {
+        el.style.translate = `${offset}px 0`;
+      } else {
+        // Measured each time: the host reads above have already laid the page out, so
+        // this costs no extra layout, and it follows the type when the window resizes it.
+        const half = el.offsetWidth / 2;
+        const max = host.offsetWidth - half;
+        el.style.translate = `${Math.max(half, Math.min(max, offset))}px 0`;
+      }
+      el.classList.add("Visible");
+    },
+    Hide: () => el.classList.remove("Visible"),
+  };
 }
 
 // Define interfaces for our control instances
@@ -451,6 +487,33 @@ function OpenNowBar(skipSaving: boolean = false) {
         let isDragging = false;
         let dragPositionMs: number | null = null; // Track the current drag position in ms
 
+        const scrubPreview = CreateScrubPreview(TimelineElem, true);
+        let isHovering = false;
+
+        // Same math as the drag and click seeks, so the preview is exactly where a click lands.
+        const previewAt = (clientX: number) => {
+          const duration = SpotifyPlayer.GetDuration() ?? 0;
+          const rect = SliderBar.getBoundingClientRect();
+          if (duration <= 0 || rect.width === 0) {
+            scrubPreview.Hide();
+            return;
+          }
+          const x = Math.max(rect.left, Math.min(rect.right, clientX));
+          const positionMs = Math.floor(((x - rect.left) / rect.width) * duration);
+          scrubPreview.Show(FormatPlaybackTime(positionMs), x, false);
+        };
+
+        const handleHoverMove = (event: PointerEvent) => {
+          if (event.pointerType !== "mouse") return;
+          isHovering = true;
+          if (!isDragging) previewAt(event.clientX);
+        };
+
+        const handleHoverLeave = () => {
+          isHovering = false;
+          if (!isDragging) scrubPreview.Hide();
+        };
+
         const updateTimelineState = (e = null) => {
           const PositionElem = TimelineElem.querySelector<HTMLElement>(".Time.Position");
           const DurationElem = TimelineElem.querySelector<HTMLElement>(".Time.Duration");
@@ -546,6 +609,7 @@ function OpenNowBar(skipSaving: boolean = false) {
 
           // Update the slider visually during drag
           SliderBar.style.setProperty("--SliderProgress", percentage.toString());
+          previewAt(clientX);
 
           // Calculate position in milliseconds
           const positionMs = Math.floor(percentage * (SpotifyPlayer.GetDuration() ?? 0));
@@ -576,6 +640,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           isDragging = false;
           SliderBar.classList.remove("Dragging");
           dragDoc.body.style.userSelect = ""; // Restore text selection
+          if (!isHovering) scrubPreview.Hide();
 
           // Remove the event listeners
           dragDoc.removeEventListener("mousemove", handleDragMove);
@@ -626,8 +691,15 @@ function OpenNowBar(skipSaving: boolean = false) {
         // Keep the click handler for simple clicks
         SliderBar.addEventListener("click", sliderBarHandler);
 
+        SliderBar.addEventListener("pointerenter", handleHoverMove);
+        SliderBar.addEventListener("pointermove", handleHoverMove);
+        SliderBar.addEventListener("pointerleave", handleHoverLeave);
+
         timelineMaid.Give(() => {
           SliderBar.removeEventListener("click", sliderBarHandler);
+          SliderBar.removeEventListener("pointerenter", handleHoverMove);
+          SliderBar.removeEventListener("pointermove", handleHoverMove);
+          SliderBar.removeEventListener("pointerleave", handleHoverLeave);
           SliderBar.removeEventListener("mousedown", handleDragStart);
           SliderBar.removeEventListener("touchstart", handleDragStart);
           dragDoc.removeEventListener("mousemove", handleDragMove);
@@ -704,6 +776,9 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         const clamp = (value: number) => Math.max(0, Math.min(1, value));
 
+        const scrubPreview = CreateScrubPreview(VolumeElement, false);
+        let isHovering = false;
+
         // The glyph rests near the foot of the capsule (centered ~3cqh up a 32cqh
         // track); once the fill's top edge clears it the icon sits on solid white,
         // and .IconOnFill flips it from white to ink. Only the new skin acts on
@@ -759,6 +834,33 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
           if (rect.height === 0) return currentLevel;
           return clamp(1 - (point.clientY - rect.top) / rect.height);
+        };
+
+        const previewLevel = (event: MouseEvent | TouchEvent, level: number) => {
+          const point = pointFromEvent(event);
+          const rect = VolumeElement.getBoundingClientRect();
+          const vertical = rect.width <= rect.height;
+          const along = vertical
+            ? Math.max(rect.top, Math.min(rect.bottom, point.clientY))
+            : Math.max(rect.left, Math.min(rect.right, point.clientX));
+          scrubPreview.Show(`${Math.round(level * 100)}%`, along, vertical);
+        };
+
+        const handleHoverMove = (event: PointerEvent) => {
+          if (event.pointerType !== "mouse") return;
+          isHovering = true;
+          if (isDragging) return;
+          // A click on the glyph mutes rather than setting a level.
+          if ((event.target as HTMLElement | null)?.closest?.(".VolumeIcon")) {
+            scrubPreview.Hide();
+          } else {
+            previewLevel(event, percentageFromEvent(event));
+          }
+        };
+
+        const handleHoverLeave = () => {
+          isHovering = false;
+          if (!isDragging) scrubPreview.Hide();
         };
 
         // Mute is done here rather than with Spicetify.Player.toggleMute(), which
@@ -830,7 +932,9 @@ function OpenNowBar(skipSaving: boolean = false) {
             if (travel < ICON_DRAG_THRESHOLD_PX) return;
             pendingIconTap = false;
           }
-          commit(percentageFromEvent(event));
+          const level = percentageFromEvent(event);
+          commit(level);
+          previewLevel(event, level);
         };
 
         const stopDrag = () => {
@@ -843,6 +947,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           dragDoc.removeEventListener("mouseup", handleDragEnd);
           dragDoc.removeEventListener("touchend", handleDragEnd);
           dragDoc.removeEventListener("touchcancel", handleDragCancel);
+          if (!isHovering) scrubPreview.Hide();
         };
 
         const handleDragEnd = (event: MouseEvent | TouchEvent) => {
@@ -881,8 +986,14 @@ function OpenNowBar(skipSaving: boolean = false) {
         VolumeElement.addEventListener("mousedown", handleDragStart);
         VolumeElement.addEventListener("touchstart", handleDragStart);
         VolumeElement.addEventListener("wheel", wheelHandler, { passive: false });
+        VolumeElement.addEventListener("pointerenter", handleHoverMove);
+        VolumeElement.addEventListener("pointermove", handleHoverMove);
+        VolumeElement.addEventListener("pointerleave", handleHoverLeave);
 
         volumeMaid.Give(() => {
+          VolumeElement.removeEventListener("pointerenter", handleHoverMove);
+          VolumeElement.removeEventListener("pointermove", handleHoverMove);
+          VolumeElement.removeEventListener("pointerleave", handleHoverLeave);
           VolumeElement.removeEventListener("mousedown", handleDragStart);
           VolumeElement.removeEventListener("touchstart", handleDragStart);
           VolumeElement.removeEventListener("wheel", wheelHandler);

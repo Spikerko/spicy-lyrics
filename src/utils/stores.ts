@@ -80,6 +80,8 @@ export const $backgroundStyle = persistAtom<BackgroundStyle>("backgroundStyle", 
 export const $backgroundBlur = persistAtom<number>("backgroundBlur", 0);
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
+// Shows a word sung in syllables as one word when its parts line up evenly.
+export const $joinSplitWords = persistAtom<boolean>("joinSplitWords", false);
 // Tinted box drawn behind a lyrics line while the pointer is over it.
 export const $lineHoverBackground = persistAtom<boolean>("lineHoverBackground", true);
 // Wide inset on the side a duet line leans away from, so the two voices read as

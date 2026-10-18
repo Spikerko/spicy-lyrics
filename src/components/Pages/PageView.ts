@@ -28,6 +28,7 @@ import {
   $creditsFollowLastLine,
   $currentLyricsData,
   $duetLinePadding,
+  $joinSplitWords,
   $lineHoverBackground,
   $lyricsContainerExists,
   $minimalLyricsMode,
@@ -837,6 +838,12 @@ $simpleLyricsMode.listen((v) => {
 $minimalLyricsMode.listen((v) => {
   if (!PageContainer) return;
   PageContainer.classList.toggle("MinimalLyricsMode", v);
+  const uri = SpotifyPlayer.GetUri();
+  $currentLyricsData.set("");
+  if (uri) fetchLyrics(uri).then(ApplyLyrics);
+});
+
+$joinSplitWords.listen(() => {
   const uri = SpotifyPlayer.GetUri();
   $currentLyricsData.set("");
   if (uri) fetchLyrics(uri).then(ApplyLyrics);

@@ -122,9 +122,41 @@ export const EXPERIMENTS = [
     id: "refreshedSimpleLyrics",
     label: "Refreshed Simple Lyrics Mode",
     description:
-      "In Simple Lyrics Mode, the sung part of a word fades in behind a soft edge, the part still to come stays a little brighter, and the letters of a short held word come up one after another with the fill, growing, lifting and glowing, then settle together once the word is done, stronger the longer the word is held. Lines sit further apart and follow the song in a ripple, each catching up a moment after the one above it. Interlude dots fill in one by one while the group slowly breathes. Its scrolling takes over from Smooth Scrolling while it's on. Disable to bring back the previous Simple Lyrics look.",
+      "In Simple Lyrics Mode, the sung part of a line fades in behind one soft edge that runs on from word to word without stopping, words float up as they're sung with the next already rising before the last has settled, the part still to come stays a little brighter, and the letters of a short held word swell, spread apart, lift and glow one after another, then ease back, stronger the longer the word is held. Lines sit further apart and follow the song in a ripple, each catching up a moment after the one above it. Interlude dots fill in one by one while the group slowly breathes. Its scrolling takes over from Smooth Scrolling while it's on. Disable to bring back the previous Simple Lyrics look.",
     default: false,
     pageClass: "Exp_RefreshedSimpleLyrics",
+  },
+  {
+    id: "refinedCredits",
+    label: "Refined Credits",
+    description:
+      "The credits under the lyrics become quiet type close under the last line, with no box: the songwriters, then the lyrics source beneath. Community lyrics say so on that second line, with the people who made and uploaded them linked by name. In synced lyrics the credits stay dim until the last line has been sung. Disable to bring back the previous credit lines.",
+    default: true,
+    pageClass: "Exp_RefinedCredits",
+  },
+  {
+    id: "scrubPreview",
+    label: "Scrub Preview",
+    description:
+      "Hovering or dragging the progress bar shows the time a click would seek to, and the volume bar shows the level it would set. Disable to hide these previews.",
+    default: true,
+    pageClass: "Exp_ScrubPreview",
+  },
+  {
+    id: "backgroundLinePop",
+    label: "Background Vocal Pop-Out",
+    description:
+      "Background vocal lines stay tucked away under their line until it's sung, then slide out from beneath it while the lines below make room, and tuck back in once both are done. Disable to keep every background vocal line on screen at all times.",
+    default: false,
+    pageClass: "Exp_BackgroundLinePop",
+  },
+  {
+    id: "keepOverlappingLines",
+    label: "Keep Overlapping Lines",
+    description:
+      "In Minimal Lyrics Mode, a line that ends while one above it is still being sung (overlapping lines, background vocals) stays on screen, dimmed, instead of fading out early. Disable to fade every sung line out as soon as it ends.",
+    default: true,
+    pageClass: "Exp_KeepOverlappingLines",
   },
 ] as const satisfies readonly Experiment[];
 

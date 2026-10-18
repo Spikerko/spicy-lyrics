@@ -19,10 +19,8 @@ import { CreateLyricsContainer, DestroyAllLyricsContainers } from "./CreateLyric
 import { StripZeroWidth } from "./Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "./Utils/PickDisplayText.ts";
 import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
-import { ApplyIsByCommunity } from "./Credits/ApplyIsByCommunity.tsx";
-import { ApplyLyricsCredits, MarkLastLineSide } from "./Credits/ApplyLyricsCredits.ts";
+import { ApplySongCredits, MarkLastLineSide } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
-import { ApplyLyricsProvider } from "./Credits/ApplyProvider.ts";
 import { RemoveEmptyLyricsLines } from "../EmptyLines.ts";
 
 /**
@@ -37,7 +35,7 @@ export interface StaticLyricsData {
   offline?: boolean;
   classes?: string;
   styles?: StyleProperties;
-  source?: "spt" | "spl" | "aml";
+  source?: "spt" | "spl" | "aml" | "uns";
 }
 
 /**
@@ -104,9 +102,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
     lineElements.push(lineElem);
   });
 
-  ApplyLyricsCredits(data, LyricsContainer);
-  ApplyLyricsProvider(data, LyricsContainer);
-  ApplyIsByCommunity(data, LyricsContainer);
+  ApplySongCredits(data, LyricsContainer);
   if (LyricsContainerParent) {
     LyricsContainerInstance.Append(LyricsContainerParent);
   }

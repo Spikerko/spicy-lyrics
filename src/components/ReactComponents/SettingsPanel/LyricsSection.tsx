@@ -2,6 +2,7 @@ import { useStore } from "@nanostores/react";
 import {
   $creditsFollowLastLine,
   $duetLinePadding,
+  $joinSplitWords,
   $lineHoverBackground,
   $minimalLyricsMode,
   $simpleLyricsMode,
@@ -37,6 +38,19 @@ const groups: GroupDef[] = [
             label={label}
             checked={useStore($minimalLyricsMode)}
             onChange={(v) => $minimalLyricsMode.set(v)}
+          />
+        ),
+      },
+      {
+        id: "joinSplitWords",
+        label: "Join Split Words",
+        description: "Show a word that's sung in syllables as one word, when its parts line up evenly.",
+        keywords: "syllables merge",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($joinSplitWords)}
+            onChange={(v) => $joinSplitWords.set(v)}
           />
         ),
       },
