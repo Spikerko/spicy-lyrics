@@ -419,10 +419,18 @@ class LyricsVirtualizer {
     const toMeasure: HTMLElement[] = [];
     // Unmounted rows resized below, with their previous size.
     const resized: { index: number; prev: number }[] = [];
+    let firstMounted: number | null = null;
     const resize = (index: number, size: number) => {
       const prev = sizeOf(index);
       if (prev === undefined || Math.abs(size - prev) < 0.5) return;
       resized.push({ index, prev });
+      // A row above everything on screen, with the list at rest (the user has
+      // scrolled away): glides would leave scrollTop alone and slide the rows
+      // being read, so they're held off and the scroll correction keeps them
+      // still. In motion, the re-aim below or the glide's per-frame aim takes
+      // it up instead.
+      firstMounted ??= this._mountedIndices.size > 0 ? Math.min(...this._mountedIndices) : -1;
+      if (index < firstMounted && !this.moving) this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
       v.resizeItem(index, size);
     };
     const repad = (index: number) => {
@@ -436,7 +444,7 @@ class LyricsVirtualizer {
         if (!toMeasure.includes(wrapper)) toMeasure.push(wrapper);
         return;
       }
-      // The cached size was measured with the old padding (see the unmount pass).
+      // The cached size was last measured, or moved, with the old padding.
       const size = sizeOf(index);
       if (size !== undefined) resize(index, size + gap - prev);
     };
