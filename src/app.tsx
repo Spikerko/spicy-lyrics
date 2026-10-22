@@ -556,7 +556,14 @@ async function main() {
       const trackInfo = viewport?.querySelector(
         ':scope > :first-child > :nth-child(2) > :has(a[href^="/album/"]):has(a[href^="/artist/"])'
       );
-      const queue = trackInfo?.nextElementSibling?.nextElementSibling ?? null;
+      // Without a native lyrics preview the lyrics card sits right under the title,
+      // so it doesn't count as one of the blocks.
+      const nextBlock = (block: Element | null | undefined) => {
+        let next = block?.nextElementSibling;
+        while (next?.id === "SpicyLyricsNPVCard") next = next.nextElementSibling;
+        return next ?? null;
+      };
+      const queue = nextBlock(nextBlock(trackInfo));
       for (const [attribute, target] of [
         ["data-sl-npv-track-info", trackInfo],
         ["data-sl-npv-queue", queue],
