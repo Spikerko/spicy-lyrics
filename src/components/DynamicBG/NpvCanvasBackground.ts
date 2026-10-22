@@ -10,7 +10,10 @@ const npvCanvasLogger = new Logger("NPV Canvas Background");
 const NPV_KAWARP_KEY = "npvbg";
 // The canvas Spotify itself plays in the NPV. Following that element (rather than playing our
 // own copy) keeps the background on the exact frame shown above it, with no extra download.
-const NPV_CANVAS_VIDEO = ".canvasVideoContainerNPV video";
+// Spotify's newer NPV layout (1.3.6.1921) plays it through a player with only hashed classes,
+// inside the artwork block's [data-canvas-surface].
+const NPV_CANVAS_VIDEO =
+  ".canvasVideoContainerNPV video, [data-npv-root] [data-canvas-surface] video";
 const NPV_BACKGROUND_CANVAS = "aside.spicy-dynamic-bg-in-this canvas.spicy-dynamic-bg";
 // Set by NPVLyrics.ts while its card fills the NPV.
 const NPV_CARD_EXPANDED_CLASS = "SpicyLyrics_NPVCardExpanded";

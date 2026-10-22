@@ -522,8 +522,57 @@ async function main() {
       nowPlayingBarMutationTimeout = setTimeout(() => {
         nowPlayingBarMutationTimeout = null;
         startNowPlayingBarObserver();
+        syncNPVFlags();
         void applyDynamicBackgroundToNowPlayingBar(SpotifyPlayer.GetCover("large"));
       }, 50);
+    };
+
+    // The refreshed NPV only exposes its scroll position to a scroll-driven
+    // animation; default.css eases its header in over time instead, as the legacy
+    // layout does, so it needs a scrolled flag, and a Canvas flag because the
+    // legacy header differs without one. Attributes, not classes: the observer
+    // below reapplies the background on class changes.
+    const markNPVScrolled = (event: Event) => {
+      const viewport = event.target;
+      if (!(viewport instanceof HTMLElement) || !viewport.hasAttribute("data-overlayscrollbars-viewport")) return;
+      // Only the panel's own scroller, not one nested inside it.
+      const root = viewport.closest("[data-overlayscrollbars]")?.parentElement;
+      if (root?.hasAttribute("data-npv-root")) root.toggleAttribute("data-sl-npv-scrolled", viewport.scrollTop > 0);
+    };
+
+    // On every observed panel change, so a Canvas that mounts late or goes with a
+    // song change is picked up, as is a panel already scrolled when this loads.
+    // It also marks the track's title row (title, artists and its buttons) and the
+    // "Next in queue" block, which default.css lays out as the legacy layout does.
+    // Neither has a stable hook of its own: the title row is the first block in the
+    // info column holding both links, and the queue follows the sections list
+    // after it (it's left out when the queue is empty).
+    const syncNPVFlags = () => {
+      const root = nowPlayingBarObservedRoot?.querySelector("[data-npv-root]");
+      if (!root) return;
+      const viewport = root.querySelector(":scope > [data-overlayscrollbars] [data-overlayscrollbars-viewport]");
+      root.toggleAttribute("data-sl-npv-scrolled", (viewport?.scrollTop ?? 0) > 0);
+      root.toggleAttribute("data-sl-npv-canvas", Boolean(root.querySelector("[data-canvas-surface]")));
+      const trackInfo = viewport?.querySelector(
+        ':scope > :first-child > :nth-child(2) > :has(a[href^="/album/"]):has(a[href^="/artist/"])'
+      );
+      // Without a native lyrics preview the lyrics card sits right under the title,
+      // so it doesn't count as one of the blocks.
+      const nextBlock = (block: Element | null | undefined) => {
+        let next = block?.nextElementSibling;
+        while (next?.id === "SpicyLyricsNPVCard") next = next.nextElementSibling;
+        return next ?? null;
+      };
+      const queue = nextBlock(nextBlock(trackInfo));
+      for (const [attribute, target] of [
+        ["data-sl-npv-track-info", trackInfo],
+        ["data-sl-npv-queue", queue],
+      ] as const) {
+        for (const marked of root.querySelectorAll(`[${attribute}]`)) {
+          if (marked !== target) marked.removeAttribute(attribute);
+        }
+        target?.setAttribute(attribute, "");
+      }
     };
 
     const startNowPlayingBarObserver = () => {
@@ -531,7 +580,10 @@ async function main() {
       if (!sidebar) return;
       if (nowPlayingBarObserver && sidebar === nowPlayingBarObservedRoot) return;
       nowPlayingBarObserver?.disconnect();
+      nowPlayingBarObservedRoot?.removeEventListener("scroll", markNPVScrolled, true);
       nowPlayingBarObservedRoot = sidebar;
+      // Scroll doesn't bubble; capturing on the sidebar survives Spotify swapping the panel.
+      sidebar.addEventListener("scroll", markNPVScrolled, { capture: true, passive: true });
 
       nowPlayingBarObserver = new MutationObserver((mutations) => {
         // Resolved once per callback, not once per record.
@@ -557,6 +609,9 @@ async function main() {
         });
 
         if (!shouldReapply) return;
+        // Before the debounce below: the flags move the layout, so they land before
+        // the panel's change is painted rather than a frame or more after it.
+        syncNPVFlags();
         scheduleNowPlayingBarDynamicBackgroundApply();
       });
 

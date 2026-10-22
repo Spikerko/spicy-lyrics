@@ -376,6 +376,28 @@
   right: var(--DockGutter);
 }
 
+/* Outside document fullscreen (Cinema View), Spotify's menu button and window buttons sit over the
+   stage's top corners, in a band as tall as its nav bar. The row joins that band like a title bar:
+   on the nav's centreline, set off from the native buttons by the nav's own gap. Fullscreen.ts
+   measures the band; without it each value falls back to the corner placement above. */
+:root:not(:fullscreen) #SpicyLyricsPage.Fullscreen.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox:not(.LyricsHidden) .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  /* No taller than Spotify's own nav buttons, so the row stays inside the band. */
+  --ViewControlSize: min(max(44px, 7cqw), var(--NativeChromeControlMax, 100vh));
+  /* The band drags the window; the gaps between buttons shouldn't. */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+  /* A touch under the midline, which reads as centred against the native buttons. */
+  --NativeChromeNudge: 4px;
+  top: calc(var(--NativeChromeMid, calc(1cqw + var(--DockGutter) + var(--ViewControlSize) / 2 - var(--NativeChromeNudge))) + var(--NativeChromeNudge) - var(--ViewControlSize) / 2 - var(--CanvasSquareTop, 0px));
+  /* The insets run from the screen edge, and the dock sits min(1cqw, outer gap) in from it. */
+  left: max(var(--DockGutter), var(--NativeChromeLeftInset, 0px) - min(1cqw, var(--CanvasOuterGap)));
+}
+
+:root:not(:fullscreen) #SpicyLyricsPage.NowBarSide__Right.Fullscreen.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox:not(.LyricsHidden) .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  left: auto;
+  right: max(var(--DockGutter), var(--NativeChromeRightInset, 0px) - min(1cqw, var(--CanvasOuterGap)));
+}
+
 /* The no-lyrics stage is centred, so the row is too. */
 #SpicyLyricsPage.Fullscreen.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
   left: 0;

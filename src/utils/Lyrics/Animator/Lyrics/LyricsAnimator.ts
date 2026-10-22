@@ -10,6 +10,7 @@ import {
 } from "../../lyrics.ts";
 import { BlurMultiplier, timeOffset } from "../Shared.ts";
 import {
+  isBgPopActive,
   isLyricsListMoving,
   setOnNewElementMounted,
   syncDetachedBackgroundLines,
@@ -1186,7 +1187,8 @@ export function Animate(position: number): void {
 
   if (CurrentLyricsType === "Syllable") {
     const arr = LyricsObject.Types.Syllable.Lines;
-    markBackgroundGroups(arr, ProcessedPosition, isExperimentEnabled("backgroundLinePop"));
+    // The pop-out belongs to the refreshed layout; anywhere else every background line stays open.
+    markBackgroundGroups(arr, ProcessedPosition, isBgPopActive());
 
     // Sweeps are measured here, before this frame changes any class, so the
     // reads don't force a layout. A line's words are as wide before it turns

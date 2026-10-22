@@ -39,22 +39,39 @@ const EnforcePipMinSize = (pipWindow: Window) => {
 // a single, isolated resize event that grows both axes by the same step, which a
 // user drag (a stream of small resize events) never looks like. The first
 // jump teaches us the step; any matching jump during the guard is undone.
+// The jump can also move the window (in a screen corner it grows toward the
+// top-left), and Chromium remembers that position too, so the undo restores
+// the window's bounds from before the jump, not just its size.
 const PIP_GROWTH_GUARD_MS = 10000;
 const PIP_GROWTH_FIRST_JUMP_MS = 1000;
 const PIP_GROWTH_SETTLE_MS = 100;
 const PIP_GROWTH_TOLERANCE = 2;
 const PIP_GROWTH_MAX_STEP = { width: 40, height: 60 };
+const PIP_GROWTH_POSITION_POLL_MS = 100;
+
+type PipBounds = { x: number; y: number; width: number; height: number };
 
 type PipGrowthGuard = {
   openedAt: number;
   last: { width: number; height: number };
-  burstFrom: { width: number; height: number } | null;
+  // Outer bounds as of the latest resize event. Null until the first one: at
+  // "enter" the window isn't placed yet and reports the main window's bounds.
+  bounds: PipBounds | null;
+  burstFrom: { width: number; height: number; bounds: PipBounds | null } | null;
   burstEvents: number;
   step: { width: number; height: number } | null;
   timer: ReturnType<typeof setTimeout> | null;
   handler: () => void;
+  poll: ReturnType<typeof setInterval>;
 };
 let pipGrowthGuard: PipGrowthGuard | null = null;
+
+const GetPipBounds = (pipWindow: Window): PipBounds => ({
+  x: pipWindow.screenX,
+  y: pipWindow.screenY,
+  width: pipWindow.outerWidth,
+  height: pipWindow.outerHeight,
+});
 
 const SettlePipGrowthBurst = (pipWindow: Window, guard: PipGrowthGuard) => {
   guard.timer = null;
@@ -62,7 +79,11 @@ const SettlePipGrowthBurst = (pipWindow: Window, guard: PipGrowthGuard) => {
   const events = guard.burstEvents;
   guard.burstFrom = null;
   guard.burstEvents = 0;
-  if (!from || events !== 1 || pipWindow.closed) return;
+  if (pipWindow.closed) return;
+  // Moves fire no resize event, so a snapshot taken mid-burst (e.g. by the
+  // resize our own undo causes, before its move lands) can be stale.
+  guard.bounds = GetPipBounds(pipWindow);
+  if (!from || events !== 1) return;
 
   const grewWidth = pipWindow.innerWidth - from.width;
   const grewHeight = pipWindow.innerHeight - from.height;
@@ -79,13 +100,32 @@ const SettlePipGrowthBurst = (pipWindow: Window, guard: PipGrowthGuard) => {
     return;
   }
 
-  pipWindow.resizeTo(pipWindow.outerWidth - grewWidth, pipWindow.outerHeight - grewHeight);
+  // Only trust the snapshot if it's within one step of where the window is
+  // now; otherwise fall back to undoing just the size.
+  const before = from.bounds;
+  const now = GetPipBounds(pipWindow);
+  if (
+    before &&
+    Math.abs(now.x - before.x) <= PIP_GROWTH_MAX_STEP.width &&
+    Math.abs(now.y - before.y) <= PIP_GROWTH_MAX_STEP.height &&
+    Math.abs(now.width - before.width) <= PIP_GROWTH_MAX_STEP.width &&
+    Math.abs(now.height - before.height) <= PIP_GROWTH_MAX_STEP.height
+  ) {
+    // Shrink before moving, so a window against the screen edge isn't
+    // clamped by the move.
+    pipWindow.resizeTo(before.width, before.height);
+    pipWindow.moveTo(before.x, before.y);
+    guard.bounds = before;
+  } else {
+    pipWindow.resizeTo(pipWindow.outerWidth - grewWidth, pipWindow.outerHeight - grewHeight);
+  }
 };
 
 const StartPipGrowthGuard = (pipWindow: Window) => {
   const guard: PipGrowthGuard = {
     openedAt: performance.now(),
     last: { width: pipWindow.innerWidth, height: pipWindow.innerHeight },
+    bounds: null,
     burstFrom: null,
     burstEvents: 0,
     step: null,
@@ -96,14 +136,37 @@ const StartPipGrowthGuard = (pipWindow: Window) => {
         return;
       }
       // Opening also fires resizes that only update the outer size; they'd
-      // turn the jump that follows into a two-event "drag".
-      if (pipWindow.innerWidth === guard.last.width && pipWindow.innerHeight === guard.last.height) return;
-      if (!guard.burstFrom) guard.burstFrom = guard.last;
+      // turn the jump that follows into a two-event "drag". They still carry
+      // the window's placement, so record that first.
+      if (pipWindow.innerWidth === guard.last.width && pipWindow.innerHeight === guard.last.height) {
+        guard.bounds = GetPipBounds(pipWindow);
+        return;
+      }
+      if (!guard.burstFrom) guard.burstFrom = { ...guard.last, bounds: guard.bounds };
+      guard.bounds = GetPipBounds(pipWindow);
       guard.burstEvents++;
       guard.last = { width: pipWindow.innerWidth, height: pipWindow.innerHeight };
       if (guard.timer) clearTimeout(guard.timer);
       guard.timer = setTimeout(() => SettlePipGrowthBurst(pipWindow, guard), PIP_GROWTH_SETTLE_MS);
     },
+    // Moves fire no resize event, so a window dragged between jumps would be
+    // put back where it was. Keep the snapshot current while nothing else is
+    // changing; the inner-size check skips a jump that has landed but whose
+    // resize event hasn't fired yet.
+    poll: setInterval(() => {
+      // A newer popup's guard isn't ours to stop.
+      if (pipGrowthGuard !== guard) {
+        clearInterval(guard.poll);
+        return;
+      }
+      if (pipWindow.closed || performance.now() - guard.openedAt > PIP_GROWTH_GUARD_MS) {
+        StopPipGrowthGuard(pipWindow);
+        return;
+      }
+      if (!guard.bounds || guard.burstFrom) return;
+      if (pipWindow.innerWidth !== guard.last.width || pipWindow.innerHeight !== guard.last.height) return;
+      guard.bounds = GetPipBounds(pipWindow);
+    }, PIP_GROWTH_POSITION_POLL_MS),
   };
   pipGrowthGuard = guard;
   pipWindow.addEventListener("resize", guard.handler);
@@ -113,6 +176,7 @@ const StopPipGrowthGuard = (pipWindow: Window | null) => {
   if (!pipGrowthGuard) return;
   pipWindow?.removeEventListener("resize", pipGrowthGuard.handler);
   if (pipGrowthGuard.timer) clearTimeout(pipGrowthGuard.timer);
+  clearInterval(pipGrowthGuard.poll);
   pipGrowthGuard = null;
 };
 
