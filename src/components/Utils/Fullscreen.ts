@@ -13,6 +13,7 @@ import { IsPIP } from "./PopupLyrics.ts";
 import { Spring } from "../../modules/Spring.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Scheduler from "../../modules/Scheduler.ts";
+import { cancelCappedFrame, requestCappedFrame } from "../../utils/AnimationFrameLoop.ts";
 
 const Fullscreen = {
   Open,
@@ -239,6 +240,59 @@ function hideMainElement(mainElement: HTMLElement) {
   SetKawarpSuspended("npvbg", true);
 }
 
+/* Spotify draws its menu button (top left) and window buttons (top right) natively over the web
+   content, and holds their places in the global nav with empty spacers. Cinema View stays in the
+   window, so those buttons sit over the page too. The page's corner controls line up with them
+   the way the nav does: on the nav bar's centreline, no taller than its buttons, and set off from
+   each spacer by the gap of the flex row it sits in. */
+const NATIVE_CHROME_VARS = [
+  "--NativeChromeMid",
+  "--NativeChromeControlMax",
+  "--NativeChromeLeftInset",
+  "--NativeChromeRightInset",
+] as const;
+
+function syncNativeChromeInsets(page: HTMLElement) {
+  const spacerIn = (row: HTMLElement | null, edge: "first" | "last") => {
+    const el = edge === "first" ? row?.firstElementChild : row?.lastElementChild;
+    return el instanceof HTMLElement && el.childElementCount === 0 && el.offsetWidth > 0
+      ? el.getBoundingClientRect()
+      : null;
+  };
+  const gapOf = (row: HTMLElement) => parseFloat(getComputedStyle(row).columnGap) || 0;
+
+  const navBar = document.querySelector<HTMLElement>("#global-nav-bar");
+  const leftRow = document.querySelector<HTMLElement>(".main-globalNav-historyButtonsWrapper");
+  const rightRow = document.querySelector<HTMLElement>(".main-globalNav-contentRight");
+  const left = spacerIn(leftRow, "first");
+  const right = spacerIn(rightRow, "last");
+
+  const values: Record<(typeof NATIVE_CHROME_VARS)[number], number | null> = {
+    "--NativeChromeMid": null,
+    "--NativeChromeControlMax": null,
+    "--NativeChromeLeftInset": left && leftRow ? left.right + gapOf(leftRow) : null,
+    "--NativeChromeRightInset":
+      right && rightRow ? window.innerWidth - right.left + gapOf(rightRow) : null,
+  };
+  if (navBar && leftRow && (left || right)) {
+    const bar = navBar.getBoundingClientRect();
+    values["--NativeChromeMid"] = bar.top + bar.height / 2;
+    values["--NativeChromeControlMax"] = leftRow.getBoundingClientRect().height;
+  }
+
+  // Every write restyles the whole page, so unchanged values are skipped.
+  for (const name of NATIVE_CHROME_VARS) {
+    const value = values[name] === null ? "" : `${values[name]}px`;
+    if (page.style.getPropertyValue(name) === value) continue;
+    if (value) page.style.setProperty(name, value);
+    else page.style.removeProperty(name);
+  }
+}
+
+function clearNativeChromeInsets(page: HTMLElement) {
+  for (const name of NATIVE_CHROME_VARS) page.style.removeProperty(name);
+}
+
 function showMainElement() {
   SetKawarpSuspended("npvbg", false);
   const mainElement = document.querySelector<HTMLElement>("#main");
@@ -378,6 +432,37 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
         SpicyPage.addEventListener("mousemove", Page_MouseMove, { signal });
         SpicyPage.addEventListener("mouseleave", Page_MouseOut, { signal });
       }
+
+      if (!IsPIP) {
+        syncNativeChromeInsets(SpicyPage);
+        // Resize fires on every pointer move of a window drag; one measure per frame is enough.
+        let syncFrame: number | null = null;
+        const sync = () => {
+          if (syncFrame !== null) return;
+          syncFrame = requestCappedFrame(() => {
+            syncFrame = null;
+            syncNativeChromeInsets(SpicyPage);
+          });
+        };
+        signal.addEventListener("abort", () => {
+          if (syncFrame !== null) cancelCappedFrame(syncFrame);
+        });
+        window.addEventListener("resize", sync, { signal });
+        // On zoom, Spotify resizes the spacers only once it writes --zoom-level on .Root, after the resize event.
+        const root = document.querySelector<HTMLElement>(".Root");
+        if (root) {
+          // The attribute carries other values too; only a zoom change moves the spacers.
+          let zoom = root.style.getPropertyValue("--zoom-level");
+          const zoomObserver = new MutationObserver(() => {
+            const next = root.style.getPropertyValue("--zoom-level");
+            if (next === zoom) return;
+            zoom = next;
+            sync();
+          });
+          zoomObserver.observe(root, { attributes: true, attributeFilter: ["style"] });
+          signal.addEventListener("abort", () => zoomObserver.disconnect());
+        }
+      }
     }
 
     Global.Event.evoke("fullscreen:open", null);
@@ -421,6 +506,7 @@ function finishClose(SpicyPage: HTMLElement, transfer: boolean) {
     }
   }
   SpicyPage.classList.remove("Fullscreen", "frame_F_Exit");
+  clearNativeChromeInsets(SpicyPage);
 
   void ExitFullscreenElement().then(() => {
     if (transfer) setTimeout(() => PageView.AppendViewControls(true), 50);

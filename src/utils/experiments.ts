@@ -146,7 +146,7 @@ export const EXPERIMENTS = [
     id: "backgroundLinePop",
     label: "Background Vocal Pop-Out",
     description:
-      "Background vocal lines stay tucked away under their line until it's sung, then slide out from beneath it while the lines below make room, and tuck back in once both are done. Disable to keep every background vocal line on screen at all times.",
+      "Background vocal lines stay tucked away under their line until it's sung, then slide out from beneath it while the lines below make room, and tuck back in once both are done. Only applies in Simple Lyrics Mode with Refreshed Simple Lyrics Mode on. Disable to keep every background vocal line on screen at all times.",
     default: false,
     pageClass: "Exp_BackgroundLinePop",
   },

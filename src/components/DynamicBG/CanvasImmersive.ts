@@ -391,8 +391,9 @@ function isEligible(): boolean {
 function syncPlayback() {
   if (!mount) return;
   // A minimized window keeps decoding a playing video even though none of it is drawn.
-  const shouldPlay =
-    active && SpotifyPlayer.IsPlaying && !reducedMotion.matches && !mount.page.ownerDocument.hidden;
+  // Reduced motion doesn't pause it: the canvas is the song's artwork, and a still frame
+  // in its place reads as a broken player.
+  const shouldPlay = active && SpotifyPlayer.IsPlaying && !mount.page.ownerDocument.hidden;
   for (const [index, layer] of mount.layers.entries()) {
     if (!layer.fileId) continue;
     if (shouldPlay && index === mount.current) {
@@ -579,5 +580,4 @@ onExperimentChange((experiment) => {
 });
 $backgroundStyle.listen(() => void Refresh());
 SetSideSwapTransition(transitionSideSwap);
-reducedMotion.addEventListener("change", syncPlayback);
 document.addEventListener("visibilitychange", syncPlayback);

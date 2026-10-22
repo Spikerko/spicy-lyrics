@@ -44,7 +44,9 @@ let stateAnimation: Promise<unknown> | null = null;
 // panel's content or artwork. Its cover block holds either the Canvas surface or
 // the cover-art slot, and the block after it holds the title, the sections
 // (Spotify's lyrics preview first, when the song has one) and "Next in queue".
-const NPV_COVER_MARKERS = "[data-canvas-surface], [data-testid='cover-art-slot']";
+// With a song switched to its music video, the video player takes the cover's place.
+const NPV_COVER_MARKERS =
+  "[data-canvas-surface], [data-testid='cover-art-slot'], [data-testid='video-player-npv']";
 
 export const GetNPVElement = (): HTMLElement | null =>
   document.querySelector<HTMLElement>(
