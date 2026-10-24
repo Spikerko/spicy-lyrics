@@ -1,5 +1,5 @@
 const API_HOST = "api.spicylyrics.org";
-const STORAGE_BASE_URL = "https://public.storage.spicylyrics.org/spicy-lyrics";
+const LOADER_URL = `https://${API_HOST}/bp/loader`;
 const STATUS_URL = "https://status.spicylyrics.org";
 const DISCORD_URL = "https://discord.com/invite/uqgXU5wh8j";
 const STATUS_API_URL = "https://uptimeapi.edgeprocessor.spicylyrics.org";
@@ -70,11 +70,15 @@ const fetchVersion = async () => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(`https://${API_HOST}/version`, { signal: controller.signal });
+    const response = await fetch(`${LOADER_URL}/grabClientInfo`, { signal: controller.signal });
     if (!response.ok) throw new Error(`Version request failed with HTTP ${response.status}`);
-    const version = (await response.text()).trim();
-    if (!VERSION_PATTERN.test(version)) {
-      throw new Error(`Unexpected version response: ${JSON.stringify(version.slice(0, 40))}`);
+    // { product, branches: [{ tag, version }] }; the public branch is the release build.
+    const info = await response.json();
+    const version = Array.isArray(info?.branches)
+      ? info.branches.find((branch) => branch?.tag === "public")?.version
+      : undefined;
+    if (typeof version !== "string" || !VERSION_PATTERN.test(version)) {
+      throw new Error(`Unexpected version response: ${JSON.stringify(String(version).slice(0, 40))}`);
     }
     return version;
   } finally {
@@ -85,9 +89,10 @@ const fetchVersion = async () => {
 // Chromium remembers a failed module fetch per URL, so every retry needs a URL it hasn't seen.
 let importCount = 0;
 
+// The loader serves the build grabClientInfo reports.
 const importExtension = (version) => {
   window._spicy_lyrics_metadata = { LoadedVersion: version };
-  const url = `${STORAGE_BASE_URL}${encodeURIComponent(`@${version}.mjs`)}`;
+  const url = `${LOADER_URL}/grabPluginFile`;
   return withRetries(
     IMPORT_ATTEMPTS,
     () => {
