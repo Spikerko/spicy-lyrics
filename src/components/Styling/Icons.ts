@@ -149,6 +149,8 @@ export const Icons = {
   EnableRomanization: Line(
     `<path d="M2.5 18 6.75 6 11 18"/><path d="M4 14h5.5"/><g opacity=".4"><path d="M13.5 6.5h8L19 9.75"/><path d="M17.25 9.75v1.75c0 2.75-1.25 5-3.75 6.5"/></g>`
   ),
+  // List rows with a play mark: the queue of tracks coming up.
+  Queue: Line(`<path d="M4 6h16"/><path d="M4 12h9"/><path d="M4 18h7"/><path d="M16 14.5v6l5-3Z"/>`),
   // Compact layout: small cover and title on one row, lyrics underneath.
   EnableCompactModeIcon: Line(
     `<rect x="3.5" y="4.5" width="6" height="6" rx="1.5"/><path d="M13 5.75h7.5"/><path d="M13 9.25h4.5"/><path d="M3.5 15h17"/><path d="M3.5 19.5h11"/>`

@@ -16,6 +16,7 @@ import Fullscreen, {
   SetControlsDragLock,
 } from "./Fullscreen.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { CloseQueuePanel } from "./QueuePanel.ts";
 import { IsCompactMode } from "./CompactMode.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Scheduler from "../../modules/Scheduler.ts";
@@ -1189,6 +1190,8 @@ function OpenNowBar(skipSaving: boolean = false) {
 }
 
 function CleanUpActiveComponents() {
+  CloseQueuePanel();
+
   if (NowBarFullscreenMaid && !NowBarFullscreenMaid?.IsDestroyed()) {
     NowBarFullscreenMaid.Destroy();
   }

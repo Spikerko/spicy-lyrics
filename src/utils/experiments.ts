@@ -158,6 +158,14 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_KeepOverlappingLines",
   },
+  {
+    id: "fullscreenQueue",
+    label: "Queue in Fullscreen",
+    description:
+      "Adds a button to the fullscreen controls that opens the queue over the lyrics: what plays next, with a tab for recently played tracks. Click a track to play it. Disable to hide the button.",
+    default: true,
+    pageClass: "Exp_FullscreenQueue",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */
