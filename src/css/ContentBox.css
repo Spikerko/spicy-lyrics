@@ -2290,3 +2290,203 @@
 #SpicyLyricsPage .MediaImageContainer .fi_FromImage.MB_anim_fimg::before {
   opacity: 1;
 }
+/* --- Add to playlist (fullscreen) ------------------------------------------ */
+/* Drawn over the artwork below the view controls. It lives in .MediaBox, outside
+   MediaContent's opacity layer, so the blur reaches the artwork. */
+#SpicyLyricsPage:not(.Exp_FullscreenAddToPlaylist) #AddToPlaylist,
+#SpicyLyricsPage:not(.Exp_FullscreenAddToPlaylist) .SL_PlaylistPicker,
+#SpicyLyricsPage.episode-content-type #AddToPlaylist {
+  display: none !important;
+}
+
+/* The button sits in the transport row, right of repeat, sized like shuffle and
+   repeat. Its line icon is drawn a little heavier to sit beside their filled glyphs. */
+#SpicyLyricsPage.Fullscreen
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header
+  .MediaBox
+  .MediaContent
+  .PlaybackControls
+  .PlaybackControl.AddToPlaylistControl {
+  width: 7cqw;
+  color: #fff;
+}
+
+#SpicyLyricsPage.Fullscreen .PlaybackControls .PlaybackControl.AddToPlaylistControl svg {
+  width: 100%;
+  height: auto;
+  stroke-width: 2.4;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .SL_PlaylistPicker {
+  position: absolute;
+  top: 18cqh;
+  left: 7cqw;
+  right: 7cqw;
+  bottom: 7cqh;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqh;
+  padding: 2.6cqh 2.6cqw 1.4cqh;
+  border-radius: 1.6cqh;
+  background: rgba(18, 18, 22, 0.62);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow:
+    0 18px 40px -12px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: clamp(12px, 2.9cqw, 16px);
+  line-height: 1.25;
+  opacity: 0;
+  scale: 0.97;
+  transform-origin: 50% 0;
+  transition:
+    opacity 140ms cubic-bezier(0.23, 1, 0.32, 1),
+    scale 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .SL_PlaylistPicker.Visible {
+  opacity: 1;
+  scale: 1;
+  transition-duration: 200ms;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  padding: 0 0.35em;
+  min-width: 0;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Title {
+  font-size: 1.15em;
+  font-weight: 700;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Track {
+  font-size: 0.85em;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.62);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Search {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6em 0.8em;
+  border: 0;
+  border-radius: 0.6em;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Search::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Search:focus-visible {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4);
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_List {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0 -0.4em;
+  padding: 0 0.4em 0.4em;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Item {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  width: 100%;
+  padding: 0.4em;
+  border: 0;
+  border-radius: 0.55em;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Item:hover,
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Item:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Item:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Art {
+  flex: none;
+  width: 2.6em;
+  height: 2.6em;
+  border-radius: 0.35em;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Status {
+  flex: none;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Item[data-state="added"] .SL_PP_Status {
+  color: #1ed760;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Item[data-state="error"] .SL_PP_Status {
+  color: #ff6b6b;
+}
+
+#SpicyLyricsPage .SL_PlaylistPicker .SL_PP_Empty {
+  padding: 1.2em 0.4em;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .SL_PlaylistPicker {
+    scale: none;
+  }
+}

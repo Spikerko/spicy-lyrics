@@ -158,6 +158,14 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_KeepOverlappingLines",
   },
+  {
+    id: "fullscreenAddToPlaylist",
+    label: "Add to Playlist in Fullscreen",
+    description:
+      "Adds a button to the fullscreen controls that opens a list of your playlists over the artwork, so the current track can be saved to one without leaving fullscreen. Disable to hide the button.",
+    default: true,
+    pageClass: "Exp_FullscreenAddToPlaylist",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */
