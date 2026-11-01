@@ -323,7 +323,7 @@ function OpenNowBar(skipSaving: boolean = false) {
                     ${
                       IsPIP
                         ? ""
-                        : `<div class="PlaybackControl AddToPlaylistControl" id="AddToPlaylist">${Icons.AddToPlaylist}</div>`
+                        : `<div class="PlaybackControl AddToPlaylistControl" id="AddToPlaylist" role="button" tabindex="0" aria-label="Add to playlist">${Icons.AddToPlaylist}</div>`
                     }
                 `;
 
@@ -423,10 +423,18 @@ function OpenNowBar(skipSaving: boolean = false) {
 
         if (AddToPlaylistControl) {
           const addToPlaylistHandler = () => TogglePlaylistPicker(AddToPlaylistControl);
+          // It's a div like the rest of the row, so Enter and Space are wired by hand.
+          const addToPlaylistKeyHandler = (e: KeyboardEvent) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            addToPlaylistHandler();
+          };
           AddToPlaylistControl.addEventListener("click", addToPlaylistHandler);
-          controlsMaid.Give(() =>
-            AddToPlaylistControl.removeEventListener("click", addToPlaylistHandler)
-          );
+          AddToPlaylistControl.addEventListener("keydown", addToPlaylistKeyHandler);
+          controlsMaid.Give(() => {
+            AddToPlaylistControl.removeEventListener("click", addToPlaylistHandler);
+            AddToPlaylistControl.removeEventListener("keydown", addToPlaylistKeyHandler);
+          });
         }
         if (PlayPauseControl) {
           PlayPauseControl.addEventListener("click", playPauseHandler);

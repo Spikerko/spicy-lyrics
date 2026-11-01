@@ -216,6 +216,9 @@ function OpenPlaylistPicker(button: HTMLElement) {
 
   let playlists: PickerPlaylist[] = [];
   let busy = false;
+  // Bumped on every song change, so an add that finishes after the track moved
+  // on doesn't report on (or close the list for) the new track.
+  let songVersion = 0;
 
   getWritablePlaylists()
     .then((result) => {
@@ -239,20 +242,23 @@ function OpenPlaylistPicker(button: HTMLElement) {
     if (!playlistUri || !trackUri) return;
 
     busy = true;
+    const version = songVersion;
+    const current = () => panel === root && version === songVersion;
     setStatus(row, "busy", "Adding…");
     try {
       if (await playlistHasTrack(playlistUri, trackUri)) {
-        setStatus(row, "exists", "Already added");
+        if (current()) setStatus(row, "exists", "Already added");
         return;
       }
       await addTrack(playlistUri, trackUri);
+      if (!current()) return;
       setStatus(row, "added", "Added");
       setTimeout(() => {
-        if (panel === root) ClosePlaylistPicker();
+        if (current()) ClosePlaylistPicker();
       }, 650);
     } catch (err) {
       pickerLogger.error("Failed to add track", err);
-      setStatus(row, "error", "Failed");
+      if (current()) setStatus(row, "error", "Failed");
     } finally {
       busy = false;
     }
@@ -276,6 +282,7 @@ function OpenPlaylistPicker(button: HTMLElement) {
 
   const onSongChange = () => {
     if (panel !== root) return;
+    songVersion++;
     updateTrackLabel();
     // Statuses describe the previous track.
     for (const row of list.querySelectorAll<HTMLElement>(".SL_PP_Item[data-state]")) {
