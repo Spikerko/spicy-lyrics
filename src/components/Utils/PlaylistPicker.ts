@@ -216,9 +216,11 @@ function OpenPlaylistPicker(button: HTMLElement) {
 
   let playlists: PickerPlaylist[] = [];
   let busy = false;
-  // Bumped on every song change, so an add that finishes after the track moved
-  // on doesn't report on (or close the list for) the new track.
+  // Bumped when the track changes, so an add that finishes after the track moved
+  // on doesn't report on (or close the list for) the new track. A song repeating
+  // also fires a song change, but with the same uri, and doesn't count.
   let songVersion = 0;
+  let songUri = SpotifyPlayer.GetUri();
 
   getWritablePlaylists()
     .then((result) => {
@@ -282,6 +284,9 @@ function OpenPlaylistPicker(button: HTMLElement) {
 
   const onSongChange = () => {
     if (panel !== root) return;
+    const uri = SpotifyPlayer.GetUri();
+    if (uri === songUri) return;
+    songUri = uri;
     songVersion++;
     updateTrackLabel();
     // Statuses describe the previous track.
