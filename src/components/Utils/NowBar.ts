@@ -16,6 +16,7 @@ import Fullscreen, {
   SetControlsDragLock,
 } from "./Fullscreen.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { ClosePlaylistPicker, TogglePlaylistPicker } from "./PlaylistPicker.ts";
 import { IsCompactMode } from "./CompactMode.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Scheduler from "../../modules/Scheduler.ts";
@@ -319,6 +320,11 @@ function OpenNowBar(skipSaving: boolean = false) {
                     <div class="PlaybackControl LoopToggle">
                         ${SpotifyPlayer.LoopType === "track" ? Icons.LoopTrack : Icons.Loop}
                     </div>
+                    ${
+                      IsPIP
+                        ? ""
+                        : `<div class="PlaybackControl AddToPlaylistControl" id="AddToPlaylist" role="button" tabindex="0" aria-label="Add to playlist">${Icons.AddToPlaylist}</div>`
+                    }
                 `;
 
         if (SpotifyPlayer.LoopType !== "none") {
@@ -365,6 +371,7 @@ function OpenNowBar(skipSaving: boolean = false) {
         const NextTrackControl = ControlsElement.querySelector(".NextTrack");
         const ShuffleControl = ControlsElement.querySelector(".ShuffleToggle");
         const LoopControl = ControlsElement.querySelector(".LoopToggle");
+        const AddToPlaylistControl = ControlsElement.querySelector<HTMLElement>(".AddToPlaylistControl");
 
         // Create named handlers for click events
         const playPauseHandler = () => {
@@ -414,6 +421,21 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
         };
 
+        if (AddToPlaylistControl) {
+          const addToPlaylistHandler = () => TogglePlaylistPicker(AddToPlaylistControl);
+          // It's a div like the rest of the row, so Enter and Space are wired by hand.
+          const addToPlaylistKeyHandler = (e: KeyboardEvent) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            addToPlaylistHandler();
+          };
+          AddToPlaylistControl.addEventListener("click", addToPlaylistHandler);
+          AddToPlaylistControl.addEventListener("keydown", addToPlaylistKeyHandler);
+          controlsMaid.Give(() => {
+            AddToPlaylistControl.removeEventListener("click", addToPlaylistHandler);
+            AddToPlaylistControl.removeEventListener("keydown", addToPlaylistKeyHandler);
+          });
+        }
         if (PlayPauseControl) {
           PlayPauseControl.addEventListener("click", playPauseHandler);
           const el = PlayPauseControl;
@@ -1189,6 +1211,8 @@ function OpenNowBar(skipSaving: boolean = false) {
 }
 
 function CleanUpActiveComponents() {
+  ClosePlaylistPicker();
+
   if (NowBarFullscreenMaid && !NowBarFullscreenMaid?.IsDestroyed()) {
     NowBarFullscreenMaid.Destroy();
   }

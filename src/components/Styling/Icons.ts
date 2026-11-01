@@ -104,6 +104,10 @@ export const Icons = {
   )}${Line(
     `<path d="M6 3.5h12"/><path d="M6 20.5h12"/><path d="M12 6.5v4m-2.5-2.5 2.5 2.5 2.5-2.5"/><path d="M12 17.5v-4m-2.5 2.5 2.5-2.5 2.5 2.5"/>`
   )}</span>`,
+  // Three list rows with a plus: add the current track to a playlist.
+  AddToPlaylist: Line(
+    `<path d="M4 6h12"/><path d="M4 12h8"/><path d="M4 18h6"/><path d="M17 13v8"/><path d="M13 17h8"/>`
+  ),
   // Cover on the NowBar's current side, pointing at the side it will move to.
   NowBarSideSwap: Line(
     `${Frame}<rect class="SL_IconPart SL_IconCover" x="6" y="9.5" width="5" height="5" rx="1.25"/><path class="SL_IconPart SL_IconSwapArrow" d="M14 12h4m-1.75-1.75L18 12l-1.75 1.75"/>`
