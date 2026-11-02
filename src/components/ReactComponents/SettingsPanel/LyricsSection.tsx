@@ -2,12 +2,14 @@ import { useStore } from "@nanostores/react";
 import {
   $creditsFollowLastLine,
   $duetLinePadding,
-  $joinSplitWords,
   $lineHoverBackground,
   $minimalLyricsMode,
   $simpleLyricsMode,
+  $syllableMerge,
+  $syllablePace,
+  type SyllableMerge,
 } from "../../../utils/stores.ts";
-import { Toggle } from "./components.tsx";
+import { Select, Toggle } from "./components.tsx";
 import { LyricsIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
 
@@ -42,15 +44,34 @@ const groups: GroupDef[] = [
         ),
       },
       {
-        id: "joinSplitWords",
+        id: "syllableMerge",
         label: "Join Split Words",
-        description: "Show a word that's sung in syllables as one word, when its parts line up evenly.",
-        keywords: "syllables merge",
+        description:
+          "Show a word sung in syllables as one word. Steadily Sung keeps only words with no gap and an even pace between parts; Held Words only those long enough to light up letter by letter.",
+        keywords: "syllables merge held steady",
         Control: ({ label }) => (
+          <Select
+            label={label}
+            value={useStore($syllableMerge)}
+            options={["off", "full", "steady", "held"]}
+            labels={["Off", "All Words", "Steadily Sung", "Held Words"]}
+            onChange={(v) => $syllableMerge.set(v as SyllableMerge)}
+          />
+        ),
+      },
+      {
+        id: "syllablePace",
+        label: "Keep Syllable Pace",
+        description:
+          "A joined word that lights up letter by letter follows each syllable's timing, slow on a long syllable and quick on a short one.",
+        keywords: "syllables merge held letters timing",
+        useDisabled: () => useStore($syllableMerge) === "off" && "Pick a Join Split Words mode to change this.",
+        Control: ({ disabled, label }) => (
           <Toggle
             label={label}
-            checked={useStore($joinSplitWords)}
-            onChange={(v) => $joinSplitWords.set(v)}
+            checked={useStore($syllablePace)}
+            onChange={(v) => $syllablePace.set(v)}
+            disabled={disabled}
           />
         ),
       },

@@ -26,11 +26,50 @@ interface LetterData {
   BGLetter?: boolean;
 }
 
+// One of the syllables a joined word was made from: when it starts, and how
+// many of the word's letters are its own.
+export interface SyllablePart {
+  StartTime: number;
+  Letters: number;
+}
+
+// Each letter's [start, end]. Even over the word by default; given its
+// syllables, each syllable's letters are spread over that syllable alone,
+// running until the next one starts, so a long "per" and a quick "fect" keep
+// their pace. The syllables' times are scaled into the word's window, which
+// may be shifted or trimmed from its sung times.
+function letterTimes(
+  count: number,
+  start: number,
+  end: number,
+  lead: any,
+  parts?: SyllablePart[]
+): Array<[number, number]> {
+  const spread = (n: number, from: number, to: number): Array<[number, number]> =>
+    Array.from({ length: n }, (_, i) => [from + (i * (to - from)) / n, from + ((i + 1) * (to - from)) / n]);
+  if (!parts) return spread(count, start, end);
+
+  const sungStart = ConvertTime(lead.StartTime);
+  const scale = (end - start) / Math.max(1, ConvertTime(lead.EndTime) - sungStart);
+  const times: Array<[number, number]> = [];
+  let cursor = start;
+  parts.forEach((part, i) => {
+    const next = parts[i + 1];
+    const partEnd = next
+      ? Math.min(end, Math.max(cursor, start + (ConvertTime(next.StartTime) - sungStart) * scale))
+      : end;
+    times.push(...spread(part.Letters, cursor, partEnd));
+    cursor = partEnd;
+  });
+  return times;
+}
+
 export default function Emphasize(
   letters: Array<string>,
   applyTo: HTMLElement,
   lead: any,
-  isBgWord: boolean = false
+  isBgWord: boolean = false,
+  parts?: SyllablePart[]
 ) {
   const StartTime = ConvertTime(lead.StartTime) - Substractions.StartTime;
   let EndTime = ConvertTime(lead.EndTime) - Substractions.EndTime;
@@ -40,7 +79,7 @@ export default function Emphasize(
     EndTime = StartTime + Math.max(sung - RefreshedEmphasisTrimMs, sung * RefreshedEmphasisMinShare);
   }
   const totalDuration = EndTime - StartTime;
-  const letterDuration = totalDuration / letters.length; // Duration per letter
+  const times = letterTimes(letters.length, StartTime, EndTime, lead, parts);
   const word = applyTo;
   const Letters: LetterData[] = [];
 
@@ -55,9 +94,8 @@ export default function Emphasize(
       letterElem.classList.add("SpaceLetter");
     }
     const isLastLetter = index === letters.length - 1;
-    // Calculate start and end time for each letter
-    const letterStartTime = StartTime + index * letterDuration;
-    const letterEndTime = letterStartTime + letterDuration;
+    const [letterStartTime, letterEndTime] = times[index];
+    const letterDuration = letterEndTime - letterStartTime;
 
     //const contentDuration = letterDuration > 150 ? letterDuration : 150;
     //letterElem.style.setProperty("--content-duration", `${contentDuration}ms`);

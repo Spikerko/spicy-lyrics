@@ -346,6 +346,7 @@ type SplitLetter = NonNullable<SyllableLead["Letters"]>[number];
 type RefreshedFlameState = {
   Count: number;
   Start: number;
+  End: number;
   Position: number;
   Float: number;
 };
@@ -358,6 +359,7 @@ function getRefreshedFlame(
   return {
     Count: Math.max(1, letters.length),
     Start: letters[0]?.StartTime ?? 0,
+    End: letters[letters.length - 1]?.EndTime ?? 0,
     Position: position,
     Float: RefreshedEmphasis.Float * (isBG ? 2 : 1),
   };
@@ -555,7 +557,12 @@ function stepRefreshedLetter(
 ): boolean {
   const E = RefreshedEmphasis;
   const du = strength.Duration;
-  const at = flame.Position - flame.Start - ((du * E.Stagger) / flame.Count) * index;
+  // A letter sets off as far into the stagger as it starts into the word: one
+  // count apart for evenly timed letters, closer or further for letters timed
+  // by their syllables.
+  const share =
+    flame.End > flame.Start ? (letter.StartTime - flame.Start) / (flame.End - flame.Start) : index / flame.Count;
+  const at = flame.Position - flame.Start - du * E.Stagger * share;
   const swell = getEmphasis(at / du);
   const floatAt = (at + E.FloatLeadMs) / (du * E.FloatStretch);
   const float = floatAt > 0 && floatAt < 1 ? Math.sin(floatAt * Math.PI) * flame.Float : 0;

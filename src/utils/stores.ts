@@ -51,6 +51,12 @@ function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
     delete blob.simpleLyricsModeRenderingType;
     changed = true;
   }
+  // The old "Join Split Words" toggle joined only evenly sung words, which is "steady".
+  if ("joinSplitWords" in blob) {
+    blob.syllableMerge ??= blob.joinSplitWords ? "steady" : "off";
+    delete blob.joinSplitWords;
+    changed = true;
+  }
   if (changed) saveSettingsBlob(blob);
   return blob;
 }
@@ -80,8 +86,13 @@ export const $backgroundStyle = persistAtom<BackgroundStyle>("backgroundStyle", 
 export const $backgroundBlur = persistAtom<number>("backgroundBlur", 0);
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
-// Shows a word sung in syllables as one word when its parts line up evenly.
-export const $joinSplitWords = persistAtom<boolean>("joinSplitWords", false);
+// Which words sung in syllables are shown as one word: none, all, those whose
+// parts line up evenly, or those long enough to be drawn letter by letter.
+export type SyllableMerge = "off" | "full" | "steady" | "held";
+export const $syllableMerge = persistAtom<SyllableMerge>("syllableMerge", "off");
+// A joined word drawn letter by letter times its letters by the syllables it
+// was joined from, instead of spreading them evenly over the whole word.
+export const $syllablePace = persistAtom<boolean>("syllablePace", false);
 // Tinted box drawn behind a lyrics line while the pointer is over it.
 export const $lineHoverBackground = persistAtom<boolean>("lineHoverBackground", true);
 // Wide inset on the side a duet line leans away from, so the two voices read as

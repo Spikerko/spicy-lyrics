@@ -1,5 +1,6 @@
 import { ConvertTime } from "../../ConvertTime.ts";
 import { HasLyricsText } from "../../EmptyLines.ts";
+import type { SyllableMerge } from "../../../stores.ts";
 
 interface JoinableSyllable {
   Text: string;
@@ -7,6 +8,7 @@ interface JoinableSyllable {
   StartTime: number;
   EndTime: number;
   IsPartOfWord?: boolean;
+  Parts?: JoinableSyllable[];
 }
 
 // Silence between two parts of a word beyond which one fill would run through it.
@@ -35,14 +37,17 @@ function paceIsEven(run: JoinableSyllable[]): boolean {
   });
 }
 
-function canJoin(run: JoinableSyllable[]): boolean {
+// Whether the run is one word at all: every mode leaves it split otherwise.
+function isOneWord(run: JoinableSyllable[]): boolean {
   if (!run.every((part) => HasLyricsText(part.Text) && !HasSpace(part.Text) && !HasSpace(part.TransliteratedText))) {
     return false;
   }
 
   if (run.slice(0, -1).some((part) => EndsWithDash(part.Text))) return false;
-  if (run.some((part) => UnspacedScript.test(part.Text))) return false;
+  return !run.some((part) => UnspacedScript.test(part.Text));
+}
 
+function isSungSteadily(run: JoinableSyllable[]): boolean {
   for (let i = 1; i < run.length; i++) {
     if (ConvertTime(run[i].StartTime) - ConvertTime(run[i - 1].EndTime) > MaxJoinGapMs) return false;
   }
@@ -62,12 +67,20 @@ function join<T extends JoinableSyllable>(run: T[]): T {
       : {}),
     EndTime: Math.max(...run.map((part) => part.EndTime)),
     IsPartOfWord: last.IsPartOfWord,
+    Parts: run,
   };
 }
 
-// Puts the parts of a split word back into one syllable. A word that
-// doesn't join cleanly (a gap, an uneven pace, a space inside) stays split.
-export function JoinSplitWords<T extends JoinableSyllable>(syllables: T[]): T[] {
+// Puts the parts of a split word back into one syllable, the joined word keeping
+// them as Parts. A run with a space inside, a trailing dash or an unspaced script
+// stays split in every mode. "full" joins every other word; "steady" only one
+// sung without a gap and at an even pace; "held" only one keepJoined accepts
+// (the caller's test for a word drawn letter by letter).
+export function JoinSplitWords<T extends JoinableSyllable>(
+  syllables: T[],
+  mode: Exclude<SyllableMerge, "off">,
+  keepJoined: (word: T) => boolean = () => true
+): T[] {
   const joined: T[] = [];
 
   for (let i = 0; i < syllables.length; i++) {
@@ -75,8 +88,10 @@ export function JoinSplitWords<T extends JoinableSyllable>(syllables: T[]): T[] 
     while (syllables[end].IsPartOfWord && end + 1 < syllables.length) end++;
 
     const run = syllables.slice(i, end + 1);
-    if (run.length > 1 && canJoin(run)) {
-      joined.push(join(run));
+    const word =
+      run.length > 1 && isOneWord(run) && (mode !== "steady" || isSungSteadily(run)) ? join(run) : null;
+    if (word && (mode !== "held" || keepJoined(word))) {
+      joined.push(word);
     } else {
       joined.push(...run);
     }

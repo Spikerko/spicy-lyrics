@@ -1,8 +1,9 @@
 import {
-  $joinSplitWords,
   $lyricsContainerExists,
   $minimalLyricsMode,
   $simpleLyricsMode,
+  $syllableMerge,
+  $syllablePace,
 } from "../../../../utils/stores.ts";
 import { PageContainer } from "../../../../components/Pages/PageView.ts";
 import { applyStyles, removeAllStyles } from "../../../CSS/Styles.ts";
@@ -31,7 +32,7 @@ import { PickDisplayText } from "../Utils/PickDisplayText.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
-import Emphasize from "../Utils/Emphasize.ts";
+import Emphasize, { type SyllablePart } from "../Utils/Emphasize.ts";
 import { IsLetterCapable, MinLetterCapableDuration } from "../Utils/IsLetterCapable.ts";
 import { JoinSplitWords } from "../Utils/JoinSplitWords.ts";
 import { SplitLetters } from "../Utils/SplitLetters.ts";
@@ -45,6 +46,8 @@ interface SyllableData {
   EndTime: number;
   IsPartOfWord?: boolean;
   RomanizedIsPartOfWord?: boolean;
+  // A word joined from syllables keeps them here.
+  Parts?: SyllableData[];
 }
 
 interface LeadData {
@@ -85,9 +88,39 @@ const renderableSyllables = (syllables: SyllableData[], useRomanized: boolean): 
         s.RomanizedIsPartOfWord === undefined ? s : { ...s, IsPartOfWord: s.RomanizedIsPartOfWord }
       )
     : syllables;
-  const parts = $joinSplitWords.get() ? JoinSplitWords(words) : words;
+  const merge = $syllableMerge.get();
+  const parts =
+    merge === "off"
+      ? words
+      : JoinSplitWords(words, merge, (word) => splitLetters(word, useRomanized) !== null);
   return parts.filter(HasRenderableText);
 };
+
+// A syllable's letters when it's held long enough to be drawn letter by letter, else null.
+function splitLetters(syllable: SyllableData, useRomanized: boolean): string[] | null {
+  const duration = ConvertTime(syllable.EndTime) - ConvertTime(syllable.StartTime);
+  // Too short to split whatever its letters: skip the grapheme split.
+  if (duration < MinLetterCapableDuration()) return null;
+  const text = StripZeroWidth(PickDisplayText(syllable, useRomanized));
+  const letters = SplitLetters(text);
+  return letters.length > 0 && IsLetterCapable(letters.length, duration) && !isRtl(text) ? letters : null;
+}
+
+// With Keep Syllable Pace, where each syllable of a joined word starts and how
+// many of its letters it has, so Emphasize can time them by syllable. Undefined
+// for a word that wasn't joined, or whose syllables split into other letters.
+function pacedParts(
+  syllable: SyllableData,
+  useRomanized: boolean,
+  letterCount: number
+): SyllablePart[] | undefined {
+  if (!syllable.Parts || !$syllablePace.get()) return undefined;
+  const parts = syllable.Parts.map((part) => ({
+    StartTime: part.StartTime,
+    Letters: SplitLetters(StripZeroWidth(PickDisplayText(part, useRomanized))).length,
+  }));
+  return parts.reduce((sum, part) => sum + part.Letters, 0) === letterCount ? parts : undefined;
+}
 
 export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): void {
   if (!$lyricsContainerExists.get()) return;
@@ -274,16 +307,11 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         PickDisplayText(lead, UseRomanized)
       );
 
-      // Too short to split whatever its letters: skip the grapheme split.
-      const letters = totalDuration >= MinLetterCapableDuration() ? SplitLetters(leadRenderText) : [];
-      const letterLength = letters.length;
+      const letters = splitLetters(lead, UseRomanized);
 
-      const IfLetterCapable =
-        letterLength > 0 && IsLetterCapable(letterLength, totalDuration) && !isRtl(leadRenderText);
-
-      if (IfLetterCapable) {
+      if (letters) {
         word = document.createElement("div");
-        Emphasize(letters, word, lead);
+        Emphasize(letters, word, lead, false, pacedParts(lead, UseRomanized, letters.length));
 
         iL === aL.length - 1
           ? word.classList.add("LastWordInLine")
@@ -383,16 +411,11 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             PickDisplayText(bw, UseRomanized)
           );
 
-          // Too short to split whatever its letters: skip the grapheme split.
-          const letters = totalDuration >= MinLetterCapableDuration() ? SplitLetters(bgRenderText) : [];
-          const letterLength = letters.length;
+          const letters = splitLetters(bw, UseRomanized);
 
-          const IfLetterCapable =
-            letterLength > 0 && IsLetterCapable(letterLength, totalDuration) && !isRtl(bgRenderText);
-
-          if (IfLetterCapable) {
+          if (letters) {
             bwE = document.createElement("div");
-            Emphasize(letters, bwE, bw, true);
+            Emphasize(letters, bwE, bw, true, pacedParts(bw, UseRomanized, letters.length));
 
             bI === bA.length - 1
               ? bwE.classList.add("LastWordInLine")

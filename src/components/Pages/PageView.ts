@@ -28,13 +28,14 @@ import {
   $creditsFollowLastLine,
   $currentLyricsData,
   $duetLinePadding,
-  $joinSplitWords,
   $lineHoverBackground,
   $lyricsContainerExists,
   $minimalLyricsMode,
   $showVolumeSlider,
   $simpleLyricsMode,
   $skipSpicyFont,
+  $syllableMerge,
+  $syllablePace,
   $ttmlMakerMode,
   $viewControlsPosition,
 } from "../../utils/stores.ts";
@@ -848,11 +849,13 @@ $minimalLyricsMode.listen((v) => {
   if (uri) fetchLyrics(uri).then(ApplyLyrics);
 });
 
-$joinSplitWords.listen(() => {
+const reapplyLyrics = () => {
   const uri = SpotifyPlayer.GetUri();
   $currentLyricsData.set("");
   if (uri) fetchLyrics(uri).then(ApplyLyrics);
-});
+};
+$syllableMerge.listen(reapplyLyrics);
+$syllablePace.listen(reapplyLyrics);
 
 // Purely a CSS toggle — no need to re-render the lyrics like the modes above do.
 $lineHoverBackground.listen((v) => {
