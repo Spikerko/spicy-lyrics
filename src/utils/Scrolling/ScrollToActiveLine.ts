@@ -28,6 +28,7 @@ import {
   scrollLyricsToIndex,
 } from "../Lyrics/LyricsVirtualizer.ts";
 import { IsScrollbarDragging } from "./Simplebar/ScrollSimplebar.ts";
+import { PickScrollLineIndex } from "./ScrollTarget.ts";
 
 // Define intersection types that include _LineIndex
 type LyricsLineWithIndex = LyricsLine & { _LineIndex: number };
@@ -304,100 +305,12 @@ export function InitializeScrollEvents(ScrollSimplebar: any) {
   }
 }
 
-/**
- * How far ahead — counted in real lyric lines, background lines excluded — we
- * look when deciding whether the highest active line may keep the anchor.
- * Bump to 3 to let long lines hold the anchor for longer.
- */
-const PIN_LOOKAHEAD = 2;
-
-/** Only Syllable lines carry BGLine; line-synced lyrics have no background lines. */
-const IsBGLine = (line: LyricsLine | LyricsSyllable): boolean =>
-  (line as LyricsSyllable).BGLine === true;
-
-/** Background lines belong to the lead line above them, and are never a scroll target. */
-const ResolveToLeadIndex = (Lines: LyricsLine[] | LyricsSyllable[], index: number): number => {
-  let i = index;
-  while (i > 0 && IsBGLine(Lines[i])) i--;
-  return i;
-};
-
-/** When the lead line at `leadIdx` and its background lines have all finished. */
-const GetGroupEndTime = (Lines: LyricsLine[] | LyricsSyllable[], leadIdx: number): number => {
-  let end = Lines[leadIdx].EndTime;
-  for (let i = leadIdx + 1; i < Lines.length && IsBGLine(Lines[i]); i++) {
-    if (Lines[i].EndTime > end) end = Lines[i].EndTime;
-  }
-  return end;
-};
-
-/** The PIN_LOOKAHEAD-th non-background line after `leadIdx`, or null past the end. */
-const GetLookaheadLine = (Lines: LyricsLine[] | LyricsSyllable[], leadIdx: number) => {
-  let remaining = PIN_LOOKAHEAD;
-  for (let i = leadIdx + 1; i < Lines.length; i++) {
-    if (IsBGLine(Lines[i])) continue;
-    if (--remaining === 0) return Lines[i];
-  }
-  return null;
-};
-
 const GetScrollLine = (Lines: LyricsLine[] | LyricsSyllable[], ProcessedPosition: number) => {
   if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None" || !Lines)
     return;
-  // 1) gather the indices of all active lines. This runs every animation frame,
-  // so we keep indices rather than materialising a copy of each active line.
-  const activeIndices: number[] = [];
-  for (let i = 0; i < Lines.length; i++) {
-    const line = Lines[i];
-    if (
-      typeof line.StartTime === "number" &&
-      typeof line.EndTime === "number" &&
-      line.StartTime <= ProcessedPosition &&
-      line.EndTime >= ProcessedPosition
-    ) {
-      activeIndices.push(i);
-    }
-  }
-
-  if (activeIndices.length === 0) return null;
-
-  const enhance = (index: number) =>
-    ({ ...Lines[index], _LineIndex: index }) as EnhancedLyricsItem;
-
-  // 2) collapse the active lines onto their lead groups. A background line that
-  // still has another active group below it is only the tail of a line we have
-  // already moved past — a sustained "oooh" outliving its own lead — so it is
-  // dropped rather than dragging the anchor back up. A background line with
-  // nothing active below it is kept: it may be leading into its own line, which
-  // starts later than the background vocal does.
-  let frontLead = -1;
-  for (const index of activeIndices) {
-    const lead = ResolveToLeadIndex(Lines, index);
-    if (lead > frontLead) frontLead = lead;
-  }
-
-  // Ascending and deduplicated — ResolveToLeadIndex is monotonic over
-  // activeIndices, so only the previous entry needs checking.
-  const activeLeads: number[] = [];
-  for (const index of activeIndices) {
-    const lead = ResolveToLeadIndex(Lines, index);
-    if (IsBGLine(Lines[index]) && lead < frontLead) continue;
-    if (activeLeads[activeLeads.length - 1] !== lead) activeLeads.push(lead);
-  }
-
-  // The highest active line keeps the anchor as long as it (and its background
-  // lines) finish before the line PIN_LOOKAHEAD real lines further down starts.
-  const anchorIdx = activeLeads[0];
-  const lookahead = GetLookaheadLine(Lines, anchorIdx);
-  if (lookahead === null || GetGroupEndTime(Lines, anchorIdx) <= lookahead.StartTime) {
-    return enhance(anchorIdx);
-  }
-
-  // Anchor refused — fall back to the original heuristic: contiguous or off by
-  // only 1 → the first active line, a bigger gap → the last.
-  const firstIdx = activeLeads[0];
-  const lastIdx = activeLeads[activeLeads.length - 1];
-  return enhance(lastIdx - firstIdx <= 1 ? firstIdx : lastIdx);
+  const index = PickScrollLineIndex(Lines, ProcessedPosition);
+  if (index === null) return null;
+  return { ...Lines[index], _LineIndex: index } as EnhancedLyricsItem;
 };
 
 // Gap above the active line in "Top" scrolling. A resized popup can leave only
