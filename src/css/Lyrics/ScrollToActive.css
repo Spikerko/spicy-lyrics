@@ -15,7 +15,8 @@
   --ScrollToActiveInset: 24px;
   --ScrollToActiveSize: 44px;
   position: absolute;
-  z-index: 2;
+  /* Over .LyricsContent (9), or the lines take its clicks. */
+  z-index: 10;
   width: var(--ScrollToActiveSize);
   height: var(--ScrollToActiveSize);
   padding: 0;
@@ -60,6 +61,31 @@
   #SpicyLyricsPage .ScrollToActive.Above {
     top: calc(anchor(top) + var(--ScrollToActiveInset));
     bottom: auto;
+  }
+
+  /* In page view, level with the view controls strip on the same edge (24px in, 5cqh tall,
+     see default.css), so the two read as one row instead of the button hanging below it. */
+  #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen) .ScrollToActive.Above {
+    top: calc(24px + 2.5cqh - var(--ScrollToActiveSize) / 2);
+  }
+
+  #SpicyLyricsPage.ViewControlsPosition_Bottom:not(.Fullscreen) .ScrollToActive:not(.Above) {
+    bottom: calc(24px + 2.5cqh - var(--ScrollToActiveSize) / 2);
+  }
+
+  /* Without the global nav, the top strip sits at the bottom, 36px in. */
+  .Root:not(.global-nav)
+    :is(.Root__main-view, :where(#main-view))
+    #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen)
+    .ScrollToActive.Above {
+    top: calc(anchor(top) + var(--ScrollToActiveInset));
+  }
+
+  .Root:not(.global-nav)
+    :is(.Root__main-view, :where(#main-view))
+    #SpicyLyricsPage.ViewControlsPosition_Top:not(.Fullscreen)
+    .ScrollToActive:not(.Above) {
+    bottom: calc(36px + 2.5cqh - var(--ScrollToActiveSize) / 2);
   }
 }
 

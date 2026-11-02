@@ -50,6 +50,7 @@ let smoothForceScrollQueued = false;
 let currentSimpleBarInstance: any | null = null;
 let wheelHandler: (() => void) | null = null;
 let touchMoveHandler: (() => void) | null = null;
+let scrollHandler: (() => void) | null = null;
 // --- END NEW ---
 
 const wasDrasticPositionChange = (lastPosition: number, newPosition: number) => {
@@ -99,9 +100,29 @@ function GetScrollToActiveButton(): HTMLButtonElement | null {
   button.addEventListener("click", () => {
     lastUserScrollTime = 0;
     if ($currentLyricsType.get() === "Static") staticReturning = true;
-    else QueueSmoothForceScroll();
+    else ScrollBackToLine();
+    // Going inert would drop keyboard focus to the page; keep it on the lyrics instead.
+    if (document.activeElement === button)
+      (currentSimpleBarInstance?.getScrollElement() as HTMLElement | undefined)?.focus({
+        preventScroll: true,
+      });
     SetScrollToActiveDirection(null);
   });
+  // It sits outside the scroller, so a wheel over it would otherwise scroll nothing.
+  button.addEventListener(
+    "wheel",
+    (event) => {
+      const scrollElement = currentSimpleBarInstance?.getScrollElement() as HTMLElement | undefined;
+      if (!scrollElement) return;
+      event.preventDefault();
+      // Lets the hand-scroll listeners on the scroller see it.
+      scrollElement.dispatchEvent(new WheelEvent("wheel", event));
+      const lines = event.deltaMode === WheelEvent.DOM_DELTA_LINE;
+      const pages = event.deltaMode === WheelEvent.DOM_DELTA_PAGE;
+      scrollElement.scrollBy(0, event.deltaY * (lines ? 40 : pages ? scrollElement.clientHeight : 1));
+    },
+    { passive: false }
+  );
   // After .LyricsContent, the anchor it is pinned to.
   container.appendChild(button);
   scrollToActiveButton = button;
@@ -122,6 +143,114 @@ function SetScrollToActiveDirection(direction: ActiveLineDirection | null) {
     button.ariaLabel =
       direction === "Above" ? "Scroll up to the current line" : "Scroll down to the current line";
   }
+}
+
+// Where the line being sung lies, or null while it is in view. An IntersectionObserver on the line
+// reports it the frame it crosses the edge, from layout the browser has already done. The resume
+// check's isConnected can't: it counts rows mounted in the overscan, off-screen, as in view.
+let sideObserver: IntersectionObserver | null = null;
+let sideRoot: HTMLElement | null = null;
+let sideLine: HTMLElement | null = null;
+let side: ActiveLineDirection | null = null;
+let sideRefreshFrame: number | null = null;
+let sideItem: EnhancedLyricsItem | null = null;
+
+// Shown only while a hand scroll holds auto-scroll off, so the glide back from a click (whose
+// scroll keeps the line out of view until it lands) never brings it up again.
+function ShowActiveLineSide() {
+  SetScrollToActiveDirection(isUserScrolling && allowForceScrolling ? side : null);
+}
+
+function StopObservingActiveLine() {
+  if (sideRefreshFrame !== null) cancelAnimationFrame(sideRefreshFrame);
+  sideRefreshFrame = null;
+  sideObserver?.disconnect();
+  sideObserver = null;
+  sideRoot = null;
+  sideLine = null;
+  side = null;
+  sideItem = null;
+}
+
+function ObserveActiveLine(container: HTMLElement, LineElem: HTMLElement) {
+  if (!sideObserver || sideRoot !== container) {
+    StopObservingActiveLine();
+    sideRoot = container;
+    sideObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[entries.length - 1];
+        if (!entry?.rootBounds || entry.target !== sideLine) return;
+        const { boundingClientRect: line, rootBounds: view } = entry;
+        side = line.bottom <= view.top ? "Above" : line.top >= view.bottom ? "Below" : null;
+        ShowActiveLineSide();
+      },
+      { root: container, threshold: 0 }
+    );
+  }
+  if (sideLine === LineElem) return;
+  if (sideLine) sideObserver.unobserve(sideLine);
+  // side keeps the last answer until this line's first entry, so a line change while scrolled
+  // away doesn't blink the button.
+  sideLine = LineElem;
+  sideObserver.observe(LineElem);
+}
+
+// A scroll can carry the line from one side of the view to the other without crossing it, which
+// the observer doesn't report; observing it again asks for a fresh entry.
+function RefreshActiveLineSide() {
+  if (!sideObserver || sideRefreshFrame !== null) return;
+  sideRefreshFrame = requestAnimationFrame(() => {
+    sideRefreshFrame = null;
+    if (!sideObserver || !sideLine?.isConnected) return;
+    sideObserver.unobserve(sideLine);
+    sideObserver.observe(sideLine);
+  });
+}
+
+function TrackActiveLineSide(container: HTMLElement, line: EnhancedLyricsItem) {
+  sideItem = line;
+  const LineElem = line.HTMLElement as HTMLElement | undefined;
+  if (LineElem?.isConnected) {
+    ObserveActiveLine(container, LineElem);
+  } else {
+    // An unmounted row has no box; the virtualizer's mounted range says which side it is on.
+    if (sideLine) sideObserver?.unobserve(sideLine);
+    sideLine = null;
+    const items = getLyricsVirtualizer()?.getVirtualItems() ?? [];
+    const first = items[0]?.index;
+    const last = items[items.length - 1]?.index;
+    side =
+      first === undefined || last === undefined
+        ? null
+        : line._LineIndex < first
+          ? "Above"
+          : line._LineIndex > last
+            ? "Below"
+            : null;
+  }
+  ShowActiveLineSide();
+}
+
+// Glides to the line the button points at and hands scrolling back. Scrolled straight from here,
+// because a queued scroll waits for a line being sung, which the intro doesn't have.
+function ScrollBackToLine() {
+  const container = currentSimpleBarInstance?.getScrollElement() as HTMLElement | undefined;
+  const LineElem = sideItem?.HTMLElement as HTMLElement | undefined;
+  if (!container || !sideItem || !LineElem || !allowForceScrolling) return;
+  isUserScrolling = false;
+  lastLine = LineElem;
+  PageContainer?.querySelector(".LyricsContainer .LyricsContent")?.classList.remove("HideLineBlur");
+  ScrollTo(container, LineElem, false, GetScrollType(), sideItem._LineIndex);
+}
+
+// Between lines, the next one to be sung; after the last, the last.
+function LineAfter(
+  Lines: LyricsLine[] | LyricsSyllable[],
+  position: number
+): EnhancedLyricsItem | null {
+  const next = Lines.findIndex((line) => line.StartTime > position && !IsBGLine(line));
+  const index = next !== -1 ? next : Lines.length - 1;
+  return index >= 0 ? ({ ...Lines[index], _LineIndex: index } as EnhancedLyricsItem) : null;
 }
 
 function handleUserScroll(ScrollSimplebar: any | null) {
@@ -154,6 +283,7 @@ export function InitializeScrollEvents(ScrollSimplebar: any) {
   currentSimpleBarInstance = ScrollSimplebar;
   wheelHandler = () => handleUserScroll(currentSimpleBarInstance);
   touchMoveHandler = () => handleUserScroll(currentSimpleBarInstance);
+  scrollHandler = RefreshActiveLineSide;
   // --- END NEW ---
 
   // Setup the observer
@@ -161,14 +291,16 @@ export function InitializeScrollEvents(ScrollSimplebar: any) {
 
   // Add scroll event listener
   const scrollElement = ScrollSimplebar?.getScrollElement();
-  if (scrollElement && wheelHandler && touchMoveHandler) {
+  if (scrollElement && wheelHandler && touchMoveHandler && scrollHandler) {
     // Check handlers exist
     // Remove potential old listeners first (optional, but safer if called multiple times)
     scrollElement.removeEventListener("wheel", wheelHandler);
     scrollElement.removeEventListener("touchmove", touchMoveHandler);
+    scrollElement.removeEventListener("scroll", scrollHandler);
     // Add new listeners
     scrollElement.addEventListener("wheel", wheelHandler);
     scrollElement.addEventListener("touchmove", touchMoveHandler);
+    scrollElement.addEventListener("scroll", scrollHandler, { passive: true });
   }
 }
 
@@ -305,7 +437,6 @@ let lastViewportCheckTime = 0;
 let lastViewportLine: HTMLElement | null = null;
 let lastViewportContainer: HTMLElement | null = null;
 let lastIsLineInViewport = false;
-let lastViewportLineAbove = false;
 
 const GetScrollType = (): "Center" | "Top" => {
   return IsCompactMode() ? "Top" : "Center";
@@ -388,10 +519,12 @@ function ScrollStaticLyrics(ScrollSimplebar: any) {
 
 export function ScrollToActiveLine(ScrollSimplebar: any) {
   if ($currentLyricsType.get() === "Static") {
+    StopObservingActiveLine();
     if ($lyricsContainerExists.get()) ScrollStaticLyrics(ScrollSimplebar);
     return;
   }
   if ($currentLyricsType.get() === "None") {
+    StopObservingActiveLine();
     SetScrollToActiveDirection(null);
     return;
   }
@@ -414,6 +547,11 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
   const PositionOffset = $scrollLeadEnabled.get() ? Math.max(0, $scrollLeadMs.get()) : 0;
   const ProcessedPosition = Position + PositionOffset;
   const currentLine = GetScrollLine(Lines, ProcessedPosition) as EnhancedLyricsItem | null;
+
+  // Before the returns below, which skip the rest in the intro and outro.
+  const sideTarget = currentLine ?? LineAfter(Lines, ProcessedPosition);
+  const sideContainer = ScrollSimplebar?.getScrollElement() as HTMLElement | undefined;
+  if (sideTarget && sideContainer) TrackActiveLineSide(sideContainer, sideTarget);
 
   let notSungCount = 0;
   let activeCount = 0;
@@ -556,6 +694,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
             QueueForceScroll();
         } */
 
+
   Continue(currentLine);
 
   function Continue(currentLine: EnhancedLyricsItem | null) {
@@ -590,7 +729,6 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
 
         // Consider the line "in viewport" if at least 5px is visible
         lastIsLineInViewport = visibleHeight >= 5;
-        lastViewportLineAbove = elementBottom <= viewportTop;
         lastViewportCheckTime = now;
         lastViewportLine = LineElem;
         lastViewportContainer = container;
@@ -684,14 +822,6 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         // --- END REVISED LOGIC ---
       }
 
-      // Held off by a hand scroll with the line out of view: the state the check above waits on.
-      if (isUserScrolling && !isLineInViewport && allowForceScrolling) {
-        const target = hasVirtualizer ? lyricsCenterScrollTopAt(currentLine._LineIndex) : null;
-        const above = target !== null ? target < container.scrollTop : lastViewportLineAbove;
-        SetScrollToActiveDirection(above ? "Above" : "Below");
-      } else {
-        SetScrollToActiveDirection(null);
-      }
     }
   }
   //}
@@ -711,8 +841,8 @@ export function ResetLastLine() {
   lastViewportLine = null;
   lastViewportContainer = null;
   lastIsLineInViewport = false;
-  lastViewportLineAbove = false;
   lastViewportCheckTime = 0;
+  RefreshActiveLineSide();
   SetScrollToActiveDirection(null);
   isUserScrolling = false;
   lastUserScrollTime = 0;
@@ -736,6 +866,9 @@ export function CleanupScrollEvents() {
     if (touchMoveHandler) {
       scrollElement.removeEventListener("touchmove", touchMoveHandler);
     }
+    if (scrollHandler) {
+      scrollElement.removeEventListener("scroll", scrollHandler);
+    }
   }
 
   // Disconnect observer
@@ -749,6 +882,8 @@ export function CleanupScrollEvents() {
   currentSimpleBarInstance = null;
   wheelHandler = null;
   touchMoveHandler = null;
+  scrollHandler = null;
+  StopObservingActiveLine();
   forceScrollQueued = false; // Reset force scroll queue
   smoothForceScrollQueued = false;
   scrolledToLastLine = false;

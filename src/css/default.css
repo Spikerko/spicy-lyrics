@@ -72,6 +72,13 @@ aside.NowPlayingView.spicy-dynamic-bg-in-this
   position: absolute;
   width: 100cqw;
   opacity: 0;
+  /* The strip spans the page but is only a row of buttons, so the space around them
+     leaves clicks to the lyrics and the Scroll to Active button underneath. */
+  pointer-events: none;
+}
+
+#SpicyLyricsPage:not(.Fullscreen) .ViewControls > * {
+  pointer-events: auto;
 }
 
 #SpicyLyricsPage.ViewControlsPosition_Bottom:not(.Fullscreen) .ViewControls {
