@@ -452,17 +452,64 @@ function buildSyllables({
 
     const translit = findTransliteratedText(transliterations, node.begin, node.end);
     const translitText = translit ? clean(translit.text) : '';
+    const startTime = convertTimeToSeconds(node.begin);
 
     syllables.push({
       Text: text,
       ...(translitText !== '' ? { TransliteratedText: translitText } : {}),
       IsPartOfWord: isPartOfWord,
-      StartTime: convertTimeToSeconds(node.begin),
-      EndTime: convertTimeToSeconds(node.end),
+      StartTime: startTime,
+      EndTime: endAfter(startTime, convertTimeToSeconds(node.end)),
     });
   });
 
   return syllables;
+}
+
+/** An end that comes before its begin is treated as missing. */
+const endAfter = (start: number | undefined, end: number | undefined): number | undefined =>
+  start !== undefined && end !== undefined && end < start ? undefined : end;
+
+/**
+ * Gives every syllable a start and an end. One missing its end runs until the
+ * next timed syllable starts (or the line ends), and a run with no timing at
+ * all shares that gap evenly. Left undefined, the end became NaN downstream
+ * and the word stayed lit for good.
+ */
+function fillSyllableTimes(syllables: ParsedSyllable[], lineStart: number, lineEnd: number): void {
+  const nextStart = (after: number): number => {
+    for (let k = after + 1; k < syllables.length; k++) {
+      const start = syllables[k].StartTime;
+      if (start !== undefined) return start;
+    }
+    return lineEnd;
+  };
+  const isUntimed = (syllable: ParsedSyllable): boolean =>
+    syllable.StartTime === undefined && syllable.EndTime === undefined;
+
+  let previousEnd = lineStart;
+  let i = 0;
+  while (i < syllables.length) {
+    if (isUntimed(syllables[i])) {
+      let j = i;
+      while (j < syllables.length && isUntimed(syllables[j])) j++;
+      const until = Math.max(nextStart(j - 1), previousEnd);
+      const step = (until - previousEnd) / (j - i);
+      for (let k = i; k < j; k++) {
+        syllables[k].StartTime = previousEnd + step * (k - i);
+        syllables[k].EndTime = k === j - 1 ? until : previousEnd + step * (k - i + 1);
+      }
+      previousEnd = until;
+      i = j;
+      continue;
+    }
+    const syllable = syllables[i];
+    const start = syllable.StartTime ?? previousEnd;
+    syllable.StartTime = start;
+    syllable.EndTime = Math.max(syllable.EndTime ?? nextStart(i), start);
+    previousEnd = syllable.EndTime;
+    i++;
+  }
 }
 
 export function parseTTML(ttmlInput: string): ParsedTTMLLyrics | null {
@@ -599,13 +646,17 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
         const vocalSpans = pSpans.filter(isVocalSpan);
         const begin = (typeof p === 'object' ? p?.begin : undefined) ?? vocalSpans[0]?.begin;
         const end = (typeof p === 'object' ? p?.end : undefined) ?? vocalSpans[vocalSpans.length - 1]?.end;
+        const startTime = convertTimeToSeconds(begin);
+        const endTime = convertTimeToSeconds(end);
 
         const line: ParsedLineVocal = {
           Type: 'Vocal',
           OppositeAligned: false,
           Text: getLineText(p),
-          StartTime: convertTimeToSeconds(begin),
-          EndTime: convertTimeToSeconds(end),
+          StartTime: startTime,
+          // A line ending before it begins ends where it begins.
+          EndTime:
+            startTime !== undefined && endTime !== undefined && endTime < startTime ? startTime : endTime,
         };
 
         const roles = getInlineRoleTexts(p);
@@ -684,14 +735,16 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
           const lineKey = p['itunes:key'];
           const lineTranslitEntry = lineKey ? Transliterations?.get(lineKey) : undefined;
           const lineTranslit = lineTranslitEntry?.spans;
+          const pStart = convertTimeToSeconds(p.begin);
+          const pEnd = endAfter(pStart, convertTimeToSeconds(p.end));
 
           const vocal: ParsedSyllableVocal = {
             Type: 'Vocal',
             OppositeAligned: isOpposite,
             Lead: {
               Syllables: [],
-              StartTime: convertTimeToSeconds(p.begin),
-              EndTime: convertTimeToSeconds(p.end),
+              StartTime: pStart,
+              EndTime: pEnd,
             },
           };
 
@@ -718,8 +771,8 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
                 Text: fallbackText,
                 ...(leadRoman !== '' ? { TransliteratedText: leadRoman } : {}),
                 IsPartOfWord: false,
-                StartTime: convertTimeToSeconds(p.begin),
-                EndTime: convertTimeToSeconds(p.end),
+                StartTime: pStart,
+                EndTime: pEnd,
               });
             }
           }
@@ -740,6 +793,11 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
             ) {
               vocal.Lead.EndTime = syllable.EndTime;
             }
+          }
+          // Filled against the lead's own window, before background vocals widen it.
+          if (vocal.Lead.StartTime !== undefined) {
+            vocal.Lead.EndTime = Math.max(vocal.Lead.EndTime ?? vocal.Lead.StartTime, vocal.Lead.StartTime);
+            fillSyllableTimes(vocal.Lead.Syllables, vocal.Lead.StartTime, vocal.Lead.EndTime);
           }
 
           if (leadRoman !== '') {
@@ -791,6 +849,10 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
                 convertTimeToSeconds(bgVocalSpans[bgVocalSpans.length - 1]?.end) ??
                 convertTimeToSeconds(bgSpan.end) ??
                 bgVocal.Syllables[bgVocal.Syllables.length - 1]?.EndTime;
+              if (bgVocal.StartTime !== undefined) {
+                bgVocal.EndTime = Math.max(bgVocal.EndTime ?? bgVocal.StartTime, bgVocal.StartTime);
+                fillSyllableTimes(bgVocal.Syllables, bgVocal.StartTime, bgVocal.EndTime);
+              }
 
               if (bgRoles.roman !== undefined && bgRoles.roman.trim() !== '') {
                 bgVocal.TransliteratedText = bgRoles.roman.trim();
