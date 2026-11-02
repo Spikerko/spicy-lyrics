@@ -4,7 +4,9 @@ import {
   $scrollLeadEnabled,
   $scrollLeadMs,
   $smoothScrolling,
+  $staticAutoScroll,
 } from "../../utils/stores.ts";
+import { GetStaticPace, type StaticPace } from "./StaticPace.ts";
 import Global from "../../components/Global/Global.ts";
 import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
@@ -20,6 +22,7 @@ import { ScrollIntoCenterViewCSS } from "../ScrollIntoView/Center.ts";
 import { ScrollIntoTopViewCSS } from "../ScrollIntoView/Top.ts";
 import {
   getLyricsVirtualizer,
+  lyricsCenterScrollTopAt,
   lyricsUseRefreshedLayout,
   scrollLyricsToIndex,
 } from "../Lyrics/LyricsVirtualizer.ts";
@@ -270,8 +273,62 @@ export const GetForceScrollingPolicy = () => {
   return allowForceScrolling;
 };
 
+// Unsynced lyrics with auto-scroll on follow the song's pace from StaticPace.ts.
+let staticPace: { key: string; pace: StaticPace | null } = { key: "", pace: null };
+let lastStaticFrame = 0;
+let lastStaticPosition = 0;
+
+function ScrollStaticLyrics(ScrollSimplebar: any) {
+  const mode = $staticAutoScroll.get();
+  const uri = SpotifyPlayer.GetUri();
+  const lineCount = LyricsObject.Types.Static.Lines.length;
+  if (mode === "off" || !uri || !lineCount) return;
+
+  const key = `${mode}:${uri}`;
+  if (staticPace.key !== key) {
+    staticPace = { key, pace: null };
+    GetStaticPace(uri, SpotifyPlayer.GetDuration(), mode).then((pace) => {
+      if (staticPace.key === key) staticPace.pace = pace;
+    });
+  }
+  const pace = staticPace.pace;
+  const container = ScrollSimplebar?.getScrollElement() as HTMLElement | undefined;
+  if (!pace || !container) return;
+
+  const now = performance.now();
+  const frameMs = lastStaticFrame ? Math.min(now - lastStaticFrame, 100) : 16;
+  lastStaticFrame = now;
+  const position = SpotifyPlayer.GetPosition();
+  // A seek takes the list back from a hand scroll, as it does for synced lyrics.
+  if (wasDrasticPositionChange(lastStaticPosition, position)) lastUserScrollTime = 0;
+  lastStaticPosition = position;
+  if (IsScrollbarDragging()) handleUserScroll(ScrollSimplebar);
+
+  const target = lyricsCenterScrollTopAt(pace(position) * (lineCount - 1));
+  if (target === null) return;
+  const distance = target - container.scrollTop;
+  // After a hand scroll, take over again once it has settled with the point being sung in view.
+  if (lastUserScrollTime) {
+    if (now - lastUserScrollTime <= USER_SCROLL_COOLDOWN) return;
+    if (Math.abs(distance) > container.clientHeight / 2) return;
+    lastUserScrollTime = 0;
+  }
+  if (Math.abs(distance) < 0.5) return;
+  // Eased toward the target each frame; more than a screen away (new lyrics, a seek) it jumps.
+  // "instant" because the container's CSS smooth scrolling would queue up every step.
+  const next =
+    Math.abs(distance) > container.clientHeight
+      ? target
+      : container.scrollTop + distance * (1 - Math.exp(-frameMs / 200));
+  container.scrollTo({ top: next, behavior: "instant" });
+}
+
 export function ScrollToActiveLine(ScrollSimplebar: any) {
-  if ($currentLyricsType.get() === "Static" || $currentLyricsType.get() === "None") return;
+  if ($currentLyricsType.get() === "Static") {
+    if ($lyricsContainerExists.get()) ScrollStaticLyrics(ScrollSimplebar);
+    return;
+  }
+  if ($currentLyricsType.get() === "None") return;
   if (!$lyricsContainerExists.get()) return;
 
   const currentType = $currentLyricsType.get() as LyricsType;

@@ -7,6 +7,8 @@ import {
   $seekFadeCompensation,
   $simpleLyricsMode,
   $smoothScrolling,
+  $staticAutoScroll,
+  type StaticAutoScroll,
 } from "../../../utils/stores.ts";
 import { $experiment, getExperiment } from "../../../utils/experiments.ts";
 import {
@@ -16,7 +18,7 @@ import {
   OFFSET_LIMIT_MS,
 } from "../../../utils/songOffsets.ts";
 import { useCurrentUri } from "../LyricsManager/hooks/useCurrentUri.ts";
-import { Segmented, Slider, Toggle } from "./components.tsx";
+import { Segmented, Select, Slider, Toggle } from "./components.tsx";
 import { PlaybackIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
 
@@ -157,6 +159,22 @@ const groups: GroupDef[] = [
             unit="ms"
             onChange={(v) => $scrollLeadMs.set(v)}
             disabled={disabled}
+          />
+        ),
+      },
+      {
+        id: "staticAutoScroll",
+        label: "Auto-scroll Unsynced Lyrics",
+        description:
+          "Scroll lyrics without timing through the song. Basic skips quiet parts. Advanced follows the singing, falling back to Basic for songs Spotify has no voice data for. Either can drift on some songs.",
+        keywords: "static plain unsynced vocals pace",
+        Control: ({ label }) => (
+          <Select
+            label={label}
+            value={useStore($staticAutoScroll)}
+            options={["off", "basic", "advanced"]}
+            labels={["Off", "Basic", "Advanced"]}
+            onChange={(v) => $staticAutoScroll.set(v as StaticAutoScroll)}
           />
         ),
       },

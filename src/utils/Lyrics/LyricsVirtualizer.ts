@@ -1290,6 +1290,28 @@ class LyricsVirtualizer {
   }
 
   /**
+   * The scrollTop that centres a point `position` lines into the list. It can fall between
+   * lines: 2.5 is halfway from line 2's middle to line 3's.
+   */
+  centerScrollTopAt(position: number): number | null {
+    const v = this._virtualizer;
+    const scrollEl = v?.scrollElement;
+    const count = this._allElements.length;
+    if (!v || !scrollEl || !this._virtualContainer || !count || !scrollEl.clientHeight) return null;
+    const clamped = Math.min(Math.max(position, 0), count - 1);
+    const index = Math.floor(clamped);
+    const a = this._getItemRect(v, index);
+    const b = this._getItemRect(v, Math.min(index + 1, count - 1));
+    const fraction = clamped - index;
+    const middle = (a.start + a.size / 2) * (1 - fraction) + (b.start + b.size / 2) * fraction;
+    const containerOffset =
+      this._virtualContainer.getBoundingClientRect().top -
+      scrollEl.getBoundingClientRect().top +
+      scrollEl.scrollTop;
+    return Math.max(0, containerOffset + middle - scrollEl.clientHeight / 2);
+  }
+
+  /**
    * Scroll the virtualizer to center (or align) a specific line index.
    *
    * Bypasses TanStack's scrollToIndex() (its offset ignores the scroll
@@ -2169,6 +2191,10 @@ export function scrollLyricsToIndex(
   padding: number = 0
 ): void {
   lyricsVirtualizer.scrollToIndex(index, align, instant, padding);
+}
+
+export function lyricsCenterScrollTopAt(position: number): number | null {
+  return lyricsVirtualizer.centerScrollTopAt(position);
 }
 
 // Refreshed Simple Lyrics is on for the current list: rows glide when one

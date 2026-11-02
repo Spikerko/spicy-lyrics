@@ -484,7 +484,12 @@ Global.Event.listen("lyrics:not-apply", () => {
 Global.Event.listen("lyrics:apply", ({ Type }: { Type: string }) => {
   CleanupScrollEvents();
 
-  if (!Type || Type === "Static") return;
+  if (!Type) return;
+  if (Type === "Static") {
+    // Unsynced lyrics only need to know about hand scrolls, so auto-scroll can let go.
+    if (ScrollSimplebar) InitializeScrollEvents(ScrollSimplebar);
+    return;
+  }
   if (ScrollSimplebar) {
     InitializeScrollEvents(ScrollSimplebar);
     //QueueForceScroll(); // Queue a force scroll instead of directly calling with true

@@ -129,6 +129,9 @@ export const $timelineOutsideMediaContent = persistAtom<boolean>(
 );
 // Volume band below the playback controls in Fullscreen / Cinema View / Popup Lyrics.
 export const $showVolumeSlider = persistAtom<boolean>("showVolumeSlider", true);
+// Unsynced lyrics scroll through at the song's pace: "basic" follows loudness, "advanced" the voice.
+export type StaticAutoScroll = "off" | "basic" | "advanced";
+export const $staticAutoScroll = persistAtom<StaticAutoScroll>("staticAutoScroll", "off");
 // Where the song's release year sits in the NowBar's artists row.
 export type ReleaseYearPosition = "off" | "left" | "right";
 export const $releaseYearPosition = persistAtom<ReleaseYearPosition>("releaseYearPosition", "off");
