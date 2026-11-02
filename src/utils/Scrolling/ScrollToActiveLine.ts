@@ -28,7 +28,7 @@ import {
   scrollLyricsToIndex,
 } from "../Lyrics/LyricsVirtualizer.ts";
 import { IsScrollbarDragging } from "./Simplebar/ScrollSimplebar.ts";
-import { PickScrollLineIndex } from "./ScrollTarget.ts";
+import { IsBGLine, PickScrollLineIndex } from "./ScrollTarget.ts";
 
 // Define intersection types that include _LineIndex
 type LyricsLineWithIndex = LyricsLine & { _LineIndex: number };

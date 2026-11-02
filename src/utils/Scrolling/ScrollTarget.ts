@@ -18,7 +18,7 @@ type ScrollLine = Pick<
 const PIN_LOOKAHEAD = 2;
 
 /** Only Syllable lines carry BGLine; line-synced lyrics have no background lines. */
-const IsBGLine = (line: ScrollLine): boolean => line.BGLine === true;
+export const IsBGLine = (line: ScrollLine): boolean => line.BGLine === true;
 
 /** Background lines belong to the lead line above them, and are never a scroll target. */
 const ResolveToLeadIndex = (Lines: ScrollLine[], index: number): number => {
