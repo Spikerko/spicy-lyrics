@@ -87,16 +87,31 @@ export const PickScrollLineIndex = (Lines: ScrollLine[], position: number): numb
   }
 
   // The highest active line keeps the anchor as long as it (and its background
-  // lines) finish before the line PIN_LOOKAHEAD real lines further down starts.
+  // lines) finish before the line PIN_LOOKAHEAD real lines further down starts
+  // singing its own words.
   const anchorIdx = activeLeads[0];
   const lookahead = GetLookaheadLine(Lines, anchorIdx);
-  if (lookahead === null || GetGroupEndTime(Lines, anchorIdx) <= lookahead.StartTime) {
+  if (lookahead === null || GetGroupEndTime(Lines, anchorIdx) <= GetWordsStartTime(lookahead)) {
     return anchorIdx;
   }
 
-  // Anchor refused — fall back to the original heuristic: contiguous or off by
-  // only 1 → the first active line, a bigger gap → the last.
+  // Anchor refused — fall back to the original heuristic: adjacent lines (only
+  // background lines between them) → the first active line, otherwise the last.
   const firstIdx = activeLeads[0];
   const lastIdx = activeLeads[activeLeads.length - 1];
-  return lastIdx - firstIdx <= 1 ? firstIdx : lastIdx;
+  return HasLeadBetween(Lines, firstIdx, lastIdx) ? lastIdx : firstIdx;
+};
+
+/**
+ * When a line's own words start. Its StartTime is pulled back to cover a
+ * background vocal sung ahead of it, which made the line above give up the
+ * anchor that early.
+ */
+const GetWordsStartTime = (line: ScrollLine): number =>
+  Math.max(line.Syllables?.Lead?.[0]?.StartTime ?? line.StartTime, line.StartTime);
+
+/** Whether a non-background line sits strictly between `from` and `to`. */
+const HasLeadBetween = (Lines: ScrollLine[], from: number, to: number): boolean => {
+  for (let i = from + 1; i < to; i++) if (!IsBGLine(Lines[i])) return true;
+  return false;
 };

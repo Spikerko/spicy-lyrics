@@ -48,6 +48,30 @@ const expect = (name: string, lines: Line[], at: number, want: number | null) =>
 }
 
 {
+  // A song where each "We just make music, baby" has its background vocal sung first,
+  // so its line starts (with the background vocal) long before its words.
+  const lines = [
+    lead(138_928, 140_410), // 0 Like B-O-Y
+    lead(139_110, 142_654, 141_093), // 1 We just make music, baby
+    bg(139_110, 140_922), //            2   (background)
+    lead(140_812, 143_820), //          3 B-A-B-Y-B-O-Y
+    lead(142_573, 146_085, 144_557), // 4 We just make music, baby
+    bg(142_573, 144_399), //            5   (background)
+    lead(144_285, 147_308), //          6 B-A-B-Y-B-O-Y
+  ];
+  expect("bg sung ahead of its line", lines, 140_000, 0);
+  // Line 3 starts while line 1 is still to sing: the view stays on line 1, line 3 under it.
+  for (const at of [140_900, 141_500, 142_600]) expect("bg sung ahead of its line", lines, at, 1);
+  expect("bg sung ahead of its line", lines, 142_700, 3);
+}
+
+{
+  // Two active lines with only a background line between them are adjacent: the first.
+  const lines = [lead(0, 2_000), bg(500, 2_000), lead(1_000, 3_000), lead(1_800, 4_000)];
+  expect("only a bg line between two active lines", lines, 1_500, 0);
+}
+
+{
   // In order sung: line 0, line 1's background vocal, line 3, then line 1's own words.
   // Line 1 starts with its background vocal, so it is active throughout and keeps the view.
   const lines = [
