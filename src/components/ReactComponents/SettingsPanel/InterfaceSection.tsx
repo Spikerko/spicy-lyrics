@@ -4,11 +4,13 @@ import {
   $hideNpvLyricsWhenUnavailable,
   $lockedMediaBox,
   $popupLyricsAllowed,
+  $releaseYearPosition,
   $removeSpotifyLyricsButton,
   $showNoLyricsNotice,
   $showVolumeSlider,
   $timelineOutsideMediaContent,
   $viewControlsPosition,
+  type ReleaseYearPosition,
 } from "../../../utils/stores.ts";
 import { $isGlobalNav } from "../../../utils/uiState.ts";
 import { Select, Toggle } from "./components.tsx";
@@ -48,6 +50,21 @@ const groups: GroupDef[] = [
             label={label}
             checked={useStore($timelineOutsideMediaContent)}
             onChange={(v) => $timelineOutsideMediaContent.set(v)}
+          />
+        ),
+      },
+      {
+        id: "releaseYearPosition",
+        label: "Release Year",
+        description: "Show the song's release year in the NowBar, before or after the artists.",
+        keywords: "year date album nowbar artists",
+        Control: ({ label }) => (
+          <Select
+            label={label}
+            value={useStore($releaseYearPosition)}
+            options={["off", "left", "right"]}
+            labels={["Off", "Left", "Right"]}
+            onChange={(v) => $releaseYearPosition.set(v as ReleaseYearPosition)}
           />
         ),
       },

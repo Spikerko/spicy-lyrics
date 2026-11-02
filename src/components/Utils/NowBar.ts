@@ -2,7 +2,12 @@ import BlobURLMaker from "../../utils/BlobURLMaker.ts";
 import { GetCurrentLyricsContainerInstance } from "../../utils/Lyrics/Applyer/CreateLyricsContainer.ts";
 import { FormatPlaybackTime, SongProgressBar } from "./../../utils/Lyrics/SongProgressBar.ts";
 import { QueueForceScroll, ResetLastLine } from "../../utils/Scrolling/ScrollToActiveLine.ts";
-import { $showVolumeSlider, $timelineOutsideMediaContent } from "../../utils/stores.ts";
+import {
+  $releaseYearPosition,
+  $showVolumeSlider,
+  $timelineOutsideMediaContent,
+} from "../../utils/stores.ts";
+import { GetReleaseYear, PeekReleaseYear, type ReleaseYearQuery } from "../../utils/releaseYear.ts";
 import { onExperimentChange } from "../../utils/experiments.ts";
 import { $isNowBarOpen, $nowBarSide } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
@@ -1419,6 +1424,56 @@ async function navigateFromFullscreen(pathname: string) {
 // (fast skipping) makes the earlier one's pending timers no-ops.
 let metadataUpdateToken = 0;
 
+function ReleaseYearQueryForPlaying(): ReleaseYearQuery | null {
+  if (SpotifyPlayer.GetContentType() === "episode") return null;
+  const uri = SpotifyPlayer.GetUri();
+  if (!uri) return null;
+  return {
+    uri,
+    title: SpotifyPlayer.GetName() ?? "",
+    artist: SpotifyPlayer.GetArtists()?.[0]?.name ?? "",
+    album: SpotifyPlayer.GetAlbumName() ?? "",
+  };
+}
+
+/**
+ * Puts the release year inside the artists' scrolling span, before or after the names, so it
+ * moves with them when a long list scrolls. Until the year is known a hidden "0000" holds its
+ * room, so the row doesn't shift when it arrives.
+ */
+function SyncReleaseYear() {
+  const marquee = PageContainer?.querySelector<HTMLElement>(
+    ".ContentBox .NowBar .Header .Metadata .Artists > span"
+  );
+  if (!marquee) return;
+  marquee.querySelector(".ReleaseYear")?.remove();
+
+  const position = $releaseYearPosition.get();
+  const query = ReleaseYearQueryForPlaying();
+  if (position === "off" || !query) return;
+
+  const known = PeekReleaseYear(query.uri);
+  if (known === null) return;
+
+  const label = document.createElement("span");
+  label.className = `ReleaseYear ${position === "left" ? "Before" : "After"}`;
+  label.textContent = known ?? "0000";
+  if (known === undefined) label.classList.add("Pending");
+  if (position === "left") marquee.prepend(label);
+  else marquee.append(label);
+  if (known !== undefined) return;
+
+  GetReleaseYear(query).then((year) => {
+    if (!label.isConnected || SpotifyPlayer.GetUri() !== query.uri) return;
+    if (!year) {
+      label.remove();
+      return;
+    }
+    label.textContent = year;
+    label.classList.remove("Pending");
+  });
+}
+
 function UpdateNowBar(force = false) {
   const NowBar = PageContainer?.querySelector(".ContentBox .NowBar");
   if (!NowBar) return;
@@ -1453,6 +1508,11 @@ function UpdateNowBar(force = false) {
   //const SongName = NowBar.querySelector(".Header .Metadata .SongName");
 
   if (!$isNowBarOpen.get() && !force) return;
+
+  // Started now so the year is often known by the time the metadata swaps in.
+  const releaseYearQuery =
+    $releaseYearPosition.get() !== "off" ? ReleaseYearQueryForPlaying() : null;
+  if (releaseYearQuery) void GetReleaseYear(releaseYearQuery);
 
   const coverArt = SpotifyPlayer.GetCover("xlarge");
 
@@ -1629,6 +1689,7 @@ function UpdateNowBar(force = false) {
         if (span) span.textContent = artists.map((artist) => artist.name).join(", ");
       }
     }
+    SyncReleaseYear();
 
     setTimeout(() => {
       if (metadataToken !== metadataUpdateToken) return;
@@ -1832,6 +1893,8 @@ $timelineOutsideMediaContent.subscribe(() => {
 // The band is built inside OpenNowBar's fullscreen block, so toggling the setting
 // has to rebuild the overlay components rather than just show/hide an element.
 // `.listen` (not `.subscribe`) — this must not fire on module load.
+$releaseYearPosition.listen(() => SyncReleaseYear());
+
 $showVolumeSlider.listen(() => {
   if (!Fullscreen.IsOpen) return;
   CleanUpActiveComponents();

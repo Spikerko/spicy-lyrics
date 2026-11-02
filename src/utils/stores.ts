@@ -129,6 +129,9 @@ export const $timelineOutsideMediaContent = persistAtom<boolean>(
 );
 // Volume band below the playback controls in Fullscreen / Cinema View / Popup Lyrics.
 export const $showVolumeSlider = persistAtom<boolean>("showVolumeSlider", true);
+// Where the song's release year sits in the NowBar's artists row.
+export type ReleaseYearPosition = "off" | "left" | "right";
+export const $releaseYearPosition = persistAtom<ReleaseYearPosition>("releaseYearPosition", "off");
 // Playback timing offset in milliseconds (bipolar: negative = earlier, positive = later)
 export const $playbackOffset = persistAtom<number>("playbackOffset", 0);
 // Clicking a line seeks this much earlier, so Spotify's ~300ms fade-in on seek

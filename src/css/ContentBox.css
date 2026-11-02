@@ -321,6 +321,24 @@
   padding: 0 3cqw 0 2.5cqw;
 }
 
+/* The release year scrolls with the artists, set off by a smaller, fainter dot. */
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists .ReleaseYear {
+  font-variant-numeric: tabular-nums;
+}
+
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists .ReleaseYear.Before::after,
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists .ReleaseYear.After::before {
+  content: "\00B7";
+  font-size: 0.82em;
+  margin: 0 0.55em;
+  opacity: 0.78;
+}
+
+/* Holds the year's room while it loads. */
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists .ReleaseYear.Pending {
+  visibility: hidden;
+}
+
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName span.Clickable,
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span.Clickable {
   cursor: pointer;
