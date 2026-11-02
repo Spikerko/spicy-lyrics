@@ -261,6 +261,8 @@
 
 #SpicyLyricsPage.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .Header > .Metadata :is(.SongName, .Artists) > span {
   text-align: left;
+  /* The default marquees scroll to the default widths, which are narrower than this box. */
+  animation-name: Marquee_Canvas;
 }
 
 /* The right side mirrors the left: the text hugs the outer edge. Spans carry 3cqw of end padding. */

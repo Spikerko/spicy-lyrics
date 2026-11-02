@@ -200,6 +200,22 @@ async function main() {
           }
         }
 
+        /* Canvas Stage: title and artists share the same 92cqw box (CanvasImmersive.css). */
+        @keyframes Marquee_Canvas {
+          0% {
+            transform: translateX(calc(0px + min(-100% + 93cqw, 0px) * 0));
+          }
+          10% {
+            transform: translateX(calc(0px + min(-100% + 93cqw, 0px) * 0));
+          }
+          90% {
+            transform: translateX(calc(0px + min(-100% + 93cqw, 0px) * 1));
+          }
+          100% {
+            transform: translateX(calc(0px + min(-100% + 93cqw, 0px) * 1));
+          }
+        }
+
         @keyframes Marquee_SongName_Compact {
           0% {
             transform: translateX(calc(0px + min(-100% + 100cqw, 0px) * 0));
