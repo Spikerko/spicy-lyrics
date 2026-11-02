@@ -724,10 +724,23 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
             }
           }
 
-          const firstSyllable = vocal.Lead.Syllables[0];
-          const lastSyllable = vocal.Lead.Syllables[vocal.Lead.Syllables.length - 1];
-          if (vocal.Lead.StartTime === undefined) vocal.Lead.StartTime = firstSyllable?.StartTime;
-          if (vocal.Lead.EndTime === undefined) vocal.Lead.EndTime = lastSyllable?.EndTime;
+          // The line's window covers its own words, whatever the <p> says. A
+          // zero-length or too-short <p> would otherwise read as a gap and show
+          // the interlude dots over words that are being sung.
+          for (const syllable of vocal.Lead.Syllables) {
+            if (
+              typeof syllable.StartTime === 'number' &&
+              (vocal.Lead.StartTime === undefined || syllable.StartTime < vocal.Lead.StartTime)
+            ) {
+              vocal.Lead.StartTime = syllable.StartTime;
+            }
+            if (
+              typeof syllable.EndTime === 'number' &&
+              (vocal.Lead.EndTime === undefined || syllable.EndTime > vocal.Lead.EndTime)
+            ) {
+              vocal.Lead.EndTime = syllable.EndTime;
+            }
+          }
 
           if (leadRoman !== '') {
             vocal.Lead.TransliteratedText = leadRoman;
