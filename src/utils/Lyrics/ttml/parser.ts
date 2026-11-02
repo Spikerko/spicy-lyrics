@@ -212,6 +212,8 @@ const decodeXmlEntities = (str: string): string => {
     gt: ">",
     quot: '"',
     apos: "'",
+    // Not an XML entity, but HTML habits put it in hand-written TTML.
+    nbsp: "\u00a0",
   };
 
   return str.replace(
