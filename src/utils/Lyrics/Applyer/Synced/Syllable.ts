@@ -44,6 +44,7 @@ interface SyllableData {
   StartTime: number;
   EndTime: number;
   IsPartOfWord?: boolean;
+  RomanizedIsPartOfWord?: boolean;
 }
 
 interface LeadData {
@@ -76,8 +77,15 @@ interface LyricsData {
 
 // Joined before the empty parts are dropped, so a separator between two words
 // still ends the run and they aren't joined across it.
-const renderableSyllables = (syllables: SyllableData[]): SyllableData[] => {
-  const parts = $joinSplitWords.get() ? JoinSplitWords(syllables) : syllables;
+// The romanization can end words the source text runs together (romaji under
+// Japanese), so the romanized view takes its word breaks from there.
+const renderableSyllables = (syllables: SyllableData[], useRomanized: boolean): SyllableData[] => {
+  const words = useRomanized
+    ? syllables.map((s) =>
+        s.RomanizedIsPartOfWord === undefined ? s : { ...s, IsPartOfWord: s.RomanizedIsPartOfWord }
+      )
+    : syllables;
+  const parts = $joinSplitWords.get() ? JoinSplitWords(words) : words;
   return parts.filter(HasRenderableText);
 };
 
@@ -253,7 +261,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     let currentWordGroup: HTMLSpanElement | null = null;
 
-    renderableSyllables(line.Lead.Syllables).forEach((lead, iL, aL) => {
+    renderableSyllables(line.Lead.Syllables, UseRomanized).forEach((lead, iL, aL) => {
       let word = document.createElement("span");
 
       if (isRtl(lead.Text) && !lineElem.classList.contains("rtl")) {
@@ -362,7 +370,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
 
-        renderableSyllables(bg.Syllables).forEach((bw, bI, bA) => {
+        renderableSyllables(bg.Syllables, UseRomanized).forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
           if (isRtl(bw.Text) && !lineE.classList.contains("rtl")) {

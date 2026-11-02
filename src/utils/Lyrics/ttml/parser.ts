@@ -101,6 +101,8 @@ export interface ParsedSyllable {
   Text: string;
   TransliteratedText?: string;
   IsPartOfWord: boolean;
+  /** Set (to false) only where the romanization ends a word the source text runs on. */
+  RomanizedIsPartOfWord?: boolean;
   StartTime: number | undefined;
   EndTime: number | undefined;
 }
@@ -168,6 +170,8 @@ interface TransliterationSpan {
   beginSeconds: number | undefined;
   endSeconds: number | undefined;
   text: string;
+  /** Followed by a space before the next span: a word ends here in the romanization. */
+  gapAfter?: boolean;
 }
 
 /**
@@ -398,6 +402,58 @@ function extractTransliterationLineTexts(xml: string): Map<string, string> {
   return texts;
 }
 
+/**
+ * Which transliteration spans are followed by a space, keyed by `for` and then
+ * by `begin|end`. Per-syllable romanization of a script written without spaces
+ * marks word ends only with the text between spans, which the parsed tree
+ * drops. Whitespace holding a line break is indentation, not a gap.
+ */
+function extractTransliterationGaps(xml: string): Map<string, Set<string>> {
+  const gaps = new Map<string, Set<string>>();
+  const bodyIndex = xml.indexOf('<body');
+  const head = bodyIndex === -1 ? xml : xml.slice(0, bodyIndex);
+
+  const entryPattern = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
+  const forPattern = /\bfor\s*=\s*(["'])(.*?)\1/;
+  const beginPattern = /\bbegin\s*=\s*(["'])(.*?)\1/;
+  const endPattern = /\bend\s*=\s*(["'])(.*?)\1/;
+  const tokenPattern = /<(\/?)span\b([^>]*?)(\/?)>|<[^>]*>|[^<]+/g;
+
+  for (const entry of head.matchAll(entryPattern)) {
+    const key = entry[1].match(forPattern)?.[2];
+    if (!key) continue;
+
+    const open: { timing: string | undefined; hasChildren: boolean }[] = [];
+    // The leaf span that just closed, until the next token says what follows it.
+    let closed: string | undefined;
+    for (const token of entry[2].matchAll(tokenPattern)) {
+      const raw = token[0];
+      const previous = closed;
+      closed = undefined;
+      if (!raw.startsWith('<')) {
+        if (previous !== undefined && raw.trim() === '' && !/[\r\n]/.test(raw)) {
+          if (!gaps.has(key)) gaps.set(key, new Set());
+          gaps.get(key)?.add(previous);
+        }
+      } else if (token[1] === '/') {
+        const span = open.pop();
+        if (span && !span.hasChildren) closed = span.timing;
+      } else if (raw.startsWith('<span') && token[3] !== '/') {
+        if (open.length > 0) open[open.length - 1].hasChildren = true;
+        const attrs = token[2] ?? '';
+        const begin = attrs.match(beginPattern)?.[2];
+        const end = attrs.match(endPattern)?.[2];
+        open.push({
+          timing: begin !== undefined && end !== undefined ? `${begin}|${end}` : undefined,
+          hasChildren: false,
+        });
+      }
+    }
+  }
+
+  return gaps;
+}
+
 /** Divs, tolerating documents that hang <p> straight off <body>. */
 const getDivs = (ttml: TtmlDocument): TtmlDiv[] => {
   const body = ttml?.tt?.body;
@@ -460,6 +516,7 @@ function buildSyllables({
       Text: text,
       ...(translitText !== '' ? { TransliteratedText: translitText } : {}),
       IsPartOfWord: isPartOfWord,
+      ...(isPartOfWord && translitText !== '' && translit?.gapAfter ? { RomanizedIsPartOfWord: false } : {}),
       StartTime: startTime,
       EndTime: endAfter(startTime, convertTimeToSeconds(node.end)),
     });
@@ -715,6 +772,16 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
     case 'Syllable': {
       ttmlLogger.debug('Processing syllable-synced lyrics');
       const scanner = createAdjacencyScanner(ttmlInput);
+      if (Transliterations) {
+        const gaps = extractTransliterationGaps(ttmlInput);
+        Transliterations.forEach((entry, key) => {
+          const spanGaps = gaps.get(key);
+          if (!spanGaps) return;
+          for (const span of [...entry.spans, ...entry.background]) {
+            if (spanGaps.has(`${span.begin}|${span.end}`)) span.gapAfter = true;
+          }
+        });
+      }
       const firstDiv = divs[0];
       let skippedEmptyLines = 0;
 
