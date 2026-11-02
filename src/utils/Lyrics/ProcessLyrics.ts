@@ -7,6 +7,7 @@ import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 import { PageContainer } from "../../components/Pages/PageView.ts";
 import Logger from "../Logger.ts";
 import { StripEmptyLyricsLines } from "./EmptyLines.ts";
+import { RomanizeJapaneseLine } from "./RomanizeJapaneseLine.ts";
 
 // Constants
 const RomajiConverter = new Kuroshiro();
@@ -30,6 +31,8 @@ const GreekTextTest = /[Ͱ-Ͽἀ-῿]/;
 // whole song, a single matching character in an item is enough to romanize it
 // (mirrors the previous "force conversion for the detected branch" behaviour).
 const ItemJapaneseTest = /[぀-ヿ一-鿿]/; // kana + kanji
+// Also takes the line romaji for a lone 々, which repeats the kanji before it.
+const LineJapaneseTest = /[぀-ヿ一-鿿々]/;
 const ItemChineseTest = /[一-鿿]/;
 const ItemKoreanTest = KoreanTextTest;
 const ItemCyrillicTest = /[Ѐ-ӿԀ-ԯⷠ-ⷿꙀ-ꚟ]/;
@@ -154,8 +157,15 @@ type RomanizeEntry = { target: any; line: any };
 // romanized.
 const gatherText = (
   lyrics: any
-): { francText: string; scriptText: string; entries: RomanizeEntry[] } => {
+): {
+  francText: string;
+  scriptText: string;
+  entries: RomanizeEntry[];
+  syllableLines: any[][];
+} => {
   const entries: RomanizeEntry[] = [];
+  // Each lead and background vocal's syllables, romanized together as a line.
+  const syllableLines: any[][] = [];
   const textLines: string[] = [];
   const bgTextLines: string[] = [];
 
@@ -185,10 +195,12 @@ const gatherText = (
           entries.push({ target: syllable, line: vocalGroup });
         }
         textLines.push(text);
+        syllableLines.push(syllables);
       }
 
       // A line can carry several background vocals, and all of them render.
       for (const background of vocalGroup.Background ?? []) {
+        if (background?.Syllables?.length > 0) syllableLines.push(background.Syllables);
         for (const syllable of background?.Syllables ?? []) {
           entries.push({ target: syllable, line: vocalGroup });
           bgTextLines.push(syllable.Text);
@@ -202,7 +214,7 @@ const gatherText = (
   const francText = textLines.join("\n");
   const scriptText =
     bgTextLines.length > 0 ? `${francText}\n${bgTextLines.join("\n")}` : francText;
-  return { francText, scriptText, entries };
+  return { francText, scriptText, entries, syllableLines };
 };
 
 // Which scripts actually appear in the song. CJK is disambiguated to exactly one
@@ -241,13 +253,36 @@ const detectPresentScripts = (
 const hasTransliteration = (entry: any): boolean =>
   typeof entry.TransliteratedText === "string" && entry.TransliteratedText !== "";
 
+// Japanese romaji for each syllable, worked out a line at a time so sounds that
+// cross a syllable seam (a っ, a word split over several syllables) land where
+// they're sung. A line where any syllable already carries a transliteration, or
+// whose tokenizing fails, is left out and romanized syllable by syllable.
+const romanizeJapaneseSyllables = async (syllableLines: any[][]): Promise<Map<any, string>> => {
+  await RomajiPromise;
+  const romaji = new Map<any, string>();
+  for (const syllables of syllableLines) {
+    if (syllables.some(hasTransliteration)) continue;
+    if (!syllables.some((syllable) => ItemJapaneseTest.test(syllable.Text))) continue;
+    try {
+      const result = await RomanizeJapaneseLine(syllables);
+      syllables.forEach((syllable, index) => {
+        if (LineJapaneseTest.test(syllable.Text)) romaji.set(syllable, result[index]);
+      });
+    } catch (error) {
+      romanizationLogger.warn("Line romanization failed, romanizing per syllable", error);
+    }
+  }
+  return romaji;
+};
+
 // Romanize a single entry by composing every present-script converter whose
 // characters it contains, in priority order, feeding each step's output forward.
 // Returns true if it produced a transliteration for this entry.
 const romanizeEntry = async (
   entry: RomanizeEntry,
   presentScripts: RomanizationBranch[],
-  packages: RomanizationPackages
+  packages: RomanizationPackages,
+  japaneseRomaji?: string
 ): Promise<boolean> => {
   const { target, line } = entry;
 
@@ -259,7 +294,10 @@ const romanizeEntry = async (
 
   for (const script of presentScripts) {
     if (script === "Japanese") {
-      if (ItemJapaneseTest.test(text)) {
+      if (japaneseRomaji !== undefined) {
+        text = japaneseRomaji;
+        changed = true;
+      } else if (ItemJapaneseTest.test(text)) {
         text = await romanizeJapaneseText(text);
         changed = true;
       }
@@ -310,7 +348,7 @@ export const ProcessLyrics = async (lyrics: any) => {
 
   StripEmptyLyricsLines(lyrics);
 
-  const { francText, scriptText, entries } = gatherText(lyrics);
+  const { francText, scriptText, entries, syllableLines } = gatherText(lyrics);
 
   const language = franc(francText);
   const languageISO2 = langs.where("3", language)?.["1"];
@@ -324,8 +362,13 @@ export const ProcessLyrics = async (lyrics: any) => {
   let appliedRomanization = false;
   if (presentScripts.length > 0 && entries.some((entry) => !hasTransliteration(entry.target))) {
     const packages = await loadPackagesForScripts(presentScripts);
+    const japaneseRomaji = presentScripts.includes("Japanese")
+      ? await romanizeJapaneseSyllables(syllableLines)
+      : new Map<any, string>();
     const results = await Promise.all(
-      entries.map((entry) => romanizeEntry(entry, presentScripts, packages))
+      entries.map((entry) =>
+        romanizeEntry(entry, presentScripts, packages, japaneseRomaji.get(entry.target))
+      )
     );
     appliedRomanization = results.some(Boolean);
   }
