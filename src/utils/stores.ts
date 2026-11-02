@@ -145,6 +145,8 @@ export const $scrollLeadEnabled = persistAtom<boolean>("scrollLeadEnabled", fals
 export const $scrollLeadMs = persistAtom<number>("scrollLeadMs", 250);
 // Spring-driven auto-scroll instead of the browser's native smooth scroll.
 export const $smoothScrolling = persistAtom<boolean>("smoothScrolling", false);
+// A button back to the line being sung while a hand scroll has left it out of view.
+export const $showScrollToActive = persistAtom<boolean>("showScrollToActive", true);
 // Frame rate cap for everything that redraws every frame (lyrics animation,
 // animated background, smooth-scroll glide). On high refresh rate displays every
 // extra frame is another repaint of the whole page, so this bounds the per-second

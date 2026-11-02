@@ -5,6 +5,7 @@ import {
   $scrollLeadEnabled,
   $scrollLeadMs,
   $seekFadeCompensation,
+  $showScrollToActive,
   $simpleLyricsMode,
   $smoothScrolling,
   $staticAutoScroll,
@@ -175,6 +176,19 @@ const groups: GroupDef[] = [
             options={["off", "basic", "advanced"]}
             labels={["Off", "Basic", "Advanced"]}
             onChange={(v) => $staticAutoScroll.set(v as StaticAutoScroll)}
+          />
+        ),
+      },
+      {
+        id: "showScrollToActive",
+        label: "Scroll to Active Button",
+        description: "Show an arrow when the line being sung is scrolled out of view.",
+        keywords: "jump back current line arrow",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($showScrollToActive)}
+            onChange={(v) => $showScrollToActive.set(v)}
           />
         ),
       },

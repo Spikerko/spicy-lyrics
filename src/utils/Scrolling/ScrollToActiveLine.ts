@@ -3,6 +3,7 @@ import {
   $lyricsContainerExists,
   $scrollLeadEnabled,
   $scrollLeadMs,
+  $showScrollToActive,
   $smoothScrolling,
   $staticAutoScroll,
 } from "../../utils/stores.ts";
@@ -76,9 +77,57 @@ function setupLyricsContentObserver() {
   }
 }
 
+// Scroll to Active button: shown while a hand scroll has auto-scroll held off with the line
+// being sung out of view, on the side that line lies. Clicking it hands scrolling back.
+type ActiveLineDirection = "Above" | "Below";
+let scrollToActiveButton: HTMLButtonElement | null = null;
+let shownDirection: ActiveLineDirection | null = null;
+// Unsynced lyrics glide back from a click instead of jumping, however far away they are.
+let staticReturning = false;
+
+const ScrollToActiveIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>`;
+
+function GetScrollToActiveButton(): HTMLButtonElement | null {
+  const container = PageContainer?.querySelector<HTMLElement>(".LyricsContainer");
+  if (!container) return null;
+  if (scrollToActiveButton?.parentElement === container) return scrollToActiveButton;
+  scrollToActiveButton?.remove();
+  const button = document.createElement("button");
+  button.className = "ScrollToActive";
+  button.innerHTML = ScrollToActiveIcon;
+  button.inert = true;
+  button.addEventListener("click", () => {
+    lastUserScrollTime = 0;
+    if ($currentLyricsType.get() === "Static") staticReturning = true;
+    else QueueSmoothForceScroll();
+    SetScrollToActiveDirection(null);
+  });
+  // After .LyricsContent, the anchor it is pinned to.
+  container.appendChild(button);
+  scrollToActiveButton = button;
+  return button;
+}
+
+function SetScrollToActiveDirection(direction: ActiveLineDirection | null) {
+  if (direction && !$showScrollToActive.get()) direction = null;
+  if (direction === shownDirection) return;
+  shownDirection = direction;
+  const button = direction ? GetScrollToActiveButton() : scrollToActiveButton;
+  if (!button) return;
+  button.classList.toggle("Visible", direction !== null);
+  button.inert = direction === null;
+  // Keeps its side while it fades out.
+  if (direction) {
+    button.classList.toggle("Above", direction === "Above");
+    button.ariaLabel =
+      direction === "Above" ? "Scroll up to the current line" : "Scroll down to the current line";
+  }
+}
+
 function handleUserScroll(ScrollSimplebar: any | null) {
   // Allow null
   if (!ScrollSimplebar) return; // Add null check
+  staticReturning = false;
   if (!isUserScrolling) {
     isUserScrolling = true;
     // Add HideLineBlur class when user starts scrolling
@@ -256,6 +305,7 @@ let lastViewportCheckTime = 0;
 let lastViewportLine: HTMLElement | null = null;
 let lastViewportContainer: HTMLElement | null = null;
 let lastIsLineInViewport = false;
+let lastViewportLineAbove = false;
 
 const GetScrollType = (): "Center" | "Top" => {
   return IsCompactMode() ? "Top" : "Center";
@@ -282,18 +332,25 @@ function ScrollStaticLyrics(ScrollSimplebar: any) {
   const mode = $staticAutoScroll.get();
   const uri = SpotifyPlayer.GetUri();
   const lineCount = LyricsObject.Types.Static.Lines.length;
-  if (mode === "off" || !uri || !lineCount) return;
+  if (mode === "off" || !uri || !lineCount) {
+    SetScrollToActiveDirection(null);
+    return;
+  }
 
   const key = `${mode}:${uri}`;
   if (staticPace.key !== key) {
     staticPace = { key, pace: null };
+    staticReturning = false;
     GetStaticPace(uri, SpotifyPlayer.GetDuration(), mode).then((pace) => {
       if (staticPace.key === key) staticPace.pace = pace;
     });
   }
   const pace = staticPace.pace;
   const container = ScrollSimplebar?.getScrollElement() as HTMLElement | undefined;
-  if (!pace || !container) return;
+  if (!pace || !container) {
+    SetScrollToActiveDirection(null);
+    return;
+  }
 
   const now = performance.now();
   const frameMs = lastStaticFrame ? Math.min(now - lastStaticFrame, 100) : 16;
@@ -307,17 +364,23 @@ function ScrollStaticLyrics(ScrollSimplebar: any) {
   const target = lyricsCenterScrollTopAt(pace(position) * (lineCount - 1));
   if (target === null) return;
   const distance = target - container.scrollTop;
+  // A hand scroll that left the point being sung half a screen or more away holds auto-scroll off.
+  const scrolledAway = lastUserScrollTime !== 0 && Math.abs(distance) > container.clientHeight / 2;
+  SetScrollToActiveDirection(scrolledAway ? (distance < 0 ? "Above" : "Below") : null);
   // After a hand scroll, take over again once it has settled with the point being sung in view.
   if (lastUserScrollTime) {
     if (now - lastUserScrollTime <= USER_SCROLL_COOLDOWN) return;
-    if (Math.abs(distance) > container.clientHeight / 2) return;
+    if (scrolledAway) return;
     lastUserScrollTime = 0;
   }
-  if (Math.abs(distance) < 0.5) return;
+  if (Math.abs(distance) < 0.5) {
+    staticReturning = false;
+    return;
+  }
   // Eased toward the target each frame; more than a screen away (new lyrics, a seek) it jumps.
   // "instant" because the container's CSS smooth scrolling would queue up every step.
   const next =
-    Math.abs(distance) > container.clientHeight
+    Math.abs(distance) > container.clientHeight && !staticReturning
       ? target
       : container.scrollTop + distance * (1 - Math.exp(-frameMs / 200));
   container.scrollTo({ top: next, behavior: "instant" });
@@ -328,7 +391,10 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
     if ($lyricsContainerExists.get()) ScrollStaticLyrics(ScrollSimplebar);
     return;
   }
-  if ($currentLyricsType.get() === "None") return;
+  if ($currentLyricsType.get() === "None") {
+    SetScrollToActiveDirection(null);
+    return;
+  }
   if (!$lyricsContainerExists.get()) return;
 
   const currentType = $currentLyricsType.get() as LyricsType;
@@ -524,6 +590,7 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
 
         // Consider the line "in viewport" if at least 5px is visible
         lastIsLineInViewport = visibleHeight >= 5;
+        lastViewportLineAbove = elementBottom <= viewportTop;
         lastViewportCheckTime = now;
         lastViewportLine = LineElem;
         lastViewportContainer = container;
@@ -616,6 +683,15 @@ export function ScrollToActiveLine(ScrollSimplebar: any) {
         }
         // --- END REVISED LOGIC ---
       }
+
+      // Held off by a hand scroll with the line out of view: the state the check above waits on.
+      if (isUserScrolling && !isLineInViewport && allowForceScrolling) {
+        const target = hasVirtualizer ? lyricsCenterScrollTopAt(currentLine._LineIndex) : null;
+        const above = target !== null ? target < container.scrollTop : lastViewportLineAbove;
+        SetScrollToActiveDirection(above ? "Above" : "Below");
+      } else {
+        SetScrollToActiveDirection(null);
+      }
     }
   }
   //}
@@ -635,7 +711,9 @@ export function ResetLastLine() {
   lastViewportLine = null;
   lastViewportContainer = null;
   lastIsLineInViewport = false;
+  lastViewportLineAbove = false;
   lastViewportCheckTime = 0;
+  SetScrollToActiveDirection(null);
   isUserScrolling = false;
   lastUserScrollTime = 0;
   lastPosition = 0;
@@ -675,6 +753,8 @@ export function CleanupScrollEvents() {
   smoothForceScrollQueued = false;
   scrolledToLastLine = false;
   scrolledToFirstLine = false;
+  staticReturning = false;
+  SetScrollToActiveDirection(null);
   //console.log("SpicyLyrics scroll events cleaned up."); // Optional log
 }
 // --- END NEW ---

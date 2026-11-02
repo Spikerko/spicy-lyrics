@@ -1,0 +1,107 @@
+/* Scroll to Active: a button back to the line being sung, at the right edge of the lyrics column
+   on the side the line lies. It is pinned by anchor, because .LyricsContainer isn't positioned
+   and positioning it would move the loader and skeleton that sit against the page. Only the
+   column's right edge is taken by name: as the default anchor, the scrolling column would carry
+   the button along with it. */
+#SpicyLyricsPage .LyricsContainer .LyricsContent {
+  anchor-name: --SL-LyricsContent;
+}
+
+#SpicyLyricsPage .LyricsContainer .VirtualLyricsContainer {
+  anchor-name: --SL-LyricsColumn;
+}
+
+#SpicyLyricsPage .ScrollToActive {
+  --ScrollToActiveInset: 24px;
+  --ScrollToActiveSize: 44px;
+  position: absolute;
+  z-index: 2;
+  width: var(--ScrollToActiveSize);
+  height: var(--ScrollToActiveSize);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  background: var(--material-regular-bg);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow:
+    0 10px 24px -8px rgba(8, 10, 18, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  opacity: 0;
+  scale: 0.92;
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    scale 0.16s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s,
+    box-shadow 0.2s;
+}
+
+/* Without anchor positioning there is no box to pin it to. */
+@supports not (anchor-name: --a) {
+  #SpicyLyricsPage .ScrollToActive {
+    display: none;
+  }
+}
+
+@supports (anchor-name: --a) {
+  #SpicyLyricsPage .ScrollToActive {
+    position-anchor: --SL-LyricsContent;
+    right: anchor(--SL-LyricsColumn right, calc(anchor(right) + var(--ScrollToActiveInset)));
+    bottom: calc(anchor(bottom) + var(--ScrollToActiveInset));
+  }
+
+  #SpicyLyricsPage .ScrollToActive.Above {
+    top: calc(anchor(top) + var(--ScrollToActiveInset));
+    bottom: auto;
+  }
+}
+
+#SpicyLyricsPage .ScrollToActive.Visible {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+
+#SpicyLyricsPage .ScrollToActive.Visible:hover {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 14px 32px -8px rgba(8, 10, 18, 0.5),
+    0 0 22px -4px rgba(255, 255, 255, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.24);
+}
+
+/* A short ease of its own: the appear curve overshoots, which reads as a bounce under the finger. */
+#SpicyLyricsPage .ScrollToActive.Visible:active {
+  scale: 0.94;
+  transition: scale 0.1s ease-out;
+}
+
+#SpicyLyricsPage .ScrollToActive:focus-visible {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+#SpicyLyricsPage .ScrollToActive svg {
+  width: 20px;
+  height: 20px;
+}
+
+#SpicyLyricsPage .ScrollToActive.Above svg {
+  rotate: 180deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ScrollToActive,
+  #SpicyLyricsPage .ScrollToActive.Visible:active {
+    scale: 1;
+  }
+}
