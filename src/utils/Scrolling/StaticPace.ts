@@ -5,6 +5,9 @@ import {
   MetadataExtension,
 } from "../API/SpotifyMetadata.ts";
 import type { StaticAutoScroll } from "../stores.ts";
+import Logger from "../Logger.ts";
+
+const logger = new Logger("Static Pace");
 
 /**
  * How far through a song's lyrics the playback position is, 0 to 1. Built from a weight
@@ -104,10 +107,12 @@ export function GetStaticPace(
   const cached = paces.get(key);
   if (cached) return cached;
   const pace = (async () => {
-    const found =
-      (mode === "advanced" ? await vocalPace(uri).catch(() => null) : null) ??
-      (await loudnessPace(uri).catch(() => null));
-    return found ?? linearPace(durationMs);
+    // Off the frame that asked: the first vocal lookup scans the client's modules.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const vocal = mode === "advanced" ? await vocalPace(uri).catch(() => null) : null;
+    const loudness = vocal ? null : await loudnessPace(uri).catch(() => null);
+    logger.debug(`${mode}: pacing by ${vocal ? "vocals" : loudness ? "loudness" : "even pace"}`, uri);
+    return vocal ?? loudness ?? linearPace(durationMs);
   })();
   paces.set(key, pace);
   while (paces.size > 20) paces.delete(paces.keys().next().value as string);
