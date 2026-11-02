@@ -1,4 +1,5 @@
 import { useStore } from "@nanostores/react";
+import { useEffect } from "react";
 import {
   $playbackOffset,
   $scrollLeadEnabled,
@@ -8,7 +9,14 @@ import {
   $smoothScrolling,
 } from "../../../utils/stores.ts";
 import { $experiment, getExperiment } from "../../../utils/experiments.ts";
-import { Slider, Toggle } from "./components.tsx";
+import {
+  $offsetScope,
+  $songOffsets,
+  setSongOffset,
+  OFFSET_LIMIT_MS,
+} from "../../../utils/songOffsets.ts";
+import { useCurrentUri } from "../LyricsManager/hooks/useCurrentUri.ts";
+import { Segmented, Slider, Toggle } from "./components.tsx";
 import { PlaybackIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
 
@@ -20,21 +28,61 @@ const groups: GroupDef[] = [
       {
         id: "playbackOffset",
         label: "Playback Offset",
-        description: "Shift the lyrics in time. Negative shows them earlier, positive later.",
-        keywords: "sync delay latency milliseconds",
+        description:
+          "Shift the lyrics in time. Negative shows them earlier, positive later. A song's own offset adds to the one for all songs.",
+        keywords: "sync delay latency milliseconds per song track",
         stacked: true,
-        Control: ({ label }) => (
-          <Slider
-            label={label}
-            value={useStore($playbackOffset)}
-            min={-5000}
-            max={5000}
-            step={10}
-            defaultValue={0}
-            unit="ms"
-            onChange={(v) => $playbackOffset.set(v)}
-          />
-        ),
+        useNote: () => {
+          const scope = useStore($offsetScope);
+          const uri = useCurrentUri();
+          const songOffset = useStore($songOffsets)[uri ?? ""] ?? 0;
+          const title = uri && Spicetify.Player.data?.item?.name;
+          if (!title) return false;
+          if (scope === "song") {
+            const artist = Spicetify.Player.data?.item?.artists?.[0]?.name;
+            return artist ? `For “${title}” by ${artist}.` : `For “${title}”.`;
+          }
+          if (!songOffset) return false;
+          return `“${title}” also has ${songOffset > 0 ? "+" : ""}${songOffset} ms of its own.`;
+        },
+        Aside: () => {
+          const uri = useCurrentUri();
+          const scope = useStore($offsetScope);
+          // The row always opens on All songs.
+          useEffect(() => () => $offsetScope.set("all"), []);
+          return (
+            <Segmented
+              label="Offset applies to"
+              value={scope === "song" && uri ? "song" : "all"}
+              options={[
+                { value: "all", label: "All songs" },
+                { value: "song", label: "This song", disabled: !uri },
+              ]}
+              onChange={(v) => $offsetScope.set(v)}
+            />
+          );
+        },
+        Control: ({ label }) => {
+          const scope = useStore($offsetScope);
+          const uri = useCurrentUri();
+          const offsets = useStore($songOffsets);
+          const global = useStore($playbackOffset);
+          const editingSong = scope === "song" && !!uri;
+          return (
+            <Slider
+              label={editingSong ? `${label}, this song` : label}
+              value={editingSong ? (offsets[uri] ?? 0) : global}
+              min={-OFFSET_LIMIT_MS}
+              max={OFFSET_LIMIT_MS}
+              step={10}
+              defaultValue={0}
+              unit="ms"
+              nudges={[10, 100]}
+              editable
+              onChange={(v) => (editingSong ? setSongOffset(uri, v) : $playbackOffset.set(v))}
+            />
+          );
+        },
       },
       {
         id: "seekFadeCompensation",

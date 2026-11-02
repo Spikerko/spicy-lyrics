@@ -1,4 +1,4 @@
-import React, { forwardRef, useContext, useRef } from "react";
+import React, { forwardRef, useContext, useEffect, useRef, useState } from "react";
 import { searchTerms } from "./model.ts";
 
 /**
@@ -20,6 +20,7 @@ export function Row({
   note,
   stacked,
   badge,
+  aside,
 }: {
   label: React.ReactNode;
   description?: string;
@@ -32,20 +33,32 @@ export function Row({
   stacked?: boolean;
   /** Inline tag after the label, e.g. a "Forced on" marker. */
   badge?: React.ReactNode;
+  /** Sits at the right of the label, above a stacked control. */
+  aside?: React.ReactNode;
 }) {
+  const labelWrap = (
+    <div className="sl-sp-label-wrap">
+      <span className="sl-sp-label">
+        {label}
+        {badge}
+      </span>
+      {description && <span className="sl-sp-description">{description}</span>}
+      {disabled && disabledReason && <span className="sl-sp-reason">{disabledReason}</span>}
+      {note && <span className="sl-sp-reason">{note}</span>}
+    </div>
+  );
   return (
     <div
       className={`sl-sp-row${disabled ? " sl-sp-row--disabled" : ""}${stacked ? " sl-sp-row--stacked" : ""}`}
     >
-      <div className="sl-sp-label-wrap">
-        <span className="sl-sp-label">
-          {label}
-          {badge}
-        </span>
-        {description && <span className="sl-sp-description">{description}</span>}
-        {disabled && disabledReason && <span className="sl-sp-reason">{disabledReason}</span>}
-        {note && <span className="sl-sp-reason">{note}</span>}
-      </div>
+      {aside ? (
+        <div className="sl-sp-row-head">
+          {labelWrap}
+          <div className="sl-sp-row-aside">{aside}</div>
+        </div>
+      ) : (
+        labelWrap
+      )}
       <div className="sl-sp-control">{children}</div>
     </div>
   );
@@ -186,6 +199,8 @@ export function Slider({
   onChange,
   disabled,
   label,
+  nudges,
+  editable,
 }: {
   value: number;
   min: number;
@@ -196,6 +211,10 @@ export function Slider({
   onChange: (v: number) => void;
   disabled?: boolean;
   label?: string;
+  /** Small and large steps for the -/+ buttons either side of the value. */
+  nudges?: [number, number];
+  /** Lets the value be typed in. */
+  editable?: boolean;
 }) {
   // Keep in sync with the thumb width in settings-panel.css.
   const THUMB = 16;
@@ -241,6 +260,17 @@ export function Slider({
   const sign = isBipolar && clamped > 0 ? "+" : "";
   const valueLabel = `${sign}${clamped}${unit ? ` ${unit}` : ""}`;
   const changed = defaultValue !== undefined && clamped !== defaultValue;
+  const commit = (v: number) => onChange(Math.min(max, Math.max(min, Math.round(v / step) * step)));
+  const nudge = (by: number) => (
+    <button
+      type="button"
+      className="sl-sp-slider-nudge"
+      onClick={() => commit(clamped + by)}
+      disabled={disabled}
+    >
+      {by > 0 ? `+${by}` : by}
+    </button>
+  );
 
   return (
     <div className={`sl-sp-slider${disabled ? " sl-sp-slider--disabled" : ""}`}>
@@ -262,8 +292,38 @@ export function Slider({
           disabled={disabled}
         />
       </div>
-      <div className="sl-sp-slider-meta">
-        <span className="sl-sp-slider-value">{valueLabel}</span>
+      <div className={`sl-sp-slider-meta${nudges ? " sl-sp-slider-meta--nudges" : ""}`}>
+        {nudges ? (
+          <div className="sl-sp-slider-nudges">
+            {nudge(-nudges[1])}
+            {nudge(-nudges[0])}
+            {editable ? (
+              <SliderValueInput
+                value={clamped}
+                text={`${sign}${clamped}`}
+                unit={unit}
+                label={label}
+                disabled={disabled}
+                onCommit={commit}
+              />
+            ) : (
+              <span className="sl-sp-slider-value">{valueLabel}</span>
+            )}
+            {nudge(nudges[0])}
+            {nudge(nudges[1])}
+          </div>
+        ) : editable ? (
+          <SliderValueInput
+            value={clamped}
+            text={`${sign}${clamped}`}
+            unit={unit}
+            label={label}
+            disabled={disabled}
+            onCommit={commit}
+          />
+        ) : (
+          <span className="sl-sp-slider-value">{valueLabel}</span>
+        )}
         {changed && !disabled && (
           <button
             type="button"
@@ -274,6 +334,97 @@ export function Slider({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The slider's value as a field, applied on Enter or blur. Anything that isn't a number puts the old value back. */
+function SliderValueInput({
+  value,
+  text,
+  unit,
+  label,
+  disabled,
+  onCommit,
+}: {
+  value: number;
+  text: string;
+  unit?: string;
+  label?: string;
+  disabled?: boolean;
+  onCommit: (v: number) => void;
+}) {
+  const [draft, setDraft] = useState(text);
+  const editing = useRef(false);
+  useEffect(() => {
+    if (!editing.current) setDraft(text);
+  }, [text]);
+
+  const apply = () => {
+    if (!editing.current) return;
+    editing.current = false;
+    const parsed = Number.parseInt(draft.replace(/[^\d+-]/g, ""), 10);
+    if (Number.isFinite(parsed) && parsed !== value) onCommit(parsed);
+    // A clamped or unchanged result wouldn't change `text`, so the draft is reset here too.
+    setDraft(text);
+  };
+
+  return (
+    <label className="sl-sp-slider-value sl-sp-slider-value--editable">
+      <input
+        type="text"
+        inputMode="numeric"
+        className="sl-sp-slider-value-input"
+        aria-label={label}
+        value={draft}
+        size={Math.max(draft.length, 2)}
+        disabled={disabled}
+        onFocus={(e) => {
+          editing.current = true;
+          e.currentTarget.select();
+        }}
+        onChange={(e) => {
+          editing.current = true;
+          setDraft(e.currentTarget.value);
+        }}
+        onBlur={apply}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter") return;
+          apply();
+          e.currentTarget.blur();
+        }}
+      />
+      {unit && <span className="sl-sp-slider-value-unit">{unit}</span>}
+    </label>
+  );
+}
+
+/** A small set of mutually exclusive choices shown side by side. */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: T;
+  options: { value: T; label: string; disabled?: boolean }[];
+  onChange: (v: T) => void;
+  label?: string;
+}) {
+  return (
+    <div className="sl-sp-segmented" role="group" aria-label={label}>
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          className="sl-sp-segmented-option"
+          aria-pressed={opt.value === value}
+          disabled={opt.disabled}
+          onClick={() => onChange(opt.value)}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

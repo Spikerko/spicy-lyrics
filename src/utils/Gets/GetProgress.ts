@@ -1,4 +1,4 @@
-import { $playbackOffset } from "../stores.ts";
+import { lyricsOffsetMs } from "../songOffsets.ts";
 import { SpotifyPlayer } from "./../../components/Global/SpotifyPlayer.ts";
 
 interface SyncedPosition {
@@ -391,19 +391,22 @@ export default function GetProgress() {
   // and a spurious "drastic change" force-scroll; use the player's own estimate.
   if (syncedPosition.TrackUri !== (SpotifyPlayer.GetUri() ?? null)) {
     const isPlaying = Spicetify.Player.isPlaying();
-    return normalizeProgress(Spicetify.Player.getProgress() - $playbackOffset.get(), isPlaying);
+    return normalizeProgress(
+      Spicetify.Player.getProgress() - lyricsOffsetMs(SpotifyPlayer.GetUri()),
+      isPlaying
+    );
   }
 
   const { StartedSyncAt, Position } = syncedPosition;
   const now = Date.now();
   const deltaTime = now - StartedSyncAt;
 
-  // User-configured lyric sync offset (ms). Subtracted from the clock so the
-  // sign reads the way the setting is described: negative values run the clock
-  // ahead of the audio (lyrics appear earlier), positive values hold it back
-  // (lyrics are delayed). Applied in both play/pause branches so the active
-  // line doesn't jump when playback is paused. See $playbackOffset.
-  const playbackOffset = $playbackOffset.get();
+  // User-configured lyric sync offset (ms): the Playback Offset plus this song's
+  // own. Subtracted from the clock so the sign reads the way the settings are
+  // described: negative values run the clock ahead of the audio (lyrics appear
+  // earlier), positive values hold it back (lyrics are delayed). Applied in both
+  // play/pause branches so the active line doesn't jump when playback is paused.
+  const playbackOffset = lyricsOffsetMs(syncedPosition.TrackUri);
 
   if (!Spicetify.Player.isPlaying()) {
     // Static when paused. The synced position already comes from getPositionState

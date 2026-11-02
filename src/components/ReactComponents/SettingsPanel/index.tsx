@@ -61,6 +61,7 @@ function SettingRow({ def, query }: { def: SettingDef; query: string }) {
   if (!def.Control) return null;
 
   const Control = def.Control;
+  const Aside = def.Aside;
   return (
     <Row
       label={label}
@@ -69,6 +70,7 @@ function SettingRow({ def, query }: { def: SettingDef; query: string }) {
       disabled={!!reason}
       disabledReason={reason || undefined}
       note={note || undefined}
+      aside={Aside && <Aside disabled={!!reason} />}
     >
       <Control disabled={!!reason} label={def.label} />
     </Row>
