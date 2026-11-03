@@ -19,47 +19,86 @@
     /* The hover rules replace the lyrics' top margin, so the push carries the inset as well. */
     --PF_LyricsGap: 2vw;
     --Compact_HoverPush: calc(var(--PF_Inset) + var(--Compact_HoverGrow) + var(--PF_LyricsGap));
+    /* Narrow windows hide the song text on hover, where the grown cover used to run over it. The
+       growth here leaves it room, so it stays. */
+    --Compact_HoverMetaOpacity: 1;
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox {
     /* Set where the compact rules define it; capped by the width so a very tall window doesn't
        blow the cover up. */
     --Compact_NowBarHeight: min(13vh, 24vw);
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .NowBar {
     margin-top: var(--PF_Inset);
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .CenteredView .Header {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .NowBar
+    .CenteredView
+    .Header {
     /* Against the bar's own height. */
     --CompactNowBarHeaderGap: 13cqh;
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .CenteredView .Header .Metadata {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .NowBar
+    .CenteredView
+    .Header
+    .Metadata {
     justify-content: center;
     margin: 0;
     right: 0;
     width: auto;
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .CenteredView .Header .Metadata .SongName {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .NowBar
+    .CenteredView
+    .Header
+    .Metadata
+    .SongName {
     font-size: calc(var(--PF_LyricsSize) * 0.72) !important;
     line-height: 1.2 !important;
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .CenteredView .Header .Metadata .Artists {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .NowBar
+    .CenteredView
+    .Header
+    .Metadata
+    .Artists {
     font-size: calc(var(--PF_LyricsSize) * 0.44) !important;
     line-height: 1.35 !important;
   }
 
   /* The lyrics start just under the bar, and follow it at its own pace when the cover grows. */
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .LyricsContainer {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .LyricsContainer {
     margin-top: calc(var(--PF_Inset) + var(--Compact_NowBarHeight) + var(--PF_LyricsGap));
     transition: margin-top 0.35s;
   }
 
-  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .LyricsContainer .LyricsContent {
+  body
+    > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
+    .LyricsContainer
+    .LyricsContent {
     --DefaultLyricsSize: var(--PF_LyricsSize);
     /* The top fade is sized for regular lyrics; at this size a line above the active one would
        be sliced off at the bar instead of fading out. */

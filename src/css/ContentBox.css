@@ -1879,7 +1879,7 @@
   .CenteredView
   .Header:has(.MediaBox:hover)
   .Metadata {
-  opacity: 0;
+  opacity: var(--Compact_HoverMetaOpacity, 0);
 }
 
 #SpicyLyricsPage.CompactMode .ContentBox .LyricsContainer .loaderContainer,
