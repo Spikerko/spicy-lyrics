@@ -1,0 +1,217 @@
+/* ─── Branded Header ──────────────────────────────────────────────────────────
+ *
+ * Logo pill at the top-centre of the fullscreen / cinema view.
+ * Gated by `brandedHeader` (Exp_BrandedHeader); skin chosen by
+ * `brandedHeaderGlass` (Exp_BrandedHeaderGlass = glass, absent = white plate).
+ *
+ * Hidden everywhere except the selectors below. `.Fullscreen` covers both real
+ * fullscreen and cinema view.
+ */
+
+#SpicyLyricsPage .BrandedHeader {
+  display: none;
+}
+
+/* ── Shared geometry ──────────────────────────────────────────────────────── */
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader {
+  /* Container-query units, so the pill scales with the window like the rest of
+     the view. Clamped to stay legible small and not balloon on a TV. */
+  --BrandedHeader-height: clamp(38px, 7.2cqh, 76px);
+  --BrandedHeader-padding: clamp(5px, 0.85cqh, 11px);
+  --BrandedHeader-gap: clamp(10px, 1.5cqh, 22px);
+  --BrandedHeader-top: clamp(10px, 2.6cqh, 34px);
+  --BrandedHeader-logo-height: calc(
+    var(--BrandedHeader-height) - var(--BrandedHeader-padding) * 2
+  );
+
+  display: flex;
+  position: absolute;
+  top: var(--BrandedHeader-top);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+
+  align-items: center;
+  gap: var(--BrandedHeader-gap);
+  height: var(--BrandedHeader-height);
+  padding: var(--BrandedHeader-padding) calc(var(--BrandedHeader-padding) * 2.4);
+  box-sizing: border-box;
+  max-width: 90cqw;
+  border-radius: var(--radius-pill);
+
+  /* Chrome, not content: never swallow clicks or start an image drag. */
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Each slot is exactly as wide as its artwork needs, so nothing is cropped or
+   letterboxed. --logo-aspect / --logo-scale are set inline per logo. */
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader__Logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--BrandedHeader-logo-height) * var(--logo-scale, 1));
+  width: calc(
+    var(--BrandedHeader-logo-height) * var(--logo-scale, 1) * var(--logo-aspect, 2)
+  );
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader__Image {
+  width: 100%;
+  height: 100%;
+  /* contain, never cover: a brand mark must not be cropped. */
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader__Divider {
+  display: none;
+  width: 1px;
+  height: calc(var(--BrandedHeader-logo-height) * 0.62);
+  flex: 0 0 auto;
+  border-radius: 1px;
+}
+
+/* ── Skin A: Liquid Glass (default) ───────────────────────────────────────── */
+/* Same vocabulary as the progress/volume capsules: frosted material, gloss edge
+   lit top and bottom, tinted ambient cast. The material darkens whatever is
+   behind it, which is what keeps white marks legible over any album cover. */
+#SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen .BrandedHeader {
+  background: var(--material-thick-bg);
+  -webkit-backdrop-filter: var(--material-thick-blur);
+  backdrop-filter: var(--material-thick-blur);
+  box-shadow: var(--liquid-cast), var(--liquid-edge);
+}
+
+/* brightness(0) flattens any flat mark to black, invert(1) lifts it to white. */
+#SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen
+  .BrandedHeader__Logo[data-kind="mono"]
+  .BrandedHeader__Image {
+  filter: brightness(0) invert(1) drop-shadow(0 1px 2px rgba(8, 10, 18, 0.45));
+  opacity: 0.94;
+}
+
+/* Colour marks cannot be recoloured, so they carry their own light chip. */
+#SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen
+  .BrandedHeader__Logo[data-kind="color"] {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: clamp(6px, 1cqh, 12px);
+  padding: 0 clamp(4px, 0.6cqh, 8px);
+  box-sizing: border-box;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen .BrandedHeader__Divider {
+  display: block;
+  background: var(--on-material-hairline-strong);
+}
+
+/* ── Skin B: opaque plate ─────────────────────────────────────────────────── */
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen:not(.Exp_BrandedHeaderGlass) .BrandedHeader {
+  background: #fdfdfd;
+  box-shadow: 0 2px 18px rgb(0 0 0 / 18%);
+}
+
+/* ── Placeholder ──────────────────────────────────────────────────────────── */
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader__Placeholder {
+  font-size: clamp(9px, calc(var(--BrandedHeader-height) * 0.26), 24px);
+  font-weight: var(--w-medium);
+  line-height: 1;
+  padding: 0 0.4em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--radius-sm);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen .BrandedHeader__Placeholder {
+  color: var(--on-material-text-secondary);
+  background: var(--on-material-tint-bg);
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen:not(.Exp_BrandedHeaderGlass) .BrandedHeader__Placeholder {
+  color: #1a1a1a;
+  background: #d9d9d9;
+}
+
+/* ── Entrance ─────────────────────────────────────────────────────────────── */
+@keyframes BrandedHeader__Enter {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes BrandedHeader__LogoEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader {
+  /* Delay lets the fullscreen transition land first. */
+  animation: BrandedHeader__Enter 0.52s var(--ease-standard) 0.12s both;
+}
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader__Logo {
+  animation: BrandedHeader__LogoEnter 0.42s var(--ease-standard) both;
+  animation-delay: calc(0.26s + var(--logo-index, 0) * 0.08s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader,
+  #SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader__Logo {
+    animation: none;
+  }
+}
+
+/* ── Context ──────────────────────────────────────────────────────────────── */
+
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen.CompactMode .BrandedHeader,
+#SpicyLyricsPage.Exp_BrandedHeader.Fullscreen.ForcedCompactMode .BrandedHeader {
+  --BrandedHeader-height: clamp(30px, 5.4cqh, 54px);
+  --BrandedHeader-top: clamp(6px, 1.6cqh, 18px);
+}
+
+/* Popup Lyrics carries .Fullscreen too, but is far too small for a brand pill. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_BrandedHeader.Fullscreen .BrandedHeader {
+  display: none;
+}
+
+/* Without backdrop-filter the glass reads as a flat grey wash: use the plate. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen .BrandedHeader {
+    background: #fdfdfd;
+    box-shadow: 0 2px 18px rgb(0 0 0 / 18%);
+  }
+  #SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen
+    .BrandedHeader__Logo[data-kind="mono"]
+    .BrandedHeader__Image {
+    filter: none;
+    opacity: 1;
+  }
+  #SpicyLyricsPage.Exp_BrandedHeader.Exp_BrandedHeaderGlass.Fullscreen
+    .BrandedHeader__Logo[data-kind="color"] {
+    background: none;
+    box-shadow: none;
+  }
+}

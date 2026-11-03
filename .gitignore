@@ -185,3 +185,16 @@ api-backend/
 docs/
 
 perf/
+
+# PJS theme tooling: scratch output, regenerated on every run
+tools/**/__pycache__/
+tools/halloween-theme/live_*.png
+tools/halloween-theme/v11_live.png
+tools/halloween-theme/logo_headless_*.png
+tools/halloween-theme/*.json
+tools/halloween-theme/screens/
+tools/pjs14-brief/inventory/
+tools/pjs14-brief/mockup_*_zones.png
+tools/pjs14-brief/mockup2_*_zones.png
+tools/mac/_negctl/
+tools/windows/_negctl/

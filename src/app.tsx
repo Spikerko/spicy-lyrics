@@ -5,6 +5,8 @@ import "./css/default.css";
 import "./css/default.scss";
 import "./css/Simplebar.css";
 import "./css/ContentBox.css";
+import "./css/HalloweenTheme.css";
+import "./css/BrandedHeader.css";
 import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";

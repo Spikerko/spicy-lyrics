@@ -73,6 +73,8 @@ import {
   onExperimentChange,
   onExperimentDefinitionChange,
 } from "../../utils/experiments.ts";
+import { HalloweenThemeHTML } from "../Utils/HalloweenTheme.ts";
+import { BrandedHeaderHTML } from "../Utils/BrandedHeader.ts";
 import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
@@ -216,6 +218,8 @@ async function OpenPage(
   //const vibrantNonAlarmingColor = extractedColors?.VIBRANT_NON_ALARMING ?? "#999999";
   elem.innerHTML = `
         <div class="ContentBox">
+            ${HalloweenThemeHTML()}
+            ${BrandedHeaderHTML()}
             <div class="NowBar">
                 <div class="CenteredView">
                     <div class="Header">

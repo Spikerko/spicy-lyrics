@@ -158,6 +158,30 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_KeepOverlappingLines",
   },
+  {
+    id: "brandedHeader",
+    label: "Branded Header",
+    description:
+      "Shows a logo pill at the top of the fullscreen and cinema views. Disable to leave the top of the screen clear.",
+    default: true,
+    pageClass: "Exp_BrandedHeader",
+  },
+  {
+    id: "brandedHeaderGlass",
+    label: "Branded Header: Glass",
+    description:
+      "Renders the branded header as frosted Liquid Glass with monochrome logos recoloured white. Disable for an opaque white plate.",
+    default: true,
+    pageClass: "Exp_BrandedHeaderGlass",
+  },
+  {
+    id: "halloweenTheme",
+    label: "Halloween Theme (PJS #13)",
+    description:
+      "Replaces the fullscreen and cinema-view background with an animated PJS #13 Spooky night scene. Disable to bring back the normal album-colour background.",
+    default: true,
+    pageClass: "Exp_HalloweenTheme",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */

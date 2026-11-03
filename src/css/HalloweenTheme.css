@@ -1,0 +1,566 @@
+/* ─── Halloween Theme ─────────────────────────────────────────────────────────
+ *
+ * PJS #13 night scene for the fullscreen / cinema view, gated by the
+ * `halloweenTheme` experiment (Exp_HalloweenTheme). Markup: HalloweenTheme.ts.
+ *
+ * Positions are written in Spicy Lyrics' own layout variables, the same ones
+ * ContentBox.css lays the page out with, so the scene follows the real layout
+ * at every window size instead of matching one screenshot:
+ *
+ *   --NowBarWidth          album cover width (and NowBar width)
+ *   --NowBarLeftSpacing    distance from the left edge to the cover
+ *   --NowBarRightSpacing   NowBarWidth / 4
+ *   --hlw-lyrics-left      where lyric lines start (measured: lines begin here)
+ *   --hlw-cover-top        top of the album cover
+ *
+ * Measured live at 1740x917 and checked against these formulas: cover 214-739,
+ * lyric lines from 831, cover top 131. See tools/halloween-theme/layout_model.py.
+ */
+
+#SpicyLyricsPage .HalloweenScene,
+#SpicyLyricsPage .HalloweenTop,
+#SpicyLyricsPage .HalloweenLogo {
+  display: none;
+}
+
+/* Shared layout values, on the page so the lyrics mask can use them too.
+   cq units inside unregistered custom properties resolve where they are used;
+   every user (the scene layers and .LyricsContent's mask) has
+   #SpicyLyricsPage as its nearest size container, so cqw/cqh agree. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen {
+  --hlw-ground: 4cqh; /* height of the earth strip under the grass line */
+  --hlw-cover-top: calc(50cqh - var(--NowBarWidth) * 0.625);
+  --hlw-lyrics-left: calc(50cqw - var(--NowBarRightSpacing) * 0.3);
+  --hlw-cover-right: calc(var(--NowBarLeftSpacing) + var(--NowBarWidth));
+  /* Spooky logo: top centre, above the album cover. (Design v1.1 tried it in
+     the box above the lyrics column, but there it covered lyric lines, so it
+     went back here on 2026-10-30.) Over the lyrics at z 5; the lyrics fade
+     out before reaching its bottom edge (mask below). */
+  --hlw-logo-cx: 50cqw;
+  --hlw-logo-top: 1.2cqh;
+  --hlw-logo-h: min(calc(var(--hlw-cover-top) - 2.4cqh), 12cqh);
+  --hlw-logo-bottom: calc(var(--hlw-logo-top) + var(--hlw-logo-h));
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .HalloweenScene,
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .HalloweenTop,
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .HalloweenLogo {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Above the dynamic background (z auto), below lyrics (z 4) and NowBar (z 10). */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .HalloweenScene {
+  z-index: 1;
+}
+
+/* Bats, web and branch: confined above the cover and UNDER the lyrics (z 4),
+   because lyric lines scroll up through this band. Above the scene (z 1) and
+   the Canvas video stage (z 2), so they still read over the backdrop. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .HalloweenTop {
+  z-index: 3;
+  height: var(--hlw-cover-top);
+}
+
+/* The Spooky logo is OVER the lyrics (z 5, under NowBar z 10), at the top
+   centre. The lyrics fade out above the logo's bottom edge (mask below), so
+   no word is ever half-hidden behind it. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .HalloweenLogo {
+  z-index: 5;
+}
+
+/* Lyrics: the stock mask fades only the top 16-64px. Here the top fade ends
+   just under the logo, so lines dissolve before they reach it. The bottom
+   fade is the stock one. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .LyricsContainer .LyricsContent {
+  --ImageMask: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent calc(var(--hlw-logo-bottom) + 0.5cqh),
+    var(--spice-sidebar) calc(var(--hlw-logo-bottom) + 4cqh),
+    var(--spice-sidebar) calc(100% - 64px),
+    transparent calc(100% - 16px),
+    transparent
+  );
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen :is(.HalloweenScene, .HalloweenTop, .HalloweenLogo) > * {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+/* The scene replaces the dynamic background; stop painting what it hides. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .ContentBox > .spicy-dynamic-bg {
+  visibility: hidden;
+}
+
+/* The branded pill shares the logo's slot; the Spooky logo wins in this theme. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .BrandedHeader {
+  display: none !important;
+}
+
+/* ── Sky ──────────────────────────────────────────────────────────────────── */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Sky {
+  inset: 0;
+  background: linear-gradient(to bottom, #1a0e2e 0%, #2a1748 45%, #56285c 92%);
+}
+
+/* ── Moon: upper right, dimmed because lyric lines scroll across it ──────── */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Moon {
+  height: clamp(120px, 26cqh, 420px);
+  aspect-ratio: var(--aspect);
+  top: 2cqh;
+  right: 12cqw;
+  filter: brightness(0.62);
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__MoonGlow {
+  width: clamp(220px, 42cqh, 640px);
+  aspect-ratio: 1;
+  top: calc(2cqh + clamp(120px, 26cqh, 420px) / 2);
+  right: calc(12cqw + clamp(120px, 26cqh, 420px) / 2);
+  translate: 50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 210 120 / 26%) 0%, transparent 65%);
+  animation: Hlw__Glow 6s ease-in-out infinite alternate;
+}
+
+/* ── Clouds: misty purple horizon ─────────────────────────────────────────── */
+/* The tile is [art | mirrored art], generated so its two edges are the same
+   pixel column: repeat-x is seamless at any width. Width follows the tile's
+   own aspect, so it is never squashed to fit a whole number of copies. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Clouds {
+  left: 0;
+  right: 0;
+  bottom: calc(var(--hlw-ground) - 1cqh);
+  height: 48cqh;
+  background-image: var(--cloud);
+  background-size: calc(48cqh * var(--aspect)) 100%;
+  background-repeat: repeat-x;
+  background-position: left bottom;
+  filter: brightness(0.62);
+  opacity: 0.9;
+}
+
+/* ── Haunted house: far right, standing on the ground ─────────────────────── */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__House {
+  height: 54cqh;
+  aspect-ratio: var(--aspect);
+  right: -2cqw;
+  bottom: calc(var(--hlw-ground) - 0.6cqh);
+}
+
+/* Graves in front of the house, as a dark silhouette like the house: lyrics
+   scroll down over this area, and the source's white skull failed contrast. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Graves {
+  height: 9.5cqh;
+  aspect-ratio: var(--aspect);
+  right: calc(54cqh * 0.638 - 4cqw);
+  bottom: calc(var(--hlw-ground) - 0.4cqh);
+  filter: brightness(0.38);
+}
+
+/* ── Tree: far left, roots planted in the soil ────────────────────────────── */
+/* Measured on the artwork: trunk at 38-73% of the width, root flare to 86%.
+   The tree is 50cqh tall and anchored by its RIGHT root tip, 1.2cqw before the
+   cover's left edge, so the trunk and right roots never sit under the title or
+   timeline. The left roots run off the window edge, the tree growing at the
+   frame. Solved in tools/halloween-theme/solve_tree2.py: the full trunk stays
+   on screen from 1280x720 to 3440x1440. The canopy reaches behind the cover,
+   which is z 10, so it is hidden there rather than overlapping content.
+   It sinks 1.8cqh below the grass line so the roots read as planted. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Tree {
+  --tree-h: 50cqh;
+  height: var(--tree-h);
+  aspect-ratio: var(--aspect);
+  left: calc(var(--NowBarLeftSpacing) - 1.2cqw - var(--tree-h) * var(--aspect) * 0.86);
+  bottom: calc(var(--hlw-ground) - 1.8cqh);
+  filter: brightness(0.8);
+}
+
+/* ── Ground: one plane everything stands on ───────────────────────────────── */
+/* The grass tile is mirror-paired at generation, so repeat-x is seamless. Its
+   bottom rows are soil (#4a6628 -> #779039 fading out), so the earth below
+   starts with a short blend from that soil colour instead of a hard edge. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Ground {
+  --grass-h: 5.2cqh;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--hlw-ground) + var(--grass-h) * 0.66);
+  background:
+    var(--grass) left top / calc(var(--grass-h) * var(--aspect)) var(--grass-h) repeat-x,
+    linear-gradient(
+      to bottom,
+      transparent calc(var(--grass-h) * 0.62),
+      #3b4a24 calc(var(--grass-h) * 0.72),
+      #23192a calc(var(--grass-h) * 0.66 + 1.4cqh),
+      #140c1a 100%
+    );
+}
+
+/* ── Characters ───────────────────────────────────────────────────────────── */
+/* Witch (design v1.1): far right, in front of the haunted house, flipped to
+   face left toward the graves and the lyrics. She stands between the screen
+   edge and the graves (graves start 54cqh * 0.638 - 4cqw from the right), so
+   her width is capped to that span minus a small gap. `scale` (not transform)
+   flips her, so the sway animation's rotate still composes with it. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Witch {
+  width: min(18cqh * var(--aspect), calc(54cqh * 0.638 - 4cqw - 3.5cqw));
+  aspect-ratio: var(--aspect);
+  left: auto;
+  right: 2cqw;
+  bottom: calc(var(--hlw-ground) - 0.4cqh);
+  scale: -1 1;
+  transform-origin: bottom center;
+  animation: Hlw__Sway 5.5s ease-in-out infinite;
+}
+
+/* Lute player, option C then 1b: kept in the gap, smaller, so he no longer
+   sits under the song title. His right edge stops where lyric lines begin;
+   width is capped to the gap plus a small reach into the title band. He stays
+   in the scene layer, so any content he still touches draws on top of him. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Lute {
+  --gap-w: calc(var(--hlw-lyrics-left) - var(--hlw-cover-right));
+  --lute-h: min(clamp(84px, 15cqh, 200px), calc((var(--gap-w) + 3cqw) / var(--aspect)));
+  height: var(--lute-h);
+  aspect-ratio: var(--aspect);
+  left: calc(var(--hlw-lyrics-left) - var(--lute-h) * var(--aspect) - 0.4cqw);
+  bottom: calc(var(--hlw-ground) - 0.4cqh);
+  transform-origin: bottom center;
+  animation: Hlw__Strum 0.9s ease-in-out infinite alternate;
+}
+
+/* ── Music notes: rise from the lute up the gap, fading as they go ────────── */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Note {
+  --gap: calc(var(--hlw-lyrics-left) - var(--hlw-cover-right));
+  --size: calc(clamp(24px, 6.4cqh, 64px) - var(--i) * 0.5cqh);
+  height: var(--size);
+  aspect-ratio: var(--aspect);
+  /* Alternate left/right within the gap, centred on its midline. */
+  left: calc(var(--hlw-cover-right) + var(--gap) / 2 - var(--size) * var(--aspect) / 2);
+  bottom: calc(var(--hlw-ground) + min(clamp(84px, 15cqh, 200px), calc((var(--hlw-lyrics-left) - var(--hlw-cover-right) + 3cqw) / 0.9629)) * 0.6);
+  opacity: 0;
+  animation: Hlw__Rise 7.2s linear infinite;
+  animation-delay: calc(var(--i) * -1.2s);
+}
+
+/* The brown note is near-invisible on purple; lift it toward its orange twin. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Note:nth-of-type(3n + 2) {
+  filter: brightness(1.9);
+}
+
+/* ── Zombie: rises from the graves, shambles left, fades, loops ───────────── */
+/* Two boxes on one 24s clock. The wrapper stands on the grass at the graves'
+   centre and does the walk (translate) and the fade (opacity). It clips only
+   below its own bottom edge, the grass line, so the image rising up from
+   under it reads as climbing out of the ground. The image does the rise
+   (translate) and a shambling lurch (rotate, its own short loop). The art
+   already faces left, so no flip. The walk ends one zombie-width past the
+   left edge, so it always leaves the screen, at any window size. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__ZombieWalk {
+  --z-h: clamp(70px, 13cqh, 170px);
+  --z-w: calc(var(--z-h) * 1.1133);
+  --graves-mid: calc(54cqh * 0.638 - 4cqw + 9.5cqh * 2.0933 / 2);
+  --z-start: calc(100cqw - var(--graves-mid) - var(--z-w) / 2);
+  width: var(--z-w);
+  height: var(--z-h);
+  left: var(--z-start);
+  bottom: calc(var(--hlw-ground) - 0.4cqh);
+  clip-path: inset(-100% -100% 0 -100%);
+  animation: Hlw__ZombieWalk 24s linear infinite;
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Zombie {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: bottom center;
+  animation:
+    Hlw__ZombieRise 24s linear infinite,
+    Hlw__Lurch 1.1s ease-in-out infinite alternate;
+}
+
+/* ── Readability scrim behind lyric lines and the title area ──────────────── */
+/* Measured contrast in the mockup: white text >= 5.0:1 everywhere with this. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Scrim {
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 42cqw 58cqh at calc(var(--hlw-lyrics-left) + (100cqw - var(--hlw-lyrics-left)) * 0.42) 54cqh,
+      rgb(12 6 22 / 62%) 0%,
+      rgb(12 6 22 / 46%) 55%,
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse calc(var(--NowBarWidth) * 0.62) 12cqh at calc(var(--NowBarLeftSpacing) + var(--NowBarWidth) / 2)
+        calc(var(--hlw-cover-top) + var(--NowBarWidth) + 7cqh),
+      rgb(12 6 22 / 52%) 0%,
+      transparent 100%
+    );
+}
+
+/* ── Logo, then the top band: web, branch, bats ────────────────────────────── */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Logo {
+  height: var(--hlw-logo-h);
+  aspect-ratio: var(--aspect);
+  left: var(--hlw-logo-cx);
+  top: var(--hlw-logo-top);
+  translate: -50% 0;
+  filter: drop-shadow(0 4px 12px rgb(8 4 16 / 55%));
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Web {
+  height: min(var(--hlw-cover-top), 20cqh);
+  aspect-ratio: var(--aspect);
+  left: 0;
+  top: 0;
+  opacity: 0.85;
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Branch {
+  height: min(calc(var(--hlw-cover-top) - 1cqh), 15cqh);
+  aspect-ratio: var(--aspect);
+  right: 0;
+  top: 0;
+}
+
+/* Lanterns flicker: an inset glow pulse on the branch's pumpkins. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Branch {
+  animation: Hlw__Flicker 3.4s steps(1) infinite;
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Bat {
+  height: clamp(16px, 3.6cqh, 48px);
+  aspect-ratio: var(--aspect);
+  top: calc(1cqh + var(--i) * 1.6cqh);
+  animation:
+    Hlw__Flap 0.5s ease-in-out infinite alternate,
+    Hlw__Drift 9s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -0.17s), calc(var(--i) * -2.3s);
+}
+
+/* Two bats left of the logo, two right of it. The right pair is kept left of
+   the moon's glow (moon starts at 88cqw - its height), with drift included. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Bat:nth-of-type(-n + 5) {
+  left: calc(20cqw + var(--i) * 4.5cqw);
+}
+
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Bat:nth-last-of-type(-n + 2) {
+  left: calc(57cqw + (var(--i) - 2) * 5cqw);
+  right: auto;
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes Hlw__Rise {
+  0% {
+    opacity: 0;
+    transform: translate(calc(var(--gap) * -0.18), 0) rotate(-8deg) scale(1);
+  }
+  12% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(calc(var(--gap) * 0.18), -26cqh) rotate(8deg) scale(0.85);
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--gap) * -0.12), -52cqh) rotate(-6deg) scale(0.7);
+  }
+}
+
+@keyframes Hlw__Strum {
+  from {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    transform: rotate(1.5deg) translateY(-1px);
+  }
+}
+
+@keyframes Hlw__Sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-1.4deg);
+  }
+}
+
+@keyframes Hlw__Flap {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.72);
+  }
+}
+
+@keyframes Hlw__Drift {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 3cqw 1.2cqh;
+  }
+}
+
+@keyframes Hlw__Glow {
+  from {
+    opacity: 0.7;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1.04;
+  }
+}
+
+@keyframes Hlw__Flicker {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  7% {
+    filter: brightness(1.25);
+  }
+  9% {
+    filter: brightness(0.9);
+  }
+  48% {
+    filter: brightness(1.15);
+  }
+  51% {
+    filter: brightness(1);
+  }
+}
+
+/* Zombie clock (24s). 0-14%: climbs out of the ground at the graves.
+   14-19%: stands. 19-90%: shambles left, off the left edge. 84-90%: fades.
+   90-100%: gone, then it rises again. Wrapper and image share the clock. */
+@keyframes Hlw__ZombieRise {
+  0% {
+    translate: 0 100%;
+  }
+  14%,
+  100% {
+    translate: 0 0;
+  }
+}
+
+@keyframes Hlw__ZombieWalk {
+  0%,
+  19% {
+    translate: 0 0;
+    opacity: 1;
+  }
+  84% {
+    opacity: 1;
+  }
+  90% {
+    translate: calc(-1 * (var(--z-start) + var(--z-w))) 0;
+    opacity: 0;
+  }
+  100% {
+    translate: calc(-1 * (var(--z-start) + var(--z-w))) 0;
+    opacity: 0;
+  }
+}
+
+@keyframes Hlw__Lurch {
+  from {
+    rotate: -4deg;
+  }
+  to {
+    rotate: 3deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen :is(.HalloweenScene, .HalloweenTop, .HalloweenLogo) > *,
+  #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Zombie {
+    animation: none !important;
+  }
+  /* Notes are invisible at their animation start; show a still column instead. */
+  #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Note {
+    opacity: calc(1 - var(--i) * 0.14);
+    transform: translateY(calc(var(--i) * -7cqh));
+  }
+}
+
+/* ── Contexts where the scene does not belong ─────────────────────────────── */
+/* Popup Lyrics carries .Fullscreen but is far too small for a scene. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen :is(.HalloweenScene, .HalloweenTop, .HalloweenLogo) {
+  display: none;
+}
+
+/* Popup Lyrics has no logo, so it keeps the stock lyrics mask. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .LyricsContainer .LyricsContent {
+  --ImageMask: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent min(16px, 6%),
+    var(--spice-sidebar) calc(min(64px, 25%) + var(--SL-LyricsContent_MaskTopPadding)),
+    var(--spice-sidebar) calc(100% - min(64px, 25%)),
+    transparent calc(100% - min(16px, 6%)),
+    transparent
+  );
+}
+
+/* Compact and no-lyrics layouts move the cover and lyrics; the positions above
+   assume the standard side-by-side layout, so the scene keeps only the sky,
+   moon, clouds and ground there and drops everything placed against content. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen:is(.CompactMode, .ForcedCompactMode, .NowBarSide__Right)
+  :is(.Hlw__Witch, .Hlw__Lute, .Hlw__Note, .Hlw__Tree, .Hlw__Scrim, .Hlw__ZombieWalk),
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen:has(.ContentBox.LyricsHidden)
+  :is(.Hlw__Witch, .Hlw__Lute, .Hlw__Note, .Hlw__Tree, .Hlw__Scrim, .Hlw__ZombieWalk) {
+  display: none;
+}
+
+/* ── Canvas Immersive (tracks with a Spotify Canvas video) ────────────────── */
+/* There the album cover fades out and .CanvasStage, the looping video, takes
+   its place across the NowBar's half of the screen, with the title and
+   timeline docked in its bottom corner. The stage is z auto, so the scene at
+   z 1 would paint over the video and hide what is now the cover. Lift the
+   stage above the scene; it still sits under lyrics (z 4) and NowBar (z 10). */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen.CanvasImmersive .ContentBox > .CanvasStage {
+  z-index: 2;
+}
+
+/* The positions of the witch, tree, lute, notes and scrim assume the standard
+   layout; in Canvas Immersive the title dock sits where the witch stands. Keep
+   only the backdrop (sky, moon, clouds, house, graves, ground) and the top
+   band, the same rule as compact mode. */
+#SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen.CanvasImmersive
+  :is(.Hlw__Witch, .Hlw__Lute, .Hlw__Note, .Hlw__Tree, .Hlw__Scrim, .Hlw__ZombieWalk) {
+  display: none;
+}
+
+/* Portrait windows: the side strips are too narrow for characters. */
+@container (max-aspect-ratio: 1/1) {
+  #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen :is(.Hlw__Witch, .Hlw__Lute, .Hlw__Note, .Hlw__Tree, .Hlw__ZombieWalk) {
+    display: none;
+  }
+
+  /* The moon is sized by height but the logo and bats are placed by width, so
+     on a tall window the moon grows under both. Drop it below that band. */
+  #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__Moon {
+    top: 17cqh;
+  }
+
+  #SpicyLyricsPage.Exp_HalloweenTheme.Fullscreen .Hlw__MoonGlow {
+    top: calc(17cqh + clamp(120px, 26cqh, 420px) / 2);
+  }
+}
