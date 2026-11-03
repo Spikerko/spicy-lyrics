@@ -1,0 +1,70 @@
+diff --git a/src/app.tsx b/src/app.tsx
+index 66c8849..a502014 100644
+--- a/src/app.tsx
++++ b/src/app.tsx
+@@ -5,6 +5,8 @@ import "./css/default.css";
+ import "./css/default.scss";
+ import "./css/Simplebar.css";
+ import "./css/ContentBox.css";
++import "./css/HalloweenTheme.css";
++import "./css/BrandedHeader.css";
+ import "./css/DynamicBG/spicy-dynamic-bg.css";
+ import "./css/Lyrics/main.css";
+ import "./css/Lyrics/Mixed.css";
+diff --git a/src/components/Pages/PageView.ts b/src/components/Pages/PageView.ts
+index 8591274..8cd97e5 100644
+--- a/src/components/Pages/PageView.ts
++++ b/src/components/Pages/PageView.ts
+@@ -73,6 +73,8 @@ import {
+   onExperimentChange,
+   onExperimentDefinitionChange,
+ } from "../../utils/experiments.ts";
++import { HalloweenThemeHTML } from "../Utils/HalloweenTheme.ts";
++import { BrandedHeaderHTML } from "../Utils/BrandedHeader.ts";
+ import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
+ 
+ const pageLogger = new Logger("Page View");
+@@ -216,6 +218,8 @@ async function OpenPage(
+   //const vibrantNonAlarmingColor = extractedColors?.VIBRANT_NON_ALARMING ?? "#999999";
+   elem.innerHTML = `
+         <div class="ContentBox">
++            ${HalloweenThemeHTML()}
++            ${BrandedHeaderHTML()}
+             <div class="NowBar">
+                 <div class="CenteredView">
+                     <div class="Header">
+diff --git a/src/utils/experiments.ts b/src/utils/experiments.ts
+index b8c802a..52c726e 100644
+--- a/src/utils/experiments.ts
++++ b/src/utils/experiments.ts
+@@ -158,6 +158,30 @@ export const EXPERIMENTS = [
+     default: true,
+     pageClass: "Exp_KeepOverlappingLines",
+   },
++  {
++    id: "brandedHeader",
++    label: "Branded Header",
++    description:
++      "Shows a logo pill at the top of the fullscreen and cinema views. Disable to leave the top of the screen clear.",
++    default: true,
++    pageClass: "Exp_BrandedHeader",
++  },
++  {
++    id: "brandedHeaderGlass",
++    label: "Branded Header: Glass",
++    description:
++      "Renders the branded header as frosted Liquid Glass with monochrome logos recoloured white. Disable for an opaque white plate.",
++    default: true,
++    pageClass: "Exp_BrandedHeaderGlass",
++  },
++  {
++    id: "halloweenTheme",
++    label: "Halloween Theme (PJS #13)",
++    description:
++      "Replaces the fullscreen and cinema-view background with an animated PJS #13 Spooky night scene. Disable to bring back the normal album-colour background.",
++    default: true,
++    pageClass: "Exp_HalloweenTheme",
++  },
+ ] as const satisfies readonly Experiment[];
+ 
+ /** A registry entry, narrowed to its literal `id`. */
