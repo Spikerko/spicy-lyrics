@@ -1,6 +1,7 @@
 import { ApplyIsByCommunity } from "./ApplyIsByCommunity.tsx";
 import { ApplyLyricsProvider } from "./ApplyProvider.ts";
 import { CreditsRow } from "./CreditsRow.ts";
+import { PinSongCredits } from "./PinnedCredits.ts";
 
 interface LyricsData {
   SongWriters?: string[];
@@ -45,5 +46,8 @@ export function ApplySongCredits(data: any, LyricsContainer: HTMLElement): void 
   // Community lyrics name their source in the community line, so the refined look drops "Provided by".
   if (CreditsElement.querySelector(":scope > .SongInfo")) CreditsElement.classList.add("FromCommunity");
 
-  if (CreditsElement.childElementCount > 0) LyricsContainer.appendChild(CreditsElement);
+  if (CreditsElement.childElementCount > 0) {
+    LyricsContainer.appendChild(CreditsElement);
+    PinSongCredits(CreditsElement);
+  }
 }

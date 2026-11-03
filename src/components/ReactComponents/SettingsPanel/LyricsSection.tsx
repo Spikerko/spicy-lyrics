@@ -4,9 +4,11 @@ import {
   $duetLinePadding,
   $lineHoverBackground,
   $minimalLyricsMode,
+  $pinnedCredits,
   $simpleLyricsMode,
   $syllableMerge,
   $syllablePace,
+  type PinnedCredits,
   type SyllableMerge,
 } from "../../../utils/stores.ts";
 import { Select, Toggle } from "./components.tsx";
@@ -117,6 +119,22 @@ const groups: GroupDef[] = [
             label={label}
             checked={useStore($creditsFollowLastLine)}
             onChange={(v) => $creditsFollowLastLine.set(v)}
+          />
+        ),
+      },
+      {
+        id: "pinnedCredits",
+        label: "Pinned Credits",
+        description:
+          "Keep the credits at the bottom of the lyrics while they scroll. No Writers pins the lyrics source and community line, Full pins the songwriters too.",
+        keywords: "credits footer pin sticky written by songwriters provided by source community bottom",
+        Control: ({ label }) => (
+          <Select
+            label={label}
+            value={useStore($pinnedCredits)}
+            options={["off", "noWriters", "full"]}
+            labels={["Off", "No Writers", "Full"]}
+            onChange={(v) => $pinnedCredits.set(v as PinnedCredits)}
           />
         ),
       },

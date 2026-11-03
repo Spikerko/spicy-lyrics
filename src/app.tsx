@@ -9,6 +9,7 @@ import "./css/DynamicBG/spicy-dynamic-bg.css";
 import "./css/Lyrics/main.css";
 import "./css/Lyrics/Mixed.css";
 import "./css/Lyrics/ScrollToActive.css";
+import "./css/Lyrics/PinnedCredits.css";
 import "./css/Loaders/LoaderContainer.css";
 import "./css/Loaders/LyricsSkeleton.css";
 import "./css/font-pack/font-pack.css";

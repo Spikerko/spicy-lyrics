@@ -1,0 +1,113 @@
+/* Pinned Credits (setting): credit rows held at the bottom of the lyrics area instead of
+   scrolling after the last line (PinnedCredits.ts moves them into .LyricsPinnedCredits).
+   The layer is pinned to the lyrics area by anchor, since .LyricsContainer isn't always
+   positioned (the anchor name is set in ScrollToActive.css); without anchor positioning the
+   rows are never moved. Its width matches the lyrics area, which keeps the credits' `cqw`
+   sizes the same as in the scroll, and the column inside carries the lines' side padding.
+   --SL-PinnedCreditsHeight is the layer's height, set on .LyricsContainer while it's there. */
+#SpicyLyricsPage .LyricsContainer > .LyricsPinnedCredits {
+  position: absolute;
+  z-index: 10;
+  position-anchor: --SL-LyricsContent;
+  left: anchor(left);
+  right: anchor(right);
+  bottom: calc(anchor(bottom) + 24px);
+  container-type: inline-size;
+  /* Only the links take the pointer, so scrolling over the rows still moves the lyrics. */
+  pointer-events: none;
+}
+
+#SpicyLyricsPage .LyricsContainer > .LyricsPinnedCredits :is(a, button) {
+  pointer-events: auto;
+}
+
+/* The weight every lyric descendant gets in main.css; the refined credits override it per row. */
+#SpicyLyricsPage .LyricsContainer > .LyricsPinnedCredits * {
+  font-weight: 700 !important;
+}
+
+#SpicyLyricsPage .LyricsContainer > .LyricsPinnedCredits .SongCredits {
+  margin: 0 !important;
+}
+
+/* The first row sits flush with the layer's top, so its height is the block's. */
+#SpicyLyricsPage .LyricsContainer > .LyricsPinnedCredits .SongCredits > :first-child {
+  margin-top: 0 !important;
+}
+
+/* What's left in the scroll once every row is pinned. */
+#SpicyLyricsPage .LyricsContainer .LyricsContent .SongCredits:empty {
+  display: none;
+}
+
+/* The lyrics fade out above the pinned rows rather than at the bottom edge. */
+#SpicyLyricsPage .LyricsContainer.HasPinnedCredits .LyricsContent {
+  --PinnedCreditsLift: calc(var(--SL-PinnedCreditsHeight, 0px) + 24px);
+  --ImageMask: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 16px,
+    var(--spice-sidebar) calc(64px + var(--SL-LyricsContent_MaskTopPadding)),
+    var(--spice-sidebar) calc(100% - var(--PinnedCreditsLift) - 56px),
+    transparent calc(100% - var(--PinnedCreditsLift) - 8px),
+    transparent
+  );
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer.HasPinnedCredits .LyricsContent {
+  --ImageMask: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent min(16px, 6%),
+    var(--spice-sidebar) calc(min(64px, 25%) + var(--SL-LyricsContent_MaskTopPadding)),
+    var(--spice-sidebar) calc(100% - var(--PinnedCreditsLift) - min(56px, 20%)),
+    transparent calc(100% - var(--PinnedCreditsLift) - 8px),
+    transparent
+  );
+}
+
+/* Room under the end of the lyrics, so the last row still scrolling (the last line, or the
+   songwriters with No Writers) can rest above the fade instead of inside it. */
+#SpicyLyricsPage .LyricsContainer.HasPinnedCredits .LyricsContent .SpicyLyricsScrollContainer {
+  margin-bottom: calc(var(--PinnedCreditsLift) + 40px);
+}
+
+#SpicyLyricsPage
+  .LyricsContainer.HasPinnedCredits
+  .LyricsContent
+  .simplebar-track.simplebar-vertical {
+  bottom: var(--PinnedCreditsLift);
+}
+
+/* Credits Follow the Last Singer: the pinned rows take the side of a last line sung from the right. */
+#SpicyLyricsPage.SpicyRenderer.CreditsFollowLastLine
+  .LyricsContainer
+  > .LyricsPinnedCredits.EndsOnOppositeLine
+  .SongCredits
+  > :is(.Credits, .LyricsProvider, .SongInfo) {
+  text-align: end;
+}
+
+#SpicyLyricsPage.SpicyRenderer.CreditsFollowLastLine
+  .LyricsContainer
+  > .LyricsPinnedCredits.EndsOnOppositeLine
+  .SongCredits
+  > .SongInfo {
+  align-items: flex-end;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits.CreditsFollowLastLine
+  .LyricsContainer
+  > .LyricsPinnedCredits.EndsOnOppositeLine
+  .SongCredits {
+  margin-inline-start: auto !important;
+}
+
+/* The scroll-to-active button waits above the pinned rows. */
+@supports (anchor-name: --a) {
+  #SpicyLyricsPage .LyricsContainer.HasPinnedCredits > .ScrollToActive:not(.Above) {
+    bottom: calc(
+      anchor(bottom) + var(--SL-PinnedCreditsHeight, 0px) + 24px + var(--ScrollToActiveInset)
+    );
+  }
+}

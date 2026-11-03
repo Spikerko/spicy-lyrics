@@ -101,6 +101,10 @@ export const $duetLinePadding = persistAtom<boolean>("duetLinePadding", true);
 // When a song ends on a duet line sung from the right, the credits under it
 // (writers, provider, community info) move to the right with it.
 export const $creditsFollowLastLine = persistAtom<boolean>("creditsFollowLastLine", false);
+// Credits held at the bottom of the lyrics instead of scrolling after the last line:
+// the source and community line only, or the songwriters too.
+export type PinnedCredits = "off" | "noWriters" | "full";
+export const $pinnedCredits = persistAtom<PinnedCredits>("pinnedCredits", "off");
 export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
 export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
 // Never inject the lyrics card into the Now Playing sidebar at all.

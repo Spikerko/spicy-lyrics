@@ -16,6 +16,7 @@ import { SLObjPack } from "../objpack.ts";
 import { HideLyricsSkeleton, IsLyricsSkeletonEnabled, ShowLyricsSkeleton } from "./LyricsSkeleton.ts";
 import { onExperimentChange } from "../experiments.ts";
 import { getRemoteConfig } from "../remoteConfig.ts";
+import { ClearPinnedCredits } from "./Applyer/Credits/PinnedCredits.ts";
 
 const lyricsLogger = new Logger("Lyrics Pipeline");
 const lyricsCacheLogger = new Logger("Lyrics Cache");
@@ -646,4 +647,5 @@ export function ClearLyricsPageContainer(): void {
   if (lyricsContent) {
     lyricsContent.innerHTML = "";
   }
+  ClearPinnedCredits();
 }
