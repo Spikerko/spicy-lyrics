@@ -18,8 +18,10 @@ const MaxJoinGapMs = 100;
 const MaxPaceRatio = 3;
 
 const HasSpace = (text: string | undefined): boolean => text !== undefined && /\s/.test(text);
-// "Ah-" "ah-" "ah": a trailing dash marks a deliberate break, so the parts stay apart.
-const EndsWithDash = (text: string): boolean => /[-‐-―]$/.test(text);
+// A dash or slash between two parts ends a word there: "tea" "ry-" "eyed" is
+// "teary-" then "eyed", and "Ah-" "ah-" "ah" stays three.
+const StartsNewWord = (prev: JoinableSyllable, next: JoinableSyllable): boolean =>
+  /[-‐-―/]$/.test(prev.Text) || /^[-‐-―/]/.test(next.Text);
 // Scripts written without spaces: there the parts of a "word" can run the whole
 // line, which would join into one, so they stay as they were timed.
 const UnspacedScript =
@@ -43,7 +45,6 @@ function isOneWord(run: JoinableSyllable[]): boolean {
     return false;
   }
 
-  if (run.slice(0, -1).some((part) => EndsWithDash(part.Text))) return false;
   return !run.some((part) => UnspacedScript.test(part.Text));
 }
 
@@ -72,8 +73,8 @@ function join<T extends JoinableSyllable>(run: T[]): T {
 }
 
 // Puts the parts of a split word back into one syllable, the joined word keeping
-// them as Parts. A run with a space inside, a trailing dash or an unspaced script
-// stays split in every mode. "full" joins every other word; "steady" only one
+// them as Parts. A word ends at a dash or slash between parts; one with a space
+// inside or an unspaced script stays split in every mode. "full" joins every other word; "steady" only one
 // sung without a gap and at an even pace; "held" only one keepJoined accepts
 // (the caller's test for a word drawn letter by letter).
 export function JoinSplitWords<T extends JoinableSyllable>(
@@ -85,7 +86,13 @@ export function JoinSplitWords<T extends JoinableSyllable>(
 
   for (let i = 0; i < syllables.length; i++) {
     let end = i;
-    while (syllables[end].IsPartOfWord && end + 1 < syllables.length) end++;
+    while (
+      syllables[end].IsPartOfWord &&
+      end + 1 < syllables.length &&
+      !StartsNewWord(syllables[end], syllables[end + 1])
+    ) {
+      end++;
+    }
 
     const run = syllables.slice(i, end + 1);
     const word =
