@@ -1827,7 +1827,7 @@
 #SpicyLyricsPage.Fullscreen.ForcedCompactMode
   .ContentBox
   .NowBar:has(.CenteredView .Header .MediaBox:hover) {
-  height: calc(var(--Compact_NowBarHeight) + 40cqw);
+  height: calc(var(--Compact_NowBarHeight) + var(--Compact_HoverGrow, 40cqw));
 }
 
 #SpicyLyricsPage.CompactMode.CompactifyEnabledCompactMode
@@ -1849,7 +1849,7 @@
 #SpicyLyricsPage.Fullscreen.ForcedCompactMode.SpicyRenderer:has(.MediaBox:hover)
   .ContentBox
   .LyricsContainer {
-  margin-top: calc(var(--Compact_NowBarHeight) + 50cqw);
+  margin-top: calc(var(--Compact_NowBarHeight) + var(--Compact_HoverPush, 50cqw));
 }
 
 .spicy-pip-wrapper
@@ -2096,7 +2096,7 @@
   ).ForcedCompactMode:has(.NowBar.LockedMediaBox)
   .ContentBox
   .LyricsContainer {
-  margin-top: calc(var(--Compact_NowBarHeight) + 18cqw);
+  margin-top: calc(var(--Compact_NowBarHeight) + var(--Compact_HoverPush, 18cqw));
 }
 
 #SpicyLyricsPage.Fullscreen:not(.CompactifyEnabledCompactMode).CompactMode
@@ -2111,7 +2111,7 @@
 #SpicyLyricsPage.Fullscreen.ForcedCompactMode:not(.CompactifyEnabledCompactMode)
   .ContentBox
   .NowBar.LockedMediaBox {
-  height: calc(var(--Compact_NowBarHeight) + 15cqw);
+  height: calc(var(--Compact_NowBarHeight) + var(--Compact_HoverGrow, 15cqw));
 }
 
 #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .MediaBox .MediaImageContainer,

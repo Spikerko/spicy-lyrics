@@ -58,6 +58,7 @@ import "./css/NoticeDialog.css";
 import "./css/polyfills/sonner-polyfill.css";
 import "./css/NPVLyrics.css";
 import "./css/PopupDock.css";
+import "./css/PortraitFullscreen.css";
 import { showUpdatedDialog } from "./components/ReactComponents/UpdateDialog.tsx";
 import { IsPIP, OpenPopupLyrics, ClosePopupLyrics } from "./components/Utils/PopupLyrics.ts";
 import { GetNPVCardElement, GetNPVElement, GetNPVObserverRoot, initNPVLyrics } from "./components/Utils/NPVLyrics.ts";

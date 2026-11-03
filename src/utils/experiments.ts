@@ -158,6 +158,14 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_KeepOverlappingLines",
   },
+  {
+    id: "portraitFullscreen",
+    label: "Portrait Fullscreen Layout",
+    description:
+      "In compact fullscreen on a window taller than it is wide, the lyrics use nearly the full width, the cover header sits as far from the top as the lyrics are from the sides, the song title and artist are centred beside the cover and sized to the lyrics, and the cover grows on hover without covering them. Disable to bring back the regular compact layout.",
+    default: true,
+    pageClass: "Exp_PortraitFullscreen",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */
