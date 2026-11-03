@@ -66,12 +66,8 @@
   );
 }
 
-/* Room under the end of the lyrics, so the last row still scrolling (the last line, or the
-   songwriters with No Writers) can rest above the fade instead of inside it. */
-#SpicyLyricsPage .LyricsContainer.HasPinnedCredits .LyricsContent .SpicyLyricsScrollContainer {
-  margin-bottom: calc(var(--PinnedCreditsLift) + 40px);
-}
-
+/* No extra room under the lyrics is needed: the scroll already ends with enough space for the
+   last line to reach the middle, well above the lifted fade. */
 #SpicyLyricsPage
   .LyricsContainer.HasPinnedCredits
   .LyricsContent

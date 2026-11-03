@@ -16,7 +16,6 @@ const ROW_ORDER = [".Credits", ".LyricsProvider", ".SongInfo"];
 let home: HTMLElement | null = null;
 let layer: HTMLElement | null = null;
 let observer: ResizeObserver | null = null;
-let placeFrame = 0;
 
 function rowRank(row: Element): number {
   return ROW_ORDER.findIndex((selector) => row.matches(selector));
@@ -60,7 +59,6 @@ function syncLayout(): void {
 }
 
 function place(): void {
-  placeFrame = 0;
   unpin();
 
   const mode = $pinnedCredits.get();
@@ -106,23 +104,22 @@ function place(): void {
 }
 
 /**
- * Takes the credits block built for the current lyrics. Placement waits a frame: the
- * appliers build the block before the lyrics are attached to the page.
+ * Takes the credits block built for the current lyrics. Placement waits for the current
+ * task to finish: the appliers build the block just before they attach the lyrics to the
+ * page. Not a frame, which never comes while Spotify's window is hidden.
  */
 export function PinSongCredits(credits: HTMLElement): void {
   unpin();
   home = credits;
-  if (!placeFrame) placeFrame = requestAnimationFrame(place);
+  queueMicrotask(place);
 }
 
 /** Drops the pinned credits with the lyrics they belong to. */
 export function ClearPinnedCredits(): void {
-  if (placeFrame) cancelAnimationFrame(placeFrame);
-  placeFrame = 0;
   unpin();
   home = null;
 }
 
 $pinnedCredits.listen(() => {
-  if (home?.isConnected && !placeFrame) placeFrame = requestAnimationFrame(place);
+  if (home?.isConnected) queueMicrotask(place);
 });
