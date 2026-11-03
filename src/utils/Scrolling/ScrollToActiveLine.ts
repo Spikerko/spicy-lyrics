@@ -59,8 +59,12 @@ const wasDrasticPositionChange = (lastPosition: number, newPosition: number) => 
   return positionChange > 1000;
 };
 
-// Add focus event listener to reset state when window is focused
-window.addEventListener("focus", ResetLastLine);
+// Add focus event listener to reset state when window is focused, unless a hand scroll has the
+// lyrics elsewhere: the click that focuses the window can be on a line out there, and the reset
+// would scroll it out from under the pointer before the click lands.
+window.addEventListener("focus", () => {
+  if (!isUserScrolling) ResetLastLine();
+});
 // Add resize event listener to reset state when window is resized
 window.addEventListener("resize", ResetLastLine);
 
