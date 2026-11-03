@@ -124,6 +124,7 @@ export function DecodeVocalActivity(bytes: Uint8Array): VocalActivity | null {
     const field = key >> 3;
     const wire = key & 7;
     if (wire === 5) {
+      if (i + 4 > bytes.length) return null;
       if (field === 1)
         sampleRate = new DataView(bytes.buffer, bytes.byteOffset + i, 4).getFloat32(0, true);
       i += 4;
@@ -132,7 +133,10 @@ export function DecodeVocalActivity(bytes: Uint8Array): VocalActivity | null {
       if (field === 3) firstWindow = value;
       else if (field === 4) hop = value;
     } else if (wire === 2) {
-      const end = i + varint();
+      // The length first: varint() moves `i` past it, so `i + varint()` would end short.
+      const length = varint();
+      const end = i + length;
+      if (end > bytes.length) return null;
       if (field === 5) while (i < end) probabilities.push(varint());
       i = end;
     } else {
