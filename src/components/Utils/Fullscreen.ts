@@ -6,7 +6,7 @@ import { $forceCompactMode, $isNowBarOpen } from "../../utils/uiState.ts";
 import Global from "../Global/Global.ts";
 import { SetKawarpSuspended } from "../DynamicBG/dynamicBackground.ts";
 import PageView, { Compactify, GetPageRoot, PageContainer, Tooltips } from "../Pages/PageView.ts";
-import { EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
+import { DisableCompactMode, EnableCompactMode, IsCompactMode } from "./CompactMode.ts";
 import { CleanUpNowBarComponents, CloseNowBar, DeregisterNowBarBtn, OpenNowBar } from "./NowBar.ts";
 import TransferElement from "./TransferElement.ts";
 import { IsPIP } from "./PopupLyrics.ts";
@@ -508,6 +508,12 @@ function finishClose(SpicyPage: HTMLElement, transfer: boolean) {
   SpicyPage.classList.remove("Fullscreen", "frame_F_Exit");
   clearNativeChromeInsets(SpicyPage);
 
+  // Compact mode only exists in fullscreen. Its styles don't depend on the
+  // Fullscreen class, so left on, the page keeps the compact header after
+  // closing, frozen once the NowBar stops updating.
+  SpicyPage.classList.remove("ForcedCompactMode", "CompactifyEnabledCompactMode");
+  DisableCompactMode();
+
   void ExitFullscreenElement().then(() => {
     if (transfer) setTimeout(() => PageView.AppendViewControls(true), 50);
   });
@@ -583,7 +589,6 @@ function Close(isPip: boolean = false): Promise<boolean> {
     }
 
     finishClose(SpicyPage, true);
-    setTimeout(Compactify, 1000);
     GetCurrentLyricsContainerInstance()?.Resize();
     return true;
   };
