@@ -1304,11 +1304,41 @@ class LyricsVirtualizer {
     const b = this._getItemRect(v, Math.min(index + 1, count - 1));
     const fraction = clamped - index;
     const middle = (a.start + a.size / 2) * (1 - fraction) + (b.start + b.size / 2) * fraction;
+    // The container's rect includes the sub-pixel translate, so add it back.
     const containerOffset =
       this._virtualContainer.getBoundingClientRect().top -
       scrollEl.getBoundingClientRect().top +
-      scrollEl.scrollTop;
+      scrollEl.scrollTop +
+      this._smoothFraction;
     return Math.max(0, containerOffset + middle - scrollEl.clientHeight / 2);
+  }
+
+  /**
+   * Puts the list at a scroll position between device pixels: scrollTop takes the whole
+   * steps and the remainder rides on the same translate the smooth scroll uses, so slow
+   * movement glides instead of ticking a step at a time. Returns where the list now is.
+   */
+  setScrollPosition(position: number): number | null {
+    const v = this._virtualizer;
+    const scrollEl = v?.scrollElement;
+    if (!v || !scrollEl) return null;
+    const step = scrollStep(scrollEl);
+    const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+    const clamped = Math.min(Math.max(position, 0), maxScroll);
+    const whole = Math.min(Math.round(clamped / step) * step, Math.floor(maxScroll / step + 1e-6) * step);
+    if (Math.abs(scrollEl.scrollTop - whole) > step / 2) {
+      scrollEl.scrollTo({ top: whole, behavior: "instant" });
+      // A programmatic write may not dispatch 'scroll'; keep the window in step.
+      v.scrollOffset = whole;
+      this._onVirtualizerChange(v);
+    }
+    this._setSmoothFraction(clamped - whole);
+    return clamped;
+  }
+
+  /** Drops the sub-pixel offset left by setScrollPosition, so the list sits on scrollTop. */
+  clearScrollFraction(): void {
+    if (this._smoothRAF === null) this._setSmoothFraction(0);
   }
 
   /**
@@ -2195,6 +2225,14 @@ export function scrollLyricsToIndex(
 
 export function lyricsCenterScrollTopAt(position: number): number | null {
   return lyricsVirtualizer.centerScrollTopAt(position);
+}
+
+export function setLyricsScrollPosition(position: number): number | null {
+  return lyricsVirtualizer.setScrollPosition(position);
+}
+
+export function clearLyricsScrollFraction(): void {
+  lyricsVirtualizer.clearScrollFraction();
 }
 
 // Refreshed Simple Lyrics is on for the current list: rows glide when one

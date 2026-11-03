@@ -23,7 +23,9 @@ import { ScrollIntoCenterViewCSS } from "../ScrollIntoView/Center.ts";
 import { ScrollIntoTopViewCSS } from "../ScrollIntoView/Top.ts";
 import {
   getLyricsVirtualizer,
+  clearLyricsScrollFraction,
   lyricsCenterScrollTopAt,
+  setLyricsScrollPosition,
   lyricsUseRefreshedLayout,
   scrollLyricsToIndex,
 } from "../Lyrics/LyricsVirtualizer.ts";
@@ -375,6 +377,7 @@ export const GetForceScrollingPolicy = () => {
 let staticPace: { key: string; pace: StaticPace | null } = { key: "", pace: null };
 let lastStaticFrame = 0;
 let lastStaticPosition = 0;
+let staticScrollY: number | null = null;
 
 function ScrollStaticLyrics(ScrollSimplebar: any) {
   const mode = $staticAutoScroll.get();
@@ -382,6 +385,7 @@ function ScrollStaticLyrics(ScrollSimplebar: any) {
   const lineCount = LyricsObject.Types.Static.Lines.length;
   if (mode === "off" || !uri || !lineCount) {
     SetScrollToActiveDirection(null);
+    ReleaseStaticScroll();
     return;
   }
 
@@ -411,27 +415,42 @@ function ScrollStaticLyrics(ScrollSimplebar: any) {
 
   const target = lyricsCenterScrollTopAt(pace(position) * (lineCount - 1));
   if (target === null) return;
-  const distance = target - container.scrollTop;
+  // scrollTop only holds whole device pixels, so the list's own position is kept here.
+  // Anything else moving it (a hand scroll, a relayout) takes over from where it put it.
+  if (staticScrollY === null || Math.abs(staticScrollY - container.scrollTop) > 2) {
+    staticScrollY = container.scrollTop;
+  }
+  const distance = target - staticScrollY;
   // A hand scroll that left the point being sung half a screen or more away holds auto-scroll off.
   const scrolledAway = lastUserScrollTime !== 0 && Math.abs(distance) > container.clientHeight / 2;
   SetScrollToActiveDirection(scrolledAway ? (distance < 0 ? "Above" : "Below") : null);
   // After a hand scroll, take over again once it has settled with the point being sung in view.
   if (lastUserScrollTime) {
+    // The hand has the list: let it sit on scrollTop, with no offset of ours left over.
+    ReleaseStaticScroll();
     if (now - lastUserScrollTime <= USER_SCROLL_COOLDOWN) return;
     if (scrolledAway) return;
     lastUserScrollTime = 0;
   }
-  if (Math.abs(distance) < 0.5) {
+  if (Math.abs(distance) < 0.05) {
     staticReturning = false;
     return;
   }
   // Eased toward the target each frame; more than a screen away (new lyrics, a seek) it jumps.
-  // "instant" because the container's CSS smooth scrolling would queue up every step.
   const next =
     Math.abs(distance) > container.clientHeight && !staticReturning
       ? target
-      : container.scrollTop + distance * (1 - Math.exp(-frameMs / 200));
-  container.scrollTo({ top: next, behavior: "instant" });
+      : staticScrollY + distance * (1 - Math.exp(-frameMs / 200));
+  staticScrollY = setLyricsScrollPosition(next);
+  // Without the virtualizer, whole steps only. "instant" because the container's CSS
+  // smooth scrolling would queue up every step.
+  if (staticScrollY === null) container.scrollTo({ top: next, behavior: "instant" });
+}
+
+function ReleaseStaticScroll() {
+  if (staticScrollY === null) return;
+  staticScrollY = null;
+  clearLyricsScrollFraction();
 }
 
 export function ScrollToActiveLine(ScrollSimplebar: any) {
