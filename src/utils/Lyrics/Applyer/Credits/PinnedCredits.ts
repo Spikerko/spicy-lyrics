@@ -49,7 +49,7 @@ function syncLayout(): void {
   // The padding goes on the column inside: the layer itself spans the lyrics area's width,
   // so `cqw` in the credit sizes resolves against the same width as it does in the scroll.
   const column = layer.firstElementChild as HTMLElement;
-  const style = getComputedStyle(scroll);
+  const style = (scroll.ownerDocument.defaultView ?? window).getComputedStyle(scroll);
   const contentRect = content.getBoundingClientRect();
   const scrollRect = scroll.getBoundingClientRect();
   layer.style.fontSize = style.fontSize;
@@ -73,22 +73,25 @@ function place(): void {
     !container?.classList.contains("LyricsContainer")
   )
     return;
+  // The popup window has its own document and globals, so everything is made from the lyrics' own.
+  const doc = container.ownerDocument;
+  const view = doc.defaultView ?? window;
   // The sidebar card is too short to give up its bottom to the credits, and without
   // anchor positioning there is no box to pin them to: both keep them in the scroll.
   if (container.closest("#SpicyLyricsPage")?.classList.contains("CardMode")) return;
-  if (!CSS.supports("anchor-name", "--a")) return;
+  if (!view.CSS.supports("anchor-name", "--a")) return;
 
   const rows = [...home.children].filter((row) =>
     mode === "full" ? rowRank(row) >= 0 : rowRank(row) > 0
   );
   if (rows.length === 0) return;
 
-  layer = document.createElement("div");
+  layer = doc.createElement("div");
   layer.classList.add("LyricsPinnedCredits");
   layer.classList.toggle("EndsOnOppositeLine", scroll.classList.contains("EndsOnOppositeLine"));
-  const column = document.createElement("div");
+  const column = doc.createElement("div");
   column.classList.add("PinnedCreditsColumn");
-  const credits = document.createElement("div");
+  const credits = doc.createElement("div");
   credits.className = home.className;
   credits.append(...rows);
   column.append(credits);
@@ -96,7 +99,7 @@ function place(): void {
   content.after(layer);
   container.classList.add("HasPinnedCredits");
 
-  observer = new ResizeObserver(syncLayout);
+  observer = new view.ResizeObserver(syncLayout);
   observer.observe(layer);
   observer.observe(content);
   observer.observe(scroll);
