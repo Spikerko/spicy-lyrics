@@ -16,6 +16,7 @@ import Fullscreen, {
   SetControlsDragLock,
 } from "./Fullscreen.ts";
 import { IsPIP } from "./PopupLyrics.ts";
+import { OpenFullscreenClock, CloseFullscreenClock } from "./FullscreenClock.ts";
 import { IsCompactMode } from "./CompactMode.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Scheduler from "../../modules/Scheduler.ts";
@@ -236,6 +237,7 @@ function OpenNowBar(skipSaving: boolean = false) {
         NowBarFullscreenMaid.Destroy();
       }
       NowBarFullscreenMaid = new Maid();
+      OpenFullscreenClock();
       {
         /* const AlbumNameElement = document.createElement("div");
                 AlbumNameElement.classList.add("AlbumData");
@@ -1189,6 +1191,8 @@ function OpenNowBar(skipSaving: boolean = false) {
 }
 
 function CleanUpActiveComponents() {
+  CloseFullscreenClock();
+
   if (NowBarFullscreenMaid && !NowBarFullscreenMaid?.IsDestroyed()) {
     NowBarFullscreenMaid.Destroy();
   }

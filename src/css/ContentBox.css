@@ -2290,3 +2290,64 @@
 #SpicyLyricsPage .MediaImageContainer .fi_FromImage.MB_anim_fimg::before {
   opacity: 1;
 }
+/* --- Clock (fullscreen) ------------------------------------------------------ */
+/* Top centre of the page. The time is filled with a gradient of the cover's own
+   colours (set by FullscreenClock.ts); without one it falls back to plain white. */
+#SpicyLyricsPage:not(.Exp_FullscreenClock) .SL_FullscreenClock {
+  display: none !important;
+}
+
+#SpicyLyricsPage .ContentBox .SL_FullscreenClock {
+  position: absolute;
+  top: 3.4cqh;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5cqh;
+  pointer-events: none;
+  user-select: none;
+  color: #fff;
+  line-height: 1;
+  text-align: center;
+  filter: drop-shadow(0 0.4cqh 1.6cqh color-mix(in srgb, var(--SL_ClockGlow, #fff) 45%, transparent));
+}
+
+#SpicyLyricsPage .SL_FullscreenClock .SL_Clock_Time {
+  font-size: clamp(30px, 5.6cqh, 72px);
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background-image: var(--SL_ClockGradient, linear-gradient(#fff, #fff));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: filter 400ms;
+}
+
+#SpicyLyricsPage .SL_FullscreenClock .SL_Clock_Date {
+  font-size: clamp(11px, 1.7cqh, 20px);
+  font-weight: 600 !important;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* Date on its own: bigger, and filled like the time would be. */
+#SpicyLyricsPage .SL_FullscreenClock[data-show="time"] .SL_Clock_Date,
+#SpicyLyricsPage .SL_FullscreenClock[data-show="date"] .SL_Clock_Time {
+  display: none;
+}
+
+#SpicyLyricsPage .SL_FullscreenClock[data-show="date"] .SL_Clock_Date {
+  font-size: clamp(18px, 3.4cqh, 42px);
+  letter-spacing: 0.14em;
+  color: #fff;
+  background-image: var(--SL_ClockGradient, linear-gradient(#fff, #fff));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

@@ -158,6 +158,14 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_KeepOverlappingLines",
   },
+  {
+    id: "fullscreenClock",
+    label: "Clock in Fullscreen",
+    description:
+      "Shows the time at the top centre of the fullscreen view, in colours taken from the current cover, with the date underneath. Disable to hide it.",
+    default: true,
+    pageClass: "Exp_FullscreenClock",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */
