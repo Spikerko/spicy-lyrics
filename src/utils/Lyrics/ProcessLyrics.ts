@@ -309,7 +309,9 @@ const romanizeUnit = async (
           }
         }
       }
-      if (!result) complete = false;
+      // Only a dictionary still loading is worth another try; a line that doesn't
+      // tokenize won't the next time either.
+      if (!KuromojiAnalyzer.isReady()) complete = false;
       texts.forEach((t, i) => {
         if (japanese[i]) texts[i] = result ? result[i] : RomanizeKanaOnlyLegacy(t);
       });
@@ -325,7 +327,9 @@ const romanizeUnit = async (
           romanizationLogger.warn("Japanese line didn't tokenize, spelling out kana only", error);
         }
       }
-      if (!result) complete = false;
+      // Only a dictionary still loading is worth another try; a line that doesn't
+      // tokenize won't the next time either.
+      if (!KuromojiAnalyzer.isReady()) complete = false;
       texts.forEach((t, i) => {
         const japanese = ItemJapaneseTest.test(t);
         if (result) {
@@ -476,7 +480,6 @@ export const ProcessLyrics = async (lyrics: any): Promise<boolean> => {
         if (!result.complete) complete = false;
         if (applyUnit(unit, result)) appliedRomanization = true;
       } catch (error) {
-        complete = false;
         romanizationLogger.warn("Line romanization failed", error);
       }
     }

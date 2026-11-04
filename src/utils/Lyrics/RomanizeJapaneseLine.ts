@@ -316,10 +316,6 @@ export const RomanizeJapaneseLine = async (
   });
 };
 
-/** Romaji for a whole line of text, words spaced apart. */
-export const RomanizeJapaneseText = async (text: string): Promise<string> =>
-  (await RomanizeJapaneseLine([{ Text: text }]))[0].text;
-
 /**
  * Kana only, for when the dictionary isn't available: kana are spelled out
  * and kanji are left as written, since reading them needs the dictionary.
