@@ -41,7 +41,7 @@ function syllableRomanization(syllables: any[]): string {
     );
     const piece = raw.trim();
     const startsWord = !gluedToPrevious || /^\s/.test(raw);
-    const partOfWord = syllable.RomanizedIsPartOfWord ?? syllable.IsPartOfWord;
+    const partOfWord = syllable.TransliteratedIsPartOfWord ?? syllable.IsPartOfWord;
     gluedToPrevious = !!partOfWord && !/\s$/.test(raw);
     if (piece === "") continue;
     if (text !== "" && startsWord) text += " ";
