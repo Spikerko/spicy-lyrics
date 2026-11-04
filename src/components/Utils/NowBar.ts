@@ -237,7 +237,8 @@ function OpenNowBar(skipSaving: boolean = false) {
         NowBarFullscreenMaid.Destroy();
       }
       NowBarFullscreenMaid = new Maid();
-      OpenFullscreenClock();
+      // Popup Lyrics opens through the same path, and is too small for a clock.
+      if (!IsPIP) OpenFullscreenClock();
       {
         /* const AlbumNameElement = document.createElement("div");
                 AlbumNameElement.classList.add("AlbumData");

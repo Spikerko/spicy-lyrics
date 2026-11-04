@@ -1,6 +1,6 @@
 import Global from "../Global/Global.ts";
 import { PageContainer } from "../Pages/PageView.ts";
-import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
+import { COVER_PLACEHOLDER_URL, SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import Logger from "../../utils/Logger.ts";
 import {
   $clockColours,
@@ -155,7 +155,10 @@ function updateColours() {
     applyColours(null);
     return;
   }
-  const cover = SpotifyPlayer.GetCover("standard") ?? SpotifyPlayer.GetCover("xlarge");
+  // GetCover answers with a placeholder, not undefined, for a size the item doesn't have.
+  const cover = (["standard", "large", "xlarge", "small"] as const)
+    .map((size) => SpotifyPlayer.GetCover(size))
+    .find((url) => url && url !== COVER_PLACEHOLDER_URL);
   if (!cover) {
     applyColours(null);
     return;
