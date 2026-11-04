@@ -1,4 +1,4 @@
-import { openDB } from "idb";
+import { openDB, type IDBPDatabase } from "idb";
 import Logger from "./Logger";
 
 const dbLogger = new Logger("Database");
@@ -7,15 +7,27 @@ export const ObjectStores = {
   LyricsStore: "lyricsStore",
 }
 
-export const dbPromise = openDB("spicylyrics", 1, {
-  upgrade(db) {
-    dbLogger.debug("Upgrade invoked");
-    if (!db.objectStoreNames.contains(ObjectStores.LyricsStore)) {
-      db.createObjectStore(ObjectStores.LyricsStore);
-      dbLogger.debug("Created '", ObjectStores.LyricsStore, "' store");
-    }
-  },
-});
+const upgrade = (db: IDBPDatabase) => {
+  dbLogger.debug("Upgrade invoked");
+  if (!db.objectStoreNames.contains(ObjectStores.LyricsStore)) {
+    db.createObjectStore(ObjectStores.LyricsStore);
+    dbLogger.debug("Created '", ObjectStores.LyricsStore, "' store");
+  }
+};
+
+async function openLyricsDb() {
+  // Forks use this database too and raise its version. Asking for a lower version
+  // throws VersionError and takes the Local DB down, so open at whatever is there.
+  const db = await openDB("spicylyrics", undefined, { upgrade });
+  if (db.objectStoreNames.contains(ObjectStores.LyricsStore)) return db;
+
+  // Bumping stops a build pinned to the old version from opening it, so only when the store is missing.
+  const nextVersion = db.version + 1;
+  db.close();
+  return openDB("spicylyrics", nextVersion, { upgrade });
+}
+
+export const dbPromise = openLyricsDb();
 
 export async function ensurePersistence() {
   try {
