@@ -40,7 +40,8 @@ const isKanji = (c: string) =>
   (c >= "豈" && c <= "﫿") ||
   (c >= "㐀" && c <= "䶿") ||
   c === "々";
-const hasJapanese = (s: string) => [...s].some((c) => isKanaChar(c) || isKanji(c));
+const isJapaneseChar = (c: string) => isKanaChar(c) || isKanji(c);
+const hasJapanese = (s: string) => [...s].some(isJapaneseChar);
 const toKatakana = (s: string) =>
   s.replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
 
@@ -218,12 +219,20 @@ export const RomanizeJapaneseLine = async (
   syllables: LineSyllable[]
 ): Promise<RomanizedSyllable[]> => {
   // Syllables that aren't part of the same word are spaced apart, so the
-  // tokenizer sees the same word boundaries the lyrics do.
+  // tokenizer sees the same word boundaries the lyrics do. Not between two
+  // Japanese ones: many lyrics put a space after every syllable of Japanese,
+  // and spaced apart the tokenizer would read each kanji on its own (世|界 →
+  // "yo sakai").
   let text = "";
   const owner: number[] = [];
   const startsAt: number[] = [];
   syllables.forEach((syllable, index) => {
-    if (index > 0 && !syllables[index - 1].IsPartOfWord) {
+    const previous = syllables[index - 1];
+    if (
+      previous &&
+      !previous.IsPartOfWord &&
+      !(isJapaneseChar([...previous.Text].at(-1) ?? "") && isJapaneseChar([...syllable.Text][0] ?? ""))
+    ) {
       text += " ";
       owner.push(-1);
     }
