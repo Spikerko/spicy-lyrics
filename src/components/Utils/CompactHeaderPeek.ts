@@ -111,6 +111,9 @@ function onPointerMove(e: PointerEvent) {
 }
 
 function close() {
+  // A frame queued by the last move would otherwise reopen it from the old position.
+  if (frame) cancelAnimationFrame(frame);
+  frame = 0;
   PageContainer?.classList.remove(PEEK_CLASS);
   zone = null;
 }
