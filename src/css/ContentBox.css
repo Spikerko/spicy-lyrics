@@ -2336,6 +2336,18 @@
   right: calc(var(--NowBarLeftSpacing) + var(--NowBarWidth) + var(--QP_Gap));
 }
 
+/* Compact modes keep the cover in the top corner and the lyrics in a column on
+   the left, so the panel goes in the free strip on the right, below the
+   timeline that runs along the header. */
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) .ContentBox .SL_QueuePanel {
+  top: calc(6cqh + var(--Compact_NowBarHeight) + 3cqh);
+  bottom: 5cqh;
+  left: auto;
+  right: var(--QP_Edge);
+  width: clamp(300px, 24cqw, 460px);
+  margin-inline: 0;
+}
+
 #SpicyLyricsPage .ContentBox .SL_QueuePanel.Visible {
   opacity: 1;
   scale: 1;

@@ -536,7 +536,7 @@ function AppendViewControls(ReAppend: boolean = false) {
             : ""
         }
         ${
-          (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && !IsPIP && !IsCompactMode()
+          (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && !IsPIP
             ? `<button id="QueueToggle" class="ViewControl${
                 IsQueuePanelOpen() ? " Active" : ""
               }">${Icons.Queue}</button>`

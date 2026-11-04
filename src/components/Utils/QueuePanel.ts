@@ -227,6 +227,3 @@ function OpenQueuePanel() {
     playerEvents?.removeListener?.("queue_update", refresh);
   };
 }
-
-// Compact mode has no room beside the cover and drops the button, so close with it.
-Global.Event.listen("compact-mode:enable", () => CloseQueuePanel());
