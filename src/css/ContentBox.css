@@ -2290,3 +2290,107 @@
 #SpicyLyricsPage .MediaImageContainer .fi_FromImage.MB_anim_fimg::before {
   opacity: 1;
 }
+/* --- Compact mode header: names only, or lyrics only --------------------------- */
+/* Not in Popup Lyrics: its media box holds the playback dock, not the cover.
+   The cover box stays where it was, invisible and out of the pointer's way, so the
+   names over it stay clickable. CompactHeaderPeek (set by CompactHeaderPeek.ts when
+   the pointer goes to the spot above the names) brings the cover and its
+   controls back. */
+#SpicyLyricsPage:is(.CompactHeaderNames, .CompactHeaderNone):is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .MediaBox {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#SpicyLyricsPage:is(.CompactHeaderNames, .CompactHeaderNone).CompactHeaderPeek:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .MediaBox {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Names only: they move to the lyrics' edge. They are inset and faded in at their
+   left edge for the gap beside the cover; with no cover that inset would push them
+   off the lyrics' edge. */
+#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .CenteredView
+  .Header {
+  --MetadataLeftSidePadding: 0px;
+}
+
+#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata
+  :is(.SongName, .Artists) {
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 3.75cqw), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 3.75cqw), transparent 100%);
+}
+
+#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata
+  :is(.SongName, .Artists)
+  span {
+  padding-left: 0;
+}
+
+/* The names sit over the cover box, so their links must win the pointer there.
+   The metadata lets everything through except the links themselves. While the
+   cover is shown the names fade and stop taking the pointer, so its controls can
+   be reached. */
+#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata {
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata
+  span.Clickable {
+  pointer-events: auto;
+}
+
+#SpicyLyricsPage.CompactHeaderNames.CompactHeaderPeek:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata {
+  opacity: 0;
+}
+
+#SpicyLyricsPage.CompactHeaderNames.CompactHeaderPeek:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata
+  span.Clickable {
+  pointer-events: none;
+}
+
+/* Lyrics only: the names go too. */
+#SpicyLyricsPage.CompactHeaderNone:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+  .ContentBox
+  .NowBar
+  .Header
+  .Metadata {
+  display: none;
+}

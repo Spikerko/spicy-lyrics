@@ -28,6 +28,7 @@ import {
   $creditsFollowLastLine,
   $currentLyricsData,
   $duetLinePadding,
+  $compactHeader,
   $joinSplitWords,
   $lineHoverBackground,
   $lyricsContainerExists,
@@ -62,6 +63,7 @@ import {
 } from "../Utils/NowBar.ts";
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
+import "../Utils/CompactHeaderPeek.ts";
 import { NPVCardOwnsPage, DeRenderNPVCard } from "../Utils/NPVLyrics.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
@@ -311,6 +313,8 @@ async function OpenPage(
   if ($showVolumeSlider.get()) {
     elem.classList.add("ShowVolumeSlider");
   }
+
+  applyCompactHeaderClass(elem, $compactHeader.get());
 
   ApplyExperimentClasses(elem);
 
@@ -874,6 +878,17 @@ $skipSpicyFont.listen((v) => {
 $showVolumeSlider.listen((v) => {
   if (!PageContainer) return;
   PageContainer.classList.toggle("ShowVolumeSlider", v);
+});
+
+// A CSS gate only: compact mode reads the class to hide the cover and the names.
+function applyCompactHeaderClass(elem: HTMLElement, value: string) {
+  elem.classList.toggle("CompactHeaderNames", value === "names");
+  elem.classList.toggle("CompactHeaderNone", value === "none");
+  elem.classList.remove("CompactHeaderPeek");
+}
+$compactHeader.listen((v) => {
+  if (!PageContainer) return;
+  applyCompactHeaderClass(PageContainer, v);
 });
 
 // Experiments own their CSS hook here; NowBar.ts handles the rebuild for the ones
