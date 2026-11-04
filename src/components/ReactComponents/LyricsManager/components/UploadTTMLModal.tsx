@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { SpotifyPlayer } from "../../../../components/Global/SpotifyPlayer";
 import fetchLyrics from "../../../../utils/Lyrics/fetchLyrics";
 import ApplyLyrics from "../../../../utils/Lyrics/Global/Applyer";
+import { lrcToTtml } from "../../../../utils/Lyrics/lrc/toTtml";
 import { ParseTTML } from "../../../../utils/Lyrics/manager/parseTTML";
 import { ProcessLyrics } from "../../../../utils/Lyrics/ProcessLyrics";
 import { $currentLyricsData, $ttmlUploadMode } from "../../../../utils/stores";
@@ -56,8 +57,10 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
       if (!file || uploadingRef.current) return;
 
       // `accept` only filters the picker — drag & drop and paste bypass it.
-      if (!file.name.toLowerCase().endsWith(".ttml")) {
-        toast.error("Only .ttml files are supported.", { duration: 5000 });
+      const fileName = file.name.toLowerCase();
+      const isLrc = fileName.endsWith(".lrc");
+      if (!isLrc && !fileName.endsWith(".ttml")) {
+        toast.error("Only .ttml and .lrc files are supported.", { duration: 5000 });
         return;
       }
 
@@ -72,12 +75,19 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
 
       const reader = new FileReader();
       reader.onerror = () => {
-        toast.error("Error reading TTML file.", { duration: 5000 });
+        toast.error("Error reading lyrics file.", { duration: 5000 });
         setUploading(false);
       };
       reader.onload = async (e) => {
         try {
-          const ttml = e.target?.result as string;
+          const text = e.target?.result as string;
+          // From here on an LRC is TTML: the DB, download and the renderer see no difference.
+          const ttml = isLrc ? lrcToTtml(text) : text;
+          if (ttml === null) {
+            toast.error("No timed lines found in this .lrc file.", { duration: 5000 });
+            setUploading(false);
+            return;
+          }
 
           if (uploadMode === "persistent") {
             await LocalLyricsManager.put(uri, ttml);
@@ -121,7 +131,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
     [onDone]
   );
 
-  // Ctrl+V a copied .ttml file to upload it without touching the picker.
+  // Ctrl+V a copied lyrics file to upload it without touching the picker.
   useEffect(() => {
     function onPaste(e: ClipboardEvent) {
       const file = e.clipboardData?.files?.[0];
@@ -180,7 +190,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
 
       <input
         type="file"
-        accept=".ttml"
+        accept=".ttml,.lrc"
         id="sl-ldb-file-input"
         className="sl-ldb-file-input"
         onChange={handleFileChange}
@@ -199,7 +209,11 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
           {uploading ? <SpinnerIcon size={26} /> : <UploadIcon size={26} />}
         </span>
         <span className="sl-ldb-dropzone-title">
-          {uploading ? "Uploading…" : dragging ? "Drop to upload" : "Drop a .ttml file or click to browse"}
+          {uploading
+            ? "Uploading…"
+            : dragging
+              ? "Drop to upload"
+              : "Drop a .ttml or .lrc file or click to browse"}
         </span>
         <span className="sl-ldb-dropzone-sub">
           {mode === "persistent" ? "Saves to Local DB for" : "Applies once to"} {songName}
