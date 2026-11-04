@@ -63,6 +63,7 @@ import {
 import TransferElement from "../Utils/TransferElement.ts";
 import { IsPIP, _IsPIP_after, ClosePopupLyrics } from "../Utils/PopupLyrics.ts";
 import { NPVCardOwnsPage, DeRenderNPVCard } from "../Utils/NPVLyrics.ts";
+import { IsQueuePanelOpen, ToggleQueuePanel } from "../Utils/QueuePanel.ts";
 import { CleanUpIsByCommunity } from "../../utils/Lyrics/Applyer/Credits/ApplyIsByCommunity.tsx";
 import { OpenLyricsDBPanel } from "../../utils/openLyricsDBPanel.tsx";
 import { openSettingsPanel } from "../../utils/settings.ts";
@@ -93,6 +94,7 @@ export const Tooltips: {
   NowBarSideToggle: TippyInstance | null;
   LyricsManager: TippyInstance | null;
   Settings: TippyInstance | null;
+  QueueToggle: TippyInstance | null;
 } = {
   Close: null,
   CompactModeToggle: null,
@@ -103,6 +105,7 @@ export const Tooltips: {
   NowBarSideToggle: null,
   LyricsManager: null,
   Settings: null,
+  QueueToggle: null,
 };
 
 const PageView = {
@@ -532,6 +535,13 @@ function AppendViewControls(ReAppend: boolean = false) {
               }</button>`
             : ""
         }
+        ${
+          (Fullscreen.IsOpen || Fullscreen.CinemaViewOpen) && !IsPIP
+            ? `<button id="QueueToggle" class="ViewControl${
+                IsQueuePanelOpen() ? " Active" : ""
+              }">${Icons.Queue}</button>`
+            : ""
+        }
         <button id="RomanizationToggle" class="ViewControl">
           ${
             isRomanized
@@ -666,6 +676,19 @@ function AppendViewControls(ReAppend: boolean = false) {
         });
       } catch (err) {
         controlsLogger.warn("Failed to setup Compact Mode tooltip", err);
+      }
+    }
+
+    const queueToggle = elem.querySelector<HTMLElement>("#QueueToggle");
+    if (queueToggle && !isPip) {
+      try {
+        Tooltips.QueueToggle = createTooltip(queueToggle, {
+          ...Spicetify.TippyProps,
+          content: `Queue`,
+        });
+        queueToggle.addEventListener("click", () => ToggleQueuePanel());
+      } catch (err) {
+        controlsLogger.warn("Failed to setup Queue tooltip", err);
       }
     }
 

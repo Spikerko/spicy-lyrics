@@ -2290,3 +2290,202 @@
 #SpicyLyricsPage .MediaImageContainer .fi_FromImage.MB_anim_fimg::before {
   opacity: 1;
 }
+/* --- Queue panel (fullscreen) ----------------------------------------------- */
+/* Over the lyrics, on the side away from the cover, positioned from the same
+   variables that place the NowBar so it follows the cover wherever it sits. */
+#SpicyLyricsPage:not(.Exp_FullscreenQueue) #QueueToggle,
+#SpicyLyricsPage:not(.Exp_FullscreenQueue) .SL_QueuePanel {
+  display: none !important;
+}
+
+#SpicyLyricsPage .ContentBox .SL_QueuePanel {
+  --QP_Gap: 4cqw;
+  --QP_Edge: 5cqw;
+  position: absolute;
+  top: 9cqh;
+  bottom: 9cqh;
+  left: calc(var(--NowBarLeftSpacing) + var(--NowBarWidth) + var(--QP_Gap));
+  right: var(--QP_Edge);
+  max-width: 640px;
+  margin-inline: auto;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4cqh;
+  padding: 1.6cqh 1.2cqh 1cqh;
+  border-radius: 2cqh;
+  background: rgba(18, 18, 22, 0.55);
+  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  backdrop-filter: blur(32px) saturate(1.4);
+  box-shadow:
+    0 24px 60px -18px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: clamp(13px, 1.6cqh, 17px);
+  line-height: 1.25;
+  opacity: 0;
+  scale: 0.98;
+  transition:
+    opacity 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    scale 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#SpicyLyricsPage.NowBarSide__Right .ContentBox .SL_QueuePanel {
+  left: var(--QP_Edge);
+  right: calc(var(--NowBarLeftSpacing) + var(--NowBarWidth) + var(--QP_Gap));
+}
+
+/* Compact modes keep the cover in the top corner and the lyrics in a column on
+   the left, so the panel goes in the free strip on the right, below the
+   timeline that runs along the header. */
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) .ContentBox .SL_QueuePanel {
+  top: calc(6cqh + var(--Compact_NowBarHeight) + 3cqh);
+  bottom: 5cqh;
+  left: auto;
+  right: var(--QP_Edge);
+  width: clamp(300px, 24cqw, 460px);
+  margin-inline: 0;
+}
+
+#SpicyLyricsPage .ContentBox .SL_QueuePanel.Visible {
+  opacity: 1;
+  scale: 1;
+  transition-duration: 220ms;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Tabs {
+  display: flex;
+  gap: 0.4em;
+  padding: 0 0.4em;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Tab {
+  padding: 0.45em 1em;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Tab:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Tab.Active {
+  background: #fff;
+  color: #121212;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_List {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0.4em 0.4em;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Section {
+  padding: 1em 0.5em 0.4em;
+  font-size: 0.85em;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Section:first-child {
+  padding-top: 0.2em;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Item {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  width: 100%;
+  padding: 0.45em 0.5em;
+  border: 0;
+  border-radius: 0.6em;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+#SpicyLyricsPage .SL_QueuePanel button.SL_QP_Item {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+#SpicyLyricsPage .SL_QueuePanel button.SL_QP_Item:hover,
+#SpicyLyricsPage .SL_QueuePanel button.SL_QP_Item:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+#SpicyLyricsPage .SL_QueuePanel button.SL_QP_Item:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Art {
+  flex: none;
+  width: 2.8em;
+  height: 2.8em;
+  border-radius: 0.35em;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Title,
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Artists {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Title {
+  font-weight: 600;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Artists {
+  font-size: 0.85em;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Item.Current .SL_QP_Title {
+  color: #1ed760;
+}
+
+#SpicyLyricsPage .SL_QueuePanel .SL_QP_Empty {
+  padding: 1em 0.5em;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ContentBox .SL_QueuePanel {
+    scale: none;
+  }
+}
