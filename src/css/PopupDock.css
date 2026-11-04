@@ -48,7 +48,7 @@
     --PD_TimelineH: var(--PD_BarRow);
   }
 
-  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline .Time {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .Timeline :is(.Time, .TimelineCredits) {
     display: none;
   }
 }
@@ -300,6 +300,142 @@
   text-align: right;
 }
 
+/* Pinned Credits: one line in the times row, between the elapsed and total times
+   (PinnedCredits.ts moves the source and community rows in). It's a cell of the timeline's
+   grid, so it stays centred under the bar as the dock rises, falls and resizes. A credit
+   that doesn't fit drops its avatars and scrolls like the song name (data-marquee, with
+   --TC_Shift the distance, both set by PinnedCredits.ts). */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .Timeline .TimelineCredits {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  display: flex;
+  justify-content: safe center;
+  --TC_Pad: clamp(6px, calc(var(--PD_U) * 2), 12px);
+  padding-inline: var(--TC_Pad);
+  font-size: var(--PD_TimeSize);
+  line-height: 1.3;
+  font-weight: var(--w-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  /* Room under the line for the names' underline, which the clip would cut at small sizes;
+     the negative margin keeps the row as tall as the times. */
+  padding-bottom: 0.25em;
+  margin-bottom: -0.25em;
+  animation: TimelineCreditsIn 0.36s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .Timeline .TimelineCredits.Leaving {
+  pointer-events: none;
+  animation: TimelineCreditsOut 0.15s ease-out forwards;
+}
+
+@keyframes TimelineCreditsIn {
+  from {
+    opacity: 0;
+    translate: 0 -0.35em;
+  }
+}
+
+@keyframes TimelineCreditsFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes TimelineCreditsOut {
+  to {
+    opacity: 0;
+  }
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits :is(.SongCredits, .SongInfo, .Maker, .Uploader, .song-info-profile-section) {
+  display: flex;
+  align-items: center;
+}
+
+/* Nothing shrinks, so the line's scrollWidth is its natural width. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits * {
+  flex-shrink: 0;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .SongCredits.FromCommunity > .LyricsProvider,
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .SongInfoNote,
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] .song-info-profile-section img {
+  display: none;
+}
+
+/* The song name's marquee: hold, slide across, hold, and back. The edges fade across the
+   padding, so the text's ends are clear at either hold. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] {
+  --TC_Pad: max(clamp(6px, calc(var(--PD_U) * 2), 12px), 1em);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--TC_Pad), #000 calc(100% - var(--TC_Pad)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--TC_Pad), #000 calc(100% - var(--TC_Pad)), transparent 100%);
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] > .SongCredits {
+  animation: TimelineCreditsMarquee 25s linear infinite alternate;
+}
+
+@keyframes TimelineCreditsMarquee {
+  0%,
+  10% {
+    translate: 0;
+  }
+  90%,
+  100% {
+    translate: var(--TC_Shift, 0px);
+  }
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .SongInfoLead::after,
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits :is(.Maker, .Uploader):not(.SongInfoLead + *)::before {
+  content: "\00b7";
+  margin-inline: 0.45em;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .song-info-profile-section {
+  gap: 0.3em;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 0.25em;
+}
+
+/* Avatar between the role and the name, as in the lyrics' credits. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .song-info-profile-section img {
+  order: 1;
+  width: 1.2em;
+  height: 1.2em;
+  margin: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits :is(.SongInfoName, .LyricsProviderViaLink) {
+  order: 2;
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  transition: text-decoration-color var(--dur-fast) ease;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .song-info-profile-section:is(:hover, :focus-visible) .SongInfoName,
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .LyricsProviderViaLink:is(:hover, :focus-visible) {
+  text-decoration-color: currentColor;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits :is(.song-info-profile-section, .LyricsProviderViaLink):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .Heart {
   position: relative;
   grid-column: 1;
@@ -497,6 +633,15 @@
 
   .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
     translate: none;
+  }
+
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .Timeline .TimelineCredits:not(.Leaving) {
+    animation-name: TimelineCreditsFade;
+  }
+
+  /* Held at the start; the end fades out instead of scrolling into view. */
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] > .SongCredits {
+    animation: none;
   }
 
   .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaImageContainer {

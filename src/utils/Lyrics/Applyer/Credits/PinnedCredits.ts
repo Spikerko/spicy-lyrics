@@ -1,3 +1,4 @@
+import { $experiment, isExperimentEnabled } from "../../../experiments.ts";
 import { $pinnedCredits } from "../../../stores.ts";
 
 /**
@@ -9,6 +10,12 @@ import { $pinnedCredits } from "../../../stores.ts";
  * back to the scrolling block whenever pinning stops. The layer sits beside .LyricsContent
  * (inside it, the bottom fade would mask it too) and takes its padding and font size from
  * the lyrics, so the rows line up with the lines and size exactly as they would in place.
+ *
+ * The docked popup has no room for a block under its lyrics, so there the source and
+ * community rows go into the timeline instead: one line between the elapsed and total
+ * times, under the seekbar (.TimelineCredits, styled in PopupDock.css). Being part of
+ * the timeline, it moves and resizes with the bar. A line has no space for the writers,
+ * so in the popup "full" pins the same rows as "noWriters".
  */
 
 const ROW_ORDER = [".Credits", ".LyricsProvider", ".SongInfo"];
@@ -16,13 +23,21 @@ const ROW_ORDER = [".Credits", ".LyricsProvider", ".SongInfo"];
 let home: HTMLElement | null = null;
 let layer: HTMLElement | null = null;
 let observer: ResizeObserver | null = null;
+// The popup's timeline is built with the player and rebuilt whenever the player is, so the
+// line watches the player and moves into whichever timeline is current.
+let timelineObserver: MutationObserver | null = null;
 
 function rowRank(row: Element): number {
   return ROW_ORDER.findIndex((selector) => row.matches(selector));
 }
 
-/** Puts every pinned row back in the scrolling block and drops the layer. */
+/** Puts every pinned row back in the scrolling block and drops the layer or timeline line. */
 function unpin(): void {
+  // The line fades out as a copy, since its rows go home at once.
+  const ghost =
+    layer?.classList.contains("TimelineCredits") && layer.isConnected
+      ? (layer.cloneNode(true) as HTMLElement)
+      : null;
   if (layer && home) {
     const rows = [
       ...home.children,
@@ -32,11 +47,54 @@ function unpin(): void {
   }
   observer?.disconnect();
   observer = null;
+  timelineObserver?.disconnect();
+  timelineObserver = null;
+  if (layer?.classList.contains("TimelineCredits")) {
+    leaveTimeline(layer, ghost);
+    layer = null;
+    return;
+  }
   const container = layer?.parentElement;
   container?.classList.remove("HasPinnedCredits");
   container?.style.removeProperty("--SL-PinnedCreditsHeight");
   layer?.remove();
   layer = null;
+}
+
+/** Swaps the timeline line for its fading copy, which removes itself once it has faded. */
+function leaveTimeline(line: HTMLElement, ghost: HTMLElement | null): void {
+  if (!ghost) {
+    line.remove();
+    return;
+  }
+  ghost.classList.add("Leaving");
+  ghost.inert = true;
+  ghost.setAttribute("aria-hidden", "true");
+  line.replaceWith(ghost);
+  const drop = () => ghost.remove();
+  ghost.addEventListener("animationend", drop, { once: true });
+  // No animation under reduced motion, and none runs while the popup is hidden.
+  setTimeout(drop, 400);
+}
+
+/**
+ * The timeline line sits centred with the avatars when it fits. When it doesn't, the avatars
+ * go and the text scrolls back and forth like the song name's marquee, as far as it overflows.
+ * Nothing in the line shrinks, so scrollWidth is its natural width.
+ */
+function fitTimelineLine(): void {
+  if (!layer) return;
+  delete layer.dataset.marquee;
+  if (layer.scrollWidth <= layer.clientWidth) return;
+  layer.dataset.marquee = "";
+  layer.style.setProperty("--TC_Shift", `${layer.clientWidth - layer.scrollWidth}px`);
+}
+
+/** Puts the timeline line into the popup's current timeline, if it isn't there already. */
+function attachToTimeline(nowBar: Element): void {
+  if (!layer) return;
+  const timeline = nowBar.querySelector(".Timeline");
+  if (timeline && layer.parentElement !== timeline) timeline.append(layer);
 }
 
 /** Copies the lyrics' side padding and font size onto the layer, and publishes its height. */
@@ -79,6 +137,31 @@ function place(): void {
   // The sidebar card is too short to give up its bottom to the credits, and without
   // anchor positioning there is no box to pin them to: both keep them in the scroll.
   if (container.closest("#SpicyLyricsPage")?.classList.contains("CardMode")) return;
+
+  const nowBar =
+    container.closest(".spicy-pip-wrapper") && isExperimentEnabled("popupDock")
+      ? container.closest(".ContentBox")?.querySelector(".NowBar")
+      : null;
+  if (nowBar) {
+    const rows = [...home.children].filter((row) => rowRank(row) > 0);
+    if (rows.length === 0) return;
+    layer = doc.createElement("div");
+    layer.classList.add("TimelineCredits");
+    const credits = doc.createElement("div");
+    credits.className = home.className;
+    credits.append(...rows);
+    layer.append(credits);
+    attachToTimeline(nowBar);
+    // Also fires each time the line goes into a timeline, so a new one is fitted too, and when
+    // the text's own width changes (a late font or avatar).
+    observer = new view.ResizeObserver(fitTimelineLine);
+    observer.observe(layer);
+    observer.observe(credits);
+    timelineObserver = new view.MutationObserver(() => attachToTimeline(nowBar));
+    timelineObserver.observe(nowBar, { childList: true, subtree: true });
+    return;
+  }
+
   if (!view.CSS.supports("anchor-name", "--a")) return;
 
   const rows = [...home.children].filter((row) =>
@@ -124,5 +207,9 @@ export function ClearPinnedCredits(): void {
 }
 
 $pinnedCredits.listen(() => {
+  if (home?.isConnected) queueMicrotask(place);
+});
+
+$experiment("popupDock").listen(() => {
   if (home?.isConnected) queueMicrotask(place);
 });
