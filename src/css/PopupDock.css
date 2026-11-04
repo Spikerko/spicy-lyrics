@@ -560,19 +560,39 @@
 
 /* Window chrome, so the top outer corner. The row lives in the MediaBox at the bottom of the window:
    the offset reaches back up to the top, and the translate cancels the dock's drop so it drops in
-   from the top edge instead. The buttons are already no-drag, so they work over the drag strip. */
+   from the top edge instead. The buttons are already no-drag, so they work over the drag strip.
+   Top left, reversed so close stays in the corner: the right edge is the scroll-to-active
+   button's, which rises to the top there without running into them. */
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
   --ViewControlSize: var(--PD_ViewSize);
   container-type: normal;
   top: calc(var(--PD_ViewInset) - 100vh + var(--PD_Bottom) + var(--PD_BoxH));
-  left: auto;
-  right: var(--PD_ViewInset);
+  left: var(--PD_ViewInset);
+  right: auto;
+  flex-direction: row-reverse;
   width: auto;
   height: auto;
   translate: 0 calc(-1 * var(--PD_Drop) - (1 - var(--DockLift, 0)) * 8px);
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox .NowBar .MediaContent .ViewControls svg {
+  height: calc(var(--PD_ViewSize) * 0.42);
+}
+
+/* The scroll-to-active button, sized and inset like the view controls, in the opposite corner. */
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ScrollToActive {
+  --ScrollToActiveSize: var(--PD_ViewSize);
+  --ScrollToActiveInset: var(--PD_ViewInset);
+}
+
+@supports (anchor-name: --a) {
+  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ScrollToActive {
+    right: calc(anchor(right) + var(--ScrollToActiveInset));
+  }
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ScrollToActive svg {
+  width: calc(var(--PD_ViewSize) * 0.42);
   height: calc(var(--PD_ViewSize) * 0.42);
 }
 
