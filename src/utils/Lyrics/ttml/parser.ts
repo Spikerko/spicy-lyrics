@@ -102,7 +102,7 @@ export interface ParsedSyllable {
   TransliteratedText?: string;
   IsPartOfWord: boolean;
   /** Set (to false) only where the romanization ends a word the source text runs on. */
-  RomanizedIsPartOfWord?: boolean;
+  TransliteratedIsPartOfWord?: boolean;
   StartTime: number | undefined;
   EndTime: number | undefined;
 }
@@ -516,7 +516,7 @@ function buildSyllables({
       Text: text,
       ...(translitText !== '' ? { TransliteratedText: translitText } : {}),
       IsPartOfWord: isPartOfWord,
-      ...(isPartOfWord && translitText !== '' && translit?.gapAfter ? { RomanizedIsPartOfWord: false } : {}),
+      ...(isPartOfWord && translitText !== '' && translit?.gapAfter ? { TransliteratedIsPartOfWord: false } : {}),
       StartTime: startTime,
       EndTime: endAfter(startTime, convertTimeToSeconds(node.end)),
     });

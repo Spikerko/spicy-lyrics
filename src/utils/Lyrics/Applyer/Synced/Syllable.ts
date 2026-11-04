@@ -45,7 +45,7 @@ interface SyllableData {
   StartTime: number;
   EndTime: number;
   IsPartOfWord?: boolean;
-  RomanizedIsPartOfWord?: boolean;
+  TransliteratedIsPartOfWord?: boolean;
   // A word joined from syllables keeps them here.
   Parts?: SyllableData[];
 }
@@ -85,7 +85,7 @@ interface LyricsData {
 const renderableSyllables = (syllables: SyllableData[], useRomanized: boolean): SyllableData[] => {
   const words = useRomanized
     ? syllables.map((s) =>
-        s.RomanizedIsPartOfWord === undefined ? s : { ...s, IsPartOfWord: s.RomanizedIsPartOfWord }
+        s.TransliteratedIsPartOfWord === undefined ? s : { ...s, IsPartOfWord: s.TransliteratedIsPartOfWord }
       )
     : syllables;
   const merge = $syllableMerge.get();

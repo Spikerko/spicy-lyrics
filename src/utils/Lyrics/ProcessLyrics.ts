@@ -419,7 +419,7 @@ const applyUnit = (unit: RomanizeUnit, result: UnitResult): boolean => {
     // puts a gap after the syllable.
     syllables.forEach((syllable, i) => {
       if (i < syllables.length - 1 && result.gaps[i] && syllable.IsPartOfWord) {
-        syllable.RomanizedIsPartOfWord = false;
+        syllable.TransliteratedIsPartOfWord = false;
       }
     });
   }
