@@ -8,6 +8,12 @@ import Logger from "../Logger.ts";
 import { getRemoteConfig } from "../remoteConfig.ts";
 import { StripEmptyLyricsLines } from "./EmptyLines.ts";
 import { RomanizeJapaneseLine, RomanizeKanaOnly } from "./RomanizeJapaneseLine.ts";
+import {
+  RomanizeJapaneseLineLegacy,
+  RomanizeJapaneseTextLegacy,
+  RomanizeKanaOnlyLegacy,
+} from "./RomanizeJapaneseLineLegacy.ts";
+import { isExperimentEnabled } from "../experiments.ts";
 import { KoreanCharReadings } from "./RomanizeKorean.ts";
 import { ChineseCharReadings, IsHan, JoinChineseReadings } from "./RomanizeChinese.ts";
 
@@ -48,6 +54,10 @@ const ResidualScriptTest =
   /[぀-ヿ一-鿿가-힯ᄀ-ᇿ㄰-㆏Ѐ-ԯͰ-Ͽἀ-῿]/;
 
 // Load Packages
+// Note: pinyin@4's segmenter still misreads some heteronyms (看着 → kàn zháo,
+// where it is kàn zhe); pinyin-pro reads these right. Bundled it adds about
+// 450 kB (143 kB gzipped), so before this reaches main it should be hosted on
+// pkgs.spikerko.org and loaded lazily here in place of pinyin@4.
 RetrievePackage("pinyin", "4.0.0", "mjs").catch(() => {});
 
 RetrievePackage("GreekRomanization", "1.0.0", "js").catch(() => {});
@@ -138,9 +148,9 @@ const romanizeGreekText = (text: string, greekRomanization: any): string => {
 
 // One unit of romanization work: the syllables of one lead or background vocal
 // (Syllable lyrics), or a single line (Line and Static lyrics, where the line is
-// its only "syllable"). Every syllable receives its own TransliteratedText;
-// `line` receives the HasTransliterations flag.
-type RomanizeUnit = { syllables: any[]; line: any };
+// its only "syllable", and `whole` is set). Every syllable receives its own
+// TransliteratedText; `line` receives the HasTransliterations flag.
+type RomanizeUnit = { syllables: any[]; line: any; whole?: boolean };
 
 // Collect the units that get romanized plus the text franc analyses.
 // Only Lead syllables feed franc; Background syllables are still romanized.
@@ -157,13 +167,13 @@ const gatherText = (
 
   if (lyrics.Type === "Static") {
     for (const line of lyrics.Lines) {
-      units.push({ syllables: [line], line });
+      units.push({ syllables: [line], line, whole: true });
       textLines.push(line.Text);
     }
   } else if (lyrics.Type === "Line") {
     for (const vocalGroup of lyrics.Content) {
       if (vocalGroup.Type === "Vocal") {
-        units.push({ syllables: [vocalGroup], line: vocalGroup });
+        units.push({ syllables: [vocalGroup], line: vocalGroup, whole: true });
         textLines.push(vocalGroup.Text);
       }
     }
@@ -263,15 +273,45 @@ const romanizeUnit = async (
   unit: RomanizeUnit,
   scripts: RomanizationBranch[],
   packages: RomanizationPackages,
-  ukrainian: boolean
+  ukrainian: boolean,
+  writtenRomaji: boolean
 ): Promise<UnitResult> => {
   const { syllables } = unit;
   const texts: string[] = syllables.map((s) => (typeof s.Text === "string" ? s.Text : ""));
   const gaps = texts.map(() => false);
   let complete = true;
+  // The previous Japanese spelling adds no capitals, so its lines stay as they were.
+  let capitalize = true;
 
   for (const script of scripts) {
-    if (script === "Japanese") {
+    if (script === "Japanese" && !writtenRomaji) {
+      if (!texts.some((t) => ItemJapaneseTest.test(t))) continue;
+      capitalize = false;
+      const japanese = texts.map((t) => ItemJapaneseTest.test(t));
+      let result: string[] | undefined;
+      if (KuromojiAnalyzer.isReady()) {
+        try {
+          result = unit.whole
+            ? [await RomanizeJapaneseTextLegacy(texts[0])]
+            : await RomanizeJapaneseLineLegacy(
+                syllables.map((s, i) => ({ Text: texts[i], IsPartOfWord: s.IsPartOfWord }))
+              );
+        } catch (error) {
+          romanizationLogger.warn("Japanese line didn't tokenize, romanizing per syllable", error);
+          try {
+            result = await Promise.all(
+              texts.map((t, i) => (japanese[i] ? RomanizeJapaneseTextLegacy(t) : t))
+            );
+          } catch {
+            result = undefined;
+          }
+        }
+      }
+      if (!result) complete = false;
+      texts.forEach((t, i) => {
+        if (japanese[i]) texts[i] = result ? result[i] : RomanizeKanaOnlyLegacy(t);
+      });
+    } else if (script === "Japanese") {
       if (!texts.some((t) => ItemJapaneseTest.test(t))) continue;
       let result: { text: string; gapAfter: boolean }[] | undefined;
       if (KuromojiAnalyzer.isReady()) {
@@ -331,7 +371,7 @@ const romanizeUnit = async (
   // The line starts with a capital when its first word is a romanized one
   // (words already in Latin letters stay as written).
   const first = syllables.findIndex((s) => /\p{L}/u.test(s.Text ?? ""));
-  if (first >= 0) {
+  if (capitalize && first >= 0) {
     const firstLetter = (syllables[first].Text as string).match(/\p{L}/u)?.[0] ?? "";
     if (!/\p{Script=Latin}/u.test(firstLetter) && texts[first] !== syllables[first].Text) {
       texts[first] = texts[first].replace(/\p{L}/u, (c) => c.toUpperCase());
@@ -376,6 +416,17 @@ const applyUnit = (unit: RomanizeUnit, result: UnitResult): boolean => {
   return changed;
 };
 
+const japaneseRomajiSpelling = () => (isExperimentEnabled("romajiAsWritten") ? "written" : "said");
+
+/**
+ * Whether lyrics (from the cache, say) carry the Japanese spelling currently
+ * chosen. Lyrics from before the marker existed were spelled the previous way.
+ */
+export const JapaneseRomajiIsCurrent = (lyrics: any): boolean => {
+  const spelling = lyrics?.JapaneseRomaji ?? (lyrics?.Language === "jpn" ? "said" : undefined);
+  return spelling === undefined || spelling === japaneseRomajiSpelling();
+};
+
 /**
  * Romanizes the lyrics in place. Resolves to false when a script couldn't be
  * read in full (the Japanese dictionary or a package didn't load), so the
@@ -408,10 +459,14 @@ export const ProcessLyrics = async (lyrics: any): Promise<boolean> => {
   ) {
     const packages = await loadPackagesForScripts(presentScripts);
     const ukrainian = UkrainianTextTest.test(scriptText);
+    const writtenRomaji = isExperimentEnabled("romajiAsWritten");
+    // Which Japanese spelling the lyrics carry, so cached lyrics made with the
+    // other one are romanized again (see JapaneseRomajiIsCurrent).
+    if (presentScripts.includes("Japanese")) lyrics.JapaneseRomaji = japaneseRomajiSpelling();
     for (const unit of units) {
       if (unit.syllables.every(hasTransliteration)) continue;
       try {
-        const result = await romanizeUnit(unit, presentScripts, packages, ukrainian);
+        const result = await romanizeUnit(unit, presentScripts, packages, ukrainian, writtenRomaji);
         if (!result.complete) complete = false;
         if (applyUnit(unit, result)) appliedRomanization = true;
       } catch (error) {

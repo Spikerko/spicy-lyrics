@@ -5,7 +5,7 @@ import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import PageView, { PageContainer } from "../../components/Pages/PageView.ts";
 import { Query, QueryHttpError, QueryNetworkError } from "../API/Query.ts";
 import { IsTripStatus, ServiceUnavailableError } from "../API/CircuitBreaker.ts";
-import { ProcessLyrics } from "./ProcessLyrics.ts";
+import { JapaneseRomajiIsCurrent, ProcessLyrics } from "./ProcessLyrics.ts";
 import { IsEmptyLyrics } from "./EmptyLines.ts";
 import Logger from "../Logger.ts";
 import { LocalLyricsManager } from "./manager/index.ts";
@@ -296,7 +296,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   if (LyricsStore) {
     try {
       const lyricsFromCacheRes = await LyricsStore.GetItem(trackId);
-      if (lyricsFromCacheRes) {
+      // Romaji in the other Japanese spelling is fetched and romanized again.
+      if (lyricsFromCacheRes && JapaneseRomajiIsCurrent(lyricsFromCacheRes)) {
         if (lyricsFromCacheRes?.Value === "NO_LYRICS") {
           $currentlyFetching.set(false);
           noteFailure(uri, "lyrics cache");

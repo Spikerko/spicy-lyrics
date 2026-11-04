@@ -889,8 +889,12 @@ $showVolumeSlider.listen((v) => {
 onExperimentChange((experiment) => {
   if (!PageContainer) return;
   ApplyExperimentClasses(PageContainer);
-  // Its letter split and word springs are fixed when the lyrics are built, so rebuild them.
-  if (experiment.id === "refreshedSimpleLyrics" && $simpleLyricsMode.get()) {
+  // Refreshed simple lyrics fixes its letter split and word springs when the lyrics
+  // are built, and romaji is made when they're fetched, so rebuild them.
+  if (
+    (experiment.id === "refreshedSimpleLyrics" && $simpleLyricsMode.get()) ||
+    experiment.id === "romajiAsWritten"
+  ) {
     const uri = SpotifyPlayer.GetUri();
     $currentLyricsData.set("");
     if (uri) fetchLyrics(uri).then(ApplyLyrics);

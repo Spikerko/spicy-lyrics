@@ -166,6 +166,13 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_PortraitFullscreen",
   },
+  {
+    id: "romajiAsWritten",
+    label: "Romaji as Written",
+    description:
+      "Japanese romaji is spelled the way romanized lyrics usually are: long vowels as written (kyou, toukyou, koohii), particles as said (wa, e, wo), endings kept on their word (yonde ita), gaps between words even where the syllables are joined, and a capital at the start of the line. Disable to bring back the previous spelling (kyō, tōkyō, o, one word per token).",
+    default: true,
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */
