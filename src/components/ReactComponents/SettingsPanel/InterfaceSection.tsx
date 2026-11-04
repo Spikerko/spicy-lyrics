@@ -98,7 +98,7 @@ const groups: GroupDef[] = [
         id: "compactHeader",
         label: "Compact Mode Header",
         description:
-          "What compact mode shows above the lyrics. Cover and names is the usual look. Names only drops the cover; Lyrics only drops the names too. With the cover hidden, move the pointer to where it was to bring it, and its playback controls, back.",
+          "What compact mode shows above the lyrics. Cover and names is the usual look. Names only drops the cover; Lyrics only drops the names too. With the cover hidden, move the pointer just above the names to bring it, and its playback controls, back.",
         keywords: "compact album art artwork cover image title artist name hide",
         Control: ({ label }) => (
           <Select

@@ -2292,23 +2292,27 @@
 }
 /* --- Compact mode header: names only, or lyrics only --------------------------- */
 /* Not in Popup Lyrics: its media box holds the playback dock, not the cover.
-   The cover box stays where it was, invisible, so the pointer over it brings the
-   cover and its playback controls back. */
+   The cover box stays where it was, invisible and out of the pointer's way, so the
+   names over it stay clickable. CompactHeaderPeek (set by CompactHeaderPeek.ts when
+   the pointer goes to the spot above the names) brings the cover and its
+   controls back. */
 #SpicyLyricsPage:is(.CompactHeaderNames, .CompactHeaderNone):is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
   .ContentBox
   .NowBar
   .Header
   .MediaBox {
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.2s;
 }
 
-#SpicyLyricsPage:is(.CompactHeaderNames, .CompactHeaderNone):is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+#SpicyLyricsPage:is(.CompactHeaderNames, .CompactHeaderNone).CompactHeaderPeek:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
   .ContentBox
   .NowBar
   .Header
-  .MediaBox:hover {
+  .MediaBox {
   opacity: 1;
+  pointer-events: auto;
 }
 
 /* Names only: they move to the lyrics' edge. They are inset and faded in at their
@@ -2342,10 +2346,10 @@
   padding-left: 0;
 }
 
-/* The names sit over the invisible cover box, so their links must win the pointer
-   there. The metadata lets everything through except the links themselves; while
-   the pointer is over the cover box, the names fade and step aside so the cover's
-   controls can be reached. */
+/* The names sit over the cover box, so their links must win the pointer there.
+   The metadata lets everything through except the links themselves. While the
+   cover is shown the names fade and stop taking the pointer, so its controls can
+   be reached. */
 #SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
   .ContentBox
   .NowBar
@@ -2361,23 +2365,22 @@
   .NowBar
   .Header
   .Metadata
-  :is(.SongName, .Artists)
   span.Clickable {
   pointer-events: auto;
 }
 
-#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+#SpicyLyricsPage.CompactHeaderNames.CompactHeaderPeek:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
   .ContentBox
   .NowBar
-  .Header:has(.MediaBox:hover)
+  .Header
   .Metadata {
   opacity: 0;
 }
 
-#SpicyLyricsPage.CompactHeaderNames:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
+#SpicyLyricsPage.CompactHeaderNames.CompactHeaderPeek:is(.CompactMode, .ForcedCompactMode):not(.spicy-pip-wrapper #SpicyLyricsPage)
   .ContentBox
   .NowBar
-  .Header:has(.MediaBox:hover)
+  .Header
   .Metadata
   span.Clickable {
   pointer-events: none;
