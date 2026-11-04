@@ -5,10 +5,12 @@ import {
   $lineHoverBackground,
   $minimalLyricsMode,
   $pinnedCredits,
+  $romanizationDisplay,
   $simpleLyricsMode,
   $syllableMerge,
   $syllablePace,
   type PinnedCredits,
+  type RomanizationDisplay,
   type SyllableMerge,
 } from "../../../utils/stores.ts";
 import { Select, Toggle } from "./components.tsx";
@@ -82,6 +84,22 @@ const groups: GroupDef[] = [
   {
     title: "Lines",
     settings: [
+      {
+        id: "romanizationDisplay",
+        label: "Romanization",
+        description:
+          "With romanization on, show it in place of the original lyrics, or as a smaller row under each line.",
+        keywords: "romaji romanized romanize pronunciation under below replace",
+        Control: ({ label }) => (
+          <Select
+            label={label}
+            value={useStore($romanizationDisplay)}
+            options={["replace", "underLine"]}
+            labels={["Replace the line", "Under each line"]}
+            onChange={(v) => $romanizationDisplay.set(v as RomanizationDisplay)}
+          />
+        ),
+      },
       {
         id: "lineHoverBackground",
         label: "Highlight on Hover",

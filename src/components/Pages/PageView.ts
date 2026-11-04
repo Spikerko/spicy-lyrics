@@ -31,6 +31,7 @@ import {
   $lineHoverBackground,
   $lyricsContainerExists,
   $minimalLyricsMode,
+  $romanizationDisplay,
   $showVolumeSlider,
   $simpleLyricsMode,
   $skipSpicyFont,
@@ -856,6 +857,9 @@ const reapplyLyrics = () => {
 };
 $syllableMerge.listen(reapplyLyrics);
 $syllablePace.listen(reapplyLyrics);
+$romanizationDisplay.listen(() => {
+  if (isRomanized) reapplyLyrics();
+});
 
 // Purely a CSS toggle — no need to re-render the lyrics like the modes above do.
 $lineHoverBackground.listen((v) => {

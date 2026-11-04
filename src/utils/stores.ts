@@ -93,6 +93,10 @@ export const $syllableMerge = persistAtom<SyllableMerge>("syllableMerge", "off")
 // A joined word drawn letter by letter times its letters by the syllables it
 // was joined from, instead of spreading them evenly over the whole word.
 export const $syllablePace = persistAtom<boolean>("syllablePace", false);
+// With romanization on, whether it replaces the line's text or shows as a
+// smaller row under each line.
+export type RomanizationDisplay = "replace" | "underLine";
+export const $romanizationDisplay = persistAtom<RomanizationDisplay>("romanizationDisplay", "replace");
 // Tinted box drawn behind a lyrics line while the pointer is over it.
 export const $lineHoverBackground = persistAtom<boolean>("lineHoverBackground", true);
 // Wide inset on the side a duet line leans away from, so the two voices read as

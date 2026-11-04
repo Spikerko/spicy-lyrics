@@ -29,6 +29,7 @@ import {
 import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyricsContainer.ts";
 import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "../Utils/PickDisplayText.ts";
+import { AppendSyllableRomanization, RomanizeUnderLine } from "../Utils/RomanizedRow.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
@@ -124,6 +125,9 @@ function pacedParts(
 
 export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = false): void {
   if (!$lyricsContainerExists.get()) return;
+  // Under each line, the line keeps its own text and the romanization gets a row below it.
+  const UnderLine = RomanizeUnderLine(UseRomanized);
+  const ShowRomanized = UseRomanized && !UnderLine;
   EmitNotApplyed();
 
   DestroyAllLyricsContainers();
@@ -294,7 +298,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     let currentWordGroup: HTMLSpanElement | null = null;
 
-    renderableSyllables(line.Lead.Syllables, UseRomanized).forEach((lead, iL, aL) => {
+    renderableSyllables(line.Lead.Syllables, ShowRomanized).forEach((lead, iL, aL) => {
       let word = document.createElement("span");
 
       if (isRtl(lead.Text) && !lineElem.classList.contains("rtl")) {
@@ -304,14 +308,14 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       const totalDuration = ConvertTime(lead.EndTime) - ConvertTime(lead.StartTime);
 
       const leadRenderText = StripZeroWidth(
-        PickDisplayText(lead, UseRomanized)
+        PickDisplayText(lead, ShowRomanized)
       );
 
-      const letters = splitLetters(lead, UseRomanized);
+      const letters = splitLetters(lead, ShowRomanized);
 
       if (letters) {
         word = document.createElement("div");
-        Emphasize(letters, word, lead, false, pacedParts(lead, UseRomanized, letters.length));
+        Emphasize(letters, word, lead, false, pacedParts(lead, ShowRomanized, letters.length));
 
         iL === aL.length - 1
           ? word.classList.add("LastWordInLine")
@@ -377,6 +381,13 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
       }
     });
 
+    const backgrounds = line.Background?.filter((bg) => !IsEmptySyllableGroup(bg)) ?? [];
+    if (UnderLine) {
+      AppendSyllableRomanization(lineElem, line.Lead.Syllables, {
+        beforeBackground: backgrounds.length > 0,
+      });
+    }
+
     if (line.Background) {
       line.Background.filter((bg) => !IsEmptySyllableGroup(bg)).forEach((bg) => {
         const lineE = document.createElement("div");
@@ -398,7 +409,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
 
-        renderableSyllables(bg.Syllables, UseRomanized).forEach((bw, bI, bA) => {
+        renderableSyllables(bg.Syllables, ShowRomanized).forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
           if (isRtl(bw.Text) && !lineE.classList.contains("rtl")) {
@@ -408,14 +419,14 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           const totalDuration = ConvertTime(bw.EndTime) - ConvertTime(bw.StartTime);
 
           const bgRenderText = StripZeroWidth(
-            PickDisplayText(bw, UseRomanized)
+            PickDisplayText(bw, ShowRomanized)
           );
 
-          const letters = splitLetters(bw, UseRomanized);
+          const letters = splitLetters(bw, ShowRomanized);
 
           if (letters) {
             bwE = document.createElement("div");
-            Emphasize(letters, bwE, bw, true, pacedParts(bw, UseRomanized, letters.length));
+            Emphasize(letters, bwE, bw, true, pacedParts(bw, ShowRomanized, letters.length));
 
             bI === bA.length - 1
               ? bwE.classList.add("LastWordInLine")
@@ -483,6 +494,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
             lineE.appendChild(bwE);
           }
         });
+
+        if (UnderLine) AppendSyllableRomanization(lineE, bg.Syllables, { isBackground: true });
       });
     }
     if (arr[index + 1] && arr[index + 1].Lead.StartTime - line.Lead.EndTime >= getLyricsBetweenShow()) {
