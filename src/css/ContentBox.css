@@ -2298,6 +2298,13 @@
   display: none !important;
 }
 
+/* Compact modes have no room for the panel. The button is only built outside
+   compact mode, so it can still be on screen after a resize into it. */
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) #QueueToggle,
+#SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) .SL_QueuePanel {
+  display: none !important;
+}
+
 #SpicyLyricsPage .ContentBox .SL_QueuePanel {
   --QP_Gap: 4cqw;
   --QP_Edge: 5cqw;

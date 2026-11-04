@@ -179,6 +179,8 @@ export function ToggleQueuePanel() {
 function OpenQueuePanel() {
   const contentBox = PageContainer?.querySelector<HTMLElement>(".ContentBox");
   if (!contentBox) return;
+  if (PageContainer?.classList.contains("CompactMode")) return;
+  if (PageContainer?.classList.contains("ForcedCompactMode")) return;
 
   const root = document.createElement("div");
   root.className = "SL_QueuePanel";
