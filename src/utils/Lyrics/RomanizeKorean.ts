@@ -46,7 +46,7 @@ const JONG: Record<string, string> = {
   "ᆸ": "p", "ᆸᄋ": "b", "ᆸᄂ": "mn", "ᆸᄅ": "mn", "ᆸᄆ": "mm", "ᆸᄒ": "ph",
   "ᆹ": "p", "ᆹᄋ": "ps", "ᆹᄂ": "mn", "ᆹᄅ": "mn", "ᆹᄆ": "mm", "ᆹᄒ": "psh",
   "ᆺ": "t", "ᆺᄋ": "s", "ᆺᄂ": "nn", "ᆺᄅ": "nn", "ᆺᄆ": "nm", "ᆺᄒ": "sh",
-  "ᆻ": "t", "ᆻᄋ": "ss", "ᆻᄂ": "tn", "ᆻᄅ": "tn", "ᆻᄆ": "nm", "ᆻᄒ": "th",
+  "ᆻ": "t", "ᆻᄋ": "ss", "ᆻᄂ": "nn", "ᆻᄅ": "nn", "ᆻᄆ": "nm", "ᆻᄒ": "th",
   "ᆼ": "ng",
   "ᆽ": "t", "ᆽᄋ": "j", "ᆽᄂ": "nn", "ᆽᄅ": "nn", "ᆽᄆ": "nm", "ᆽᄒ": "ch",
   "ᆾ": "t", "ᆾᄋ": "ch", "ᆾᄂ": "nn", "ᆾᄅ": "nn", "ᆾᄆ": "nm", "ᆾᄒ": "ch",
@@ -69,34 +69,38 @@ const segment = (c: string): string => {
   return cho + jung + jong;
 };
 
+// The consonant a joined final hands to the next block, as it's sung there.
+const Onset = /(ch|ss|kk|tt|pp|jj|[a-z])$/;
+
 /**
  * One romanization per character of `text`: Hangul blocks read by sound with
- * the blocks around them as context, everything else as written.
+ * the blocks around them as context, everything else as written. Where a
+ * final and the next initial are read together, the next block's consonant
+ * starts that block, so each block reads as it is sung (같|이 → ga|chi,
+ * 먹|는 → meong|neun, 없|어 → eop|seo).
  */
 export const KoreanCharReadings = (text: string): string[] => {
   const chars = text.split("");
   const blocks = chars.map(segment);
-  let readInitial = true;
+  let carried: string | undefined;
   return blocks.map((block, index) => {
     if (block.length < 2) {
-      readInitial = true;
+      carried = undefined;
       return block;
     }
     const next = blocks[index + 1] ?? "";
-    let piece = readInitial ? (CHO[block[0]] ?? block[0]) : "";
-    readInitial = true;
+    let piece = carried ?? CHO[block[0]] ?? block[0];
+    carried = undefined;
     piece += JUNG[block[1]] ?? block[1];
     if (block.length === 3) {
       const last = block[2];
       const nextIsBlock = next.length >= 2;
-      const three = nextIsBlock ? JONG[last + next[0] + next[1]] : undefined;
-      const two = nextIsBlock ? JONG[last + next[0]] : undefined;
-      if (three !== undefined) {
-        piece += three;
-        readInitial = false;
-      } else if (two !== undefined) {
-        piece += two;
-        readInitial = false;
+      const joined = nextIsBlock
+        ? (JONG[last + next[0] + next[1]] ?? JONG[last + next[0]])
+        : undefined;
+      if (joined !== undefined) {
+        carried = joined.match(Onset)?.[0] ?? "";
+        piece += joined.slice(0, joined.length - carried.length);
       } else {
         piece += JONG[last] ?? last;
       }

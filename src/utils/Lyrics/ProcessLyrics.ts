@@ -136,7 +136,9 @@ const loadPackagesForScripts = async (
 
 const romanizeCyrillicText = (text: string, ukrainian: boolean): string => {
   const result = cyrillicToLatin(text, ukrainian ? "ukr" : "rus");
-  return result != null ? result : text;
+  if (result == null) return text;
+  // щ is shch, and the hard and soft signs aren't said on their own.
+  return result.replace(/([Ss])hh/g, "$1hch").replace(/[ʺʹ]/g, "");
 };
 
 const romanizeGreekText = (text: string, greekRomanization: any): string => {
@@ -325,11 +327,12 @@ const romanizeUnit = async (
       }
       if (!result) complete = false;
       texts.forEach((t, i) => {
-        if (!ItemJapaneseTest.test(t)) return;
+        const japanese = ItemJapaneseTest.test(t);
         if (result) {
-          texts[i] = result[i].text;
           gaps[i] = result[i].gapAfter;
-        } else {
+          // Japanese punctuation (『』, 〜) in a syllable of its own is written out too.
+          if (japanese || result[i].text !== "") texts[i] = result[i].text;
+        } else if (japanese) {
           texts[i] = RomanizeKanaOnly(t);
         }
       });
@@ -391,7 +394,10 @@ const applyUnit = (unit: RomanizeUnit, result: UnitResult): boolean => {
   syllables.forEach((syllable, i) => {
     if (hasTransliteration(syllable)) return;
     const text = result.texts[i];
-    if (text === syllable.Text || text.trim() === "") return;
+    if (text === syllable.Text) return;
+    // An empty romanization is kept only for script that reads as nothing (a っ
+    // sung as a stop, a kanji read by the bracketed kana after it).
+    if (text.trim() === "" && !ResidualScriptTest.test(syllable.Text ?? "")) return;
     // TransliteratedText lives on the word/syllable; the HasTransliterations flag
     // lives on the line (and the root) — never on individual words/syllables.
     syllable.TransliteratedText = text;
