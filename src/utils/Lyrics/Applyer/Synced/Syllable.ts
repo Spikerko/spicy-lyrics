@@ -383,9 +383,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
     const backgrounds = line.Background?.filter((bg) => !IsEmptySyllableGroup(bg)) ?? [];
     if (UnderLine) {
-      AppendSyllableRomanization(lineElem, line.Lead.Syllables, {
-        beforeBackground: backgrounds.length > 0,
-      });
+      AppendSyllableRomanization(lineElem, line.Lead.Syllables, backgrounds.length > 0);
     }
 
     if (line.Background) {
@@ -495,7 +493,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           }
         });
 
-        if (UnderLine) AppendSyllableRomanization(lineE, bg.Syllables, { isBackground: true });
+        if (UnderLine) AppendSyllableRomanization(lineE, bg.Syllables);
       });
     }
     if (arr[index + 1] && arr[index + 1].Lead.StartTime - line.Lead.EndTime >= getLyricsBetweenShow()) {

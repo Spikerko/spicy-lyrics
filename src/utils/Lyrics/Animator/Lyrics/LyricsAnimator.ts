@@ -17,7 +17,6 @@ import {
 } from "../../LyricsVirtualizer.ts";
 import { Spring } from "../../../../modules/Spring.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
-import { UpdateRomanizedRow } from "../../Applyer/Utils/RomanizedRow.ts";
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
 // Define types for animation ranges
@@ -1265,8 +1264,6 @@ export function Animate(position: number): void {
           console.warn("Line has no Syllables.Lead array");
           continue;
         }
-
-        UpdateRomanizedRow(line.HTMLElement, ProcessedPosition);
 
         const words = line.Syllables.Lead;
         const sweep = refreshedSimple ? getLineSweep(line.HTMLElement, words) : null;
