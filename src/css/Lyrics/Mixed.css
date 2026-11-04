@@ -1298,10 +1298,11 @@
 /* Romanization under each line (RomanizedRow.ts). The row sits inside its line
    on a flex row of its own, so it fades, blurs and scales with the line and the
    virtualizer measures it with the line. It is plain text at 0.6 of the line's
-   size and 0.65 of its brightness, and only fades between the line's dim and
-   bright states. It sits close under the line so it reads as part of it: 0.06
-   of the line's size above, 0.18 below, 0.4 before the line's own background
-   vocal (in the row's em: / 0.6). It paints itself with the same transparent
+   size and 0.65 of its brightness, and dims and brightens with the line:
+   its state colours here, the line's eased opacity around it. It sits close
+   under the line so it reads as part of it: 0.06 of the line's size above,
+   0.18 below, 0.4 before the line's own background vocal (in the row's em:
+   / 0.6). It paints itself with the same transparent
    fill and shadow as the line; its opacity gives it a layer of its own, so the
    gradient a line-synced or static line clips to its text doesn't reach it. */
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .RomanizedRow {
@@ -1317,7 +1318,6 @@
   -webkit-text-fill-color: transparent;
   background-image: none;
   text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--RomanizedAlpha));
-  transition: text-shadow 0.3s ease;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .RomanizedRow.BeforeBackground {
