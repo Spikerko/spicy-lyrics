@@ -30,6 +30,7 @@ import {
   $duetLinePadding,
   $lineHoverBackground,
   $lyricsContainerExists,
+  $lyricsSize,
   $minimalLyricsMode,
   $romanizationDisplay,
   $showVolumeSlider,
@@ -75,7 +76,7 @@ import {
   onExperimentChange,
   onExperimentDefinitionChange,
 } from "../../utils/experiments.ts";
-import { triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
+import { lyricsSizeChanged, triggerRemeasureLV } from "../../utils/Lyrics/LyricsVirtualizer.ts";
 
 const pageLogger = new Logger("Page View");
 const controlsLogger = new Logger("View Controls");
@@ -283,6 +284,8 @@ async function OpenPage(
 
   
   PageContainer = elem;
+
+  elem.style.setProperty("--SL-LyricsScale", String($lyricsSize.get() / 100));
 
   if (!$skipSpicyFont.get()) {
     elem.classList.add("UseSpicyFont");
@@ -859,6 +862,14 @@ $syllableMerge.listen(reapplyLyrics);
 $syllablePace.listen(reapplyLyrics);
 $romanizationDisplay.listen(() => {
   if (isRomanized) reapplyLyrics();
+});
+
+// CSS sizes the text. The list's cached row heights and scroll position are JS, so those follow.
+$lyricsSize.listen((v, previous) => {
+  if (!PageContainer) return;
+  PageContainer.style.setProperty("--SL-LyricsScale", String(v / 100));
+  lyricsSizeChanged(v / previous);
+  ResetLastLine();
 });
 
 // Purely a CSS toggle — no need to re-render the lyrics like the modes above do.

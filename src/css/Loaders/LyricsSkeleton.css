@@ -10,7 +10,7 @@
 }
 
 #SpicyLyricsPage .LyricsContainer .LyricsSkeleton {
-  --SkeletonLineSize: clamp(1.85rem, calc(1cqw * 7), 3.5rem);
+  --SkeletonLineSize: calc(clamp(1.85rem, calc(1cqw * 7), 3.5rem) * var(--SL-LyricsScale, 1));
 
   position: absolute;
   inset: 0;
@@ -53,7 +53,7 @@
 /* Same type scale the lyrics use in the NPV card and the popup, so the bars
    sit where the real lines will land. */
 #SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .LyricsContainer .LyricsSkeleton {
-  --SkeletonLineSize: clamp(1.85rem, calc(1cqw * 6), 2.8rem);
+  --SkeletonLineSize: calc(clamp(1.85rem, calc(1cqw * 6), 2.8rem) * var(--SL-LyricsScale, 1));
 }
 
 /* The card is short: only the bottom fade. */
@@ -63,10 +63,12 @@
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsSkeleton {
-  --SkeletonLineSize: clamp(
-    1.2rem,
-    min(max(1.7rem, 5.5vw), 8vh, 8vw),
-    2.6rem
+  --SkeletonLineSize: calc(
+    clamp(
+      1.2rem,
+      min(max(1.7rem, 5.5vw), 8vh, 8vw),
+      2.6rem
+    ) * var(--SL-LyricsScale, 1)
   );
 }
 

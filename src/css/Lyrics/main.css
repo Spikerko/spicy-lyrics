@@ -24,7 +24,9 @@
   --ActiveTextGlowDef: rgba(255, 255, 255, 0.4) 0px 0px 14px;
   --StrongTextGlowDef: rgba(255, 255, 255, 0.68) 0px 0px 16.4px;
   --StrongerTextGlowDef: rgba(255, 255, 255, 0.74) 0px 0px 16px;
-  --DefaultLyricsSize: clamp(1.85rem, calc(1cqw * 7), 3.5rem);
+  /* --SL-LyricsScale is the Lyrics Size setting, set on #SpicyLyricsPage (PageView.ts). Every
+     view's --DefaultLyricsSize multiplies by it, so a new definition has to as well. */
+  --DefaultLyricsSize: calc(clamp(1.85rem, calc(1cqw * 7), 3.5rem) * var(--SL-LyricsScale, 1));
   --amll-lyric-player-font-size: var(--DefaultLyricsSize);
   --Simplebar-Scrollbar-Color: rgba(255, 255, 255, 0.6);
   --vertical-gap: 0px;
@@ -109,10 +111,12 @@
      still shows a few lines and a tiny window isn't one word per line. vw/vh
      because this var is read inside .LyricsContent, where cq units would
      resolve against a different container than here. */
-  --DefaultLyricsSize: clamp(
-    1.2rem,
-    min(max(1.7rem, 5.5vw), 8vh, 8vw),
-    2.6rem
+  --DefaultLyricsSize: calc(
+    clamp(
+      1.2rem,
+      min(max(1.7rem, 5.5vw), 8vh, 8vw),
+      2.6rem
+    ) * var(--SL-LyricsScale, 1)
   );
 }
 

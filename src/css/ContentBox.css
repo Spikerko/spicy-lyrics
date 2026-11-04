@@ -1836,11 +1836,11 @@
 #SpicyLyricsPage.ForcedCompactMode.CompactifyEnabledCompactMode
   .LyricsContainer
   .LyricsContent {
-  --DefaultLyricsSize: clamp(3rem, calc(1cqw * 7), 4rem);
+  --DefaultLyricsSize: calc(clamp(3rem, calc(1cqw * 7), 4rem) * var(--SL-LyricsScale, 1));
 }
 
 #SpicyLyricsPage.TippyMode .LyricsContainer .LyricsContent {
-  --DefaultLyricsSize: clamp(2.5rem, calc(1cqw * 7), 3.5rem);
+  --DefaultLyricsSize: calc(clamp(2.5rem, calc(1cqw * 7), 3.5rem) * var(--SL-LyricsScale, 1));
 }
 
 #SpicyLyricsPage.Fullscreen.CompactMode.SpicyRenderer:has(.MediaBox:hover)

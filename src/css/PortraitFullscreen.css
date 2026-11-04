@@ -99,9 +99,9 @@
     > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode)
     .LyricsContainer
     .LyricsContent {
-    --DefaultLyricsSize: var(--PF_LyricsSize);
+    --DefaultLyricsSize: calc(var(--PF_LyricsSize) * var(--SL-LyricsScale, 1));
     /* The top fade is sized for regular lyrics; at this size a line above the active one would
        be sliced off at the bar instead of fading out. */
-    --SL-LyricsContent_MaskTopPadding: calc(var(--PF_LyricsSize) * 0.9);
+    --SL-LyricsContent_MaskTopPadding: calc(var(--DefaultLyricsSize) * 0.9);
   }
 }

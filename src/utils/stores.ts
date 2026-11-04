@@ -84,6 +84,8 @@ export const BACKGROUND_STYLES: readonly BackgroundStyle[] = ["dynamic", "artist
 export const $backgroundStyle = persistAtom<BackgroundStyle>("backgroundStyle", "dynamic");
 // Blur radius (px) for the two image styles, "artist" and "cover".
 export const $backgroundBlur = persistAtom<number>("backgroundBlur", 0);
+// Lyrics text size as a percentage of what each view uses by default.
+export const $lyricsSize = persistAtom<number>("lyricsSize", 100);
 export const $simpleLyricsMode = persistAtom<boolean>("simpleLyricsMode", false);
 export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", false);
 // Which words sung in syllables are shown as one word: none, all, those whose

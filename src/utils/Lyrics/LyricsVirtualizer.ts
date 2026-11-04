@@ -7,7 +7,7 @@ import {
 import { Maid } from "../../modules/Maid.ts";
 import { Spring } from "../../modules/Spring.ts";
 import Logger from "../Logger.ts";
-import { $simpleLyricsMode, $smoothScrolling } from "../stores.ts";
+import { $lyricsSize, $simpleLyricsMode, $smoothScrolling } from "../stores.ts";
 import { $experiment, isExperimentEnabled } from "../experiments.ts";
 import { cancelCappedFrame, requestCappedFrame } from "../AnimationFrameLoop.ts";
 
@@ -399,6 +399,38 @@ class LyricsVirtualizer {
     this._remeasureVisible();
   }
 
+  // Lyrics Size changed; the new size is already on the page. Rows off screen can't
+  // be measured, so their cached text height is scaled instead, which keeps the
+  // list's total height and the rows' starts close until each one next mounts.
+  lyricsSizeChanged(ratio: number): void {
+    const v = this._virtualizer;
+    if (!v) return;
+    const sizes = (v as unknown as { itemSizeCache?: Map<number, number> }).itemSizeCache;
+    const oldGaps = new Map<number, number>();
+    if (sizes) {
+      for (const idx of sizes.keys()) {
+        if (!this._mountedIndices.has(idx)) oldGaps.set(idx, this._itemGap(idx));
+      }
+    }
+    // Refreshed Simple Lyrics sizes its gaps from the font; the unrefreshed gaps don't move.
+    if (this._refreshed) this._readGapFont();
+    this._blockLayoutGlide(LAYOUT_GLIDE_BLOCK_MS);
+    // The list jumps to its new layout; anything moving there would aim at the old one.
+    this._stopSmoothScroll();
+    this._stopCascade();
+    if (sizes) {
+      for (const [idx, oldGap] of oldGaps) {
+        const size = sizes.get(idx);
+        if (size === undefined) continue;
+        const gap = this._itemGap(idx);
+        v.resizeItem(idx, (size - oldGap) * ratio + gap);
+        const wrapper = this._wrappers[idx];
+        if (wrapper) wrapper.style.paddingBottom = `${gap}px`;
+      }
+    }
+    this._remeasureVisible();
+  }
+
   // Rows whose classes changed: each one's gap is set again, and a background
   // line folding or opening also changes the gap of the rows above it, back to
   // its lead line. Mounted rows are re-measured. The animator flags background
@@ -551,7 +583,7 @@ class LyricsVirtualizer {
     }
     else if (el.classList.contains("bg-line")) h = this._isCollapsedBg(el) ? 0 : ESTIMATE["bg-line"];
     else h = ESTIMATE.default;
-    return h + this._itemGap(index);
+    return (h * $lyricsSize.get()) / 100 + this._itemGap(index);
   };
 
   // offsetHeight is the most reliable measurement: it reflects the true rendered
@@ -2256,6 +2288,10 @@ export function syncDetachedBackgroundLines(lines: HTMLElement[]): void {
 
 export function isLyricsListMoving(): boolean {
   return lyricsVirtualizer.moving;
+}
+
+export function lyricsSizeChanged(ratio: number): void {
+  lyricsVirtualizer.lyricsSizeChanged(ratio);
 }
 
 export function triggerRemeasureLV(): void {

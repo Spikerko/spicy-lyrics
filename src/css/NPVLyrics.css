@@ -351,7 +351,7 @@ body.SpicyLyrics_NPVCardExpanded
   #SpicyLyricsPage.CardMode
   .LyricsContainer
   .LyricsContent {
-  --DefaultLyricsSize: clamp(2.2rem, calc(1cqw * 7.5), 3.6rem);
+  --DefaultLyricsSize: calc(clamp(2.2rem, calc(1cqw * 7.5), 3.6rem) * var(--SL-LyricsScale, 1));
 }
 
 /* ─── Expand/collapse view transition (morphExpandedState) ────────────── */
@@ -477,7 +477,7 @@ html.SpicyLyrics_NPVMorph::view-transition-new(spicy-npv-card) {
 }
 
 #SpicyLyricsNPVCard #SpicyLyricsPage.CardMode .LyricsContainer .LyricsContent {
-  --DefaultLyricsSize: clamp(1.85rem, calc(1cqw * 6), 2.8rem);
+  --DefaultLyricsSize: calc(clamp(1.85rem, calc(1cqw * 6), 2.8rem) * var(--SL-LyricsScale, 1));
   /* Tighter fade than the default mask (solid only from 64px down), so the
      small top padding below still leaves the first line readable. */
   --ImageMask: linear-gradient(

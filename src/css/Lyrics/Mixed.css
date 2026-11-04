@@ -686,7 +686,7 @@
 #SpicyLyricsPage.SpicyRenderer
   .LyricsContainer
   .SpicyLyricsScrollContainer[data-lyrics-type="Static"] {
-  --DefaultLyricsSize: clamp(0.8rem, calc(1cqw * 5), 2.5rem);
+  --DefaultLyricsSize: calc(clamp(0.8rem, calc(1cqw * 5), 2.5rem) * var(--SL-LyricsScale, 1));
 }
 
 /* Popup (PiP) static lyrics: kept intentionally a touch smaller than synced
@@ -699,10 +699,12 @@
   .SpicyLyricsScrollContainer[data-lyrics-type="Static"] {
   /* Bounded by height and narrow widths the same way as the synced popup
      size (Lyrics/main.css). */
-  --DefaultLyricsSize: clamp(
-    1rem,
-    min(max(1.4rem, 6vw), 7vh, 7vw),
-    2.3rem
+  --DefaultLyricsSize: calc(
+    clamp(
+      1rem,
+      min(max(1.4rem, 6vw), 7vh, 7vw),
+      2.3rem
+    ) * var(--SL-LyricsScale, 1)
   );
 }
 
