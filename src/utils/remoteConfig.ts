@@ -101,6 +101,10 @@ export const DEFAULT_REMOTE_CONFIG = {
   audioAnalysis: {
     timeoutMs: 15000,
   },
+  romanization: {
+    // How long lyrics wait for the Japanese dictionary before showing kana-only romaji.
+    dictionaryWaitMs: 5000,
+  },
   experimentsSync: {
     timeoutMs: 5000,
     intervalMs: 60000,

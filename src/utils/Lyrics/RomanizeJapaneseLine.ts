@@ -1,74 +1,94 @@
 // deno-lint-ignore-file no-explicit-any
-import Kuroshiro from "kuroshiro";
+// @ts-ignore: plain JS module without types
+import { kanaToRomaji as KanaToRomaji } from "kuroshiro/src/util.js";
 import * as KuromojiAnalyzer from "./KuromojiAnalyzer.ts";
 
-const KanaToRomaji: (kana: string, system: string) => string = (Kuroshiro as any).Util.kanaToRomaji;
+/**
+ * Japanese romanization: kuromoji (IPADIC) reads the whole line, so kanji get
+ * their reading in context and words split over several syllables keep it,
+ * and Hepburn writes it out. The spelling is the one romanized lyric pages
+ * use: long vowels as written ("kyou", "koohii"), particles as said ("wa",
+ * "e", "wo"), and a gap between words with endings kept on their word
+ * ("kimi no namae wo yonde ita").
+ */
 
-type LineSyllable = { Text: string; IsPartOfWord?: boolean };
+export type LineSyllable = { Text: string; IsPartOfWord?: boolean };
+/** One syllable's romaji, and whether a word ends after it. */
+export type RomanizedSyllable = { text: string; gapAfter: boolean };
 
-// A kuromoji token after the same patches kuroshiro applies before converting.
-type JapaneseToken = {
+type Token = {
   surface: string;
+  /** Katakana as written, with particles as said. */
   reading: string;
-  pronunciation?: string;
-  pos?: string;
+  pos: string;
+  posDetail: string;
+  /** UTF-16 offset in the line. */
   start: number;
 };
 
+const MACRONS: Record<string, string> = { ā: "aa", ī: "ii", ū: "uu", ē: "ee", ō: "oo" };
+
+/** Hepburn, with ー written as the vowel again (コーヒー → koohii). */
+const romanize = (kana: string): string =>
+  (KanaToRomaji(kana, "hepburn") as string)
+    .trim()
+    .replace(/[āīūēō]/g, (c) => MACRONS[c] ?? c);
+
 const isKanaChar = (c: string) => c >= "぀" && c <= "ヿ";
 const isKanji = (c: string) =>
-  (c >= "一" && c <= "鿏") || (c >= "豈" && c <= "﫿") || (c >= "㐀" && c <= "䶿");
+  (c >= "一" && c <= "鿏") ||
+  (c >= "豈" && c <= "﫿") ||
+  (c >= "㐀" && c <= "䶿") ||
+  c === "々";
 const hasJapanese = (s: string) => [...s].some((c) => isKanaChar(c) || isKanji(c));
 const toKatakana = (s: string) =>
   s.replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
-const romanize = (kana: string) => KanaToRomaji(kana, "hepburn").trim();
 
-const tokenize = async (text: string): Promise<JapaneseToken[]> => {
+/**
+ * Half-width katakana (ｿﾝﾅ) as the dictionary knows it (ソンナ), one
+ * character for one, so every syllable keeps its length.
+ */
+const widenKatakana = (text: string) =>
+  text.replace(/[｡-ﾟ]/g, (c) => {
+    const wide = c.normalize("NFKC");
+    return wide.length === 1 ? wide : c;
+  });
+
+/** The particles that aren't said as written. */
+const PARTICLES: Record<string, string> = { は: "ワ", へ: "エ", を: "ヲ" };
+
+const known = (value: unknown) =>
+  typeof value === "string" && value !== "" && value !== "*" ? value : undefined;
+
+const tokenize = async (text: string): Promise<Token[]> => {
   const raw: any[] = await KuromojiAnalyzer.parse(text);
-  const tokens = raw.map((t): JapaneseToken => {
+  const tokens = raw.map((t): Token => {
     const surface: string = t.surface_form;
-    const reading = t.reading && t.reading !== "*" ? (t.reading as string) : undefined;
-    const pronunciation =
-      t.pronunciation && t.pronunciation !== "*" ? (t.pronunciation as string) : undefined;
+    const reading = known(t.reading);
     return {
       surface,
-      reading: !hasJapanese(surface)
-        ? surface
-        : reading === undefined
-          ? [...surface].every(isKanaChar)
-            ? toKatakana(surface)
-            : surface
-          : toKatakana(reading),
-      pronunciation,
+      reading:
+        t.pos === "助詞" && PARTICLES[surface]
+          ? PARTICLES[surface]
+          : !hasJapanese(surface)
+            ? surface
+            : reading
+              ? toKatakana(reading)
+              : [...surface].every(isKanaChar)
+                ? toKatakana(surface)
+                : surface,
       pos: t.pos,
+      posDetail: t.pos_detail_1,
       start: 0,
     };
   });
 
-  // 助動詞 "う" after a 動詞 joins it as a long vowel (行こう → ikō).
-  for (let i = 1; i < tokens.length; i++) {
-    const t = tokens[i];
-    const prev = tokens[i - 1];
-    if (t.pos === "助動詞" && (t.surface === "う" || t.surface === "ウ") && prev.pos === "動詞") {
-      prev.surface += t.surface;
-      prev.pronunciation = `${prev.pronunciation ?? prev.reading}ー`;
-      prev.reading += "ウ";
-      tokens.splice(i--, 1);
-    }
-  }
-
-  // A 動詞 or 形容詞 ending in っ takes the next token in (言っ|て → itte).
+  // A verb or adjective ending in っ takes the next token in (言っ|て → itte).
   for (let i = 0; i + 1 < tokens.length; i++) {
     const t = tokens[i];
-    if (
-      (t.pos === "動詞" || t.pos === "形容詞") &&
-      t.surface.length > 1 &&
-      /[っッ]$/.test(t.surface)
-    ) {
-      const next = tokens[i + 1];
-      t.surface += next.surface;
-      t.pronunciation = (t.pronunciation ?? t.reading) + (next.pronunciation ?? next.reading);
-      t.reading += next.reading;
+    if ((t.pos === "動詞" || t.pos === "形容詞") && t.surface.length > 1 && /[っッ]$/.test(t.surface)) {
+      t.surface += tokens[i + 1].surface;
+      t.reading += tokens[i + 1].reading;
       tokens.splice(i-- + 1, 1);
     }
   }
@@ -84,75 +104,85 @@ const tokenize = async (text: string): Promise<JapaneseToken[]> => {
   return tokens;
 };
 
-const morae = (reading: string, splitLongVowels: boolean): string[] => {
+const INFLECTING = new Set(["動詞", "形容詞", "助動詞"]);
+const VOWEL_KANA: Record<string, string> = { ア: "a", イ: "i", ウ: "u", エ: "e", オ: "o" };
+
+/** A lone vowel that holds the sound before it (うるせ|え → urusee). */
+const stretches = (token: Token, previous: Token | undefined) => {
+  const vowel = VOWEL_KANA[toKatakana(token.surface)];
+  if (!vowel || !previous || !hasJapanese(previous.surface)) return false;
+  return romanize(previous.reading).slice(-1) === vowel;
+};
+
+/**
+ * Endings that stay on the word before: verb and adjective endings (yonde,
+ * ita, ikou), て/で, and suffixes (tomodachisan). A copula after a noun stays
+ * its own word (suki da).
+ */
+const attaches = (token: Token, previous: Token | undefined) =>
+  (token.pos === "助動詞" && !!previous && INFLECTING.has(previous.pos)) ||
+  (token.pos === "助詞" && token.posDetail === "接続助詞") ||
+  token.posDetail === "接尾" ||
+  // Casual ん (やってんの, 抜かしてんだ) is said as part of the word before.
+  (!!previous && /^[んン]$/.test(token.surface)) ||
+  // A ー on its own stretches the sound before it (せー → see).
+  (!!previous && /^[ーｰ〜～]+$/.test(token.surface)) ||
+  stretches(token, previous);
+
+const OPENS = /^[「『（(“‘〈《【]$/;
+
+/**
+ * A reading in sounds, the units shared out between kanji: small kana, ー,
+ * ン and ッ stay with the kana before them, so a kanji never starts with one
+ * (千里眼 → セン|リ|ガン, 一歩 → イッ|ポ).
+ */
+const morae = (reading: string): string[] => {
   const result: string[] = [];
-  const joins = splitLongVowels ? "ャュョァィゥェォヮ" : "ャュョァィゥェォヮー";
   for (const c of reading) {
-    if (result.length === 0 || !joins.includes(c)) result.push(c);
+    if (result.length === 0 || !"ャュョァィゥェォヮーンッ".includes(c)) result.push(c);
     else result[result.length - 1] += c;
   }
   return result;
 };
 
-// Shares a reading between characters by mora, the extra mora going to the
-// last (名前 → ナ|マエ). With fewer morae than characters a long vowel counts
-// as its own (今日 → キョ|ー) and the first characters get them, so nothing
-// sung is left without a reading.
+/**
+ * Shares a reading between characters by mora, the extra mora going to the
+ * last (名前 → ナ|マエ); with fewer morae than characters the first ones get
+ * them, so nothing sung is left without a reading.
+ */
 const share = (reading: string, count: number): string[] => {
-  let parts = morae(reading, false);
-  if (parts.length < count) parts = morae(reading, true);
+  const parts = morae(reading);
   const cut = parts.length < count ? Math.round : Math.floor;
   return Array.from({ length: count }, (_, i) =>
     parts.slice(cut((i * parts.length) / count), cut(((i + 1) * parts.length) / count)).join("")
   );
 };
 
-// How a written kana may appear in a pronunciation: vowels lengthen the one
-// before (トウ → トー) and some particles are said differently (は → ワ).
-const SaidAs: Record<string, string> = { ハ: "ワ", ヘ: "エ", ヲ: "オ", ヅ: "ズ", ヂ: "ジ" };
-const kanaPattern = (c: string): string => {
-  const k = toKatakana(c);
-  const forms = [k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")];
-  if ("アイウエオ".includes(k)) forms.push("ー");
-  if (SaidAs[k]) forms.push(SaidAs[k]);
-  return `(${forms.join("|")})`;
-};
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// One kana reading per surface character. Kana read as themselves, and each
-// run of kanji takes the reading between them (走り出す → ハシ|リ|ダ|ス); a run
-// of several kanji shares its part by mora (per-kanji readings would need a
-// dictionary that isn't loaded).
-const charReadings = (surface: string, reading: string | undefined): string[] => {
-  if (reading === undefined) return surface.split("");
+/**
+ * One kana reading per character of a word. Kana read as themselves, and each
+ * run of kanji takes the reading between them (走り出す → ハシ|リ|ダ|ス); a run
+ * of several kanji shares its part by mora.
+ */
+const charReadings = (surface: string, reading: string): string[] => {
   const runs = surface.match(/[぀-ヿ]+|[^぀-ヿ]+/g) ?? [];
-  const isKanaRun = (run: string) => isKanaChar(run[0]);
-  const pattern = runs.map((run) =>
-    isKanaRun(run) ? run.split("").map(kanaPattern).join("") : "(.+?)"
+  const pattern = new RegExp(
+    `^${runs.map((run) => (isKanaChar(run[0]) ? `(${escapeRegExp(toKatakana(run))})` : "(.+?)")).join("")}$`
   );
-  const match = reading.match(new RegExp(`^${pattern.join("")}$`));
+  const match = reading.match(pattern);
   // No clean alignment (an unusual reading): share it over the whole word.
   if (!match) return share(reading, surface.length);
-
-  let group = 1;
-  return runs.flatMap((run) => {
-    if (isKanaRun(run)) return run.split("").map(() => match[group++]);
-    const shares = share(match[group++], run.length);
-    // A っ is the end of the kanji before it, never the start of the next (発火 → ハッ|カ).
-    for (let i = 1; i < shares.length; i++) {
-      while (shares[i].startsWith("ッ")) {
-        shares[i - 1] += "ッ";
-        shares[i] = shares[i].slice(1);
-      }
-    }
-    return shares;
-  });
+  return runs.flatMap((run, i) =>
+    isKanaChar(run[0]) ? toKatakana(run).split("") : share(match[i + 1], run.length)
+  );
 };
 
 const RubyReading = /[(（]([ぁ-ゖァ-ーー]+)[)）]/g;
 
 // Character index -> reading for kanji read by the kana in brackets after them
 // (傾(かぶ)けば): the word's kanji and the brackets read nothing, the kana read themselves.
-const rubyReadings = (text: string, tokens: JapaneseToken[]): Map<number, string> => {
+const rubyReadings = (text: string, tokens: Token[]): Map<number, string> => {
   const readings = new Map<number, string>();
   for (const match of text.matchAll(RubyReading)) {
     const open = match.index ?? 0;
@@ -171,46 +201,58 @@ const rubyReadings = (text: string, tokens: JapaneseToken[]): Map<number, string
 };
 
 /**
- * Romanizes one line's syllables with the whole line as tokenizer context and
- * returns one romaji string per syllable. Romanizing each syllable alone loses
- * sounds at the seams: 段|々 reads "dan" + "々", and the っ in 黙っ|て has no
- * consonant to double. Here the line's reading is shared back out to the
- * syllables it spans.
+ * Romanizes one line's syllables with the whole line as tokenizer context,
+ * one entry per syllable. Romanizing each syllable alone loses sounds at the
+ * seams: 段|々 reads "dan" + "々", and the っ in 黙っ|て has no consonant to
+ * double. Here the line's reading is shared back out to the syllables it spans.
  *
- * A っ ending a syllable keeps the consonant it doubles there (黙っ|て → damat|te,
- * 発|火 → hak|ka); before a vowel, a pause or the line's end it is a stop and
- * unwritten (まっ|いっ|か → ma|ik|ka, あっ → a).
+ * A っ ending a syllable keeps the consonant it doubles there (黙っ|て →
+ * damat|te, 発|火 → hak|ka); before a vowel, a pause or the line's end it is a
+ * stop and unwritten (まっ|いっ|か → ma|ik|ka, あっ → a).
+ *
+ * `gapAfter` marks a syllable after which a new word starts, so the romaji
+ * reads by word ("anata no koto") although the syllables are written glued.
+ * A syllable with more than one word in it gets its gaps inside the text.
  */
-export const RomanizeJapaneseLine = async (syllables: LineSyllable[]): Promise<string[]> => {
+export const RomanizeJapaneseLine = async (
+  syllables: LineSyllable[]
+): Promise<RomanizedSyllable[]> => {
   // Syllables that aren't part of the same word are spaced apart, so the
   // tokenizer sees the same word boundaries the lyrics do.
   let text = "";
   const owner: number[] = [];
+  const startsAt: number[] = [];
   syllables.forEach((syllable, index) => {
     if (index > 0 && !syllables[index - 1].IsPartOfWord) {
       text += " ";
       owner.push(-1);
     }
-    text += syllable.Text;
+    startsAt.push(text.length);
+    text += widenKatakana(syllable.Text);
     for (let i = 0; i < syllable.Text.length; i++) owner.push(index);
   });
 
   const tokens = await tokenize(text);
   const ruby = rubyReadings(text, tokens);
-  const kana: string[][] = syllables.map(() => []);
+  const kana: { piece: string; newWord: boolean }[][] = syllables.map(() => []);
+  const startsWord = syllables.map(() => false);
   let lastReading: string | undefined;
 
-  for (const token of tokens) {
+  tokens.forEach((token, tokenIndex) => {
+    // Punctuation never starts a word ("Oh yeah, hashiridasu").
+    const newWord =
+      tokenIndex > 0 && /[\p{L}\p{N}]/u.test(token.surface) && !attaches(token, tokens[tokenIndex - 1]);
+    if (newWord) {
+      const syllable = startsAt.indexOf(token.start);
+      if (syllable > 0) startsWord[syllable] = true;
+    }
+
     let readings: string[];
-    if (
-      [...token.surface].every((c) => c === "々") &&
-      ![...(token.pronunciation ?? "")].some(isKanaChar) &&
-      lastReading !== undefined
-    ) {
+    if (/^々+$/.test(token.surface) && !isKanaChar(token.reading[0] ?? "") && lastReading !== undefined) {
       // A 々 the dictionary didn't read repeats the kanji before it (燦々 → san san).
       readings = token.surface.split("").map(() => lastReading as string);
     } else if (hasJapanese(token.surface)) {
-      readings = charReadings(token.surface, token.pronunciation ?? token.reading);
+      readings = charReadings(token.surface, token.reading);
     } else {
       readings = token.surface.split("");
     }
@@ -221,41 +263,66 @@ export const RomanizeJapaneseLine = async (syllables: LineSyllable[]): Promise<s
     readings.forEach((r, i) => {
       const syllable = owner[token.start + i];
       if (syllable < 0) return;
-      // A vowel split off from the mora it lengthens (ありがと|う) reads as written.
-      const written = toKatakana(token.surface[i]);
-      if (!bySyllable.has(syllable) && r.startsWith("ー") && "アイウエオ".includes(written)) {
-        r = written + r.slice(1);
-      }
       bySyllable.set(syllable, (bySyllable.get(syllable) ?? "") + r);
     });
+    let first = true;
     for (const [syllable, piece] of [...bySyllable].sort((a, b) => a[0] - b[0])) {
-      if (piece.trim() !== "") kana[syllable].push(piece);
+      if (piece.trim() !== "") kana[syllable].push({ piece, newWord: first && newWord });
+      first = false;
     }
-  }
+  });
 
-  const pieces = kana.flatMap((list, syllable) => list.map((piece) => ({ syllable, piece })));
-  const romaji: string[][] = syllables.map(() => []);
+  const pieces = kana.flatMap((list, syllable) => list.map((entry) => ({ syllable, ...entry })));
+  const romaji: { text: string; newWord: boolean; opens: boolean }[][] = syllables.map(() => []);
   let lastVowel = "";
-  pieces.forEach(({ syllable, piece }, k) => {
-    let text: string;
-    if (!piece.endsWith("ッ")) {
-      text = romanize(piece);
-    } else {
+  pieces.forEach(({ syllable, piece, newWord }, k) => {
+    let out: string;
+    if (piece === "ヲ") out = "wo";
+    else if (!/[っッ]$/.test(piece)) out = romanize(piece);
+    else {
       // The consonant the stop doubles, from the first sound after it.
       const next = pieces[k + 1] ? romanize(pieces[k + 1].piece) : "";
       const doubled = next.startsWith("ch")
         ? "t"
-        : /^[a-z]/i.test(next) && !/^[aeiouāēīōūn]/i.test(next)
+        : /^[a-z]/i.test(next) && !/^[aeioun]/i.test(next)
           ? next[0]
           : "";
-      text = romanize(piece.replace(/ッ+$/, "")) + doubled;
+      out = romanize(piece.replace(/[っッ]+$/, "")) + doubled;
     }
     // A ー in a syllable of its own holds the vowel before it (セ|ー → se|e).
-    text = text.replace(/^ー+/, (marks) => lastVowel.repeat(marks.length));
-    const vowel = text.match(/[aeiouāēīōū](?=[^a-zāēīōū]*$)/i)?.[0];
-    if (vowel) lastVowel = vowel.toLowerCase().normalize("NFD")[0];
-    romaji[syllable].push(text);
+    out = out
+      .replace(/^ー+/, (marks) => lastVowel.repeat(marks.length))
+      .replace(/[『』]/g, '"')
+      .replace(/〜/g, "~");
+    const vowel = out.match(/[aeiou](?=[^a-z]*$)/i)?.[0];
+    if (vowel) lastVowel = vowel.toLowerCase();
+    romaji[syllable].push({ text: out, newWord, opens: OPENS.test(piece.trim()) });
   });
 
-  return romaji.map((list) => list.filter((r) => r !== "").join(" "));
+  return romaji.map((list, index) => {
+    const kept = list.filter((entry) => entry.text !== "");
+    // Inside one syllable (a line that isn't split, say), words still get gaps.
+    const joined = kept
+      .map((entry, i) => (i > 0 && entry.newWord && !kept[i - 1].opens ? ` ${entry.text}` : entry.text))
+      .join("")
+      .trim();
+    if (joined === "") return { text: "", gapAfter: false };
+    // A word ends here when the next syllable that says anything starts one.
+    let next = index + 1;
+    while (next < syllables.length && !startsWord[next] && romaji[next].every((e) => !e.text)) next++;
+    const gapAfter =
+      next < syllables.length && startsWord[next] && !kept[kept.length - 1]?.opens;
+    return { text: joined, gapAfter };
+  });
 };
+
+/** Romaji for a whole line of text, words spaced apart. */
+export const RomanizeJapaneseText = async (text: string): Promise<string> =>
+  (await RomanizeJapaneseLine([{ Text: text }]))[0].text;
+
+/**
+ * Kana only, for when the dictionary isn't available: kana are spelled out
+ * and kanji are left as written, since reading them needs the dictionary.
+ */
+export const RomanizeKanaOnly = (text: string): string =>
+  romanize(widenKatakana(toKatakana(text))).replace(/[『』]/g, '"').replace(/〜/g, "~");

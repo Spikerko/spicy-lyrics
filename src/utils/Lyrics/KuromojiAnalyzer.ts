@@ -1,32 +1,41 @@
-// deno-lint-ignore-file no-async-promise-executor no-explicit-any
+// deno-lint-ignore-file no-explicit-any
 import { RetrievePackage } from "../ImportPackage.ts";
 
-RetrievePackage("Kuromoji", "1.0.0", "js")
-  .catch(() => {});
+const DictionaryUrl = "https://kuromoji.pkgs.spikerko.org";
 
 let Analyzer: any;
-export const init = (): Promise<void> => {
-  if (Analyzer !== undefined) {
-    return Promise.resolve();
+let Loading: Promise<void> | undefined;
+
+const build = async (): Promise<void> => {
+  await RetrievePackage("Kuromoji", "1.0.0", "js");
+  // The package is a script that sets window.kuromoji when it runs.
+  for (let tries = 0; !(window as any).kuromoji; tries++) {
+    if (tries > 200) throw new Error("Kuromoji didn't load");
+    await new Promise((r) => setTimeout(r, 50));
   }
-
-  return new Promise(async (resolve, reject) => {
-    await RetrievePackage("Kuromoji", "1.0.0", "js");
-    while (!(window as any).kuromoji) {
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    (window as any).kuromoji.builder({
-      dicPath: "https://kuromoji.pkgs.spikerko.org",
-    }).build((error: any, analyzer: any) => {
-      if (error) {
-        return reject(error);
-      }
-
-      Analyzer = analyzer;
-      resolve();
-    });
+  Analyzer = await new Promise((resolve, reject) => {
+    (window as any).kuromoji
+      .builder({ dicPath: DictionaryUrl })
+      .build((error: any, analyzer: any) => (error ? reject(error) : resolve(analyzer)));
   });
 };
+
+/**
+ * Loads the tokenizer and its dictionary once. A failed load is forgotten, so
+ * the next caller tries again (after a dropped connection, say).
+ */
+export const init = (): Promise<void> => {
+  if (Analyzer !== undefined) return Promise.resolve();
+  Loading ??= build().catch((error) => {
+    Loading = undefined;
+    throw error;
+  });
+  return Loading;
+};
+
+/** Whether the tokenizer is ready to use right now. */
+export const isReady = (): boolean => Analyzer !== undefined;
+
 export const parse = (text = ""): Promise<any> => {
   if (text.trim() === "" || Analyzer === undefined) {
     return Promise.resolve([]);

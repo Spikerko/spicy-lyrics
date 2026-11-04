@@ -465,7 +465,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
       return ["lyrics-not-found", 404];
     }
 
-    await ProcessLyrics(lyrics);
+    const romanizedInFull = await ProcessLyrics(lyrics);
 
     // Pruning blank lines can empty out a payload the API still counted as a
     // hit. Nothing would render, so treat it as a miss rather than caching and
@@ -483,8 +483,10 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     lyrics.uri = uri;
 
     // The request already completed, so cache it either way — even if the user
-    // has skipped on, the next play of this track gets a cache hit.
-    if (LyricsStore) {
+    // has skipped on, the next play of this track gets a cache hit. Lyrics whose
+    // romanization was cut short (the Japanese dictionary still loading, say)
+    // aren't cached, so the next play romanizes them in full.
+    if (LyricsStore && romanizedInFull) {
       try {
         await LyricsStore.SetItem(trackId, lyrics);
       } catch (error) {
