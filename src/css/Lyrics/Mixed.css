@@ -1297,8 +1297,9 @@
 }
 /* Romanization under each line (RomanizedRow.ts). The row sits inside its line
    on a flex row of its own, so it fades, blurs and scales with the line and the
-   virtualizer measures it with the line. It is plain text at 0.6 of the line's
-   size and 0.65 of its brightness, and dims and brightens with the line:
+   virtualizer measures it with the line. It is 0.6 of the line's size and
+   0.65 of its brightness, and dims and brightens with the line (a syllable
+   row also sweeps while active, below):
    its state colours here, the line's eased opacity around it. It sits close
    under the line so it reads as part of it: 0.06 of the line's size above,
    0.18 below, 0.4 before the line's own background vocal (in the row's em:
@@ -1335,4 +1336,21 @@
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:is(.Active, .Sung, .static) .RomanizedRow {
   --RomanizedAlpha: var(--gradient-alpha);
+}
+
+/* An active syllable row lights each syllable's romanization from left to right
+   over its sung time (--RomanizedPosition, set by RomanizedRow.ts), on the same
+   gradient as the line's words; dim ahead of it, lit behind. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed {
+  text-shadow: none;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece {
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, var(--gradient-alpha)) var(--RomanizedPosition, -20%),
+    rgba(255, 255, 255, var(--gradient-alpha-end)) calc(var(--RomanizedPosition, -20%) + 20%)
+  );
 }
