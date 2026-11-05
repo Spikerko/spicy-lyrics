@@ -1,3 +1,4 @@
+import { useStore } from "@nanostores/react";
 import { useEffect, useRef, useState } from "react";
 import Session from "../../Global/Session.ts";
 import {
@@ -6,6 +7,7 @@ import {
   DISCORD_BUGS_URL,
   DISCORD_INVITE_URL,
 } from "../../../utils/BugReport.ts";
+import { $latestVersion } from "./About.tsx";
 import { BugIcon } from "./icons.tsx";
 import type { SectionDef } from "./model.ts";
 
@@ -16,30 +18,13 @@ const COPY_FEEDBACK_MS = 2200;
 
 type CopyState = "idle" | "done" | "failed";
 
-/** The latest released version, or undefined until (or unless) the check answers. */
-function useLatestVersion(): string | undefined {
-  const [latest, setLatest] = useState<string>();
-  useEffect(() => {
-    let cancelled = false;
-    Session.SpicyLyrics.GetLatestVersion()
-      .then((version) => {
-        if (!cancelled) setLatest(version?.Text);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  return latest;
-}
-
-function useCopy(latestVersion: string | undefined, after?: () => void) {
+function useCopy(after?: () => void) {
   const [state, setState] = useState<CopyState>("idle");
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const copy = async (from: Element) => {
-    const ok = await CopyText(BuildBugReport({ latestVersion }), from);
+    const ok = await CopyText(BuildBugReport({ latestVersion: $latestVersion.get() }), from);
     setState(ok ? "done" : "failed");
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setState("idle"), COPY_FEEDBACK_MS);
@@ -71,7 +56,7 @@ function CopyLabel({ state, idle }: { state: CopyState; idle: string }) {
 
 /** The searchable row's control: copies without leaving Settings. */
 function CopyReportButton() {
-  const [state, copy] = useCopy(undefined);
+  const [state, copy] = useCopy();
   return (
     <button type="button" className="sl-sp-btn" data-state={state} onClick={(e) => copy(e.currentTarget)}>
       <CopyLabel state={state} idle="Copy" />
@@ -81,10 +66,10 @@ function CopyReportButton() {
 
 /** Settings → Got a Bug?: what gets copied, and the way to Discord. */
 export function BugReportPane() {
-  const latestVersion = useLatestVersion();
+  const latestVersion = useStore($latestVersion);
   const [report, setReport] = useState(() => BuildBugReport());
-  const [copyState, copy] = useCopy(latestVersion);
-  const [discordState, copyAndOpen] = useCopy(latestVersion, () => window.open(DISCORD_BUGS_URL, "_blank"));
+  const [copyState, copy] = useCopy();
+  const [discordState, copyAndOpen] = useCopy(() => window.open(DISCORD_BUGS_URL, "_blank"));
 
   useEffect(() => {
     setReport(BuildBugReport({ latestVersion }));

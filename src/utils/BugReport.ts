@@ -65,6 +65,9 @@ let lastFrame = 0;
 let sampling = false;
 let samplingCheckedFor = -1;
 let settleUntil = 0;
+// The second Settings opened, while it's open. Sampling pauses behind the panel, and someone
+// reading Got a Bug? shouldn't watch the samples they came to report expire meanwhile.
+let panelOpenedAt: number | null = null;
 
 const settle = () => {
   settleUntil = performance.now() + SETTLE_MS;
@@ -75,7 +78,8 @@ Global.Event.listen("playback:songchange", settle);
 function lyricsOnScreen(): boolean {
   return (
     !!PageContainer?.isConnected &&
-    document.visibilityState === "visible" &&
+    // The lyrics' own window: with Popup Lyrics, the main one can be minimised.
+    PageContainer.ownerDocument.visibilityState === "visible" &&
     !document.querySelector(".sl-sp") &&
     !!PageContainer.querySelector(".LyricsContainer .line")
   );
@@ -87,6 +91,7 @@ onAnimationFrame((timestamp) => {
   if (second !== samplingCheckedFor) {
     samplingCheckedFor = second;
     sampling = lyricsOnScreen();
+    panelOpenedAt = document.querySelector(".sl-sp") ? (panelOpenedAt ?? second) : null;
   }
   const gap = timestamp - lastFrame;
   lastFrame = timestamp;
@@ -103,7 +108,7 @@ onAnimationFrame((timestamp) => {
 function describeSmoothness(): string {
   const cap = $animationFpsCapEnabled.get() ? `cap ${$animationFpsCap.get()} fps` : "no cap";
   // Seconds from the last minute only, leaving out the one still filling up.
-  const now = Math.floor(performance.now() / 1000);
+  const now = panelOpenedAt ?? Math.floor(performance.now() / 1000);
   const full = samples.filter((s) => s.second < now && now - s.second <= SAMPLE_SECONDS && s.gaps.length > 0);
   if (full.length < 3) return `no lyrics on screen in the last minute (${cap})`;
   const rates = full.map((s) => s.gaps.length).sort((a, b) => a - b);

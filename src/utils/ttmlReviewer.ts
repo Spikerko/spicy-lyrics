@@ -82,6 +82,28 @@ function applyProfile() {
   for (const [key, value] of profile) PersistedSettings.get(key)?.set(value);
 }
 
+/** What to put back for a key. `null` means it was never set, and restoring unsets it. */
+function backupValue(key: string): unknown {
+  const entry = PersistedSettings.get(key);
+  return entry?.isStored() ? entry.get() : null;
+}
+
+/**
+ * A session starting in the mode lays the profile over again: an older copy can rewrite
+ * the blob meanwhile. An update can also have added keys, whose real values are saved
+ * first. If that can't be saved, those keys are left alone rather than lost.
+ */
+function resumeProfile() {
+  const backup = readBackup();
+  if (!backup) return;
+  const added = [...profile.keys()].filter((key) => !Object.hasOwn(backup, key));
+  for (const key of added) backup[key] = backupValue(key);
+  const saved = added.length === 0 || writeBackup(JSON.stringify(backup));
+  for (const [key, value] of profile) {
+    if (saved || !added.includes(key)) PersistedSettings.get(key)?.set(value);
+  }
+}
+
 export const $ttmlReviewer = atom<boolean>(readBackup() !== null);
 
 /** Whether the mode holds this settings row (by id) still. */
@@ -94,13 +116,10 @@ export function setTtmlReviewer(on: boolean) {
   if (on) {
     // Already on: a new backup would save the stripped values over the real ones.
     if (backup) return;
-    // Only what's actually stored: anything never set has to stay that way, or the
-    // user is pinned to today's default (for experiments, cut off from remote ones).
+    // Anything never set has to stay that way, or the user is pinned to today's default
+    // (for experiments, cut off from remote ones).
     const saved: Record<string, unknown> = {};
-    for (const key of profile.keys()) {
-      const entry = PersistedSettings.get(key);
-      if (entry?.isStored()) saved[key] = entry.get();
-    }
+    for (const key of profile.keys()) saved[key] = backupValue(key);
     // Saved before anything changes, so a crash partway can't lose the real values.
     // Read back too: with no backup to restore from, stripping would lose them for good.
     if (!writeBackup(JSON.stringify(saved))) {
@@ -109,10 +128,12 @@ export function setTtmlReviewer(on: boolean) {
     }
     applyProfile();
   } else if (backup) {
-    for (const key of profile.keys()) {
+    // Everything in the backup, not just today's profile: an update can have taken a key
+    // off the list, and it still has to come back.
+    for (const key of Object.keys(backup)) {
       const entry = PersistedSettings.get(key);
-      if (Object.hasOwn(backup, key)) entry?.set(backup[key]);
-      else entry?.unset();
+      if (backup[key] === null) entry?.unset();
+      else entry?.set(backup[key]);
     }
     // Removed last: a crash partway leaves the mode on, with the backup still there.
     Spicetify.LocalStorage.remove(BACKUP_KEY);
@@ -140,6 +161,4 @@ export function getOtherLyricsExtensions(): string[] {
   return active;
 }
 
-// An older copy can rewrite the blob while the mode is on, and an update can add to
-// the profile, so a session that starts in the mode lays it over again.
-if ($ttmlReviewer.get()) applyProfile();
+if ($ttmlReviewer.get()) resumeProfile();

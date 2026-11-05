@@ -16,19 +16,24 @@ const OWN_SCRIPT = /spicy-lyrics/i;
 
 /**
  * Takes out what could identify someone before an error is kept for a bug report:
- * query strings (tokens ride in them), user IDs in URIs and URL paths, the values of
- * anything named like a credential, and long token-like runs.
+ * query strings (tokens ride in them), user IDs in URIs and URL paths, the account name
+ * in file paths, email addresses, the values of anything named like a credential or an
+ * identity, and long token-like runs.
  */
 export function RedactForReport(text: string): string {
   return (
     text
       .replace(/(https?:\/\/[^\s?#"']+)[?#][^\s"']*/gi, "$1?…")
-      .replace(/(\/users?\/)[^/\s?#"']+/gi, "$1…")
+      .replace(/(\/(?:users?|home)\/)[^/\s?#"']+/gi, "$1…")
+      // C:\Users\name, in plain and in JSON-escaped text.
+      .replace(/([a-z]:[\\/]+users[\\/]+)[^\\/\s"']+/gi, "$1…")
+      .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "…")
       .replace(/spotify:user:[^\s"',]+/gi, "spotify:user:…")
       .replace(/\bbearer\s+[^\s"',]+/gi, "Bearer …")
-      // access_token=…, "refreshToken": "…", api-key: …, password=…
+      // access_token=…, "refreshToken": "…", api-key: …, password=…, "user_id": "…". A quoted
+      // value goes whole, spaces included.
       .replace(
-        /(["']?[\w-]*(?:token|secret|auth|key|password)[\w-]*["']?\s*[:=]\s*["']?)[^\s"',&}]+/gi,
+        /(["']?[\w-]*(?:token|secret|auth|key|password|user|email|account|display[-_]?name)[\w-]*["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s"',&}]+)/gi,
         "$1…"
       )
       .replace(/[A-Za-z0-9_\-.]{40,}/g, "…")
