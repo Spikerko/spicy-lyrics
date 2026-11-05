@@ -70,6 +70,13 @@ export const AdvancedIcon = (
   </Icon>
 );
 
+export const ReviewerIcon = (
+  <Icon>
+    <rect x="3.5" y="2.5" width="9" height="11" rx="2" />
+    <path d="M6 8.25l1.5 1.5 2.75-3" />
+  </Icon>
+);
+
 export const BugIcon = (
   <Icon>
     <rect x="4.75" y="5.5" width="6.5" height="8.25" rx="3.25" />

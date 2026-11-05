@@ -108,7 +108,7 @@ export function BugReportPane() {
       </p>
 
       {outdated && (
-        <div className="sl-sp-bug-outdated" role="status">
+        <div className="sl-sp-banner" role="status">
           <span>
             You're on {current}, and {latestVersion} is out. Update first: it may already be fixed.
           </span>

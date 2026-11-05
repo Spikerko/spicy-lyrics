@@ -9,6 +9,7 @@ import {
   setExperiment,
 } from "../../../utils/experiments.ts";
 import { $backgroundStyle } from "../../../utils/stores.ts";
+import { $ttmlReviewer, REVIEWER_LOCK_REASON } from "../../../utils/ttmlReviewer.ts";
 import { BACKGROUND_STYLE_LABELS } from "./BackgroundSection.tsx";
 import { Row, Toggle } from "./components.tsx";
 
@@ -114,13 +115,17 @@ const noConflict = () => false as const;
 export function ExperimentRow({
   experiment,
   label,
+  searching,
 }: {
   experiment: ResolvedExperiment;
   label: React.ReactNode;
+  /** In search results the tab's own note isn't there, so the row says why it's locked. */
+  searching: boolean;
 }) {
   const enabled = useStore($experiment(experiment.id));
   const syncing = useExperimentsSyncing();
   const forced = experiment.forceState;
+  const heldByReviewer = useStore($ttmlReviewer);
   const useConflict = CONFLICTS[experiment.id] ?? noConflict;
   const conflict = useConflict();
   const badgeRef = useRef<HTMLSpanElement>(null);
@@ -160,6 +165,8 @@ export function ExperimentRow({
       label={label}
       description={experiment.description}
       badge={badge}
+      disabled={heldByReviewer}
+      disabledReason={searching ? REVIEWER_LOCK_REASON : undefined}
       note={(enabled && conflict) || undefined}
     >
       <div className="sl-sp-sync-gate" data-syncing={syncing || undefined} ref={rowRef}>
@@ -167,7 +174,7 @@ export function ExperimentRow({
           label={experiment.label}
           checked={enabled}
           onChange={(v) => setExperiment(experiment.id, v)}
-          locked={forced !== undefined}
+          locked={forced !== undefined || heldByReviewer}
           onLockedPress={flashReason}
           busy={syncing}
         />

@@ -32,7 +32,9 @@ export const experimentsSection: SectionDef = {
           label: experiment.label,
           description: experiment.description,
           keywords: `experiment ${title.toLowerCase()}`,
-          render: (label: React.ReactNode) => <ExperimentRow experiment={experiment} label={label} />,
+          render: (label: React.ReactNode, searching: boolean) => (
+            <ExperimentRow experiment={experiment} label={label} searching={searching} />
+          ),
         })),
     })).filter((group) => group.settings.length > 0);
   },

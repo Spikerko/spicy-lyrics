@@ -18,6 +18,7 @@ import {
   $showNpvDynamicBg,
   PersistedSettings,
 } from "./stores.ts";
+import { $ttmlReviewer } from "./ttmlReviewer.ts";
 import { $npvLyricsExpanded, $npvLyricsOpen, $romanization } from "./uiState.ts";
 
 /**
@@ -339,6 +340,8 @@ export function BuildBugReport(options: BugReportOptions = {}): string {
     ["Track URI", name ? uri : undefined],
     ["Playing on", name ? describePlayback() : undefined],
     ["Lyrics", describeLyrics(uri)],
+    // Says why the settings below are stripped back: they aren't this person's usual setup.
+    ["TTML Reviewer", $ttmlReviewer.get() ? "on" : undefined],
     ["Settings", changedSettings()],
     ["Experiments", ChangedExperiments()],
     ["Extensions", describeExtensions()],
