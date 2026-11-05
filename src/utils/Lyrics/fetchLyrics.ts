@@ -111,6 +111,22 @@ export function GetLyricsAnsweredFrom(uri: string | undefined): string | null {
 }
 
 /**
+ * Whether `uri` is showing a "Just once" TTML upload. It exists only in
+ * `$currentLyricsData`, so clearing that to refetch would replace it with the
+ * song's normal lyrics.
+ */
+export function HoldsTemporaryUpload(uri: string | undefined): boolean {
+  const saved = $currentLyricsData.get();
+  if (!uri || !saved.startsWith("{")) return false;
+  try {
+    const data = JSON.parse(saved);
+    return data?.temporaryUpload === true && data.uri === uri;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The uri of the most recent fetch request. Unlike `inFlightUri` this is never
  * cleared, so a fetch that finishes *after* the one that superseded it still
  * sees that it lost the race.
@@ -262,7 +278,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   // Check if there's already data in localStorage
   const savedLyricsData = $currentLyricsData.get();
 
-  if (savedLyricsData && !isDev) {
+  // Dev builds always refetch, except for an upload that nothing could refetch.
+  if (savedLyricsData && (!isDev || HoldsTemporaryUpload(uri))) {
     try {
       if (savedLyricsData.startsWith("NO_LYRICS:")) {
         // Sentinel format is `NO_LYRICS:<uri>`. The uri itself contains colons,

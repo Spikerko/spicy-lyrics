@@ -97,7 +97,7 @@ export default function UploadTTMLModal({ onBack, onDone }: UploadTTMLModalProps
               setUploading(false);
               return;
             }
-            const dataToSave = { ...result, uri };
+            const dataToSave = { ...result, uri, temporaryUpload: true };
             await ProcessLyrics(dataToSave);
             $currentLyricsData.set(JSON.stringify(dataToSave));
             setTimeout(() => {
