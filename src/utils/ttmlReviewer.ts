@@ -13,6 +13,8 @@ import { PersistedSettings } from "./stores.ts";
  * loaded, which would drop anything kept inside it.
  */
 const BACKUP_KEY = "SL:ttmlReviewer";
+const BACKUP_FORMAT_KEY = "$format";
+const BACKUP_FORMAT = 2;
 
 /** What the mode sets. Each `key` is both the persisted key and its settings row's id. */
 export const REVIEWER_SETTINGS: readonly { key: string; value: unknown; shown: string }[] = [
@@ -96,9 +98,13 @@ function backupValue(key: string): unknown {
 function resumeProfile() {
   const backup = readBackup();
   if (!backup) return;
+  // A backup with no format predates `null` entries: what it leaves out was never set, and
+  // the blob now holds the profile's value for it, not a real one.
+  const unversioned = !Object.hasOwn(backup, BACKUP_FORMAT_KEY);
   const added = [...profile.keys()].filter((key) => !Object.hasOwn(backup, key));
-  for (const key of added) backup[key] = backupValue(key);
-  const saved = added.length === 0 || writeBackup(JSON.stringify(backup));
+  for (const key of added) backup[key] = unversioned ? null : backupValue(key);
+  backup[BACKUP_FORMAT_KEY] = BACKUP_FORMAT;
+  const saved = (added.length === 0 && !unversioned) || writeBackup(JSON.stringify(backup));
   for (const [key, value] of profile) {
     if (saved || !added.includes(key)) PersistedSettings.get(key)?.set(value);
   }
@@ -118,7 +124,7 @@ export function setTtmlReviewer(on: boolean) {
     if (backup) return;
     // Anything never set has to stay that way, or the user is pinned to today's default
     // (for experiments, cut off from remote ones).
-    const saved: Record<string, unknown> = {};
+    const saved: Record<string, unknown> = { [BACKUP_FORMAT_KEY]: BACKUP_FORMAT };
     for (const key of profile.keys()) saved[key] = backupValue(key);
     // Saved before anything changes, so a crash partway can't lose the real values.
     // Read back too: with no backup to restore from, stripping would lose them for good.
@@ -131,6 +137,7 @@ export function setTtmlReviewer(on: boolean) {
     // Everything in the backup, not just today's profile: an update can have taken a key
     // off the list, and it still has to come back.
     for (const key of Object.keys(backup)) {
+      if (key === BACKUP_FORMAT_KEY) continue;
       const entry = PersistedSettings.get(key);
       if (backup[key] === null) entry?.unset();
       else entry?.set(backup[key]);
