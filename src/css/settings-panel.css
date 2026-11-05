@@ -1035,6 +1035,159 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     opacity: 0.7;
   }
 
+  /* Holds a row's control still without taking any room in its layout. */
+  .sl-sp-control-lock {
+    display: contents;
+  }
+
+  /* ── TTML Reviewer ────────────────────────────────────────────────────
+     The switch, then a plain read-out of what it sets. */
+  .sl-sp-reviewer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+
+    .sl-sp-intro {
+      margin-bottom: 0;
+    }
+  }
+
+  .sl-sp-reviewer-list {
+    padding: 6px var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    color: var(--color-text-secondary);
+    font-size: var(--text-caption-size) !important;
+  }
+
+  .sl-sp-reviewer-item {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 5px 0;
+  }
+
+  .sl-sp-reviewer-value {
+    flex-shrink: 0;
+    color: var(--color-text-primary);
+    font-weight: var(--w-medium);
+  }
+
+  /* ── Got a Bug? ───────────────────────────────────────────────────────
+     The report as it will be pasted, then the way to Discord. */
+  .sl-sp-bug {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+
+    .sl-sp-intro {
+      margin-bottom: 0;
+    }
+  }
+
+  .sl-sp-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: 12px var(--space-4);
+    border-radius: var(--radius-md);
+    background: rgba(255, 195, 120, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 195, 120, 0.3);
+    color: var(--color-text-primary);
+    font-size: var(--text-caption-size) !important;
+    line-height: 1.45;
+
+    .sl-sp-about-update {
+      flex-shrink: 0;
+    }
+  }
+
+  .sl-sp-bug-preview {
+    margin: 0;
+    padding: 14px var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--accent-tint-bg);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+    color: var(--color-text-secondary);
+    font-family: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace !important;
+    font-size: 12px !important;
+    line-height: 1.6;
+    user-select: text;
+  }
+
+  /* A long value wraps under itself, not under its label (labels are 15 characters). */
+  .sl-sp-bug-line {
+    padding-left: 15ch;
+    text-indent: -15ch;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  /* The privacy promise and the invite, right under the buttons where the choice is made. */
+  .sl-sp-bug-fineprint {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: calc(var(--space-2) * -1) 0 0 4px;
+    color: var(--color-text-tertiary);
+    font-size: var(--text-caption-size) !important;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .sl-sp-bug-faces {
+    display: inline-grid;
+  }
+
+  .sl-sp-bug-face {
+    grid-area: 1 / 1;
+    text-align: center;
+
+    &[data-shown="false"] {
+      visibility: hidden;
+    }
+  }
+
+  .sl-sp-bug-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  /* The way forward, in the panel's own primary colours. */
+  .sl-sp-about-link.sl-sp-bug-primary {
+    background: var(--sl-sp-cta, var(--color-text-primary));
+    color: var(--sl-sp-cta-ink, #1a1a1a);
+    box-shadow: none;
+
+    &:hover {
+      background: var(--sl-sp-cta, var(--color-text-primary));
+      box-shadow: none;
+      filter: brightness(1.06);
+    }
+  }
+
+  .sl-sp-bug-join-link {
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font: inherit;
+    font-weight: var(--w-semibold);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color var(--dur-fast) ease;
+
+    &:hover {
+      color: var(--color-text-primary);
+    }
+  }
+
   /* Smaller windows: a narrower sidebar and pane gutters, same structure. */
   @media (max-width: 900px) {
     .sl-sp {

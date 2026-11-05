@@ -1,4 +1,4 @@
-import { atom } from "nanostores";
+import { atom, type WritableAtom } from "nanostores";
 import { ProjectVersion } from "../../project/config.ts";
 
 export const SETTINGS_KEY = "SL:settings";
@@ -58,6 +58,39 @@ function migrateSettingsKeys(blob: Record<string, any>): Record<string, any> {
 const _settings: Record<string, any> = migrateSettingsKeys(readSettingsBlob());
 
 /**
+ * Every persisted atom and its default, so the bug report can list what someone
+ * changed and TTML Reviewer mode can put values back through the atoms. Writing the
+ * blob instead wouldn't do: the atoms keep their values in memory and would save
+ * theirs over it on their next change.
+ */
+export const PersistedSettings = new Map<
+  string,
+  {
+    get: () => unknown;
+    set: (value: any) => void;
+    /** Whether the blob holds a value, as opposed to it never having been set. */
+    isStored: () => boolean;
+    /** Back to never having been set, so a later change of default still reaches it. */
+    unset: () => void;
+    defaultValue: unknown;
+  }
+>();
+
+function registerPersisted<T>(key: string, store: WritableAtom<T>, defaultValue: T) {
+  PersistedSettings.set(key, {
+    get: () => store.get(),
+    set: (value) => store.set(value),
+    isStored: () => _settings[key] !== undefined,
+    unset: () => {
+      store.set(defaultValue);
+      delete _settings[key];
+      saveSettingsBlob(_settings);
+    },
+    defaultValue,
+  });
+}
+
+/**
  * An atom backed by the settings blob. Exported so feature modules (e.g.
  * `experiments.ts`) can register their own persisted settings without having to
  * add a line here for every one.
@@ -68,6 +101,7 @@ export function persistAtom<T>(key: string, defaultValue: T) {
     _settings[key] = v;
     saveSettingsBlob(_settings);
   });
+  registerPersisted(key, store, defaultValue);
   return store;
 }
 
@@ -116,6 +150,7 @@ export const $popupLyricsAllowed = (() => {
     _settings["popupLyricsAllowed"] = v;
     saveSettingsBlob(_settings);
   });
+  registerPersisted("popupLyricsAllowed", store, true);
   return store;
 })();
 export const $viewControlsPosition = persistAtom<string>("viewControlsPosition", "Top");

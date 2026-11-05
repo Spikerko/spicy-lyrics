@@ -26,6 +26,9 @@ import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
 import { RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
+import Logger from "../../../Logger.ts";
+
+const lineLogger = new Logger("Line Lyrics");
 
 // Define the data structure for lyrics
 interface LyricsLineData {
@@ -60,7 +63,7 @@ export function ApplyLineLyrics(data: LyricsData, UseRomanized: boolean = false)
 
   // Check if LyricsContainer exists
   if (!LyricsContainer) {
-    console.error("LyricsContainer not found");
+    lineLogger.error("LyricsContainer not found");
     return;
   }
 

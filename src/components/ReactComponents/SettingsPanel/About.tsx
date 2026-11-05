@@ -1,4 +1,5 @@
 import { useStore } from "@nanostores/react";
+import { atom } from "nanostores";
 import React, { useEffect, useState } from "react";
 import Session from "../../Global/Session.ts";
 import App from "../../../utils/app.ts";
@@ -20,18 +21,8 @@ const LINKS: Link[] = [
 /** "checking" until the fetch lands; "unknown" if it never does. */
 export type UpdateStatus = "checking" | "latest" | "outdated" | "unknown";
 
-interface Version {
-  Major: number;
-  Minor: number;
-  Patch: number;
-}
-
-/** Ordered compare — Minor only decides once Major ties, and Patch once both do. */
-function isNewer(a: Version, b: Version): boolean {
-  if (a.Major !== b.Major) return a.Major > b.Major;
-  if (a.Minor !== b.Minor) return a.Minor > b.Minor;
-  return a.Patch > b.Patch;
-}
+/** The latest released version, once the panel's check has answered. */
+export const $latestVersion = atom<string | undefined>(undefined);
 
 /** Checks once per mount. The panel owns it, so the sidebar can flag an update too. */
 export function useUpdateStatus(): UpdateStatus {
@@ -51,7 +42,8 @@ export function useUpdateStatus(): UpdateStatus {
           setStatus("unknown");
           return;
         }
-        setStatus(isNewer(latest, current) ? "outdated" : "latest");
+        $latestVersion.set(latest.Text);
+        setStatus(Session.SpicyLyrics.IsBehind(current, latest) ? "outdated" : "latest");
       } catch {
         if (!cancelled) setStatus("unknown");
       }

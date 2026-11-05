@@ -1,3 +1,7 @@
+import Logger from "../../utils/Logger.ts";
+
+const transferLogger = new Logger("Transfer Element");
+
 /**
  * Transfer an element to a target container at a specified index
  * @param element - The element to transfer
@@ -10,7 +14,7 @@ export default function TransferElement(
   index = -1
 ): void {
   if (!element || !targetContainer) {
-    console.error("Both element and target container must be provided.");
+    transferLogger.error("Both element and target container must be provided.");
     return;
   }
 
@@ -23,6 +27,6 @@ export default function TransferElement(
       targetContainer.insertBefore(element, targetContainer.children[index]);
     }
   } catch (error) {
-    console.error("Error transferring element:", error);
+    transferLogger.error("Error transferring element:", error);
   }
 }

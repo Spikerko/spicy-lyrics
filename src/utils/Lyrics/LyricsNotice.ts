@@ -1,15 +1,9 @@
-import Session from "../../components/Global/Session.ts";
-import { SpotifyPlayer } from "../../components/Global/SpotifyPlayer.ts";
 import { IsCardMode, PageContainer } from "../../components/Pages/PageView.ts";
 import { IsCompactMode } from "../../components/Utils/CompactMode.ts";
 import Fullscreen from "../../components/Utils/Fullscreen.ts";
 import { SyncNowBarSide } from "../../components/Utils/NowBar.ts";
-import { IsOpen as IsBreakerOpen, RetryAfterMs } from "../API/CircuitBreaker.ts";
-import { getExperiments, isExperimentEnabled } from "../experiments.ts";
+import { BuildBugReport, CopyText, DISCORD_INVITE_URL } from "../BugReport.ts";
 import { $showNoLyricsNotice } from "../stores.ts";
-import { GetLastLyricsFailure } from "./fetchLyrics.ts";
-
-const DISCORD_URL = "https://discord.com/invite/uqgXU5wh8j";
 
 type NoticeCopy = {
   title: string;
@@ -32,6 +26,10 @@ const NOTICES: Record<string, NoticeCopy> = {
   "dj": {
     title: "Lyrics aren't available with the DJ",
     body: "The DJ mixes songs and voiceovers together, so there's nothing for us to line lyrics up with. Play a song directly to see its lyrics.",
+  },
+  "ad": {
+    title: "An ad is playing",
+    body: "Lyrics come back when a song is playing.",
   },
   "unknown-track": {
     title: "We couldn't read this track",
@@ -97,6 +95,7 @@ const NO_LYRICS_NOTICES = new Set([
   "lyrics-not-found",
   "local-track",
   "dj",
+  "ad",
   "video-track",
   "episode-track",
   "mixed-track",
@@ -138,96 +137,6 @@ export function SyncNoLyricsLayout(): void {
 }
 
 $showNoLyricsNotice.listen(() => queueMicrotask(SyncNoLyricsLayout));
-
-function describeView(): string {
-  const parts: string[] = [];
-  const pip = !!PageContainer?.closest(".spicy-pip-wrapper");
-  if (pip) parts.push("Popup");
-  else if (Fullscreen.CinemaViewOpen) parts.push("Cinema");
-  else if (Fullscreen.IsOpen) parts.push("Fullscreen");
-  else parts.push("Page");
-  if (IsCompactMode()) parts.push("compact");
-  const page = PageContainer?.classList;
-  if (page?.contains("NowBarStatus__Open")) {
-    parts.push(page.contains("NowBarSide__Right") ? "Now Bar right" : "Now Bar left");
-  }
-  return parts.join(", ");
-}
-
-function changedExperiments(): string {
-  const changed = getExperiments()
-    .filter((exp) => isExperimentEnabled(exp.id) !== exp.default)
-    .map(
-      (exp) =>
-        `${exp.id} ${isExperimentEnabled(exp.id) ? "on" : "off"}` +
-        (exp.forceState === undefined ? "" : " (forced)")
-    );
-  return changed.length ? changed.join(", ") : "defaults";
-}
-
-/**
- * The text "Copy details" puts on the clipboard, fenced so Discord keeps the
- * columns aligned. Nothing identifying goes in: no account, no tokens.
- */
-export function BuildNoticeReport(descriptor: string, status: number, uri: string | undefined): string {
-  const failure = GetLastLyricsFailure(uri);
-  const artists = SpotifyPlayer.GetArtists()?.map((artist) => artist.name).join(", ");
-  const name = SpotifyPlayer.GetName();
-
-  const rows: [string, string | undefined][] = [
-    ["Notice", `${descriptor}${status ? ` (${status})` : ""}`],
-    ["Answered by", failure?.source],
-    ["Error", failure?.detail],
-    ["Track", name ? (artists ? `${name} by ${artists}` : name) : undefined],
-    ["Track URI", uri],
-    ["Spicy Lyrics", Session.SpicyLyrics.GetCurrentVersion()?.Text],
-    ["Spotify", Spicetify.Platform?.version],
-    ["Spicetify", Spicetify.Config?.version],
-    ["Theme", Spicetify.Config?.current_theme],
-    ["OS", Spicetify.Platform?.operatingSystem ?? navigator.platform],
-    ["View", describeView()],
-    ["Experiments", changedExperiments()],
-    ["Online", navigator.onLine ? "yes" : "no"],
-    ["Service", IsBreakerOpen() ? `paused, retry in ${Math.ceil(RetryAfterMs() / 1000)}s` : "ok"],
-    ["Time", new Date().toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC")],
-  ];
-
-  const lines = rows
-    .filter((row): row is [string, string] => !!row[1])
-    .map(([label, value]) => `${`${label}:`.padEnd(14)}${value}`);
-
-  return ["**Spicy Lyrics notice**", "```", ...lines, "```"].join("\n");
-}
-
-// Web API first: the native bridge can resolve without writing anything, and then
-// nothing after it runs. `from` picks the clicked window, since in PiP that's the popup.
-async function copyText(text: string, from: Element): Promise<boolean> {
-  const doc = from.ownerDocument;
-  try {
-    await doc.defaultView!.navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    // Throws when that window isn't focused.
-  }
-  try {
-    await Spicetify.Platform.ClipboardAPI.copy(text);
-    return true;
-  } catch {
-    // Not every client build has the native clipboard bridge.
-  }
-  const area = doc.createElement("textarea");
-  area.value = text;
-  area.style.cssText = "position:fixed;opacity:0;pointer-events:none";
-  doc.body.appendChild(area);
-  area.select();
-  try {
-    return doc.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    area.remove();
-  }
-}
 
 const ICONS = {
   copy: `<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.25" y="5.25" width="8" height="8" rx="2"/><path d="M10.75 5.25V4.5a1.75 1.75 0 0 0-1.75-1.75H4.5A1.75 1.75 0 0 0 2.75 4.5V9a1.75 1.75 0 0 0 1.75 1.75h.75"/></svg>`,
@@ -305,7 +214,7 @@ export function BuildLyricsNotice(
     copyButton.addEventListener(
       "click",
       async () => {
-        const ok = await copyText(BuildNoticeReport(descriptor, status, uri), copyButton);
+        const ok = await CopyText(BuildBugReport({ notice: { descriptor, status, uri } }), copyButton);
         copyButton.dataset.state = ok ? "done" : "failed";
         clearTimeout(resetTimer);
         resetTimer = setTimeout(() => {
@@ -319,7 +228,7 @@ export function BuildLyricsNotice(
   }
 
   const discord = makeButton(ICONS.chat, "Get help on Discord");
-  discord.addEventListener("click", () => window.open(DISCORD_URL, "_blank"), { signal });
+  discord.addEventListener("click", () => window.open(DISCORD_INVITE_URL, "_blank"), { signal });
   actions.appendChild(discord);
 
   notice.append(title, body, actions);

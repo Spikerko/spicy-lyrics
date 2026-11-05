@@ -102,6 +102,30 @@ export function GetLastLyricsFailure(uri: string | undefined): LyricsFetchFailur
   return uri && lastFailure?.uri === uri ? lastFailure : null;
 }
 
+/** Which stage last served lyrics, for the bug report: a cached copy is the usual suspect. */
+let lastAnswer: { uri: string; from: "already loaded" | "Local DB" | "cache" | "API" } | null = null;
+
+/** Where `uri`'s lyrics came from, or `null` if it hasn't been served lyrics. */
+export function GetLyricsAnsweredFrom(uri: string | undefined): string | null {
+  return uri && lastAnswer?.uri === uri ? lastAnswer.from : null;
+}
+
+/**
+ * Whether `uri` is showing a "Just once" TTML upload. It exists only in
+ * `$currentLyricsData`, so clearing that to refetch would replace it with the
+ * song's normal lyrics.
+ */
+export function HoldsTemporaryUpload(uri: string | undefined): boolean {
+  const saved = $currentLyricsData.get();
+  if (!uri || !saved.startsWith("{")) return false;
+  try {
+    const data = JSON.parse(saved);
+    return data?.temporaryUpload === true && data.uri === uri;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The uri of the most recent fetch request. Unlike `inFlightUri` this is never
  * cleared, so a fetch that finishes *after* the one that superseded it still
@@ -212,6 +236,12 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
     return ["dj", 400];
   }
 
+  // Ads (music ads, podcast pre-rolls) can be audio or video, so this goes before the media checks.
+  if (SpotifyPlayer.GetContentType() === "ad") {
+    $currentlyFetching.set(false);
+    return ["ad", 400];
+  }
+
   const mediaType = SpotifyPlayer.GetMediaType();
 
   if (
@@ -248,7 +278,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   // Check if there's already data in localStorage
   const savedLyricsData = $currentLyricsData.get();
 
-  if (savedLyricsData && !isDev) {
+  // Dev builds always refetch, except for an upload that nothing could refetch.
+  if (savedLyricsData && (!isDev || HoldsTemporaryUpload(uri))) {
     try {
       if (savedLyricsData.startsWith("NO_LYRICS:")) {
         // Sentinel format is `NO_LYRICS:<uri>`. The uri itself contains colons,
@@ -263,6 +294,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
         const lyricsData = JSON.parse(savedLyricsData);
         // Return the stored lyrics if the URI matches the current track URI
         if (lyricsData?.uri === uri) {
+          // Shown again: keep where they first came from, when that's known.
+          if (lastAnswer?.uri !== uri) lastAnswer = { uri, from: "already loaded" };
           presentLyrics(lyricsData);
           return [lyricsData, 200];
         }
@@ -278,6 +311,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   if (localLyric) {
     const lyricsData = { ...localLyric, uri };
     if (isStaleFetch(uri)) return [lyricsData, 200];
+    lastAnswer = { uri, from: "Local DB" };
     $currentLyricsData.set(JSON.stringify(lyricsData));
     presentLyrics(lyricsData);
     return [lyricsData, 200];
@@ -306,6 +340,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
         // entries predate the uri field.
         const lyricsFromCache = { ...(lyricsFromCacheRes ?? {}), uri };
         if (isStaleFetch(uri)) return [{ ...lyricsFromCache, fromCache: true }, 200];
+        lastAnswer = { uri, from: "cache" };
         $currentLyricsData.set(JSON.stringify(lyricsFromCache));
         presentLyrics(lyricsFromCache);
         return [{ ...lyricsFromCache, fromCache: true }, 200];
@@ -493,6 +528,7 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
 
     if (isStaleFetch(uri)) return [{ ...lyrics, fromCache: false }, 200];
 
+    lastAnswer = { uri, from: "API" };
     $currentLyricsData.set(JSON.stringify(lyrics));
     presentLyrics(lyrics);
     return [{ ...lyrics, fromCache: false }, 200];

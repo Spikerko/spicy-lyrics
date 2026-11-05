@@ -36,6 +36,9 @@ import { IsLetterCapable, MinLetterCapableDuration } from "../Utils/IsLetterCapa
 import { JoinSplitWords } from "../Utils/JoinSplitWords.ts";
 import { SplitLetters } from "../Utils/SplitLetters.ts";
 import { HasRenderableText, IsEmptySyllableGroup, RemoveEmptyLyricsLines } from "../../EmptyLines.ts";
+import Logger from "../../../Logger.ts";
+
+const syllableLogger = new Logger("Syllable Lyrics");
 
 // Define the data structure for syllable lyrics
 interface SyllableData {
@@ -94,7 +97,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
 
   // Check if LyricsContainer exists
   if (!LyricsContainer) {
-    console.error("LyricsContainer not found");
+    syllableLogger.error("LyricsContainer not found");
     return;
   }
 

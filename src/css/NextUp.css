@@ -1,0 +1,192 @@
+/* "Next up" in fullscreen and Cinema View (NextUp.ts), in the top-right corner. With
+   the Now Bar on the left that's past the end of most lyric lines (they're left
+   aligned); with it on the right it's the gap above the cover. */
+
+#SpicyLyricsPage.Fullscreen .ContentBox > .NextUpCard {
+  /* Tucked into the corner: about the gap the fullscreen controls keep from the edges. */
+  --NextUpInset: clamp(10px, 0.9vw, 24px);
+  /* Fullscreen type scales with the window, so the card does too. */
+  --NextUpArt: clamp(40px, 2.5vw, 68px);
+  --NextUpFade: 0.35s;
+  position: absolute;
+  top: var(--NextUpInset);
+  right: var(--NextUpInset);
+  /* Above the lyrics (4) and the Canvas Stage, below the view controls (101). */
+  z-index: 20;
+  pointer-events: none;
+  /* One size for every song, so it never grows or shrinks between tracks. Sized so
+     about three in four titles fit (measured on a 50-song chart playlist); longer
+     ones scroll. */
+  width: clamp(220px, 11.5vw, 290px);
+  /* Shown and hidden with visibility, never opacity: a fading ancestor stops the
+     glass plate inside from blurring what's behind it. The plate fades itself. */
+  visibility: hidden;
+  translate: 0 -8px;
+  transition:
+    visibility 0s linear var(--NextUpFade),
+    translate 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#SpicyLyricsPage.Fullscreen .ContentBox > .NextUpCard.Visible {
+  visibility: visible;
+  translate: 0 0;
+  transition:
+    visibility 0s,
+    translate 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* In Canvas Stage with the Now Bar on the right, the view controls share this corner
+   while they show; the card slides down below them (distance from NextUp.ts). */
+#SpicyLyricsPage.Fullscreen .ContentBox > .NextUpCard.Visible.BelowControls {
+  translate: 0 var(--NextUpDrop, 0px);
+}
+
+/* Cinema View stays in the window, where Spotify draws its own window buttons over
+   the top corners in a band as tall as its nav bar (measured in Fullscreen.ts). */
+:root:not(:fullscreen) #SpicyLyricsPage.Fullscreen .ContentBox > .NextUpCard {
+  top: max(var(--NextUpInset), calc(var(--NativeChromeMid, 0px) * 2 + 4px));
+}
+
+#SpicyLyricsPage:not(.Exp_NextUpCard) .ContentBox > .NextUpCard {
+  display: none;
+}
+
+/* Every next track fades in over the previous one, so the card itself is a stack. */
+#SpicyLyricsPage .NextUpCard {
+  display: grid;
+  /* Lets a long title shrink instead of widening the cell past the card. */
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The glass plate: the same material and edge highlights as the fullscreen view
+   controls, a little darker so white text holds up over pale covers. */
+#SpicyLyricsPage .NextUpCard .NextUpContent {
+  grid-area: 1 / 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 0.6vw, 16px);
+  padding: clamp(8px, 0.45vw, 12px) clamp(12px, 0.75vw, 18px) clamp(8px, 0.45vw, 12px)
+    clamp(8px, 0.45vw, 12px);
+  border-radius: clamp(12px, 0.75vw, 18px);
+  background: rgba(0, 0, 0, 0.16);
+  -webkit-backdrop-filter: var(--material-regular-blur);
+  backdrop-filter: var(--material-regular-blur);
+  box-shadow:
+    0 10px 24px -8px rgba(8, 10, 18, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-family: inherit;
+  line-height: 1.25;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity var(--NextUpFade) ease;
+}
+
+#SpicyLyricsPage .NextUpCard.Visible .NextUpContent:not(.Leaving) {
+  opacity: 1;
+}
+
+/* A next track that changes while the card is showing fades in over the old one. */
+#SpicyLyricsPage .NextUpCard .NextUpContent.Entering {
+  animation: NextUp_ContentIn 0.3s ease both;
+}
+
+#SpicyLyricsPage .NextUpCard .NextUpArt {
+  flex: none;
+  width: var(--NextUpArt);
+  height: var(--NextUpArt);
+  overflow: hidden;
+  border-radius: clamp(5px, 0.35vw, 9px);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+#SpicyLyricsPage .NextUpCard .NextUpText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+#SpicyLyricsPage .NextUpCard :is(.NextUpLabel, .NextUpTitle, .NextUpArtist) {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#SpicyLyricsPage .NextUpCard .NextUpLabel {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: clamp(10px, 0.46vw, 12px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#SpicyLyricsPage .NextUpCard .NextUpTitle {
+  font-size: clamp(13px, 0.75vw, 19px);
+  font-weight: 700;
+}
+
+#SpicyLyricsPage .NextUpCard .NextUpArtist {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: clamp(12px, 0.62vw, 15px);
+  font-weight: 500;
+}
+
+/* Text too long to fit scrolls to its end and back (distances and cycle from NextUp.ts),
+   softened at the edges instead of cut off with an ellipsis. */
+#SpicyLyricsPage .NextUpCard :is(.NextUpTitle, .NextUpArtist).Scrolls {
+  text-overflow: clip;
+  /* The left fade sits over padding pulled back by the margin, so at rest the first
+     letter starts where it would without it, clear of the fade. */
+  margin-left: -6px;
+  padding-left: 6px;
+  mask-image: linear-gradient(to right, transparent, #000 6px, #000 calc(100% - 10px), transparent);
+}
+
+/* Moved by an animation from NextUp.ts: a 0.7s pause, then one loop's distance. */
+#SpicyLyricsPage .NextUpCard .Scrolls > .NextUpScroll {
+  display: inline-block;
+}
+
+/* The text and its copy; the gap after each is part of the distance one loop moves. */
+#SpicyLyricsPage .NextUpCard .NextUpLoopPart {
+  padding-right: 2.5em;
+}
+
+@keyframes NextUp_ContentIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Fullscreen .ContentBox > .NextUpCard {
+    translate: none;
+  }
+
+  /* No scrolling: long text ends in an ellipsis instead. */
+  #SpicyLyricsPage .NextUpCard :is(.NextUpTitle, .NextUpArtist).Scrolls {
+    text-overflow: ellipsis;
+    mask-image: none;
+  }
+
+  #SpicyLyricsPage .NextUpCard .Scrolls > .NextUpScroll {
+    display: inline;
+    animation: none;
+  }
+
+  #SpicyLyricsPage .NextUpCard .Scrolls .NextUpLoopPart[aria-hidden] {
+    display: none;
+  }
+}

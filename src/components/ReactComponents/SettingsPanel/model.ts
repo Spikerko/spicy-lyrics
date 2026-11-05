@@ -24,7 +24,7 @@ export interface SettingDef {
   useNote?: () => string | false;
   Control?: React.FC<{ disabled: boolean; label: string }>;
   /** Renders the whole row instead of `Control` (experiments bring their own badge). */
-  render?: (label: React.ReactNode) => React.ReactNode;
+  render?: (label: React.ReactNode, searching: boolean) => React.ReactNode;
 }
 
 export interface GroupDef {
@@ -40,6 +40,8 @@ export type SectionId =
   | "appearance"
   | "experiments"
   | "advanced"
+  | "reviewer"
+  | "bug"
   | "about";
 
 export interface SectionDef {

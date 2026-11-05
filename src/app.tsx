@@ -37,6 +37,7 @@ import PageView, { GetPageRoot, PageContainer } from "./components/Pages/PageVie
 import LoadFonts, { ApplyFontPixel } from "./components/Styling/Fonts.ts";
 import { Icons } from "./components/Styling/Icons.ts";
 import Fullscreen, { EnterSpicyLyricsFullscreen, ExitFullscreenElement } from "./components/Utils/Fullscreen.ts";
+import "./components/Utils/NextUp.ts";
 import { UpdateNowBar } from "./components/Utils/NowBar.ts";
 import { IsPlaying } from "./utils/Addons.ts";
 import { requestPositionSync } from "./utils/Gets/GetProgress.ts";
@@ -486,9 +487,24 @@ async function main() {
     );
 
     // A fresh install has no previous version, and there is nothing to announce.
+    // Only a real step up is announced, and each version once: when two installs of
+    // different versions take turns loading, the version flips on every launch, and
+    // this used to greet the user with "Updated" each time. The announced version has
+    // a key of its own because an older copy rewrites the whole UI-state blob from
+    // the snapshot it loaded, which would drop it.
+    const LAST_ANNOUNCED_KEY = "SL:lastAnnouncedVersion";
     const fromVersion = $fromVersion.get();
     const toVersion = $spicyLyricsVersion.get();
-    if (fromVersion && toVersion && fromVersion !== toVersion) {
+    if (
+      fromVersion &&
+      toVersion &&
+      toVersion !== Spicetify.LocalStorage.get(LAST_ANNOUNCED_KEY) &&
+      Session.SpicyLyrics.IsBehind(
+        Session.SpicyLyrics.ParseVersion(fromVersion),
+        Session.SpicyLyrics.ParseVersion(toVersion)
+      )
+    ) {
+      Spicetify.LocalStorage.set(LAST_ANNOUNCED_KEY, toVersion);
       showUpdatedDialog(fromVersion, toVersion);
     }
 
@@ -1042,7 +1058,7 @@ async function main() {
               }
             );
           } catch (err) {
-            console.error("Spicy Lyrics: couldn't listen for volume changes", err);
+            playbackLogger.error("Couldn't listen for volume changes", err);
           }
         }
       );

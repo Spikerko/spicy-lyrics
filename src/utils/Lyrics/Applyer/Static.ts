@@ -22,6 +22,9 @@ import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
 import { RemoveEmptyLyricsLines } from "../EmptyLines.ts";
+import Logger from "../../Logger.ts";
+
+const staticLogger = new Logger("Static Lyrics");
 
 /**
  * Interface for static lyrics data
@@ -56,7 +59,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   const LyricsContainer = LyricsContainerInstance.Container;
 
   if (!LyricsContainer) {
-    console.error("Cannot apply static lyrics: LyricsContainer not found");
+    staticLogger.error("Cannot apply static lyrics: LyricsContainer not found");
     return;
   }
 

@@ -1,4 +1,7 @@
+import Logger from "./Logger.ts";
 import { $animationFpsCap, $animationFpsCapEnabled } from "./stores.ts";
+
+const frameLogger = new Logger("Animation Frame");
 
 /**
  * One requestAnimationFrame loop shared by everything that repaints every frame
@@ -62,7 +65,7 @@ const run = (callback: FrameCallback, timestamp: number) => {
   try {
     callback(timestamp);
   } catch (err) {
-    console.error("Spicy Lyrics: animation frame callback failed", err);
+    frameLogger.error("Animation frame callback failed", err);
   }
 };
 

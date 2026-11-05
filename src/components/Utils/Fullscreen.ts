@@ -14,6 +14,9 @@ import { Spring } from "../../modules/Spring.ts";
 import { Maid } from "../../modules/Maid.ts";
 import Scheduler from "../../modules/Scheduler.ts";
 import { cancelCappedFrame, requestCappedFrame } from "../../utils/AnimationFrameLoop.ts";
+import Logger from "../../utils/Logger.ts";
+
+const fullscreenLogger = new Logger("Fullscreen");
 
 const Fullscreen = {
   Open,
@@ -321,7 +324,7 @@ export const EnterSpicyLyricsFullscreen = async () => {
     }
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error(`Fullscreen error: ${errorMessage}`);
+    fullscreenLogger.error(`Fullscreen error: ${errorMessage}`);
   }
 
   document.documentElement.focus();
@@ -403,7 +406,7 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
         setTimeout(() => PageView.AppendViewControls(true), 50);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : String(err);
-        console.error(`Fullscreen error: ${errorMessage}`);
+        fullscreenLogger.error(`Fullscreen error: ${errorMessage}`);
       }
     };
 

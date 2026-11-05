@@ -14,6 +14,7 @@ import { EdgeLookup } from "./API/EdgeService.ts";
  *
  *   {
  *     id: "myExperiment",              // stable; persisted as "experiment:myExperiment"
+ *     category: "lyrics",              // the Experiments tab heading it sits under
  *     label: "My Experiment",
  *     description: "What it changes, and what turning it off restores.",
  *     default: true,
@@ -55,9 +56,19 @@ import { EdgeLookup } from "./API/EdgeService.ts";
  * reaches everyone who never touched the experiment, and no one who did.
  */
 
+/** The groups the Experiments tab lists experiments under, in this order. */
+export const EXPERIMENT_CATEGORIES = [
+  { id: "lyrics", title: "Lyrics" },
+  { id: "background", title: "Background" },
+  { id: "player", title: "Player" },
+] as const;
+export type ExperimentCategory = (typeof EXPERIMENT_CATEGORIES)[number]["id"];
+
 export type Experiment = {
   /** Stable key. Persisted in the settings blob as `experiment:<id>`. */
   id: string;
+  /** Which heading it's listed under in the Experiments tab. */
+  category: ExperimentCategory;
   label: string;
   description: string;
   default: boolean;
@@ -74,6 +85,7 @@ export type Experiment = {
 export const EXPERIMENTS = [
   {
     id: "newProgressBarStyling",
+    category: "player",
     label: "New SliderBar Styling",
     description:
       "New glass-like style for the SliderBar. Disable to revert back to the original one.",
@@ -82,6 +94,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "lyricsSkeleton",
+    category: "lyrics",
     label: "Lyrics Loading Skeleton",
     description:
       "Shows placeholder lines and a small \"Loading Lyrics\" label while lyrics fetch and render, instead of the blurred spinner. Disable to bring the spinner back.",
@@ -90,6 +103,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "canvasImmersive",
+    category: "background",
     label: "Canvas Stage",
     description:
       "When a song has a Spotify Canvas, it fills the Now Bar side of the screen in place of the album cover, and its colors drive the page background. Only applies with the dynamic background. Disable to keep the cover and the animated cover background.",
@@ -97,6 +111,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "npvCanvasBackground",
+    category: "background",
     label: "Canvas NPV Background",
     description:
       "When a song has a Spotify Canvas, the Now Playing View's dynamic background is drawn from the Canvas video playing there, frame for frame, instead of the album cover. Disable to keep the cover.",
@@ -104,6 +119,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "popupDock",
+    category: "player",
     label: "Popup Player Dock",
     description:
       "Popup lyrics fill the whole window, with the player docked along the bottom like the Canvas Stage: title and artist at rest, the timeline and controls rising in when you move the mouse. Disable to bring back the cover header and the controls over the enlarged cover.",
@@ -112,6 +128,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "refinedBackground",
+    category: "background",
     label: "Refined Background",
     description:
       "Background changes crossfade in place, including switching styles in Settings, and Cover Colors use the cover's deeper tones, changing with the song instead of a second later. Image backgrounds keep their edges instead of being cropped. Disable to bring back the sliding image transition and the brighter Cover Colors.",
@@ -120,6 +137,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "refreshedSimpleLyrics",
+    category: "lyrics",
     label: "Refreshed Simple Lyrics Mode",
     description:
       "In Simple Lyrics Mode, the sung part of a line fades in behind one soft edge that runs on from word to word without stopping, words float up as they're sung with the next already rising before the last has settled, the part still to come stays a little brighter, and the letters of a short held word swell, spread apart, lift and glow one after another, then ease back, stronger the longer the word is held. Lines sit further apart and follow the song in a ripple, each catching up a moment after the one above it. Interlude dots fill in one by one while the group slowly breathes. Its scrolling takes over from Smooth Scrolling while it's on. Disable to bring back the previous Simple Lyrics look.",
@@ -128,6 +146,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "refinedCredits",
+    category: "lyrics",
     label: "Refined Credits",
     description:
       "The credits under the lyrics become quiet type close under the last line, with no box: the songwriters, then the lyrics source beneath. Community lyrics say so on that second line, with the people who made and uploaded them linked by name. In synced lyrics the credits stay dim until the last line has been sung. Disable to bring back the previous credit lines.",
@@ -136,6 +155,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "scrubPreview",
+    category: "player",
     label: "Scrub Preview",
     description:
       "Hovering or dragging the progress bar shows the time a click would seek to, and the volume bar shows the level it would set. Disable to hide these previews.",
@@ -144,6 +164,7 @@ export const EXPERIMENTS = [
   },
   {
     id: "backgroundLinePop",
+    category: "lyrics",
     label: "Background Vocal Pop-Out",
     description:
       "Background vocal lines stay tucked away under their line until it's sung, then slide out from beneath it while the lines below make room, and tuck back in once both are done. Only applies in Simple Lyrics Mode with Refreshed Simple Lyrics Mode on. Disable to keep every background vocal line on screen at all times.",
@@ -152,11 +173,21 @@ export const EXPERIMENTS = [
   },
   {
     id: "keepOverlappingLines",
+    category: "lyrics",
     label: "Keep Overlapping Lines",
     description:
       "In Minimal Lyrics Mode, a line that ends while one above it is still being sung (overlapping lines, background vocals) stays on screen, dimmed, instead of fading out early. Disable to fade every sung line out as soon as it ends.",
     default: true,
     pageClass: "Exp_KeepOverlappingLines",
+  },
+  {
+    id: "nextUpCard",
+    category: "player",
+    label: "Next Up",
+    description:
+      "In fullscreen and Cinema View, the last 30 seconds of a song show the next one in the queue (cover, title and artist) in the corner above the lyrics. Disable to never show it.",
+    default: true,
+    pageClass: "Exp_NextUpCard",
   },
 ] as const satisfies readonly Experiment[];
 
@@ -166,7 +197,9 @@ export type ExperimentId = RegisteredExperiment["id"];
 /** A registry entry with any remote overrides applied — what everything should read. */
 export type ResolvedExperiment = Experiment & { id: ExperimentId };
 
-type ExperimentOverride = Partial<Omit<Experiment, "id">>;
+// The category stays local: a value the client doesn't know would drop the row from
+// every heading in the Experiments tab.
+type ExperimentOverride = Partial<Omit<Experiment, "id" | "category">>;
 
 const REGISTRY = EXPERIMENTS as readonly ResolvedExperiment[];
 

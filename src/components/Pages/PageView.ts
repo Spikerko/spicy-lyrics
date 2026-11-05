@@ -1,5 +1,5 @@
 import { createTooltip } from "../../utils/tooltip.ts";
-import fetchLyrics, { ShowQueueLoader } from "../../utils/Lyrics/fetchLyrics.ts";
+import fetchLyrics, { HoldsTemporaryUpload, ShowQueueLoader } from "../../utils/Lyrics/fetchLyrics.ts";
 import { LyricsQueueRetry } from "../../utils/Lyrics/LyricsQueueRetry.ts";
 import { SkeletonMarkup } from "../../utils/Lyrics/LyricsSkeleton.ts";
 import { $forceCompactMode } from "../../utils/uiState.ts";
@@ -827,27 +827,27 @@ function AppendViewControls(ReAppend: boolean = false) {
 
 // --- Reactive setting subscriptions ---
 
+// Rebuilds the lyrics after a setting that shapes them changes. A "Just once" upload
+// rebuilds from what's held: refetching would swap it for the song's normal lyrics.
+function rebuildLyrics() {
+  const uri = SpotifyPlayer.GetUri();
+  if (!HoldsTemporaryUpload(uri)) $currentLyricsData.set("");
+  if (uri) fetchLyrics(uri).then(ApplyLyrics);
+}
+
 $simpleLyricsMode.listen((v) => {
   if (!PageContainer) return;
   PageContainer.classList.toggle("SimpleLyricsMode", v);
-  const uri = SpotifyPlayer.GetUri();
-  $currentLyricsData.set("");
-  if (uri) fetchLyrics(uri).then(ApplyLyrics);
+  rebuildLyrics();
 });
 
 $minimalLyricsMode.listen((v) => {
   if (!PageContainer) return;
   PageContainer.classList.toggle("MinimalLyricsMode", v);
-  const uri = SpotifyPlayer.GetUri();
-  $currentLyricsData.set("");
-  if (uri) fetchLyrics(uri).then(ApplyLyrics);
+  rebuildLyrics();
 });
 
-$joinSplitWords.listen(() => {
-  const uri = SpotifyPlayer.GetUri();
-  $currentLyricsData.set("");
-  if (uri) fetchLyrics(uri).then(ApplyLyrics);
-});
+$joinSplitWords.listen(rebuildLyrics);
 
 // Purely a CSS toggle — no need to re-render the lyrics like the modes above do.
 $lineHoverBackground.listen((v) => {
@@ -882,11 +882,7 @@ onExperimentChange((experiment) => {
   if (!PageContainer) return;
   ApplyExperimentClasses(PageContainer);
   // Its letter split and word springs are fixed when the lyrics are built, so rebuild them.
-  if (experiment.id === "refreshedSimpleLyrics" && $simpleLyricsMode.get()) {
-    const uri = SpotifyPlayer.GetUri();
-    $currentLyricsData.set("");
-    if (uri) fetchLyrics(uri).then(ApplyLyrics);
-  }
+  if (experiment.id === "refreshedSimpleLyrics" && $simpleLyricsMode.get()) rebuildLyrics();
 });
 onExperimentDefinitionChange(() => {
   if (!PageContainer) return;

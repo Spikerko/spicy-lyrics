@@ -4,6 +4,9 @@ import { toast } from "sonner";
 import fetchLyrics, { LyricsStore } from "./Lyrics/fetchLyrics.ts";
 import ApplyLyrics from "./Lyrics/Global/Applyer.ts";
 import { $currentLyricsData } from "./stores.ts";
+import Logger from "./Logger.ts";
+
+const cacheToolsLogger = new Logger("Lyrics Cache");
 
 export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
   const currentSongId = SpotifyPlayer.GetId();
@@ -28,7 +31,7 @@ export const RemoveCurrentLyrics_AllCaches = async (ui: boolean = false) => {
     ui
       ? toast.error(`Lyrics for the current song, couldn't be removed from all available caches. Check the console for more info.`)
       : null;
-    console.error("SpicyLyrics:", error);
+    cacheToolsLogger.error(error);
   }
 };
 
@@ -48,7 +51,7 @@ export const RemoveLyricsCache = async (ui: boolean = false) => {
     ui
       ? toast.error(`The Lyrics cache, couldn't be removed. Check the console for more info.`)
       : null;
-    console.error("SpicyLyrics:", error);
+    cacheToolsLogger.error(error);
   }
 };
 
@@ -69,6 +72,6 @@ export const RemoveCurrentLyrics_StateCache = (ui: boolean = false) => {
     ui
       ? toast.error(`Lyrics for the current song, couldn't be removed from the internal state. Check the console for more info.`)
       : null;
-    console.error("SpicyLyrics:", error);
+    cacheToolsLogger.error(error);
   }
 };
