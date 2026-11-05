@@ -950,9 +950,8 @@
   font-weight: 600 !important;
 }
 
-/* Background Vocal Pop-Out (experiment, Refreshed Simple Lyrics only). A
-   background line takes no space until it or its lead line is sung
-   (GroupActive, set in LyricsAnimator.ts),
+/* Background Vocal Pop-Out (experiment). A background line takes no space
+   until it or its lead line is sung (GroupActive, set in LyricsAnimator.ts),
    then slides out from under the lead while the rows below glide down to make
    room (the virtualizer's layout glide, same duration and curve). Collapsed it
    keeps overflow visible, so on the way out the text fades over the rows
@@ -960,7 +959,7 @@
    nothing else sets on a line; Minimal Lyrics Mode drives `scale` and
    `opacity`. The selectors carry .SpicyLyricsScrollContainer and the :not()s
    so their transition outranks Minimal Lyrics Mode's `!important` one. */
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics.Exp_BackgroundLinePop {
+#SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop {
   & .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .line.bg-line:not(.musical-line):not(.static) {
     transform-origin: left top !important;
     transition:

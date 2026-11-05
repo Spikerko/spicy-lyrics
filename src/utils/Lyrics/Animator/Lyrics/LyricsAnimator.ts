@@ -1195,7 +1195,6 @@ export function Animate(position: number): void {
 
   if (CurrentLyricsType === "Syllable") {
     const arr = LyricsObject.Types.Syllable.Lines;
-    // The pop-out belongs to the refreshed layout; anywhere else every background line stays open.
     markBackgroundGroups(arr, ProcessedPosition, isBgPopActive());
 
     // Sweeps are measured here, before this frame changes any class, so the

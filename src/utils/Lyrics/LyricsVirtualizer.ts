@@ -109,10 +109,8 @@ function stepCascadeRow(row: CascadeRow, dt: number, w: number): void {
 const isRefreshedSimpleLyrics = (): boolean =>
   $simpleLyricsMode.get() && isExperimentEnabled("refreshedSimpleLyrics");
 
-// Background Vocal Pop-Out only applies to the refreshed layout. The animator
-// folds lines by the same gate, so the two agree on which rows collapse.
-export const isBgPopActive = (): boolean =>
-  isRefreshedSimpleLyrics() && isExperimentEnabled("backgroundLinePop");
+// The animator folds lines by the same gate, so the two agree on which rows collapse.
+export const isBgPopActive = (): boolean => isExperimentEnabled("backgroundLinePop");
 
 class LyricsVirtualizer {
   private _virtualizer: Virtualizer<HTMLElement, HTMLElement> | null = null;
@@ -358,8 +356,7 @@ class LyricsVirtualizer {
     this._remeasureVisible();
   }
 
-  // Background Vocal Pop-Out turned on or off (the experiment, or the refreshed
-  // layout it needs). Off-screen background lines and the rows
+  // Background Vocal Pop-Out flipped. Off-screen background lines and the rows
   // above them keep their measured size, so they are resized here to what they
   // would measure now; otherwise the list would shift as each one next mounts.
   private _applyBgPop(next: boolean): void {
