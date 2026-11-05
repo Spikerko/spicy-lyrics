@@ -243,6 +243,9 @@ class LyricsVirtualizer {
   // Background Vocal Pop-Out (experiment), cached like _refreshed. While it's on,
   // a background line without GroupActive is collapsed (Mixed.css) and sized 0.
   private _bgPop = false;
+  // performance.now() until which a background line's fold or open glides the
+  // rows below it, whatever the Smooth Scrolling setting.
+  private _bgGlideUntil = 0;
   // The last scroll made through the retry chain, so it can be re-aimed when a
   // background line above its target folds or opens while it is still moving.
   private _lastRetryTarget: {
@@ -444,6 +447,14 @@ class LyricsVirtualizer {
       for (const index of indices) {
         if (index < bgFirst && this._allElements[index]?.classList.contains("bg-line")) bgFirst = index;
       }
+    }
+    if (bgFirst < Infinity) {
+      // The rows below move with the line in every mode. Not for a row entirely
+      // above the viewport with the list at rest (the user has scrolled away):
+      // the scroll correction keeps the rows being read still.
+      const row = v.measurementsCache[bgFirst] as { end: number } | undefined;
+      const offScreen = row !== undefined && row.end <= (v.scrollOffset ?? 0);
+      if (!offScreen || this.moving) this._bgGlideUntil = performance.now() + LAYOUT_GLIDE_MS;
     }
     const toMeasure: HTMLElement[] = [];
     // Unmounted rows resized below, with their previous size.
@@ -1042,6 +1053,8 @@ class LyricsVirtualizer {
         el.style.transform = "";
         el.style.left = "";
         el.style.width = "100%";
+        // Mixed.css stacks these behind their neighbours for Background Vocal Pop-Out.
+        if (el.classList.contains("bg-line")) wrapper.dataset.bgRow = "";
         wrapper.appendChild(el);
       }
     }
@@ -1900,7 +1913,7 @@ class LyricsVirtualizer {
 
   private _layoutGlideEnabled(): boolean {
     return (
-      ($smoothScrolling.get() || this._refreshed) &&
+      ($smoothScrolling.get() || this._refreshed || performance.now() < this._bgGlideUntil) &&
       performance.now() >= this._layoutGlideBlockedUntil
     );
   }

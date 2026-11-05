@@ -953,13 +953,23 @@
 /* Background Vocal Pop-Out (experiment). A background line takes no space
    until it or its lead line is sung (GroupActive, set in LyricsAnimator.ts),
    then slides out from under the lead while the rows below glide down to make
-   room (the virtualizer's layout glide, same duration and curve). Collapsed it
-   keeps overflow visible, so on the way out the text fades over the rows
+   room (the virtualizer's layout glide, which runs for these rows in every mode;
+   same duration and curve, so the line and the rows read as one move). Collapsed
+   it keeps overflow visible, so on the way out the text fades over the rows
    gliding up instead of being cut off. The reveal is on `transform`, which
    nothing else sets on a line; Minimal Lyrics Mode drives `scale` and
    `opacity`. The selectors carry .SpicyLyricsScrollContainer and the :not()s
    so their transition outranks Minimal Lyrics Mode's `!important` one. */
 #SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop {
+  /* Behind the lead, so the line slides out from under it and back under it. */
+  & .VirtualLyricsContainer {
+    isolation: isolate;
+  }
+
+  & .VirtualLyricsContainer > [data-bg-row] {
+    z-index: -1;
+  }
+
   & .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .line.bg-line:not(.musical-line):not(.static) {
     transform-origin: left top !important;
     transition:
@@ -968,13 +978,14 @@
       scale 0.4s ease-in-out !important;
   }
 
-  /* Opening (a line opens NotSung, with its lead): the fade waits for the rows
-     below to get most of the way clear. Only here, so the brightening as it's
-     sung stays in time with its words. */
+  /* Opening (a line opens NotSung, with its lead): the fade waits only until
+     the room has started to open, so the text is never squeezed half-visible
+     and never appears in a gap that is already there. Only here, so the
+     brightening as it's sung stays in time with its words. */
   & .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .line.bg-line.GroupActive.NotSung:not(.musical-line):not(.static) {
     transition:
-      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
-      opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.05s,
       scale 0.4s ease-in-out !important;
   }
 
@@ -993,11 +1004,12 @@
     overflow: visible;
     pointer-events: none;
     opacity: 0 !important;
-    transform: translateY(-0.6em) scale(0.8);
-    /* Gone before the rows below glide in over it. */
+    transform: translateY(-0.8em) scale(0.8);
+    /* Long enough to be seen going under the lead. It rises faster than the
+       rows below close in, so they don't catch it. */
     transition:
-      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 0.12s ease-out,
+      transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.2s ease-out,
       scale 0.4s ease-in-out !important;
   }
 
