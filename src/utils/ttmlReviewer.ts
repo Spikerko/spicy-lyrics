@@ -1,4 +1,5 @@
 import { atom } from "nanostores";
+import { toast } from "sonner";
 import { type ExperimentId, EXPERIMENTS } from "./experiments.ts";
 import { PersistedSettings } from "./stores.ts";
 
@@ -68,6 +69,15 @@ function readBackup(): Record<string, unknown> | null {
   }
 }
 
+function writeBackup(value: string): boolean {
+  try {
+    Spicetify.LocalStorage.set(BACKUP_KEY, value);
+    return Spicetify.LocalStorage.get(BACKUP_KEY) === value;
+  } catch {
+    return false;
+  }
+}
+
 function applyProfile() {
   for (const [key, value] of profile) PersistedSettings.get(key)?.set(value);
 }
@@ -92,7 +102,11 @@ export function setTtmlReviewer(on: boolean) {
       if (entry?.isStored()) saved[key] = entry.get();
     }
     // Saved before anything changes, so a crash partway can't lose the real values.
-    Spicetify.LocalStorage.set(BACKUP_KEY, JSON.stringify(saved));
+    // Read back too: with no backup to restore from, stripping would lose them for good.
+    if (!writeBackup(JSON.stringify(saved))) {
+      toast.error("Couldn't save your settings, so TTML Reviewer stayed off.", { duration: 5000 });
+      return;
+    }
     applyProfile();
   } else if (backup) {
     for (const key of profile.keys()) {
