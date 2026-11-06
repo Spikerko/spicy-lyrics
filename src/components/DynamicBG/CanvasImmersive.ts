@@ -11,7 +11,13 @@ import { IsPIP } from "../Utils/PopupLyrics.ts";
 import { IsCompactMode } from "../Utils/CompactMode.ts";
 import { SetSideSwapTransition } from "../Utils/NowBar.ts";
 import { getBackgroundStyle, PAGE_BACKGROUND_KEY, SetKawarpSuspended } from "./dynamicBackground.ts";
-import { AttachCanvasMedia, GetPlayingCanvasInfo, LoadCanvasMedia } from "./CanvasVideo.ts";
+import {
+  AttachCanvasMedia,
+  type CanvasInfo,
+  GetCanvasInfo,
+  GetPlayingTrackUri,
+  LoadCanvasMedia,
+} from "./CanvasVideo.ts";
 
 const immersiveLogger = new Logger("Canvas Immersive");
 
@@ -71,9 +77,10 @@ let active = false;
 // Bumped by every refresh; async work from an older one drops its result.
 let generation = 0;
 let suspendTimer: ReturnType<typeof setTimeout> | null = null;
-// A failed download isn't cached, so a retry fetches again. Counted per canvas.
+let layerReleaseTimer: ReturnType<typeof setTimeout> | null = null;
+// A failed lookup or download isn't cached, so a retry fetches again. Counted per track or canvas.
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
-let retryFileId: string | null = null;
+let retryKey: string | null = null;
 let retryAttempt = 0;
 
 type SideSwap = {
@@ -181,6 +188,7 @@ function Unmount() {
   generation++;
   active = false;
   clearSuspendTimer();
+  clearLayerReleaseTimer();
   clearRetryTimer();
   SetKawarpSuspended(PAGE_BACKGROUND_KEY, false);
   mount.resizeObserver.disconnect();
@@ -215,14 +223,19 @@ function clearSuspendTimer() {
   suspendTimer = null;
 }
 
+function clearLayerReleaseTimer() {
+  if (layerReleaseTimer) clearTimeout(layerReleaseTimer);
+  layerReleaseTimer = null;
+}
+
 function clearRetryTimer() {
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = null;
 }
 
-function scheduleRetry(fileId: string) {
-  if (retryFileId !== fileId) {
-    retryFileId = fileId;
+function scheduleRetry(key: string) {
+  if (retryKey !== key) {
+    retryKey = key;
     retryAttempt = 0;
   }
   const delay = getRemoteConfig().canvas.retryDelaysMs[retryAttempt];
@@ -408,6 +421,7 @@ function syncPlayback() {
 
 function activate() {
   if (!mount || active) return;
+  clearLayerReleaseTimer();
   active = true;
   ambientPrimed = false;
   toggleDockLayout(mount, true);
@@ -420,17 +434,25 @@ function activate() {
 }
 
 function deactivate() {
-  if (!mount || !active) return;
-  finishSideSwap();
-  active = false;
-  clearSuspendTimer();
-  SetKawarpSuspended(PAGE_BACKGROUND_KEY, false);
-  toggleDockLayout(mount, false);
+  if (!mount) return;
+  if (active) {
+    finishSideSwap();
+    active = false;
+    clearSuspendTimer();
+    SetKawarpSuspended(PAGE_BACKGROUND_KEY, false);
+    toggleDockLayout(mount, false);
+  }
+  scheduleLayerRelease(mount);
+}
 
-  const gen = generation;
-  const m = mount;
-  setTimeout(() => {
-    if (gen !== generation || active || mount !== m) return;
+// Empties the layers once the stage has faded out, or a hidden video keeps decoding. A refresh
+// arriving mid-fade (skipping through songs) must not lose this, so only starting to show a
+// canvas cancels it.
+function scheduleLayerRelease(m: Mount) {
+  if (layerReleaseTimer || !m.layers.some((layer) => layer.fileId)) return;
+  layerReleaseTimer = setTimeout(() => {
+    layerReleaseTimer = null;
+    if (active || mount !== m) return;
     for (const layer of m.layers) releaseLayer(layer);
   }, FADE_MS);
 }
@@ -471,13 +493,28 @@ async function Refresh(isRetry = false) {
   if (PageContainer && PageContainer !== mount?.page && !IsCardMode && !IsPIP) MountOnPage(PageContainer);
   if (!mount) return;
 
-  const info = isEligible() ? GetPlayingCanvasInfo() : null;
-  if (!info) {
+  const trackUri = isEligible() ? GetPlayingTrackUri() : null;
+  if (!trackUri) {
     deactivate();
     return;
   }
 
   const m = mount;
+  let info: CanvasInfo | null;
+  try {
+    info = await GetCanvasInfo(trackUri);
+  } catch {
+    if (gen !== generation || mount !== m) return;
+    deactivate();
+    scheduleRetry(trackUri);
+    return;
+  }
+  if (gen !== generation || mount !== m) return;
+  if (!info) {
+    deactivate();
+    return;
+  }
+
   const currentLayer = m.layers[m.current];
   if (currentLayer.fileId === info.fileId) {
     activate();
@@ -492,17 +529,21 @@ async function Refresh(isRetry = false) {
     scheduleRetry(info.fileId);
     return;
   }
-  retryFileId = null;
+  retryKey = null;
 
   const nextIndex: 0 | 1 = m.current === 0 ? 1 : 0;
   const next = m.layers[nextIndex];
+  clearLayerReleaseTimer();
   releaseLayer(next);
   let detach: () => void;
   try {
     detach = await AttachCanvasMedia(next.video, media);
   } catch (err) {
+    // A newer refresh taking over this video makes the old attach throw; that's not a failure.
+    if (gen !== generation || mount !== m) return;
     immersiveLogger.warn("Canvas playback failed", media.fileId, err);
-    if (gen === generation) deactivate();
+    deactivate();
+    scheduleRetry(media.fileId);
     return;
   }
   // Superseded or unmounted while attaching: the layer was already released, so revoke here.
