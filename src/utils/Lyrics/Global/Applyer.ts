@@ -8,6 +8,7 @@ import { EmitApply, EmitNotApplyed } from "../Applyer/OnApply.ts";
 import { ApplyStaticLyrics, type StaticLyricsData } from "../Applyer/Static.ts";
 import { ApplyLineLyrics } from "../Applyer/Synced/Line.ts";
 import { ApplySyllableLyrics } from "../Applyer/Synced/Syllable.ts";
+import { SyllableLyricsAsLines, TranslationModeNow } from "../Applyer/Utils/TranslationRow.ts";
 import fetchLyrics, {
   ClearLyricsPageContainer,
   HideLoaderContainer,
@@ -107,6 +108,7 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
   // The copy for each keyword lives in LyricsNotice.ts.
   if (typeof descriptor === "string" && HasNotice(descriptor)) {
     $currentLyricsType.set("None");
+    PageContainer?.classList.remove("Lyrics_TranslationAvailable");
 
     if (descriptor === "lyrics-not-found") {
       // Key the sentinel off the uri the fetch was made for, never off whatever
@@ -145,6 +147,8 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
   }
 
   const lyrics = descriptor as LyricsData;
+  // The translation view control shows only for lyrics that carry a translation.
+  PageContainer?.classList.toggle("Lyrics_TranslationAvailable", !!(lyrics as any).HasTranslations);
 
   // Lyrics replace any notice, whichever path applied them (a TTML upload re-applies
   // without going through fetchLyrics), so a later layout sync can't hide them.
@@ -153,7 +157,13 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
 
   const romanize = isRomanized;
 
-  if (lyrics.Type === "Syllable") {
+  // Lines replaced by their translation are timed by line, so syllable lyrics
+  // render line-synced; the animator follows the type actually rendered.
+  if (lyrics.Type === "Syllable" && TranslationModeNow() === "replace" && (lyrics as any).HasTranslations) {
+    $currentLyricsType.set("Line");
+    ApplyLineLyrics(SyllableLyricsAsLines(lyrics), romanize);
+  } else if (lyrics.Type === "Syllable") {
+    $currentLyricsType.set("Syllable");
     ApplySyllableLyrics(lyrics as any, romanize);
   } else if (lyrics.Type === "Line") {
     ApplyLineLyrics(lyrics as any, romanize);

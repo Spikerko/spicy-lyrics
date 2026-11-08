@@ -1368,3 +1368,161 @@
     rgba(255, 255, 255, var(--gradient-alpha-end)) calc(var(--RomanizedPosition, -20%) + 20%)
   );
 }
+
+/* Word by word (Romanization Highlight). RomanizedRow.ts writes each
+   syllable's glow (--RomanizedGlow, on the same curve as a lyric word's: up over
+   the first part of the syllable, held, gone by its end) and its state
+   (PieceActive while sung, PieceSung after). Both are registered so they can
+   transition: the glow's short one smooths it the way a word's spring does, and
+   the fill can't fade by itself (-webkit-text-fill-color doesn't interpolate),
+   so it fades --RomanizedLit and builds the fill from it.
+   The glow is a word's (35%) through the row's 0.65 opacity, so it reads as
+   strongly as the line's. */
+@property --RomanizedGlow {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --RomanizedLit {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.5;
+}
+
+/* No sweep: a syllable fades up whole while it's sung, then settles to the
+   line's lit colour. Lighting up is quick and settling slow, so it reads as a
+   fade even on a short syllable. The ones ahead stay dim. */
+#SpicyLyricsPage.SpicyRenderer.RomanizedWordHighlight .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece {
+  --RomanizedLit: var(--gradient-alpha-end);
+  background-image: none;
+  -webkit-text-fill-color: rgba(255, 255, 255, var(--RomanizedLit));
+  text-shadow: 0 0 calc(0.12em + 0.12em * var(--RomanizedGlow)) rgba(255, 255, 255, calc(0.55 * var(--RomanizedGlow)));
+  transition:
+    --RomanizedGlow 0.2s ease-out,
+    --RomanizedLit 0.3s ease-out;
+}
+
+#SpicyLyricsPage.SpicyRenderer.RomanizedWordHighlight .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece.PieceActive {
+  --RomanizedLit: 1;
+  transition:
+    --RomanizedGlow 0.2s ease-out,
+    --RomanizedLit 0.25s ease-out;
+}
+
+#SpicyLyricsPage.SpicyRenderer.RomanizedWordHighlight .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece.PieceSung {
+  --RomanizedLit: var(--gradient-alpha);
+  transition:
+    --RomanizedGlow 0.2s ease-out,
+    --RomanizedLit 0.7s ease-out;
+}
+
+/* Animated Romanization and Translation (experiment). A syllable row's pieces
+   are animated exactly as the line's words, and held ones letter by letter
+   (RomanizedRow.ts, LyricsAnimator.ts): the animator writes the words' own
+   properties (scale, transform, --gradient-position, --text-shadow-*), and the
+   rules here are the words' gradient, colours and glow. A translation row or a
+   line-synced romanization row sweeps across the line's time with a line's
+   glow (--UnderLinePosition, --UnderLineGlowBlur/Opacity on the line). This
+   overrides the Romanization Highlight choice. */
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow.Timed .RomanizedWord {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow.Timed :is(.RomanizedPiece, .RomanizedLetter) {
+  display: inline-block;
+  transform-origin: center center;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed :is(.RomanizedPiece:not(.HasLetters), .RomanizedLetter) {
+  --gradient-alpha: 0.85;
+  --gradient-alpha-end: 0.5;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  /* Left to right like a word's: the line's own --gradient-degrees is vertical. */
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, var(--gradient-alpha)) var(--gradient-position, -20%),
+    rgba(255, 255, 255, var(--gradient-alpha-end)) calc(var(--gradient-position, -20%) + 20%)
+  );
+  text-shadow: 0 0 var(--text-shadow-blur-radius, 2.4px) rgba(255, 255, 255, var(--text-shadow-opacity, 0%));
+  transition: none;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.bg-line.Active .RomanizedRow.Timed :is(.RomanizedPiece:not(.HasLetters), .RomanizedLetter) {
+  --gradient-alpha: 0.6;
+  --gradient-alpha-end: 0.3;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece.HasLetters {
+  background-image: none;
+  text-shadow: none;
+}
+
+/* Syllables of one word scale about their joints, like the parts of a word
+   above, so the word doesn't open up at its seams. */
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow.Timed .RomanizedPiece:first-child:not(:last-child) {
+  transform-origin: right center;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow.Timed .RomanizedPiece:last-child:not(:first-child) {
+  transform-origin: left center;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active[data-translation]::after,
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow:not(.Timed) {
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-image: linear-gradient(
+    var(--gradient-degrees, to right),
+    rgba(255, 255, 255, var(--gradient-alpha)) var(--UnderLinePosition, -20%),
+    rgba(255, 255, 255, var(--gradient-alpha-end)) calc(var(--UnderLinePosition, -20%) + 20% + var(--gradient-offset, 0%))
+  );
+  text-shadow: 0 0 var(--UnderLineGlowBlur, 4px) rgba(255, 255, 255, var(--UnderLineGlowOpacity, 0));
+}
+
+/* A translation from the lyrics file (TranslationRow.ts), drawn as the line's
+   ::after from data-translation so it never becomes part of the line's text.
+   It looks and moves like the romanization row above it, and comes after it.
+   A line that another extension has translated (.spicy-translated) shows that
+   translation alone. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line[data-translation]::after {
+  --TranslationAlpha: var(--gradient-alpha-end);
+  content: attr(data-translation);
+  display: block;
+  flex: 0 0 100%;
+  min-width: 0;
+  font-size: 0.6em;
+  margin: 0.1em 0 0.3em;
+  opacity: 0.65;
+  unicode-bidi: plaintext;
+  text-align: left;
+  overflow-wrap: anywhere;
+  -webkit-text-fill-color: transparent;
+  background-image: none;
+  text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--TranslationAlpha));
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line[data-translation] .RomanizedRow,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.TranslationBeforeBackground::after {
+  margin-bottom: 0;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.bg-line[data-translation]::after {
+  --gradient-alpha: 0.6;
+  --gradient-alpha-end: 0.3;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:is(.OppositeAligned, .rtl)[data-translation]::after {
+  text-align: right;
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:is(.Active, .Sung, .static)[data-translation]::after {
+  --TranslationAlpha: var(--gradient-alpha);
+}
+
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.spicy-translated[data-translation]::after {
+  content: none;
+}

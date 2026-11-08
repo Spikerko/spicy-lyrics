@@ -99,6 +99,17 @@ export const $syllablePace = persistAtom<boolean>("syllablePace", false);
 // smaller row under each line.
 export type RomanizationDisplay = "replace" | "underLine";
 export const $romanizationDisplay = persistAtom<RomanizationDisplay>("romanizationDisplay", "replace");
+// How a syllable romanization row under the line lights up: a gradient sweeping
+// along each syllable, or each syllable lighting whole while it's sung.
+export type RomanizationHighlight = "sweep" | "word";
+export const $romanizationHighlight = persistAtom<RomanizationHighlight>("romanizationHighlight", "sweep");
+if (!["sweep", "word"].includes($romanizationHighlight.get())) $romanizationHighlight.set("sweep");
+// Whether the translation the lyrics file carries is shown (the view control,
+// which only appears for lyrics that have one), and whether it shows as a
+// smaller row under each line or in place of the line.
+export const $lyricsTranslation = persistAtom<boolean>("lyricsTranslation", false);
+export type TranslationDisplay = "underLine" | "replace";
+export const $translationDisplay = persistAtom<TranslationDisplay>("translationDisplay", "underLine");
 // Tinted box drawn behind a lyrics line while the pointer is over it.
 export const $lineHoverBackground = persistAtom<boolean>("lineHoverBackground", true);
 // Wide inset on the side a duet line leans away from, so the two voices read as

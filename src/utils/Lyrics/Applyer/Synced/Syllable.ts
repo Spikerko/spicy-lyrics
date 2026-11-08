@@ -30,6 +30,7 @@ import { CreateLyricsContainer, DestroyAllLyricsContainers } from "../CreateLyri
 import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "../Utils/PickDisplayText.ts";
 import { AppendSyllableRomanization, RomanizeUnderLine } from "../Utils/RomanizedRow.ts";
+import { SetLineTranslation, TranslationModeNow, TranslationOf } from "../Utils/TranslationRow.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
@@ -128,6 +129,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
   // Under each line, the line keeps its own text and the romanization gets a row below it.
   const UnderLine = RomanizeUnderLine(UseRomanized);
   const ShowRomanized = UseRomanized && !UnderLine;
+  // Replacing lines with their translation renders line-synced (Global/Applyer).
+  const TranslateUnderLine = TranslationModeNow() === "underLine";
   EmitNotApplyed();
 
   DestroyAllLyricsContainers();
@@ -385,6 +388,9 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
     if (UnderLine) {
       AppendSyllableRomanization(lineElem, line.Lead.Syllables, backgrounds.length > 0);
     }
+    if (TranslateUnderLine) {
+      SetLineTranslation(lineElem, TranslationOf(line.Lead) || TranslationOf(line), backgrounds.length > 0);
+    }
 
     if (line.Background) {
       line.Background.filter((bg) => !IsEmptySyllableGroup(bg)).forEach((bg) => {
@@ -494,6 +500,7 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         });
 
         if (UnderLine) AppendSyllableRomanization(lineE, bg.Syllables);
+        if (TranslateUnderLine) SetLineTranslation(lineE, TranslationOf(bg));
       });
     }
     if (arr[index + 1] && arr[index + 1].Lead.StartTime - line.Lead.EndTime >= getLyricsBetweenShow()) {

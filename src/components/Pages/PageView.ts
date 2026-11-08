@@ -32,8 +32,11 @@ import {
   $lyricsContainerExists,
   $lyricsSize,
   $minimalLyricsMode,
+  $lyricsTranslation,
   $romanizationDisplay,
+  $romanizationHighlight,
   $showVolumeSlider,
+  $translationDisplay,
   $simpleLyricsMode,
   $skipSpicyFont,
   $syllableMerge,
@@ -45,6 +48,7 @@ import Global from "../Global/Global.ts";
 import Session from "../Global/Session.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { Icons } from "../Styling/Icons.ts";
+import { $experiment } from "../../utils/experiments.ts";
 import {
   DisableCompactMode,
   EnableCompactMode,
@@ -90,6 +94,7 @@ export const Tooltips: {
   Close: TippyInstance | null;
   CompactModeToggle: TippyInstance | null;
   RomanizationToggle: TippyInstance | null;
+  LyricsTranslationToggle: TippyInstance | null;
   NowBarToggle: TippyInstance | null;
   FullscreenToggle: TippyInstance | null;
   CinemaView: TippyInstance | null;
@@ -100,6 +105,7 @@ export const Tooltips: {
   Close: null,
   CompactModeToggle: null,
   RomanizationToggle: null,
+  LyricsTranslationToggle: null,
   NowBarToggle: null,
   FullscreenToggle: null,
   CinemaView: null,
@@ -299,6 +305,7 @@ async function OpenPage(
     elem.classList.add("MinimalLyricsMode");
   }
 
+  if ($romanizationHighlight.get() === "word") elem.classList.add("RomanizedWordHighlight");
   if (!$lineHoverBackground.get()) {
     elem.classList.add("NoLineHoverBackground");
   }
@@ -549,6 +556,9 @@ function AppendViewControls(ReAppend: boolean = false) {
               : Icons.EnableRomanization
           }
         </button>
+        <button id="LyricsTranslationToggle" class="ViewControl">
+          ${$lyricsTranslation.get() ? Icons.DisableTranslation : Icons.EnableTranslation}
+        </button>
         ${
           !Fullscreen.IsOpen &&
           !Fullscreen.CinemaViewOpen
@@ -714,6 +724,39 @@ function AppendViewControls(ReAppend: boolean = false) {
       }
     }
 
+    const translationToggle = elem.querySelector("#LyricsTranslationToggle");
+    if (translationToggle) {
+      try {
+        if (!isPip) {
+          Tooltips.LyricsTranslationToggle = createTooltip(translationToggle, {
+            ...Spicetify.TippyProps,
+            content: $lyricsTranslation.get() ? `Hide Translation` : `Show Translation`,
+          });
+        }
+        translationToggle.addEventListener("click", async () => {
+          const songUri = SpotifyPlayer.GetUri();
+          if (!songUri) return;
+          PageContainer?.querySelector(
+            ".LyricsContainer .LyricsContent"
+          )?.classList.add("HiddenTransitioned");
+          // Read at apply time, like romanization, so an in-flight fetch picks it up.
+          $lyricsTranslation.set(!$lyricsTranslation.get());
+
+          const lyrics = await fetchLyrics(songUri);
+          if (lyrics) await ApplyLyrics(lyrics);
+
+          setTimeout(() => {
+            AppendViewControls();
+            PageContainer?.querySelector(
+              ".LyricsContainer .LyricsContent"
+            )?.classList.remove("HiddenTransitioned");
+          }, 45);
+        });
+      } catch (err) {
+        controlsLogger.warn("Failed to setup Translation tooltip", err);
+      }
+    }
+
     if (!Fullscreen.IsOpen && !Fullscreen.CinemaViewOpen) {
       const nowBarButton = elem.querySelector("#NowBarToggle");
       if (nowBarButton) {
@@ -862,6 +905,18 @@ $syllableMerge.listen(reapplyLyrics);
 $syllablePace.listen(reapplyLyrics);
 $romanizationDisplay.listen(() => {
   if (isRomanized) reapplyLyrics();
+});
+$translationDisplay.listen(() => {
+  if ($lyricsTranslation.get()) reapplyLyrics();
+});
+// The animated rows experiment builds its rows differently (resting styles, letters).
+$experiment("animatedUnderRows").listen(() => {
+  if (isRomanized) reapplyLyrics();
+});
+
+// CSS only: the frame loop marks each romanized syllable's state either way.
+$romanizationHighlight.listen((v) => {
+  PageContainer?.classList.toggle("RomanizedWordHighlight", v === "word");
 });
 
 // CSS sizes the text. The list's cached row heights and scroll position are JS, so those follow.

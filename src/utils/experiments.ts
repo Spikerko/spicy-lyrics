@@ -173,6 +173,14 @@ export const EXPERIMENTS = [
       "Japanese romaji is spelled the way romanized lyrics usually are: long vowels as written (kyou, toukyou, koohii), particles as said (wa, e, wo), endings kept on their word (yonde ita), gaps between words even where the syllables are joined, and a capital at the start of the line. Disable to bring back the previous spelling (kyō, tōkyō, o, one word per token).",
     default: true,
   },
+  {
+    id: "animatedUnderRows",
+    label: "Animated Romanization and Translation",
+    description:
+      "The rows under each line move like the lyrics: a romanization row timed by syllable rises, swells and glows syllable by syllable like the words above it, and a translation row (or a line-synced romanization row) sweeps across with the line's glow. Overrides Romanization Highlight. Disable to bring back the plain rows.",
+    default: false,
+    pageClass: "Exp_AnimatedUnderRows",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */

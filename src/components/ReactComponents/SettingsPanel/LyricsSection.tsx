@@ -7,13 +7,18 @@ import {
   $minimalLyricsMode,
   $pinnedCredits,
   $romanizationDisplay,
+  $romanizationHighlight,
   $simpleLyricsMode,
   $syllableMerge,
   $syllablePace,
+  $translationDisplay,
   type PinnedCredits,
   type RomanizationDisplay,
+  type RomanizationHighlight,
   type SyllableMerge,
+  type TranslationDisplay,
 } from "../../../utils/stores.ts";
+import { $experiment } from "../../../utils/experiments.ts";
 import { Select, Slider, Toggle } from "./components.tsx";
 import { LyricsIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
@@ -123,6 +128,45 @@ const groups: GroupDef[] = [
             options={["replace", "underLine"]}
             labels={["Replace the line", "Under each line"]}
             onChange={(v) => $romanizationDisplay.set(v as RomanizationDisplay)}
+          />
+        ),
+      },
+      {
+        id: "romanizationHighlight",
+        label: "Romanization Highlight",
+        description:
+          "How the romanization row under a word-synced line lights up: a gradient sweeping along each syllable, or each syllable lighting up whole while it's sung.",
+        keywords: "romaji romanized row sweep glow highlight word syllable",
+        useDisabled: () => {
+          const underLine = useStore($romanizationDisplay) === "underLine";
+          const animated = useStore($experiment("animatedUnderRows"));
+          if (!underLine) return "Show romanization under each line to change this.";
+          return animated && "The Animated Romanization and Translation experiment lights the row instead.";
+        },
+        Control: ({ disabled, label }) => (
+          <Select
+            label={label}
+            value={useStore($romanizationHighlight)}
+            options={["sweep", "word"]}
+            labels={["Sweep", "Word by word"]}
+            onChange={(v) => $romanizationHighlight.set(v as RomanizationHighlight)}
+            disabled={disabled}
+          />
+        ),
+      },
+      {
+        id: "translationDisplay",
+        label: "Translation",
+        description:
+          "For lyrics that come with a translation, show it as a smaller row under each line, or in place of the line. Turn it on with the translation button above the lyrics.",
+        keywords: "translate translated translation under below replace language",
+        Control: ({ label }) => (
+          <Select
+            label={label}
+            value={useStore($translationDisplay)}
+            options={["underLine", "replace"]}
+            labels={["Under each line", "Replace the line"]}
+            onChange={(v) => $translationDisplay.set(v as TranslationDisplay)}
           />
         ),
       },

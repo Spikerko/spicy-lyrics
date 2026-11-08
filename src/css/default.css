@@ -704,6 +704,11 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
   display: none !important;
 }
 
+#SpicyLyricsPage:not(.Lyrics_TranslationAvailable) .ViewControls #LyricsTranslationToggle,
+#SpicyLyricsPage:not(.SpicyRenderer) .ViewControls #LyricsTranslationToggle {
+  display: none !important;
+}
+
 #SpicyLyricsPage.CompactifyEnabledCompactMode .ViewControls .ViewControl#CompactModeToggle {
   display: none !important;
 }

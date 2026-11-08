@@ -19,6 +19,7 @@ import { CreateLyricsContainer, DestroyAllLyricsContainers } from "./CreateLyric
 import { StripZeroWidth } from "./Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "./Utils/PickDisplayText.ts";
 import { AppendLineRomanization, RomanizeUnderLine } from "./Utils/RomanizedRow.ts";
+import { SetLineTranslation, TranslationModeNow, TranslationOf } from "./Utils/TranslationRow.ts";
 import { initLyricsVirtualizer } from "../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "./Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "./OnApply.ts";
@@ -48,6 +49,7 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
   // Under each line, the line keeps its own text and the romanization gets a row below it.
   const UnderLine = RomanizeUnderLine(UseRomanized);
   const ShowRomanized = UseRomanized && !UnderLine;
+  const Translation = TranslationModeNow();
 
   EmitNotApplyed();
 
@@ -85,18 +87,21 @@ export function ApplyStaticLyrics(data: StaticLyricsData, UseRomanized: boolean 
 
   lines.forEach((line) => {
     const lineElem = document.createElement("div");
+    const translation = Translation ? TranslationOf(line) : "";
+    const replaced = Translation === "replace" && translation !== "";
 
-    lineElem.textContent = StripZeroWidth(
-      PickDisplayText(line, ShowRomanized)
-    );
+    lineElem.textContent = replaced
+      ? translation
+      : StripZeroWidth(PickDisplayText(line, ShowRomanized));
 
-    if (isRtl(line.Text) && !lineElem.classList.contains("rtl")) {
+    if (isRtl(replaced ? translation : line.Text) && !lineElem.classList.contains("rtl")) {
       lineElem.classList.add("rtl");
     }
 
     lineElem.classList.add("line");
     lineElem.classList.add("static");
     if (UnderLine) AppendLineRomanization(lineElem, line);
+    if (Translation === "underLine") SetLineTranslation(lineElem, translation);
 
     // Add the line element to the lyrics object
     const staticLine: LyricsStatic = {

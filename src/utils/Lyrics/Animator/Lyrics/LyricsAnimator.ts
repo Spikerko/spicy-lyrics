@@ -17,7 +17,7 @@ import {
 } from "../../LyricsVirtualizer.ts";
 import { Spring } from "../../../../modules/Spring.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
-import { UpdateRomanizedRow } from "../../Applyer/Utils/RomanizedRow.ts";
+import { GetRomanizedPieces, ROMANIZED_ROW_SIZE, UpdateRomanizedRow } from "../../Applyer/Utils/RomanizedRow.ts";
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
 // Define types for animation ranges
@@ -975,6 +975,202 @@ const createLineSprings = () => {
   };
 };
 
+// Animated Romanization and Translation (experiment): the rows under an active
+// line move like the lyrics. A syllable row's pieces get a word's springs and
+// targets (the sweep itself is written by UpdateRomanizedRow, on the word's
+// scale); a translation row or plain romanization row gets a line-synced
+// line's sweep and glow, through variables on the line that its rows read
+// (Mixed.css). The rows sit at 0.65 opacity, so their glow is a word's or a
+// line's divided by that, to read as strongly. Real springs whatever the mode,
+// so it moves in Simple Lyrics Mode too.
+const ROW_OPACITY = 0.65;
+type RowSprings = { Scale: Spring; YOffset: Spring; Glow: Spring };
+const pieceSprings = new WeakMap<HTMLElement, RowSprings>();
+const underLineGlow = new WeakMap<HTMLElement, Spring>();
+
+function animateUnderRows(
+  lineElem: HTMLElement,
+  startTime: number,
+  endTime: number,
+  position: number,
+  deltaTime: number
+): void {
+  const lineProgress = getProgressPercentage(position, startTime, endTime);
+  let lineGlow = underLineGlow.get(lineElem);
+  if (!lineGlow) {
+    lineGlow = new Spring(LineGlowSpline.at(0), LineGlowFrequency, LineGlowDamping);
+    underLineGlow.set(lineElem, lineGlow);
+  }
+  lineGlow.SetGoal(LineGlowSpline.at(lineProgress));
+  const glow = lineGlow.Step(deltaTime);
+  setStyleIfChanged(lineElem, "--UnderLinePosition", `${(lineProgress * 100).toFixed(1)}%`);
+  setStyleIfChanged(lineElem, "--UnderLineGlowBlur", `${4 + 8 * glow}px`, 0.5);
+  setStyleIfChanged(lineElem, "--UnderLineGlowOpacity", `${(glow * 0.5) / ROW_OPACITY}`, 0.01);
+
+  stepRomanizedWords(lineElem, position, deltaTime, false);
+  romanizedRowsSettling.add(lineElem);
+}
+
+// A syllable row's pieces, animated as the line's words are: the same states,
+// splines, springs and properties (scale, transform, --gradient-position,
+// --text-shadow-*), and the same CSS (Mixed.css). Lift and glow blur are scaled
+// to the row's size, so it moves like a smaller line. They start from the
+// word's resting style (set when the row is built) and, once the line has
+// been sung, settle to rest the way its words do. Returns whether every spring
+// has come to rest.
+
+const romanizedRowsSettling = new WeakSet<HTMLElement>();
+
+function stepRomanizedWords(
+  lineElem: HTMLElement,
+  position: number,
+  deltaTime: number,
+  sung: boolean
+): boolean {
+  const pieces = GetRomanizedPieces(lineElem);
+  if (!pieces) return true;
+  const simple = $simpleLyricsMode.get();
+  let settled = true;
+  for (const piece of pieces) {
+    const el = piece.HTMLElement;
+    // A held piece is timed by its letters' window, as a letter group is.
+    const start = piece.Letters ? piece.LettersStart! : piece.StartTime;
+    const end = piece.Letters ? piece.LettersEnd! : piece.EndTime;
+    const state = sung ? "Sung" : getElementState(position, start, end);
+    const percentage = getProgressPercentage(position, start, end);
+    const at = state === "Active" ? percentage : state === "Sung" ? 1 : 0;
+    if (piece.Letters) {
+      if (!stepRomanizedLetters(piece.Letters, state, position, deltaTime, sung)) settled = false;
+    } else {
+      const gradient = state === "Active" ? -20 + 120 * percentage : state === "Sung" ? 100 : -20;
+      setStyleIfChanged(el, "--gradient-position", `${gradient}%`);
+    }
+    if (simple) continue;
+
+    let springs = pieceSprings.get(el);
+    if (!springs) {
+      springs = {
+        Scale: new Spring(ScaleSpline.at(0), ScaleFrequency, ScaleDamping),
+        YOffset: new Spring(YOffsetSpline.at(0), YOffsetFrequency, YOffsetDamping),
+        Glow: new Spring(GlowSpline.at(0), GlowFrequency, GlowDamping),
+      };
+      pieceSprings.set(el, springs);
+    }
+    springs.Scale.SetGoal(ScaleSpline.at(at));
+    springs.YOffset.SetGoal(YOffsetSpline.at(at));
+    springs.Glow.SetGoal(GlowSpline.at(at));
+    const scale = springs.Scale.Step(deltaTime);
+    const lift = springs.YOffset.Step(deltaTime) * ROMANIZED_ROW_SIZE;
+    const glow = springs.Glow.Step(deltaTime);
+    setStyleIfChanged(el, "scale", `${scale}`, 0.001);
+    setStyleIfChanged(el, "transform", `translate3d(0, calc(var(--DefaultLyricsSize) * ${lift}), 0)`, 0.0001, lift);
+    setStyleIfChanged(el, "--text-shadow-blur-radius", `${(4 + 2 * glow) * ROMANIZED_ROW_SIZE}px`, 0.3);
+    setStyleIfChanged(el, "--text-shadow-opacity", `${Math.min(glow * 35, 100)}%`, 1);
+    if (sung && settled) {
+      settled = springs.Scale.CanSleep() && springs.YOffset.CanSleep() && springs.Glow.CanSleep();
+    }
+  }
+  return settled;
+}
+
+// A held piece's letters, as a letter group's: the letter being sung swells and
+// lifts with its neighbours falling off around it, each letter fills on its own
+// eased sweep, and sung letters keep a faint glow while none is active.
+const letterSprings = new WeakMap<HTMLElement, RowSprings>();
+
+function stepRomanizedLetters(
+  letters: readonly { HTMLElement: HTMLElement; StartTime: number; EndTime: number }[],
+  wordState: "NotSung" | "Active" | "Sung",
+  position: number,
+  deltaTime: number,
+  sung: boolean
+): boolean {
+  const simple = $simpleLyricsMode.get();
+  let activeIndex = -1;
+  let activePercentage = 0;
+  if (wordState === "Active") {
+    for (let i = 0; i < letters.length; i++) {
+      if (getElementState(position, letters[i].StartTime, letters[i].EndTime) === "Active") {
+        activeIndex = i;
+        activePercentage = getProgressPercentage(position, letters[i].StartTime, letters[i].EndTime);
+        break;
+      }
+    }
+  }
+
+  let settled = true;
+  for (let k = 0; k < letters.length; k++) {
+    const letter = letters[k];
+    const letterState = sung ? "Sung" : getElementState(position, letter.StartTime, letter.EndTime);
+    const gradient =
+      letterState === "NotSung"
+        ? -20
+        : letterState === "Sung"
+          ? 100
+          : k === activeIndex
+            ? -20 + 120 * easeSinOut(activePercentage)
+            : -20;
+    setStyleIfChanged(letter.HTMLElement, "--gradient-position", `${gradient}%`);
+    if (simple) continue;
+
+    let springs = letterSprings.get(letter.HTMLElement);
+    if (!springs) {
+      springs = createLetterSprings();
+      letterSprings.set(letter.HTMLElement, springs);
+    }
+    const restScale = LetterScaleSpline.at(0);
+    const restY = LetterYOffsetSpline.at(0);
+    const restGlow = GlowSpline.at(0);
+    let targetScale = restScale;
+    let targetY = restY;
+    let targetGlow = restGlow;
+    if (activeIndex !== -1) {
+      const distance = Math.abs(k - activeIndex);
+      const falloff = Math.max(0, 1 / (1 + Math.pow(distance, 2.8)));
+      const glowFalloff = Math.max(0, 1 / (1 + distance * 0.9));
+      targetScale = restScale + (LetterScaleSpline.at(activePercentage) - restScale) * falloff;
+      targetY = restY + (LetterYOffsetSpline.at(activePercentage) - restY) * falloff;
+      targetGlow = restGlow + (GlowSpline.at(activePercentage) - restGlow) * glowFalloff;
+    }
+    if (letterState === "NotSung") {
+      targetScale = restScale;
+      targetY = restY;
+      targetGlow = restGlow;
+    } else if (letterState === "Sung" && activeIndex === -1) {
+      // Settled letters come back to the word's sung pose.
+      targetScale = sung ? LetterScaleSpline.at(1) : targetScale;
+      targetY = sung ? LetterYOffsetSpline.at(1) : targetY;
+      targetGlow = GlowSpline.at(sung ? 1 : SungLetterGlow);
+    }
+    springs.Scale.SetGoal(targetScale);
+    springs.YOffset.SetGoal(targetY);
+    springs.Glow.SetGoal(targetGlow);
+    const scale = springs.Scale.Step(deltaTime);
+    const lift = springs.YOffset.Step(deltaTime) * 2 * ROMANIZED_ROW_SIZE;
+    const glow = springs.Glow.Step(deltaTime);
+    setStyleIfChanged(
+      letter.HTMLElement,
+      "transform",
+      `translate3d(0, calc(var(--DefaultLyricsSize) * ${lift}), 0)`,
+      0.0001,
+      lift
+    );
+    setStyleIfChanged(letter.HTMLElement, "scale", `${scale}`, 0.001);
+    setStyleIfChanged(letter.HTMLElement, "--text-shadow-blur-radius", `${(4 + 12 * glow) * ROMANIZED_ROW_SIZE}px`, 0.3);
+    setStyleIfChanged(letter.HTMLElement, "--text-shadow-opacity", `${glow * LetterGlowMultiplier_Opacity}%`, 1);
+    if (sung && settled) {
+      settled = springs.Scale.CanSleep() && springs.YOffset.CanSleep() && springs.Glow.CanSleep();
+    }
+  }
+  return settled;
+}
+
+// Steps a sung line's syllable row to rest; called until it gets there.
+function settleRomanizedWords(lineElem: HTMLElement, deltaTime: number): void {
+  if (!romanizedRowsSettling.has(lineElem)) return;
+  if (stepRomanizedWords(lineElem, 0, deltaTime, true)) romanizedRowsSettling.delete(lineElem);
+}
+
 export let Blurring_LastLine: number | null = null;
 //const SKIP_ANIMATING_ACTIVE_WORD_DURATION = 235;
 let lastFrameTime = performance.now();
@@ -1071,6 +1267,7 @@ export function Animate(position: number): void {
   const ProcessedPosition = position + timeOffset - ($simpleLyricsMode.get() ? 33.5 : 0);
   const refreshedSimple =
     $simpleLyricsMode.get() && isExperimentEnabled("refreshedSimpleLyrics");
+  const animatedRows = isExperimentEnabled("animatedUnderRows");
   // Spline point split letters wait at before they're sung: shrunk and low
   // normally, plain text under the refreshed wave (which starts from rest).
   const letterRest = refreshedSimple ? 1 : 0;
@@ -1266,6 +1463,9 @@ export function Animate(position: number): void {
         }
 
         UpdateRomanizedRow(line.HTMLElement, ProcessedPosition);
+        if (animatedRows) {
+          animateUnderRows(line.HTMLElement, line.StartTime, line.EndTime, ProcessedPosition, deltaTime);
+        }
 
         const words = line.Syllables.Lead;
         const sweep = refreshedSimple ? getLineSweep(line.HTMLElement, words) : null;
@@ -2217,6 +2417,8 @@ export function Animate(position: number): void {
           return settled;
         };
 
+        if (animatedRows) settleRomanizedWords(line.HTMLElement, deltaTime);
+
         {
           const NextLine = arr[index + 1];
           const nextLineStatus = NextLine
@@ -2276,6 +2478,10 @@ export function Animate(position: number): void {
               line.HTMLElement.classList.remove("pre-hidden");
             }
           }
+        }
+
+        if (animatedRows && !line.DotLine) {
+          animateUnderRows(line.HTMLElement, line.StartTime, line.EndTime, ProcessedPosition, deltaTime);
         }
 
         const percentage = getProgressPercentage(ProcessedPosition, line.StartTime, line.EndTime);

@@ -1,8 +1,13 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { $romanizationDisplay } from "../../../stores.ts";
+import { $romanizationDisplay, $simpleLyricsMode } from "../../../stores.ts";
+import { isExperimentEnabled } from "../../../experiments.ts";
+import { IdleEmphasisLyricsScale, IdleLyricsScale } from "../../Animator/Shared.ts";
 import { ConvertTime } from "../../ConvertTime.ts";
 import { HasLyricsText } from "../../EmptyLines.ts";
+import isRtl from "../../isRtl.ts";
+import { IsLetterCapable, MinLetterCapableDuration } from "./IsLetterCapable.ts";
+import { SplitLetters } from "./SplitLetters.ts";
 import { StripZeroWidth } from "./StripZeroWidth.ts";
 
 // Romanization shown as a smaller row under each line ("Under each line")
@@ -25,8 +30,14 @@ interface RomanizedPiece {
   HTMLElement: HTMLElement;
   StartTime: number;
   EndTime: number;
-  // Last position written, so an unchanged piece isn't written every frame.
+  // Last position and state written, so an unchanged piece isn't written every frame.
   Position: number;
+  State: string;
+  Glow: number;
+  // Animated rows experiment: a held piece's letters, and the window they span.
+  Letters?: { HTMLElement: HTMLElement; StartTime: number; EndTime: number }[];
+  LettersStart?: number;
+  LettersEnd?: number;
 }
 
 const timedRows = new WeakMap<HTMLElement, RomanizedPiece[]>();
@@ -61,6 +72,9 @@ export function AppendSyllableRomanization(
   const pieces: RomanizedPiece[] = [];
   let shown = "";
   let gluedToPrevious = false;
+  // Glued syllables share a word span, so a row whose pieces move on their own
+  // (the animated rows experiment) still never breaks inside a word.
+  let word: HTMLSpanElement | null = null;
 
   for (const syllable of syllables) {
     const raw = StripZeroWidth(
@@ -76,22 +90,81 @@ export function AppendSyllableRomanization(
       row.appendChild(document.createTextNode(" "));
       shown += " ";
     }
+    if (!word || startsWord) {
+      word = document.createElement("span");
+      word.classList.add("RomanizedWord");
+      row.appendChild(word);
+    }
     const piece = document.createElement("span");
     piece.classList.add("RomanizedPiece");
     piece.textContent = text;
-    row.appendChild(piece);
+    word.appendChild(piece);
     shown += text;
     pieces.push({
       HTMLElement: piece,
       StartTime: ConvertTime(syllable.StartTime),
       EndTime: ConvertTime(syllable.EndTime),
       Position: NaN,
+      State: "",
+      Glow: 0,
     });
   }
 
   if (pieces.length === 0 || bare(shown) === bare(original)) return;
+  if (isExperimentEnabled("animatedUnderRows")) for (const piece of pieces) prepareAnimatedPiece(piece);
   lineElem.appendChild(row);
   timedRows.set(lineElem, pieces);
+}
+
+// Animated Romanization and Translation (experiment): a piece is animated like
+// a word of the line above (LyricsAnimator.ts), so it starts from a word's
+// resting style, and one held long enough to go letter by letter above is
+// split into letters the same way (Emphasize.ts: the same test, timing and
+// resting pose), with lift and glow scaled to the row's size.
+export const ROMANIZED_ROW_SIZE = 0.6;
+
+function rest(el: HTMLElement, scale: number, lift: number): void {
+  if ($simpleLyricsMode.get()) return;
+  el.style.setProperty("--gradient-position", "-20%");
+  el.style.setProperty("--text-shadow-opacity", "0%");
+  el.style.setProperty("--text-shadow-blur-radius", `${4 * ROMANIZED_ROW_SIZE}px`);
+  el.style.scale = String(scale);
+  el.style.transform = `translateY(calc(var(--DefaultLyricsSize) * ${lift * ROMANIZED_ROW_SIZE}))`;
+}
+
+function prepareAnimatedPiece(piece: RomanizedPiece): void {
+  const el = piece.HTMLElement;
+  const text = el.textContent ?? "";
+  const letters = SplitLetters(text);
+  const duration = piece.EndTime - piece.StartTime;
+  const held =
+    letters.length > 0 &&
+    duration >= MinLetterCapableDuration() &&
+    IsLetterCapable(letters.length, duration) &&
+    !isRtl(text);
+  if (!held) {
+    rest(el, IdleLyricsScale, 0.01);
+    return;
+  }
+
+  rest(el, IdleEmphasisLyricsScale, 0.02);
+  // Emphasize's window: letters finish a little before the syllable does.
+  const simple = $simpleLyricsMode.get();
+  const start = piece.StartTime + (simple ? 21 : 0);
+  const end = Math.max(start + 1, piece.EndTime - (simple ? -40 : 250));
+  const span = (end - start) / letters.length;
+  el.textContent = "";
+  el.classList.add("HasLetters");
+  piece.Letters = letters.map((letter, k) => {
+    const letterEl = document.createElement("span");
+    letterEl.classList.add("RomanizedLetter");
+    letterEl.textContent = letter;
+    rest(letterEl, IdleEmphasisLyricsScale, 0.02);
+    el.appendChild(letterEl);
+    return { HTMLElement: letterEl, StartTime: start + span * k, EndTime: start + span * (k + 1) };
+  });
+  piece.LettersStart = start;
+  piece.LettersEnd = end;
 }
 
 // Appends the plain row for a line-synced or static line.
@@ -104,8 +177,21 @@ export function AppendLineRomanization(lineElem: HTMLElement, entry: any): void 
   lineElem.appendChild(row);
 }
 
+// The timed pieces of a line's syllable row, for the animated rows experiment.
+export const GetRomanizedPieces = (
+  lineElem: HTMLElement
+): readonly Readonly<Omit<RomanizedPiece, "Position" | "State" | "Glow">>[] | undefined =>
+  timedRows.get(lineElem);
+
+// A lyric word's glow over its progress: up over the first 15%, held to 60%,
+// gone by the end.
+const glowAt = (progress: number): number =>
+  progress <= 0 || progress >= 1 ? 0 : progress < 0.15 ? progress / 0.15 : progress <= 0.6 ? 1 : (1 - progress) / 0.4;
+
 // Called each frame for an active syllable line: lights each piece over its
-// syllable, on the same -20% to 100% scale as the line's own words.
+// syllable, on the same -20% to 100% scale as the line's own words, sets its
+// glow, and marks it PieceActive while sung and PieceSung after, for the other
+// Romanization Highlight styles.
 export function UpdateRomanizedRow(lineElem: HTMLElement, position: number): void {
   const pieces = timedRows.get(lineElem);
   if (!pieces) return;
@@ -117,6 +203,17 @@ export function UpdateRomanizedRow(lineElem: HTMLElement, position: number): voi
         : position >= piece.EndTime || duration <= 0
           ? 1
           : (position - piece.StartTime) / duration;
+    const state = progress >= 1 ? "PieceSung" : position > piece.StartTime ? "PieceActive" : "";
+    if (state !== piece.State) {
+      if (piece.State !== "") piece.HTMLElement.classList.remove(piece.State);
+      if (state !== "") piece.HTMLElement.classList.add(state);
+      piece.State = state;
+    }
+    const glow = Math.round(glowAt(progress) * 50) / 50;
+    if (glow !== piece.Glow) {
+      piece.Glow = glow;
+      piece.HTMLElement.style.setProperty("--RomanizedGlow", String(glow));
+    }
     const value = Math.round((-20 + 120 * progress) * 10) / 10;
     if (value === piece.Position) continue;
     piece.Position = value;
