@@ -428,7 +428,9 @@ const applyUnit = (unit: RomanizeUnit, result: UnitResult): boolean => {
 
 // "written2": the written spelling no longer splits Japanese at spaced
 // syllables, so lyrics cached as "written" read some kanji alone and are redone.
-const japaneseRomajiSpelling = () => (isExperimentEnabled("romajiAsWritten") ? "written2" : "said");
+// "written3": hyphenated words stay joined (doki-doki), so lyrics cached as
+// "written2" with a gap after the hyphen are redone.
+const japaneseRomajiSpelling = () => (isExperimentEnabled("romajiAsWritten") ? "written3" : "said");
 
 /**
  * Whether lyrics (from the cache, say) carry the Japanese spelling currently

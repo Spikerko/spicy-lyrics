@@ -128,6 +128,10 @@ const attaches = (token: Token, previous: Token | undefined) =>
   (!!previous && /^[んン]$/.test(token.surface)) ||
   // A ー on its own stretches the sound before it (せー → see).
   (!!previous && /^[ーｰ〜～]+$/.test(token.surface)) ||
+  // A hyphen joins the words on either side (ドキ-ドキ → doki-doki); the
+  // dictionary reads it as a token of its own, so the word after it would
+  // otherwise start apart.
+  (!!previous && /^[-‐‑－]+$/.test(previous.surface)) ||
   stretches(token, previous);
 
 const OPENS = /^[「『（(“‘〈《【]$/;
