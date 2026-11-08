@@ -1,6 +1,8 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { $romanizationDisplay, $simpleLyricsMode } from "../../../stores.ts";
+import { $romanizationDisplay, $simpleLyricsMode, $syllableMerge } from "../../../stores.ts";
+import { JoinSplitWords } from "./JoinSplitWords.ts";
+import { PickDisplayText } from "./PickDisplayText.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
 import { IdleEmphasisLyricsScale, IdleLyricsScale } from "../../Animator/Shared.ts";
 import { ConvertTime } from "../../ConvertTime.ts";
@@ -54,6 +56,16 @@ function createRow(beforeBackground: boolean): HTMLDivElement {
   return row;
 }
 
+// Join Split Words' "held" test as the line above applies it: the word, as the
+// line shows it, is held long enough to be drawn letter by letter.
+function drawnLetterByLetter(word: any): boolean {
+  const duration = ConvertTime(word.EndTime) - ConvertTime(word.StartTime);
+  if (duration < MinLetterCapableDuration()) return false;
+  const text = StripZeroWidth(PickDisplayText(word, false));
+  const letters = SplitLetters(text);
+  return letters.length > 0 && IsLetterCapable(letters.length, duration) && !isRtl(text);
+}
+
 // Appends the row for one lead or background line of syllable lyrics. Built
 // from the syllables as sung, before any joining, with the word breaks of the
 // romanization: a syllable glued to the next stays glued unless either side of
@@ -76,13 +88,19 @@ export function AppendSyllableRomanization(
   // (the animated rows experiment) still never breaks inside a word.
   let word: HTMLSpanElement | null = null;
 
-  for (const syllable of syllables) {
+  // The same words the line above joins (Join Split Words) are one piece here,
+  // timed over the whole word.
+  const merge = $syllableMerge.get();
+  const units = merge === "off" ? syllables : JoinSplitWords(syllables, merge, drawnLetterByLetter);
+
+  for (const syllable of units) {
     const raw = StripZeroWidth(
       typeof syllable.TransliteratedText === "string" ? syllable.TransliteratedText : (syllable.Text ?? "")
     );
     const text = raw.trim();
     const startsWord = !gluedToPrevious || /^\s/.test(raw);
-    const partOfWord = syllable.TransliteratedIsPartOfWord ?? syllable.IsPartOfWord;
+    const last = syllable.Parts ? syllable.Parts[syllable.Parts.length - 1] : syllable;
+    const partOfWord = last.TransliteratedIsPartOfWord ?? last.IsPartOfWord;
     gluedToPrevious = !!partOfWord && !/\s$/.test(raw);
     if (text === "") continue;
 

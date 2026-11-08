@@ -1132,15 +1132,18 @@ function stepRomanizedLetters(
       targetY = restY + (LetterYOffsetSpline.at(activePercentage) - restY) * falloff;
       targetGlow = restGlow + (GlowSpline.at(activePercentage) - restGlow) * glowFalloff;
     }
-    if (letterState === "NotSung") {
+    if (wordState === "Sung") {
+      // The word is over: its letters settle to the sung pose, glow gone.
+      targetScale = LetterScaleSpline.at(1);
+      targetY = LetterYOffsetSpline.at(1);
+      targetGlow = GlowSpline.at(1);
+    } else if (wordState === "NotSung" || letterState === "NotSung") {
       targetScale = restScale;
       targetY = restY;
       targetGlow = restGlow;
     } else if (letterState === "Sung" && activeIndex === -1) {
-      // Settled letters come back to the word's sung pose.
-      targetScale = sung ? LetterScaleSpline.at(1) : targetScale;
-      targetY = sung ? LetterYOffsetSpline.at(1) : targetY;
-      targetGlow = GlowSpline.at(sung ? 1 : SungLetterGlow);
+      // Between letters of a word still being sung, the sung ones keep a faint glow.
+      targetGlow = GlowSpline.at(SungLetterGlow);
     }
     springs.Scale.SetGoal(targetScale);
     springs.YOffset.SetGoal(targetY);
