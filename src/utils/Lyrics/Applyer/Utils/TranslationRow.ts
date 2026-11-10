@@ -2,6 +2,7 @@
 
 import { $lyricsTranslation, $translationDisplay } from "../../../stores.ts";
 import { HasLyricsText } from "../../EmptyLines.ts";
+import { StripBackgroundRomanParens, StripWrappingParens } from "./StripWrappingParens.ts";
 import { StripZeroWidth } from "./StripZeroWidth.ts";
 
 // The translation a lyrics file carries (TTML x-translation), shown when the
@@ -20,10 +21,12 @@ export const TranslationModeNow = (): TranslationMode =>
   $lyricsTranslation.get() ? $translationDisplay.get() : null;
 
 // An entry's translation as one line of text, or "" when it has none.
-export function TranslationOf(entry: any): string {
+// `background` drops the parentheses a background vocal's text doesn't carry.
+export function TranslationOf(entry: any, background = false): string {
   const text = entry?.TranslatedText;
   if (typeof text !== "string") return "";
-  const clean = StripZeroWidth(text).replace(/\s+/g, " ").trim();
+  let clean = StripZeroWidth(text).replace(/\s+/g, " ").trim();
+  if (background) clean = StripWrappingParens(clean);
   return HasLyricsText(clean) ? clean : "";
 }
 
@@ -43,8 +46,8 @@ const joinSyllables = (syllables: any[], pick: (s: any) => string, glued: (s: an
     .replace(/\s+/g, " ")
     .trim();
 
-const lineEntry = (group: any, oppositeAligned: boolean | undefined, translation: string): any => {
-  const syllables: any[] = group?.Syllables ?? [];
+const lineEntry = (group: any, oppositeAligned: boolean | undefined, translation: string, background = false): any => {
+  const syllables: any[] = background ? StripBackgroundRomanParens(group?.Syllables ?? []) : (group?.Syllables ?? []);
   const entry: any = {
     Type: "Vocal",
     Text: joinSyllables(syllables, (s) => s.Text ?? "", (s) => !!s.IsPartOfWord),
@@ -54,7 +57,7 @@ const lineEntry = (group: any, oppositeAligned: boolean | undefined, translation
   };
   if (translation !== "") entry.TranslatedText = translation;
   if (HasLyricsText(group?.TransliteratedText)) {
-    entry.TransliteratedText = group.TransliteratedText;
+    entry.TransliteratedText = background ? StripWrappingParens(group.TransliteratedText) : group.TransliteratedText;
   } else if (syllables.some((s) => HasLyricsText(s.TransliteratedText))) {
     entry.TransliteratedText = joinSyllables(
       syllables,
@@ -75,8 +78,8 @@ export function SyllableLyricsAsLines(lyrics: any): any {
     if (!group?.Lead) continue;
     content.push(lineEntry(group.Lead, group.OppositeAligned, TranslationOf(group.Lead) || TranslationOf(group)));
     for (const bg of group.Background ?? []) {
-      const translation = TranslationOf(bg);
-      if (translation !== "") content.push(lineEntry(bg, group.OppositeAligned, translation));
+      const translation = TranslationOf(bg, true);
+      if (translation !== "") content.push(lineEntry(bg, group.OppositeAligned, translation, true));
     }
   }
   return { ...lyrics, Type: "Line", Content: content };

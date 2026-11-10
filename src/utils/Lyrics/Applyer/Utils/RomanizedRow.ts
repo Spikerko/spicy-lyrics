@@ -46,8 +46,9 @@ const timedRows = new WeakMap<HTMLElement, RomanizedPiece[]>();
 
 const hasRomanization = (entry: any): boolean => HasLyricsText(entry?.TransliteratedText);
 
-// Text without spacing or case, to spot a romanization that only repeats the line.
-const bare = (text: string): string => StripZeroWidth(text).replace(/\s+/g, "").toLowerCase();
+// Text without spacing, case or parentheses, to spot a romanization that only
+// repeats the line (a background vocal's is shown without its parentheses).
+const bare = (text: string): string => StripZeroWidth(text).replace(/[\s()]+/g, "").toLowerCase();
 
 function createRow(beforeBackground: boolean): HTMLDivElement {
   const row = document.createElement("div");

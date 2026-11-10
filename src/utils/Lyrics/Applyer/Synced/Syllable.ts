@@ -31,6 +31,7 @@ import { StripZeroWidth } from "../Utils/StripZeroWidth.ts";
 import { PickDisplayText } from "../Utils/PickDisplayText.ts";
 import { AppendSyllableRomanization, RomanizeUnderLine } from "../Utils/RomanizedRow.ts";
 import { SetLineTranslation, TranslationModeNow, TranslationOf } from "../Utils/TranslationRow.ts";
+import { StripBackgroundRomanParens } from "../Utils/StripWrappingParens.ts";
 import { initLyricsVirtualizer } from "../../LyricsVirtualizer.ts";
 import { ApplySongCredits, MarkLastLineSide } from "../Credits/ApplyLyricsCredits.ts";
 import { EmitApply, EmitNotApplyed } from "../OnApply.ts";
@@ -412,8 +413,9 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
         lineElements.push(lineE);
 
         let currentBGWordGroup: HTMLSpanElement | null = null;
+        const bgSyllables = StripBackgroundRomanParens(bg.Syllables);
 
-        renderableSyllables(bg.Syllables, ShowRomanized).forEach((bw, bI, bA) => {
+        renderableSyllables(bgSyllables, ShowRomanized).forEach((bw, bI, bA) => {
           let bwE = document.createElement("span");
 
           if (isRtl(bw.Text) && !lineE.classList.contains("rtl")) {
@@ -499,8 +501,8 @@ export function ApplySyllableLyrics(data: LyricsData, UseRomanized: boolean = fa
           }
         });
 
-        if (UnderLine) AppendSyllableRomanization(lineE, bg.Syllables);
-        if (TranslateUnderLine) SetLineTranslation(lineE, TranslationOf(bg));
+        if (UnderLine) AppendSyllableRomanization(lineE, bgSyllables);
+        if (TranslateUnderLine) SetLineTranslation(lineE, TranslationOf(bg, true));
       });
     }
     if (arr[index + 1] && arr[index + 1].Lead.StartTime - line.Lead.EndTime >= getLyricsBetweenShow()) {
