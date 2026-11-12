@@ -1457,6 +1457,13 @@
   transition: none;
 }
 
+/* Their own compositor layer while the line moves, as the line's words get, so
+   the small spring offsets move them smoothly instead of each frame's repaint
+   snapping the glyphs to whole pixels (held letters visibly shook). */
+#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed :is(.RomanizedPiece, .RomanizedLetter) {
+  will-change: transform, scale;
+}
+
 #SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.bg-line.Active .RomanizedRow.Timed :is(.RomanizedPiece:not(.HasLetters), .RomanizedLetter) {
   --gradient-alpha: 0.6;
   --gradient-alpha-end: 0.3;
