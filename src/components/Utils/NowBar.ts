@@ -1667,16 +1667,11 @@ function UpdateNowBar(force = false) {
     const songName = SpotifyPlayer.GetName();
     if (SongNameSpan) {
       SongNameSpan.textContent = songName ?? "";
-      if (Fullscreen.IsOpen) {
-        const albumUri = (Spicetify?.Player?.data?.item as any)?.metadata?.album_uri as string | undefined;
-        const albumId = albumUri?.split(":")?.[2];
-        if (albumId) {
-          SongNameSpan.classList.add("Clickable");
-          SongNameSpan.onclick = () => navigateFromFullscreen(`/album/${albumId}`);
-        } else {
-          SongNameSpan.classList.remove("Clickable");
-          SongNameSpan.onclick = null;
-        }
+      const albumUri = (Spicetify?.Player?.data?.item as any)?.metadata?.album_uri as string | undefined;
+      const albumId = albumUri?.split(":")?.[2];
+      if (albumId) {
+        SongNameSpan.classList.add("Clickable");
+        SongNameSpan.onclick = () => navigateFromFullscreen(`/album/${albumId}`);
       } else {
         SongNameSpan.classList.remove("Clickable");
         SongNameSpan.onclick = null;
@@ -1705,7 +1700,7 @@ function UpdateNowBar(force = false) {
         const span = document.createElement("span");
         span.textContent = artist.name;
         span.dataset.artistIndex = String(idx);
-        if (Fullscreen.IsOpen && artistId) {
+        if (artistId) {
           span.classList.add("Clickable");
           span.onclick = () => navigateFromFullscreen(`/artist/${artistId}`);
         }
