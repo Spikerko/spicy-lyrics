@@ -1420,6 +1420,37 @@ async function navigateFromFullscreen(pathname: string) {
   if (IsPIP) globalThis.focus();
 }
 
+/**
+ * Right-clicking the song name or an artist opens Spotify's own menu for it. The player bar's
+ * links carry those menus, so the right-click is replayed on the matching one at the cursor.
+ * Skipped in PiP: the player bar is in the main window, so the menu would open there.
+ */
+function OpenNativeMetadataMenu(e: MouseEvent) {
+  if (IsPIP) return;
+  const target = e.target as HTMLElement | null;
+  const info = document.querySelector(".main-nowPlayingWidget-trackInfo");
+  let link: Element | null | undefined;
+  if (target?.closest(".SongName")) {
+    link = info?.querySelector(".main-trackInfo-name a");
+  } else if (target?.closest(".Artists")) {
+    const links = info?.querySelectorAll(".main-trackInfo-artists a");
+    const index = Number(target.closest<HTMLElement>("[data-artist-index]")?.dataset.artistIndex ?? 0);
+    link = links?.[index] ?? links?.[0];
+  }
+  if (!link) return;
+  e.preventDefault();
+  e.stopPropagation();
+  link.dispatchEvent(
+    new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      button: 2,
+      clientX: e.clientX,
+      clientY: e.clientY,
+    })
+  );
+}
+
 // Each UpdateNowBar takes a token for its delayed metadata swap; a later update
 // (fast skipping) makes the earlier one's pending timers no-ops.
 let metadataUpdateToken = 0;
@@ -1666,29 +1697,26 @@ function UpdateNowBar(force = false) {
 
     const artists = SpotifyPlayer.GetArtists();
     if (artists && ArtistsDiv && contentType !== "episode") {
-      if (Fullscreen.IsOpen) {
-        ArtistsDiv.innerHTML = "";
-        const scrollWrapper = document.createElement("span");
-        artists.forEach((artist, idx) => {
-          const artistId = (artist.uri as string | undefined)?.split(":")?.[2];
-          const span = document.createElement("span");
-          span.textContent = artist.name;
-          if (artistId) {
-            span.classList.add("Clickable");
-            span.onclick = () => navigateFromFullscreen(`/artist/${artistId}`);
-          }
-          scrollWrapper.appendChild(span);
-          if (idx < artists.length - 1) {
-            scrollWrapper.appendChild(document.createTextNode(", "));
-          }
-        });
-        ArtistsDiv.appendChild(scrollWrapper);
-      } else {
-        ArtistsDiv.innerHTML = "<span></span>";
-        const span = ArtistsDiv.querySelector("span");
-        if (span) span.textContent = artists.map((artist) => artist.name).join(", ");
-      }
+      // One span per artist in every view, so a right-click knows which artist's menu to open.
+      ArtistsDiv.innerHTML = "";
+      const scrollWrapper = document.createElement("span");
+      artists.forEach((artist, idx) => {
+        const artistId = (artist.uri as string | undefined)?.split(":")?.[2];
+        const span = document.createElement("span");
+        span.textContent = artist.name;
+        span.dataset.artistIndex = String(idx);
+        if (Fullscreen.IsOpen && artistId) {
+          span.classList.add("Clickable");
+          span.onclick = () => navigateFromFullscreen(`/artist/${artistId}`);
+        }
+        scrollWrapper.appendChild(span);
+        if (idx < artists.length - 1) {
+          scrollWrapper.appendChild(document.createTextNode(", "));
+        }
+      });
+      ArtistsDiv.appendChild(scrollWrapper);
     }
+    (MetadataContainer as HTMLElement).oncontextmenu = OpenNativeMetadataMenu;
     SyncReleaseYear();
 
     setTimeout(() => {

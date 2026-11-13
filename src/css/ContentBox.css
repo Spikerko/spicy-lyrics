@@ -339,6 +339,13 @@
   visibility: hidden;
 }
 
+/* Holds a scrolling title or artist list still under the pointer, so it can be clicked or
+   right-clicked; it carries on from the same spot afterwards. Important because the later
+   compact and layout marquee rules reset it with the animation shorthand. */
+#SpicyLyricsPage .ContentBox .NowBar .Header .Metadata :is(.SongName, .Artists):hover > span {
+  animation-play-state: paused !important;
+}
+
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .SongName span.Clickable,
 #SpicyLyricsPage .ContentBox .NowBar .Header .Metadata .Artists span.Clickable {
   cursor: pointer;
