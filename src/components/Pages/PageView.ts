@@ -1073,11 +1073,11 @@ $romanization.listen((v) => {
   PageContainer?.classList.toggle("RomanizedRowsShown", v);
 });
 $translationDisplay.listen(() => {
-  if ($lyricsTranslation.get()) reapplyLyrics();
+  if ($lyricsTranslation.get()) rebuildLyrics();
 });
 // The animated rows experiment builds its rows differently (resting styles, letters).
 // Rows under each line exist with romanization off too, so this always rebuilds.
-$experiment("animatedUnderRows").listen(() => reapplyLyrics());
+$experiment("animatedUnderRows").listen(() => rebuildLyrics());
 
 // CSS only: the frame loop marks each romanized syllable's state either way.
 $romanizationHighlight.listen((v) => {
