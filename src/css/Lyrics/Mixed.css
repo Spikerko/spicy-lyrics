@@ -1384,6 +1384,14 @@
   --gradient-alpha-end: 0.3;
 }
 
+/* With Bloom, a background line's row keeps the line's own tones, so it dims
+   back with the words once sung instead of staying lit. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.bg-line:not(.musical-line) .RomanizedRow,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.bg-line:not(.musical-line)[data-translation]::after {
+  --gradient-alpha: inherit;
+  --gradient-alpha-end: inherit;
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:is(.OppositeAligned, .rtl) .RomanizedRow {
   text-align: right;
   transform-origin: right top;
