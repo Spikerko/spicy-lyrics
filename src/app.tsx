@@ -24,6 +24,7 @@ import { isExperimentEnabled } from "./utils/experiments.ts";
 import "./components/DynamicBG/CanvasImmersive.ts";
 import "./components/DynamicBG/AnimatedArtwork.ts";
 import "./components/DynamicBG/NpvCanvasBackground.ts";
+import "./components/DynamicBG/MotionCoverBackground.ts";
 import {
   $currentLyricsData,
   $showNpvDynamicBg,

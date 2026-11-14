@@ -1,5 +1,6 @@
 import "../../css/AnimatedArtwork.css";
 import { getRemoteConfig } from "../../utils/remoteConfig.ts";
+import { isExperimentEnabled } from "../../utils/experiments.ts";
 import { $motionArtwork } from "../../utils/stores.ts";
 import Global from "../Global/Global.ts";
 import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
@@ -83,6 +84,8 @@ function shouldPlay(): boolean {
 function createVideo(): HTMLVideoElement {
   const video = document.createElement("video");
   video.className = "AnimatedArtwork";
+  // The page background reads its frames (MotionCoverBackground.ts), which WebGL refuses without CORS.
+  if (isExperimentEnabled("motionCoverBackground")) video.crossOrigin = "anonymous";
   video.muted = true;
   video.loop = true;
   video.playsInline = true;

@@ -118,6 +118,14 @@ export const EXPERIMENTS = [
     default: true,
   },
   {
+    id: "motionCoverBackground",
+    category: "background",
+    label: "Motion Cover Background",
+    description:
+      "When the song's motion cover plays on the Now Bar (not on the Canvas Stage), the dynamic background is drawn from that video, frame for frame, instead of the still cover. Disable to keep the still cover.",
+    default: true,
+  },
+  {
     id: "popupDock",
     category: "player",
     label: "Popup Player Dock",
