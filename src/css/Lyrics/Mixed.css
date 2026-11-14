@@ -1510,6 +1510,13 @@
   --gradient-alpha-end: 0.3;
 }
 
+/* With Bloom, a syllable row lights up in Bloom's tones, like the words above
+   it. A background line's --SLR_Lit is its own dimmer one. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed :is(.RomanizedPiece:not(.HasLetters), .RomanizedLetter) {
+  --gradient-alpha: var(--SLR_Lit);
+  --gradient-alpha-end: var(--SLR_Unlit);
+}
+
 #SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece.HasLetters {
   background-image: none;
   text-shadow: none;
