@@ -1,5 +1,5 @@
 import "../../css/CanvasImmersive.css";
-import { $backgroundStyle } from "../../utils/stores.ts";
+import { $backgroundStyle, $motionArtworkOnStage, $motionArtworkPriority, $motionArtwork } from "../../utils/stores.ts";
 import { isExperimentEnabled, onExperimentChange } from "../../utils/experiments.ts";
 import { onAnimationFrame } from "../../utils/AnimationFrameLoop.ts";
 import Logger from "../../utils/Logger.ts";
@@ -11,13 +11,16 @@ import { IsPIP } from "../Utils/PopupLyrics.ts";
 import { IsCompactMode } from "../Utils/CompactMode.ts";
 import { SetSideSwapTransition } from "../Utils/NowBar.ts";
 import { getBackgroundStyle, PAGE_BACKGROUND_KEY, SetKawarpSuspended } from "./dynamicBackground.ts";
+import { AttachCanvasMedia, GetPlayingCanvasInfo, LoadCanvasMedia, type CanvasInfo } from "./CanvasVideo.ts";
+import { DecideArtworkPlacement, NeedsMotionVerdict, type MotionVerdict, type Placement } from "./ArtworkPlacement.ts";
 import {
-  AttachCanvasMedia,
-  type CanvasInfo,
-  GetCanvasInfo,
-  GetPlayingTrackUri,
-  LoadCanvasMedia,
-} from "./CanvasVideo.ts";
+  ForgetArtworkUrl,
+  GetArtworkUrl,
+  IsMotionArtworkEnabled,
+  KnownAlbumUpc,
+  PlayingAlbumId,
+  RequestMotionVerdict,
+} from "./MotionArtworkSource.ts";
 
 const immersiveLogger = new Logger("Canvas Immersive");
 
@@ -53,7 +56,8 @@ type Layer = {
   box: HTMLElement;
   video: HTMLVideoElement;
   detach: (() => void) | null;
-  fileId: string | null;
+  // What the layer plays: "canvas:<fileId>" or "motion:<upc>".
+  key: string | null;
   // Clears the layer once it has faded out. Releasing the layer (which reusing it does)
   // cancels it, so a late timer can't clear a canvas loaded into it since.
   releaseTimer: ReturnType<typeof setTimeout> | null;
@@ -77,11 +81,135 @@ let active = false;
 // Bumped by every refresh; async work from an older one drops its result.
 let generation = 0;
 let suspendTimer: ReturnType<typeof setTimeout> | null = null;
-let layerReleaseTimer: ReturnType<typeof setTimeout> | null = null;
-// A failed lookup or download isn't cached, so a retry fetches again. Counted per track or canvas.
+// A failed download isn't cached, so a retry fetches again. Counted per canvas.
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
-let retryKey: string | null = null;
+let retryFileId: string | null = null;
 let retryAttempt = 0;
+// The canvas that ran out of retries or failed to play. The cover is left to others for it.
+let failedFileId: string | null = null;
+
+// Motion artwork that failed to play on the stage, left to the cover from then on (until
+// another one fails).
+let failedMotionUpc: string | null = null;
+// The stage holds what it shows while the motion check runs. Past `stageHoldMs` a waiting Canvas
+// plays, and a late answer can't swap it out for the rest of that track.
+let holdTimer: ReturnType<typeof setTimeout> | null = null;
+let holdTrack: string | null = null;
+let holdExpiredFor: string | null = null;
+
+const playingTrackUri = (): string | null => Spicetify?.Player?.data?.item?.uri ?? null;
+
+/** Where the song's Canvas or motion artwork goes; `canvas-stage:change` fires when it may change.
+ * While the stage still shows, nothing draws over its cover, which dissolves into it. */
+export function GetArtworkPlacement(): Placement {
+  const stageEligible = !!mount && isEligible();
+  const info = stageEligible ? GetPlayingCanvasInfo() : null;
+  const input = {
+    stageEligible,
+    canvas: !!info && info.fileId !== failedFileId,
+    motionEnabled: IsMotionArtworkEnabled(),
+    priority: $motionArtworkPriority.get(),
+    motionOnStage: $motionArtworkOnStage.get(),
+  };
+  let motion: MotionVerdict = "unknown";
+  if (NeedsMotionVerdict(input)) {
+    const albumId = PlayingAlbumId();
+    const upc = albumId ? KnownAlbumUpc(albumId) : null;
+    motion = albumId ? RequestMotionVerdict(albumId) : "none";
+    if (input.canvas && holdExpiredFor !== null && holdExpiredFor === playingTrackUri()) motion = "unknown";
+    else if (motion === "available" && upc && upc === failedMotionUpc) motion = "unknown";
+  }
+  const placement = DecideArtworkPlacement({ ...input, motion });
+  return active ? { ...placement, cover: false } : placement;
+}
+
+function clearHoldTimer() {
+  if (holdTimer) clearTimeout(holdTimer);
+  holdTimer = null;
+}
+
+function armHold() {
+  const uri = playingTrackUri();
+  if (holdTrack === uri && (holdTimer || holdExpiredFor === uri)) return;
+  clearHoldTimer();
+  holdTrack = uri;
+  holdTimer = setTimeout(() => {
+    holdTimer = null;
+    holdExpiredFor = uri;
+    void Refresh();
+  }, getRemoteConfig().animatedArtwork.stageHoldMs);
+}
+
+type StageSource =
+  | { kind: "canvas"; key: string; info: CanvasInfo }
+  | { kind: "motion"; key: string; upc: string };
+
+function stageSource(placement: Placement): StageSource | null {
+  if (placement.stage === "canvas") {
+    const info = GetPlayingCanvasInfo();
+    return info ? { kind: "canvas", key: `canvas:${info.fileId}`, info } : null;
+  }
+  if (placement.stage === "motion") {
+    const albumId = PlayingAlbumId();
+    const upc = albumId ? KnownAlbumUpc(albumId) : null;
+    return upc ? { kind: "motion", key: `motion:${upc}`, upc } : null;
+  }
+  return null;
+}
+
+function onMotionFailed(upc: string) {
+  immersiveLogger.warn("Motion artwork failed on the stage", upc);
+  failedMotionUpc = upc;
+  void Refresh();
+}
+
+// Plays motion artwork in a stage layer. A cached URL may have outlived its 5-minute signature,
+// and so may a range fetched mid-loop: either is signed again and picks up from the same frame.
+// A pending layer keeps its element, so a newer Refresh may attach to the same video while this
+// one waits on the signer: a superseded attach leaves the element alone, and detach only clears a
+// source this attach set.
+async function attachMotion(video: HTMLVideoElement, upc: string, gen: number): Promise<(() => void) | null> {
+  let source = await GetArtworkUrl(upc);
+  if (gen !== generation) return () => {};
+  if (!source) return null;
+  let ownSrc = "";
+  const setSource = (url: string) => {
+    video.src = url;
+    ownSrc = video.src;
+  };
+  const cleanup = new AbortController();
+  const { signal } = cleanup;
+  let played = false;
+  video.addEventListener("playing", () => (played = true), { signal });
+  video.addEventListener(
+    "error",
+    async () => {
+      if (!source) return;
+      ForgetArtworkUrl(upc, source.url);
+      if (!played && !source.reused) return onMotionFailed(upc);
+      played = false;
+      const at = video.currentTime;
+      source = await GetArtworkUrl(upc, true);
+      if (signal.aborted) return;
+      if (!source) return onMotionFailed(upc);
+      setSource(source.url);
+      video.currentTime = at;
+      syncPlayback();
+    },
+    { signal },
+  );
+  setSource(source.url);
+  return () => {
+    cleanup.abort();
+    if (video.src !== ownSrc) return;
+    video.removeAttribute("src");
+    video.load();
+  };
+}
+
+function notifyCoverClaim() {
+  Global.Event.evoke("canvas-stage:change", null);
+}
 
 type SideSwap = {
   animations: Animation[];
@@ -112,7 +240,7 @@ function createLayer(): Layer {
   box.className = "CanvasLayer";
   const video = createVideo();
   box.append(video);
-  return { box, video, detach: null, fileId: null, releaseTimer: null };
+  return { box, video, detach: null, key: null, releaseTimer: null };
 }
 
 // Resizing a canvas resets its context, the filter included.
@@ -185,10 +313,10 @@ function MountOnPage(page: HTMLElement) {
 function Unmount() {
   if (!mount) return;
   finishSideSwap();
+  clearHoldTimer();
   generation++;
   active = false;
   clearSuspendTimer();
-  clearLayerReleaseTimer();
   clearRetryTimer();
   SetKawarpSuspended(PAGE_BACKGROUND_KEY, false);
   mount.resizeObserver.disconnect();
@@ -215,7 +343,8 @@ function releaseLayer(layer: Layer) {
     layer.video = fresh;
   }
   layer.detach = null;
-  layer.fileId = null;
+  layer.key = null;
+  delete layer.box.dataset.source;
 }
 
 function clearSuspendTimer() {
@@ -223,23 +352,22 @@ function clearSuspendTimer() {
   suspendTimer = null;
 }
 
-function clearLayerReleaseTimer() {
-  if (layerReleaseTimer) clearTimeout(layerReleaseTimer);
-  layerReleaseTimer = null;
-}
-
 function clearRetryTimer() {
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = null;
 }
 
-function scheduleRetry(key: string) {
-  if (retryKey !== key) {
-    retryKey = key;
+function scheduleRetry(fileId: string) {
+  if (retryFileId !== fileId) {
+    retryFileId = fileId;
     retryAttempt = 0;
   }
   const delay = getRemoteConfig().canvas.retryDelaysMs[retryAttempt];
-  if (delay === undefined) return;
+  if (delay === undefined) {
+    failedFileId = fileId;
+    notifyCoverClaim();
+    return;
+  }
   retryAttempt++;
   const gen = generation;
   clearRetryTimer();
@@ -270,22 +398,64 @@ function updateSquareTop(m: Mount) {
   m.nowBar.style.setProperty("--CanvasSquareTop", `${Math.round(top)}px`);
 }
 
+// A row's own CSS translate in px (the dock's lift), which the glide has to end on.
+function cssTranslate(row: HTMLElement): [number, number] {
+  const value = getComputedStyle(row).translate;
+  if (value === "none") return [0, 0];
+  const [x = "0", y = "0"] = value.split(" ");
+  return [parseFloat(x) || 0, parseFloat(y) || 0];
+}
+
+let dockGlides: Animation[] = [];
+
+// Where a row's text starts. The title and artist spans carry start padding in one layout and
+// none in the other (Player Below the Cover), so the box's own edge would make the text step.
+function rowPlace(row: HTMLElement): { left: number; top: number; width: number } {
+  const rect = row.getBoundingClientRect();
+  const track = row.matches(".SongName, .Artists") ? (row.firstElementChild as HTMLElement | null) : null;
+  const scale = rect.width / row.offsetWidth || 1;
+  const view = row.ownerDocument.defaultView ?? window;
+  const inset = track ? (parseFloat(view.getComputedStyle(track).paddingLeft) || 0) * scale : 0;
+  return { left: rect.left + inset, top: rect.top, width: rect.width };
+}
+
 // FLIP: the dock layout snaps in, then each row glides from where it was.
 function toggleDockLayout(m: Mount, on: boolean) {
   const rows = [...m.nowBar.querySelectorAll<HTMLElement>(DOCK_ROWS)];
-  const before = rows.map((row) => row.getBoundingClientRect());
+  const before = rows.map(rowPlace);
+  // An unfinished glide is picked up from where it is now (measured above), not from its end.
+  for (const glide of dockGlides) glide.cancel();
+  dockGlides = [];
+  // The NowBar lands in its new place at once. Where the two layouts place it differently (Player
+  // Below the Cover), its `left` transition would otherwise slide it under the glide on another
+  // curve, on the main thread, and from a place the rows were measured against before it moved:
+  // the title swung out past the screen edge and back. Opening or closing the NowBar keeps its
+  // slide.
+  const sliding = m.nowBar
+    .getAnimations()
+    .some((a) => a instanceof CSSTransition && a.transitionProperty === "left");
+  if (!sliding) m.nowBar.style.transition = "none";
   m.page.classList.toggle(ACTIVE_CLASS, on);
   if (on) updateSquareTop(m);
+  const afterRects = rows.map(rowPlace);
+  if (!sliding) {
+    // Style has to resolve with the transition off before it comes back.
+    void m.nowBar.offsetLeft;
+    m.nowBar.style.removeProperty("transition");
+  }
   if (reducedMotion.matches) return;
   rows.forEach((row, i) => {
-    const after = row.getBoundingClientRect();
+    const after = afterRects[i];
     const dx = before[i].left - after.left;
     const dy = before[i].top - after.top;
     if (!before[i].width || (Math.abs(dx) < 1 && Math.abs(dy) < 1)) return;
-    row.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], {
-      duration: DOCK_GLIDE_MS,
-      easing: "cubic-bezier(0.77, 0, 0.175, 1)",
-    });
+    const [tx, ty] = cssTranslate(row);
+    dockGlides.push(
+      row.animate([{ translate: `${tx + dx}px ${ty + dy}px` }, { translate: `${tx}px ${ty}px` }], {
+        duration: DOCK_GLIDE_MS,
+        easing: "cubic-bezier(0.77, 0, 0.175, 1)",
+      }),
+    );
   });
 }
 
@@ -408,7 +578,7 @@ function syncPlayback() {
   // in its place reads as a broken player.
   const shouldPlay = active && SpotifyPlayer.IsPlaying && !mount.page.ownerDocument.hidden;
   for (const [index, layer] of mount.layers.entries()) {
-    if (!layer.fileId) continue;
+    if (!layer.key) continue;
     if (shouldPlay && index === mount.current) {
       layer.video.play().catch(() => undefined);
     } else {
@@ -421,7 +591,6 @@ function syncPlayback() {
 
 function activate() {
   if (!mount || active) return;
-  clearLayerReleaseTimer();
   active = true;
   ambientPrimed = false;
   toggleDockLayout(mount, true);
@@ -431,28 +600,22 @@ function activate() {
     suspendTimer = null;
     if (active) SetKawarpSuspended(PAGE_BACKGROUND_KEY, true);
   }, FADE_MS);
+  notifyCoverClaim();
 }
 
 function deactivate() {
-  if (!mount) return;
-  if (active) {
-    finishSideSwap();
-    active = false;
-    clearSuspendTimer();
-    SetKawarpSuspended(PAGE_BACKGROUND_KEY, false);
-    toggleDockLayout(mount, false);
-  }
-  scheduleLayerRelease(mount);
-}
+  if (!mount || !active) return;
+  finishSideSwap();
+  active = false;
+  clearSuspendTimer();
+  SetKawarpSuspended(PAGE_BACKGROUND_KEY, false);
+  toggleDockLayout(mount, false);
+  notifyCoverClaim();
 
-// Empties the layers once the stage has faded out, or a hidden video keeps decoding. A refresh
-// arriving mid-fade (skipping through songs) must not lose this, so only starting to show a
-// canvas cancels it.
-function scheduleLayerRelease(m: Mount) {
-  if (layerReleaseTimer || !m.layers.some((layer) => layer.fileId)) return;
-  layerReleaseTimer = setTimeout(() => {
-    layerReleaseTimer = null;
-    if (active || mount !== m) return;
+  const gen = generation;
+  const m = mount;
+  setTimeout(() => {
+    if (gen !== generation || active || mount !== m) return;
     for (const layer of m.layers) releaseLayer(layer);
   }, FADE_MS);
 }
@@ -482,6 +645,7 @@ async function Refresh(isRetry = false) {
   // Nothing is built while the experiment is off. Turned off while showing, the stage fades out
   // first and is taken down once the fade is over.
   if (!isExperimentEnabled("canvasImmersive")) {
+    notifyCoverClaim();
     if (!mount) return;
     deactivate();
     const m = mount;
@@ -493,58 +657,69 @@ async function Refresh(isRetry = false) {
   if (PageContainer && PageContainer !== mount?.page && !IsCardMode && !IsPIP) MountOnPage(PageContainer);
   if (!mount) return;
 
-  const trackUri = isEligible() ? GetPlayingTrackUri() : null;
-  if (!trackUri) {
+  if (holdExpiredFor !== playingTrackUri()) holdExpiredFor = null;
+  const placement = GetArtworkPlacement();
+  // Eligibility or the track changed; whoever draws over the cover re-checks the claim.
+  notifyCoverClaim();
+  if (placement.pending) {
+    armHold();
+    // The Canvas loads meanwhile, so either answer shows without a further wait.
+    const info = GetPlayingCanvasInfo();
+    if (info) void LoadCanvasMedia(info);
+    return;
+  }
+  clearHoldTimer();
+  const source = stageSource(placement);
+  if (!source) {
     deactivate();
     return;
   }
 
   const m = mount;
-  let info: CanvasInfo | null;
-  try {
-    info = await GetCanvasInfo(trackUri);
-  } catch {
-    if (gen !== generation || mount !== m) return;
-    deactivate();
-    scheduleRetry(trackUri);
-    return;
-  }
-  if (gen !== generation || mount !== m) return;
-  if (!info) {
-    deactivate();
-    return;
-  }
-
   const currentLayer = m.layers[m.current];
-  if (currentLayer.fileId === info.fileId) {
+  if (currentLayer.key === source.key) {
     activate();
     syncPlayback();
     return;
   }
 
-  const media = await LoadCanvasMedia(info);
-  if (gen !== generation || mount !== m) return;
-  if (!media) {
-    deactivate();
-    scheduleRetry(info.fileId);
-    return;
-  }
-  retryKey = null;
-
   const nextIndex: 0 | 1 = m.current === 0 ? 1 : 0;
   const next = m.layers[nextIndex];
-  clearLayerReleaseTimer();
-  releaseLayer(next);
-  let detach: () => void;
-  try {
-    detach = await AttachCanvasMedia(next.video, media);
-  } catch (err) {
-    // A newer refresh taking over this video makes the old attach throw; that's not a failure.
+  let detach: (() => void) | null;
+  if (source.kind === "canvas") {
+    const media = await LoadCanvasMedia(source.info);
     if (gen !== generation || mount !== m) return;
-    immersiveLogger.warn("Canvas playback failed", media.fileId, err);
-    deactivate();
-    scheduleRetry(media.fileId);
-    return;
+    if (!media) {
+      deactivate();
+      scheduleRetry(source.info.fileId);
+      return;
+    }
+    retryFileId = null;
+    if (failedFileId === media.fileId) failedFileId = null;
+    releaseLayer(next);
+    try {
+      detach = await AttachCanvasMedia(next.video, media);
+    } catch (err) {
+      // A newer load may have taken the element over; that isn't this canvas failing.
+      if (gen !== generation || mount !== m) return;
+      immersiveLogger.warn("Canvas playback failed", media.fileId, err);
+      failedFileId = media.fileId;
+      if (gen === generation) deactivate();
+      notifyCoverClaim();
+      return;
+    }
+    // Spotify starts random-loop canvases at a random point; doing the same keeps them in step with the NPV.
+    if (media.type === "VIDEO_LOOPING_RANDOM" && media.durationMs > 0) {
+      next.video.currentTime = Math.random() * (media.durationMs / 1000);
+    }
+  } else {
+    releaseLayer(next);
+    detach = await attachMotion(next.video, source.upc, gen);
+    if (!detach) {
+      // The signer is unreachable; the cover gets its chance instead.
+      if (gen === generation && mount === m) onMotionFailed(source.upc);
+      return;
+    }
   }
   // Superseded or unmounted while attaching: the layer was already released, so revoke here.
   if (gen !== generation || mount !== m) {
@@ -552,12 +727,8 @@ async function Refresh(isRetry = false) {
     return;
   }
   next.detach = detach;
-
-  next.fileId = media.fileId;
-  // Spotify starts random-loop canvases at a random point; doing the same keeps them in step with the NPV.
-  if (media.type === "VIDEO_LOOPING_RANDOM" && media.durationMs > 0) {
-    next.video.currentTime = Math.random() * (media.durationMs / 1000);
-  }
+  next.key = source.key;
+  next.box.dataset.source = source.kind;
   await waitForFrame(next.video);
   if (gen !== generation || mount !== m) return;
 
@@ -620,5 +791,7 @@ onExperimentChange((experiment) => {
   if (experiment.id === "canvasImmersive") void Refresh();
 });
 $backgroundStyle.listen(() => void Refresh());
+Global.Event.listen("motion-artwork:verdict", () => void Refresh());
+for (const store of [$motionArtwork, $motionArtworkPriority, $motionArtworkOnStage]) store.listen(() => void Refresh());
 SetSideSwapTransition(transitionSideSwap);
 document.addEventListener("visibilitychange", syncPlayback);

@@ -1,0 +1,1101 @@
+/* The queue in Cinema View and fullscreen (QueueView.ts). It takes the lyrics column: the panel sits
+   over the same box the lines use, the lyrics fade out under it, and they come back when it closes.
+   Sizes follow the page width through --QueueFont, so a wall-sized fullscreen gets a list that
+   reads from the same distance as the lyrics did. */
+
+#SpicyLyricsPage .ContentBox .QueuePanel {
+  --QueueFont: clamp(14px, calc(0.62cqw + 0.5rem), 21px);
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding-left: var(--LyricsLeftSidePadding);
+  padding-right: var(--LyricsRightSidePadding);
+  font-size: var(--QueueFont);
+  font-weight: var(--w-regular);
+  color: var(--color-text-primary);
+  /* Small regular-weight text over a bright cover needs a little lift off the background. */
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 160ms var(--ease-out),
+    visibility 0s linear 160ms;
+}
+
+#SpicyLyricsPage .ContentBox .QueuePanel.Open {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 260ms var(--ease-out) 60ms,
+    visibility 0s;
+}
+
+#SpicyLyricsPage.NowBarSide__Right .ContentBox .QueuePanel {
+  padding-right: var(--LyricsLeftSidePadding);
+  padding-left: calc(var(--LyricsRightSidePadding) * 1.45);
+}
+
+/* The header starts level with the top of the cover; the list runs down to the page's edge. */
+#SpicyLyricsPage.QueueOpen .ContentBox .NowBar .Header .MediaBox {
+  anchor-name: --SL-QueueCover;
+}
+
+@supports (anchor-name: --a) {
+  #SpicyLyricsPage:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .QueuePanel {
+    top: max(72px, anchor(--SL-QueueCover top, 10cqh));
+  }
+
+  /* Compact mode moves the lyrics under the cover header, and further down while the cover grows on
+     hover. The panel follows the lyrics box itself. */
+  #SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) .ContentBox .QueuePanel {
+    top: calc(anchor(--SL-LyricsContent top, 21cqh) + 4cqh);
+  }
+}
+
+@supports not (anchor-name: --a) {
+  #SpicyLyricsPage .ContentBox .QueuePanel {
+    top: max(72px, 10cqh);
+  }
+
+  #SpicyLyricsPage:is(.CompactMode, .ForcedCompactMode) .ContentBox .QueuePanel {
+    top: 25cqh;
+  }
+}
+
+/* No cover on the side while a Canvas plays there, so the list keeps clear of the title band. */
+#SpicyLyricsPage.CanvasImmersive:not(.CompactMode, .ForcedCompactMode) .ContentBox .QueuePanel {
+  top: max(72px, 10cqh);
+}
+
+#SpicyLyricsPage .ContentBox .QueuePanel .QueueInner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 34em;
+  min-height: 0;
+  flex: 1;
+  pointer-events: auto;
+  transform: translateY(8px);
+  transition: transform 160ms var(--ease-out);
+}
+
+#SpicyLyricsPage .ContentBox .QueuePanel.Open .QueueInner {
+  transform: none;
+  transition: transform 320ms var(--ease-out) 60ms;
+}
+
+/* The lyrics step aside while the queue is open. Their own transitions only matter while lyrics
+   are showing, so these apply only around the swap: out quickly, then back after the panel has
+   cleared. Compact mode's margin transition is kept in both. The doubled id outranks the layouts
+   that set their own transition here (portrait fullscreen). */
+#SpicyLyricsPage:is(#SpicyLyricsPage).QueueOpen .ContentBox .LyricsContainer {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 160ms var(--ease-out),
+    visibility 0s linear 160ms,
+    margin-top 0.4s;
+}
+
+#SpicyLyricsPage:is(#SpicyLyricsPage).QueueClosing .ContentBox .LyricsContainer {
+  transition:
+    opacity 280ms var(--ease-out) 80ms,
+    visibility 0s,
+    margin-top 0.4s;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+
+#SpicyLyricsPage .QueuePanel .QueueHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  flex: none;
+  padding-bottom: 0.5em;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueTitle {
+  margin: 0;
+  font-size: 1.75em;
+  font-weight: var(--w-bold);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+/* ── List ─────────────────────────────────────────────────────────────── */
+
+#SpicyLyricsPage .QueuePanel .QueueScroll {
+  flex: 1;
+  min-height: 0;
+  /* Room for the rows' hover fill and focus ring, which reach past the column's edges. */
+  margin-inline: -0.75em;
+  /* Clear of the switch in the corner at the end of the list. */
+  padding: 0.5em 0.75em max(8cqh, calc(var(--ViewSwitchSize) * 1.22 + var(--ViewSwitchInset) * 2));
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 0.75em,
+    #000 calc(100% - 5em),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 0.75em,
+    #000 calc(100% - 5em),
+    transparent 100%
+  );
+}
+
+#SpicyLyricsPage .QueuePanel .QueueScroll::-webkit-scrollbar {
+  display: none;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueList {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueGhost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  min-height: 2em;
+  margin: 1.4em 0 0.35em;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueList > .QueueLabel:first-child {
+  margin-top: 0.15em;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueLabelText {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82em;
+  font-weight: var(--w-semibold);
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+#SpicyLyricsPage .QueuePanel :is(.QueueClear, .QueueRetry) {
+  flex: none;
+  padding: 0.4em 0.9em;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: 0.74em;
+  font-weight: var(--w-semibold);
+  line-height: 1.2;
+  text-shadow: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    scale 160ms var(--ease-out);
+}
+
+/* Clearing is rare and can't be undone, so at rest it's text the same weight as its label. The pill
+   fills in on hover, and turns white once armed: the next press clears. */
+#SpicyLyricsPage .QueuePanel .QueueClear {
+  margin-right: -0.9em;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueClear.Armed {
+  margin-right: 0;
+  background: rgba(255, 255, 255, 0.92);
+  color: #000;
+}
+
+#SpicyLyricsPage .QueuePanel :is(.QueueClear, .QueueRetry):active {
+  scale: 0.97;
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────────── */
+
+#SpicyLyricsPage .QueuePanel .QueueRow {
+  position: relative;
+}
+
+#SpicyLyricsPage .QueuePanel .QueuePlay {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 2.85em minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.9em;
+  width: calc(100% + 1.2em);
+  margin-inline: -0.6em;
+  padding: 0.42em 0.6em;
+  border: 0;
+  border-radius: 0.75em;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-shadow: inherit;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    scale 160ms var(--ease-out);
+}
+
+#SpicyLyricsPage .QueuePanel .QueuePlay:active {
+  scale: 0.985;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueArt {
+  position: relative;
+  width: 2.85em;
+  height: 2.85em;
+  overflow: hidden;
+  border-radius: 0.4em;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0.15em 0.6em rgba(0, 0, 0, 0.22);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueArt img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueArt.Loaded img {
+  opacity: 1;
+}
+
+/* Hovering a row says what a click does: the cover dims behind a play glyph. */
+#SpicyLyricsPage .QueuePanel .QueueArtPlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueArtPlay svg {
+  width: 0.8em;
+  height: auto;
+  fill: #fff;
+  /* The triangle's mass sits left of its box; nudge it to look centred. */
+  translate: 0.06em 0;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  min-width: 0;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueName {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+  font-size: 1em;
+  font-weight: var(--w-semibold);
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+/* A name or artists list wider than the text column scrolls inside its line (TextScroller in
+   QueueView.ts): the line clips its track, which moves on translate. */
+#SpicyLyricsPage .QueuePanel :is(.QueueNameText, .QueueArtists) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueTrack {
+  display: block;
+  width: max-content;
+}
+
+/* Only a line that overflows fades at its edges. The left fade sits in padding the negative margin
+   takes back from the column gap, so the text rests where a line that fits starts. */
+#SpicyLyricsPage .QueuePanel :is(.QueueNameText, .QueueArtists).Overflowing {
+  /* The left fade is narrower, so text sliding out keeps clear of the artwork across the gap. */
+  --QueueFadeStart: 0.35em;
+  --QueueFadeEnd: 0.6em;
+  margin-left: calc(var(--QueueFadeStart) * -1);
+  padding-left: var(--QueueFadeStart);
+  padding-right: var(--QueueFadeEnd);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--QueueFadeStart), #000 calc(100% - var(--QueueFadeEnd)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--QueueFadeStart), #000 calc(100% - var(--QueueFadeEnd)), transparent 100%);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueExplicit {
+  flex: none;
+  padding: 0.22em 0.36em;
+  border-radius: 0.25em;
+  background: rgba(255, 255, 255, 0.6);
+  color: rgba(0, 0, 0, 0.78);
+  font-size: 0.56em;
+  font-weight: var(--w-bold);
+  line-height: 1;
+  text-shadow: none;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueArtists {
+  font-size: 0.84em;
+  font-weight: var(--w-regular);
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueTime {
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-medium);
+  color: rgba(255, 255, 255, 0.6);
+  transition: opacity 150ms ease;
+}
+
+/* Like and remove sit where the duration is and take its place on hover or focus. The duration's
+   column is as wide as the pair, so a long title never runs under them. */
+#SpicyLyricsPage .QueuePanel .QueueRow.HasActions .QueueTime {
+  min-width: 4.7em;
+  text-align: end;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueActions {
+  position: absolute;
+  top: 50%;
+  right: -0.25em;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  translate: 0 -50%;
+  transition: opacity 150ms ease;
+}
+
+#SpicyLyricsPage .QueuePanel :is(.QueueRemove, .QueueLike) {
+  display: grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    scale 160ms var(--ease-out);
+}
+
+#SpicyLyricsPage .QueuePanel :is(.QueueRemove, .QueueLike)[hidden] {
+  display: none;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRemove svg {
+  width: 42%;
+  height: 42%;
+}
+
+/* The same lift off a bright cover as the text gets from its shadow. */
+#SpicyLyricsPage .QueuePanel :is(.QueueRemove, .QueueLike) svg {
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.32));
+}
+
+#SpicyLyricsPage .QueuePanel .QueueLike svg {
+  width: 46%;
+  height: 46%;
+  overflow: visible;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueLike path {
+  fill: transparent;
+  transition: fill 150ms ease;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueLike[aria-pressed="true"] {
+  color: #fff;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueLike[aria-pressed="true"] path {
+  fill: currentColor;
+}
+
+#SpicyLyricsPage .QueuePanel :is(.QueueRemove, .QueueLike):active {
+  scale: 0.92;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRow.HasActions:focus-within .QueueActions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRow.HasActions:focus-within .QueueTime {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .QueuePanel .QueuePlay:focus-visible .QueueArtPlay {
+  opacity: 1;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRow.Removing {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #SpicyLyricsPage .QueuePanel .QueueClear:not(.Armed):hover,
+  #SpicyLyricsPage .QueuePanel .QueueRetry:hover {
+    background: rgba(255, 255, 255, 0.17);
+    color: #fff;
+  }
+
+  #SpicyLyricsPage .QueuePanel .QueueRow:hover .QueuePlay {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  #SpicyLyricsPage .QueuePanel .QueueRow:hover .QueueArtPlay {
+    opacity: 1;
+  }
+
+  #SpicyLyricsPage .QueuePanel .QueueRow.HasActions:hover .QueueActions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #SpicyLyricsPage .QueuePanel .QueueRow.HasActions:hover .QueueTime {
+    opacity: 0;
+  }
+
+  #SpicyLyricsPage .QueuePanel :is(.QueueRemove, .QueueLike):hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+}
+
+/* Without hover, the buttons stay out where a tap can find them. */
+@media (hover: none) {
+  #SpicyLyricsPage .QueuePanel .QueueRow.HasActions .QueueActions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  #SpicyLyricsPage .QueuePanel .QueueRow.HasActions .QueueTime {
+    opacity: 0;
+  }
+}
+
+/* ── Dragging ─────────────────────────────────────────────────────────── */
+
+/* The row in hand is a copy floating over the list (QueueView.ts, BuildFloat), on the same frosted
+   glass as the view controls, a little larger with a shadow under it. The row stays in the list as
+   an empty gap where it will land. The rest hold still under the pointer, without hover fills or
+   buttons. */
+#SpicyLyricsPage .QueuePanel .QueueInner {
+  position: relative;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRow {
+  transition: scale 160ms var(--ease-out);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRow.DragGap {
+  opacity: 0;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueFloat {
+  position: absolute;
+  top: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueFloat.Lifted {
+  scale: 1.02;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueFloat .QueuePlay {
+  scale: 1;
+  /* Lower contrast lifts a dark backdrop and dims a bright one, so white text stays legible on
+     both, as on the view controls. */
+  background: rgba(255, 255, 255, 0.14);
+  /* The controls' own 24px: it moves every frame, and a wider blur costs more to resample. */
+  -webkit-backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  box-shadow:
+    0 12px 28px -12px rgba(8, 10, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: box-shadow 160ms var(--ease-out);
+}
+
+/* Without see-through surfaces, the card is solid. */
+@media (prefers-reduced-transparency: reduce) {
+  #SpicyLyricsPage .QueuePanel .QueueFloat .QueuePlay {
+    background: rgb(64, 64, 68);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+#SpicyLyricsPage .QueuePanel .QueueFloat:not(.Lifted) .QueuePlay {
+  box-shadow:
+    0 0 0 0 rgba(8, 10, 18, 0),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* On the drop the glass clears while the card glides into place (Settle, 240ms), ending as the
+   plain row (or its hover fill) that takes over from it. The filter keeps the same functions with
+   neutral values so it interpolates instead of snapping. */
+#SpicyLyricsPage .QueuePanel .QueueFloat.Settling .QueuePlay {
+  background: rgba(255, 255, 255, 0);
+  -webkit-backdrop-filter: blur(0px) contrast(1) brightness(1) saturate(1);
+  backdrop-filter: blur(0px) contrast(1) brightness(1) saturate(1);
+  box-shadow:
+    0 0 0 0 rgba(8, 10, 18, 0),
+    inset 0 1px 0 rgba(255, 255, 255, 0),
+    inset 0 0 0 1px rgba(255, 255, 255, 0);
+  transition:
+    background-color 240ms var(--ease-out),
+    -webkit-backdrop-filter 240ms var(--ease-out),
+    backdrop-filter 240ms var(--ease-out),
+    box-shadow 240ms var(--ease-out);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueFloat.Settling.SettleHover .QueuePlay {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#SpicyLyricsPage .QueuePanel.Dragging,
+#SpicyLyricsPage .QueuePanel.Dragging * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+
+#SpicyLyricsPage .QueuePanel.Dragging .QueueRow:not(.QueueFloat) .QueuePlay {
+  background: transparent;
+}
+
+#SpicyLyricsPage .QueuePanel.Dragging .QueueArtPlay {
+  opacity: 0 !important;
+}
+
+#SpicyLyricsPage .QueuePanel.Dragging .QueueActions {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+#SpicyLyricsPage .QueuePanel.Dragging .QueueTime {
+  opacity: 1 !important;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueAnnounce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#SpicyLyricsPage .QueuePanel :is(.QueuePlay, .QueueRemove, .QueueLike, .QueueClear, .QueueRetry):focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 2px;
+}
+
+#SpicyLyricsPage .QueuePanel .QueuePlay:focus-visible {
+  outline-offset: 0;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueMore {
+  margin-top: 1em;
+  font-size: 0.78em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Loading, empty, error ────────────────────────────────────────────── */
+
+#SpicyLyricsPage .QueuePanel .QueueStatus:empty {
+  display: none;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueStatus.Loading {
+  display: flex;
+  flex-direction: column;
+  padding-top: 0.15em;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueSkeletonRow {
+  display: grid;
+  grid-template-columns: 2.85em minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.9em;
+  padding: 0.42em 0;
+  animation: SL_QueueSkeleton 1.4s ease-in-out infinite alternate;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueSkeletonRow:nth-child(2) { animation-delay: 0.1s; }
+#SpicyLyricsPage .QueuePanel .QueueSkeletonRow:nth-child(3) { animation-delay: 0.2s; }
+#SpicyLyricsPage .QueuePanel .QueueSkeletonRow:nth-child(4) { animation-delay: 0.3s; }
+#SpicyLyricsPage .QueuePanel .QueueSkeletonRow:nth-child(5) { animation-delay: 0.4s; }
+
+#SpicyLyricsPage .QueuePanel .QueueSkeletonArt {
+  width: 2.85em;
+  height: 2.85em;
+  border-radius: 0.4em;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueSkeletonText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueSkeletonText > span {
+  height: 0.7em;
+  width: 55%;
+  border-radius: 0.35em;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueSkeletonText > span + span {
+  width: 32%;
+}
+
+@keyframes SL_QueueSkeleton {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+#SpicyLyricsPage .QueuePanel .QueueStatus.Message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35em;
+  padding-top: 0.6em;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueStatusTitle {
+  margin: 0;
+  font-size: 1.05em;
+  font-weight: var(--w-semibold);
+  color: #fff;
+}
+
+#SpicyLyricsPage .QueuePanel .QueueStatusBody {
+  margin: 0;
+  max-width: 26em;
+  font-size: 0.86em;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.66);
+}
+
+#SpicyLyricsPage .QueuePanel .QueueRetry {
+  margin-top: 0.6em;
+  font-size: 0.8em;
+}
+
+/* Reduced motion keeps the fades and drops the travel. */
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ContentBox .QueuePanel .QueueInner,
+  #SpicyLyricsPage .ContentBox .QueuePanel.Open .QueueInner {
+    transform: none;
+  }
+
+  #SpicyLyricsPage .QueuePanel :is(.QueuePlay, .QueueRemove, .QueueLike, .QueueClear, .QueueRetry):active {
+    scale: 1;
+  }
+
+  #SpicyLyricsPage .QueuePanel .QueueSkeletonRow {
+    animation: none;
+    opacity: 0.8;
+  }
+
+  /* The card still follows the pointer (that is the drag itself) but doesn't grow as it lifts. */
+  #SpicyLyricsPage .QueuePanel .QueueFloat.Lifted {
+    scale: 1;
+  }
+}
+
+@media (prefers-contrast: more) {
+  #SpicyLyricsPage .QueuePanel :is(.QueueArtists, .QueueTime, .QueueLabelText, .QueueMore, .QueueStatusBody) {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+/* ── Lyrics / Queue switch ────────────────────────────────────────────────
+   Bottom corner on the lyrics side (QueueView.ts). The capsule is the view controls' frosted one,
+   and the chosen side is their white knockout disc. The disc slides between the two: the plate
+   and the two plain glyphs sit in one box and are clipped by the same thumb position, so the plate
+   moves and each glyph is handed over at its edge in step (ease-in-out, since it moves on screen). */
+
+#SpicyLyricsPage .ContentBox {
+  /* One button: about the capsule's button beside the cover in Cinema View. */
+  --ViewSwitchSize: clamp(34px, 3.7cqh, 54px);
+  --ViewSwitchInset: clamp(16px, 2.8cqh, 40px);
+}
+
+#SpicyLyricsPage .ContentBox > .ViewSwitch {
+  --VSPad: calc(var(--ViewSwitchSize) * 0.11);
+  --KnockoutOpacity: 0.82;
+  position: absolute;
+  z-index: 11;
+  right: var(--ViewSwitchInset);
+  bottom: var(--ViewSwitchInset);
+  display: flex;
+  padding: var(--VSPad);
+  border-radius: 100rem;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  box-shadow:
+    0 12px 28px -12px rgba(8, 10, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  -webkit-app-region: no-drag;
+  /* Awake with the rest of the controls (data-controls, Fullscreen.ts), asleep when the pointer
+     rests; held up while it is being used. */
+  opacity: 0.65;
+  transition:
+    opacity 0.55s var(--ease-out),
+    scale 0.14s var(--ease-out);
+}
+
+#SpicyLyricsPage .ContentBox > .ViewSwitch[data-controls="Hidden"] {
+  opacity: 0;
+  transition-duration: 0.65s, 0.14s;
+}
+
+/* Keyboard focus only: a click leaves focus on the button, and the switch would never sleep again.
+   A shown scroll-to-active button wakes it too: a wheel scroll doesn't move the pointer, so the
+   controls would otherwise stay asleep with the button inside them. */
+#SpicyLyricsPage .ContentBox > .ViewSwitch:is(
+    :hover,
+    .HasScroll:not([data-view="queue"]),
+    :has(:focus-visible)
+  ) {
+  opacity: 1;
+  transition-duration: 0.2s, 0.14s;
+}
+
+#SpicyLyricsPage .ContentBox > .ViewSwitch:active {
+  scale: 0.97;
+}
+
+/* The NowBar on the right puts the lyrics, and the switch, on the left, mirrored: the scroll seat
+   stays on the inner side and the romanization seat at the corner end. */
+#SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode) .ContentBox > .ViewSwitch {
+  right: auto;
+  left: var(--ViewSwitchInset);
+  flex-direction: row-reverse;
+}
+
+/* ── Seats ──
+   The capsule opens a seat on either side of the track for a button that comes and goes: inward, a
+   button back to the line being sung while a hand scroll has it out of view (ScrollToActiveLine.ts);
+   at the corner end, the romanization toggle while the lyrics can be romanized (moved in from the
+   view controls, SeatRomanizationToggle). A seat's width opens with the thumb's curve and length.
+   The scroll button rides the opening edge and settles in just behind it; the toggle sits in the
+   corner while the capsule grows out from it. Each leaves faster than it came. */
+#SpicyLyricsPage .ViewSwitch .ViewSwitchSeat {
+  display: flex;
+  flex: none;
+  width: 0;
+  /* Room for the focus ring, which the capsule's padding covers. */
+  overflow: clip;
+  overflow-clip-margin: 4px;
+  transition: width 250ms var(--ease-in-out) 40ms;
+}
+
+/* Each button sits against the capsule's outer edge, with the gap toward the track. */
+#SpicyLyricsPage .ViewSwitch .ViewSwitchSeat_Romanize,
+#SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode) .ViewSwitch .ViewSwitchSeat_Scroll {
+  justify-content: flex-end;
+}
+
+#SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode) .ViewSwitch .ViewSwitchSeat_Romanize {
+  justify-content: flex-start;
+}
+
+#SpicyLyricsPage .ViewSwitch.HasScroll:not([data-view="queue"]) .ViewSwitchSeat_Scroll,
+#SpicyLyricsPage.Lyrics_RomanizationAvailable.SpicyRenderer .ViewSwitch .ViewSwitchSeat_Romanize {
+  /* One button and the capsule's gap. */
+  width: calc(var(--ViewSwitchSize) * 1.2);
+  transition-delay: 0s;
+}
+
+#SpicyLyricsPage .ContentBox > .ViewSwitch .ViewSwitchSeat_Romanize > .ViewControl {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--ViewSwitchSize);
+  height: var(--ViewSwitchSize);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  opacity: 0;
+  scale: 0.8;
+  visibility: hidden;
+  transition:
+    opacity 120ms var(--ease-out),
+    scale 150ms var(--ease-out),
+    background-color 0.2s ease,
+    visibility 0s linear 150ms;
+}
+
+#SpicyLyricsPage.Lyrics_RomanizationAvailable.SpicyRenderer .ViewSwitch .ViewSwitchSeat_Romanize > .ViewControl {
+  opacity: 1;
+  scale: 1;
+  visibility: visible;
+  transition:
+    opacity 180ms var(--ease-out) 110ms,
+    scale 260ms var(--ease-out) 60ms,
+    background-color 0.2s ease,
+    visibility 0s;
+}
+
+/* The grouped skin (GroupedViewControls.css) styles the glyph and the disc; without it the toggle
+   swaps glyphs, sized like the others here. */
+#SpicyLyricsPage:not(.Exp_GroupedViewControls) .ViewSwitch .ViewSwitchSeat_Romanize > .ViewControl > svg {
+  width: 50%;
+  height: 50%;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchSeat_Romanize > .ViewControl:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Over the reset above; a pressed toggle keeps its disc instead (GroupedViewControls.css). */
+@media (hover: hover) and (pointer: fine) {
+  #SpicyLyricsPage .ContentBox > .ViewSwitch .ViewSwitchSeat_Romanize > .ViewControl:not([aria-pressed="true"]):hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchScroll {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--ViewSwitchSize);
+  height: var(--ViewSwitchSize);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  scale: 0.8;
+  visibility: hidden;
+  transition:
+    opacity 120ms var(--ease-out),
+    scale 150ms var(--ease-out),
+    background-color 0.2s ease,
+    visibility 0s linear 150ms;
+}
+
+#SpicyLyricsPage .ViewSwitch.HasScroll:not([data-view="queue"]) .ViewSwitchScroll.Visible {
+  opacity: 1;
+  scale: 1;
+  visibility: visible;
+  transition:
+    /* Held back until the seat is about half open, or the glyph shows beside the thumb first. */
+    opacity 180ms var(--ease-out) 110ms,
+    scale 260ms var(--ease-out) 60ms,
+    background-color 0.2s ease,
+    visibility 0s;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchScroll > svg {
+  width: 50%;
+  height: 50%;
+  transition: rotate 250ms var(--ease-in-out);
+}
+
+/* The line can cross from below to above while the button is up; the chevron turns to follow.
+   Hidden, it takes its new side at once, so it never shows up pointing the old way. */
+#SpicyLyricsPage .ViewSwitch .ViewSwitchScroll.Above > svg {
+  rotate: 180deg;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchScroll:not(.Visible) > svg {
+  transition: none;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchScroll:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #SpicyLyricsPage .ViewSwitch .ViewSwitchScroll:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchTrack {
+  position: relative;
+  display: flex;
+  gap: calc(var(--ViewSwitchSize) * 0.2);
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchOption {
+  display: block;
+  width: var(--ViewSwitchSize);
+  height: var(--ViewSwitchSize);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchOption:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #SpicyLyricsPage .ViewSwitch .ViewSwitchOption[aria-checked="false"]:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  #SpicyLyricsPage .ViewSwitch .ViewSwitchOption[aria-checked="false"]:hover ~ .ViewSwitchGlyph {
+    color: #fff;
+  }
+
+  #SpicyLyricsPage .ViewSwitch .ViewSwitchOption[aria-checked="true"]:hover ~ .ViewSwitchThumb {
+    --KnockoutOpacity: 0.94;
+  }
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: clip-path 250ms var(--ease-in-out);
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchLayer > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchThumb {
+  opacity: var(--KnockoutOpacity);
+  clip-path: inset(0 calc(100% - var(--ViewSwitchSize)) 0 0 round calc(var(--ViewSwitchSize) / 2));
+  transition:
+    clip-path 250ms var(--ease-in-out),
+    opacity 0.2s ease;
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchGlyph_Lyrics {
+  clip-path: inset(0 100% 0 0);
+}
+
+#SpicyLyricsPage .ViewSwitch .ViewSwitchGlyph_Queue {
+  clip-path: inset(0 0 0 var(--ViewSwitchSize));
+}
+
+#SpicyLyricsPage .ViewSwitch[data-view="queue"] .ViewSwitchThumb {
+  clip-path: inset(0 0 0 calc(100% - var(--ViewSwitchSize)) round calc(var(--ViewSwitchSize) / 2));
+}
+
+#SpicyLyricsPage .ViewSwitch[data-view="queue"] .ViewSwitchGlyph_Lyrics {
+  clip-path: inset(0 var(--ViewSwitchSize) 0 0);
+}
+
+#SpicyLyricsPage .ViewSwitch[data-view="queue"] .ViewSwitchGlyph_Queue {
+  clip-path: inset(0 0 0 100%);
+}
+
+/* Reduced motion: the disc changes sides in place, and the seat opens at once with its button
+   fading in. */
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .ViewSwitch :is(.ViewSwitchLayer, .ViewSwitchSeat, .ViewSwitchScroll > svg) {
+    transition: none;
+  }
+
+  #SpicyLyricsPage .ViewSwitch .ViewSwitchScroll,
+  #SpicyLyricsPage .ContentBox > .ViewSwitch .ViewSwitchSeat_Romanize > .ViewControl {
+    scale: 1;
+  }
+
+  #SpicyLyricsPage .ContentBox > .ViewSwitch:active {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #SpicyLyricsPage .ContentBox > .ViewSwitch {
+    background: rgba(30, 30, 34, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  #SpicyLyricsPage .ContentBox > .ViewSwitch {
+    background: rgba(20, 20, 24, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    --KnockoutOpacity: 1;
+  }
+}
+
+/* ── Portrait fullscreen (PortraitFullscreen.css): the lyrics run nearly the full width at a size
+   set by the window, so the list does too. */
+@media (orientation: portrait) {
+  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .QueuePanel {
+    --QueueFont: calc(var(--PF_LyricsSize) * 0.36);
+  }
+
+  body > #SpicyLyricsPage.Fullscreen.Exp_PortraitFullscreen:is(.CompactMode, .ForcedCompactMode) .ContentBox .QueuePanel .QueueInner {
+    max-width: none;
+  }
+}

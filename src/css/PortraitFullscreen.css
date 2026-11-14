@@ -1,7 +1,7 @@
 /* Portrait Fullscreen experiment (Exp_PortraitFullscreen). Compact fullscreen in a window taller
    than it is wide: the lyrics take nearly the whole width, the cover header sits as far below the
-   top as the lyrics are from the sides, the song text is centred on the cover and sized against the
-   lyrics, and the hover-grown cover pushes the lyrics down by exactly its own growth.
+   top as the lyrics are from the sides, the song text rests on the cover's bottom edge and is sized
+   against the lyrics, and the hover-grown cover pushes the lyrics down by exactly its own growth.
 
    Fullscreen moves the page onto <body>, so `body >` leaves the popup (which lives in
    .spicy-pip-wrapper) alone. Turning the experiment off leaves every rule below unmatched. */
@@ -56,7 +56,11 @@
     .CenteredView
     .Header
     .Metadata {
-    justify-content: center;
+    /* Title and artist rest on the cover's bottom edge, and ride it down as the cover grows. */
+    justify-content: flex-end;
+    /* Descenders hang below that edge; only the sides clip. */
+    overflow-x: clip;
+    overflow-y: visible;
     margin: 0;
     right: 0;
     width: auto;
@@ -84,6 +88,11 @@
     .Artists {
     font-size: calc(var(--PF_LyricsSize) * 0.44) !important;
     line-height: 1.35 !important;
+    /* Puts the artist's baseline on the cover's bottom edge. The text sits in a clipped inline-block
+       (the marquee), which rests on the outer line's baseline, so there are two descents and two
+       half-leadings under it: 0.655em with the Spicy font at this line height, measured. Text-box
+       trimming can't reach through the inline-block. */
+    margin-bottom: -0.655em;
   }
 
   /* The lyrics start just under the bar, and follow it at its own pace when the cover grows. */

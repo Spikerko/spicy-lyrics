@@ -11,6 +11,9 @@ import { SpotifyPlayer } from "../../Global/SpotifyPlayer";
 import fetchLyrics from "../../../utils/Lyrics/fetchLyrics";
 import ApplyLyrics from "../../../utils/Lyrics/Global/Applyer";
 import { $currentLyricsData } from "../../../utils/stores";
+import Logger from "../../../utils/Logger.ts";
+
+const lyricsManagerLogger = new Logger("Lyrics Manager");
 
 type LyricsDBPanelProps = {
   onUploadClick: () => void;
@@ -92,7 +95,7 @@ export default function LyricsDBPanel({ onUploadClick }: LyricsDBPanelProps) {
         .then(ApplyLyrics)
         .catch((err) => {
           toast.error("Error applying lyrics", { duration: 4000 });
-          console.error("Error applying lyrics:", err);
+          lyricsManagerLogger.error("Error applying lyrics", err);
         });
     }, 25);
   }

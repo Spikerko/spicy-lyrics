@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { $romanizationDisplay, $simpleLyricsMode, $syllableMerge } from "../../../stores.ts";
+import { $romanizationDisplay, $syllableMerge, isBloomRenderer } from "../../../stores.ts";
 import { JoinSplitWords } from "./JoinSplitWords.ts";
 import { PickDisplayText } from "./PickDisplayText.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
@@ -24,9 +24,10 @@ import { StripZeroWidth } from "./StripZeroWidth.ts";
 // row keeps pace with the words above it however they are joined or split.
 // Line-synced and static rows are plain text that follows the line's state.
 
-// Whether this apply draws the romanization under each line.
-export const RomanizeUnderLine = (useRomanized: boolean): boolean =>
-  useRomanized && $romanizationDisplay.get() === "underLine";
+// Whether this apply builds the rows under each line. They're built with
+// romanization off too, collapsed until the page has RomanizedRowsShown, so the
+// toggle opens and closes them in place instead of rendering the lyrics again.
+export const RomanizeUnderLine = (): boolean => $romanizationDisplay.get() === "underLine";
 
 interface RomanizedPiece {
   HTMLElement: HTMLElement;
@@ -143,7 +144,7 @@ export function AppendSyllableRomanization(
 export const ROMANIZED_ROW_SIZE = 0.6;
 
 function rest(el: HTMLElement, scale: number, lift: number): void {
-  if ($simpleLyricsMode.get()) return;
+  if (isBloomRenderer()) return;
   el.style.setProperty("--gradient-position", "-20%");
   el.style.setProperty("--text-shadow-opacity", "0%");
   el.style.setProperty("--text-shadow-blur-radius", `${4 * ROMANIZED_ROW_SIZE}px`);
@@ -168,7 +169,7 @@ function prepareAnimatedPiece(piece: RomanizedPiece): void {
 
   rest(el, IdleEmphasisLyricsScale, 0.02);
   // Emphasize's window: letters finish a little before the syllable does.
-  const simple = $simpleLyricsMode.get();
+  const simple = isBloomRenderer();
   const start = piece.StartTime + (simple ? 21 : 0);
   const end = Math.max(start + 1, piece.EndTime - (simple ? -40 : 250));
   const span = (end - start) / letters.length;

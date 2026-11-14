@@ -1,3 +1,7 @@
+import Logger from "./Logger.ts";
+
+const blobLogger = new Logger("Blob URL");
+
 // Least recently used first. Image URLs are content-addressed, so an entry never goes stale;
 // the cap is what keeps a long session from holding every image it ever showed.
 const BlobURLCache = new Map<string, string>();
@@ -31,7 +35,8 @@ export default async function BlobURLMaker(url: string): Promise<string | null> 
     }
     return blobUrl;
   } catch (error) {
-    console.error("Error fetching and converting to blob URL:", error);
+    // Callers fall back to the original URL, so this is a warning, not a bug-report error.
+    blobLogger.warn("Error fetching and converting to blob URL:", error);
     throw error;
   }
 }

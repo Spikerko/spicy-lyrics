@@ -1,0 +1,20 @@
+/* Animated album artwork (AnimatedArtwork.ts). The video lies over the static cover inside
+   .MediaImageContainer, which already clips, rounds and dims it. The cover underneath is never
+   hidden, so a video that fades out or fails leaves the cover in place. */
+#SpicyLyricsPage .MediaImageContainer > video.AnimatedArtwork {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  opacity: 0;
+  /* Leaving: quick, so the cover's own swap to the next album is what's seen. */
+  transition: opacity 250ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+#SpicyLyricsPage .MediaImageContainer > video.AnimatedArtwork.Visible {
+  opacity: 1;
+  transition: opacity 500ms cubic-bezier(0.23, 1, 0.32, 1);
+}

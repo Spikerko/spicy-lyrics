@@ -107,11 +107,11 @@ const Session = {
     IsBehind: (currentVersion: VersionParsedData, latestVersion: VersionParsedData): boolean => {
       if (latestVersion === undefined || currentVersion === undefined) return false;
 
-      return (
-        latestVersion.Major > currentVersion.Major ||
-        latestVersion.Minor > currentVersion.Minor ||
-        latestVersion.Patch > currentVersion.Patch
-      );
+      // In order: Minor only decides once Major ties, and Patch once both do. Compared
+      // one by one, 6.4.70 counted as behind 6.3.190.
+      if (latestVersion.Major !== currentVersion.Major) return latestVersion.Major > currentVersion.Major;
+      if (latestVersion.Minor !== currentVersion.Minor) return latestVersion.Minor > currentVersion.Minor;
+      return latestVersion.Patch > currentVersion.Patch;
     },
   },
 };

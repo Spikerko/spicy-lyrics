@@ -89,7 +89,6 @@
   overflow: hidden; /* Hides overflowing text */
   display: inline-block; /* Ensures width is respected */
   text-align: center; /* Align text within the span */
-  animation: Marquee_SongName_SongMoreInfo 25s linear infinite alternate;
   padding: 0 1cqw;
 }
 
@@ -125,7 +124,6 @@
   overflow: hidden; /* Hides overflowing text */
   display: inline-block; /* Ensures width is respected */
   text-align: center; /* Align text within the span */
-  animation: Marquee_Artists_SongMoreInfo 25s linear infinite alternate;
   padding: 0 1cqw;
 }
 

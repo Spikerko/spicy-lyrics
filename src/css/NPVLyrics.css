@@ -104,13 +104,25 @@
   transform: scale(0.7);
 }
 
-#SpicyLyricsNPVCard #NPVCardExpand .SL_NudgeL {
+#SpicyLyricsNPVCard #NPVCardExpand .SL_NudgeL,
+#SpicyLyricsNPVCard #NPVCardMaximize .SL_NudgeU,
+#SpicyLyricsNPVCard #NPVCardMaximize .SL_NudgeD {
   transition: translate 0.2s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 
+/* Hover leans the stretch chevrons apart, the way the card will go. The inward pair has no
+   lean: its tips sit too close to move together without closing into a cross. */
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   #SpicyLyricsNPVCard #NPVCardExpand:hover .SL_NudgeL {
     translate: -1.5px 0;
+  }
+
+  #SpicyLyricsNPVCard #NPVCardMaximize:hover .SL_NudgeU {
+    translate: 0 -1px;
+  }
+
+  #SpicyLyricsNPVCard #NPVCardMaximize:hover .SL_NudgeD {
+    translate: 0 1px;
   }
 }
 

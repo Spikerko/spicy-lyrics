@@ -1,5 +1,6 @@
 import { atom } from "nanostores";
 import { $playbackOffset } from "./stores.ts";
+import { $ttmlReviewer } from "./ttmlReviewer.ts";
 
 /** Kept apart from `SL:settings`, which is rewritten whole on every change, as this map grows per song. */
 const SONG_OFFSETS_KEY = "SL:songOffsets";
@@ -45,7 +46,9 @@ export function setSongOffset(uri: string, offsetMs: number) {
 
 /** The Playback Offset plus the song's own, in ms. Positive values hold the lyrics back. */
 export function lyricsOffsetMs(uri: string | null | undefined): number {
-  return $playbackOffset.get() + getSongOffset(uri);
+  // TTML Reviewer judges the file alone, so a song's own offset sits out while it's on.
+  // The saved offsets aren't touched and apply again once it's off.
+  return $playbackOffset.get() + ($ttmlReviewer.get() ? 0 : getSongOffset(uri));
 }
 
 /** Which offset the Playback Offset row edits. Not persisted. */

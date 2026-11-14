@@ -68,6 +68,27 @@ export const DEFAULT_REMOTE_CONFIG = {
     // Pauses before each retry of a failed canvas download; empty disables retries.
     retryDelaysMs: [3000, 10000, 30000],
   },
+  animatedArtwork: {
+    // Kill switch for the looping cover video in the NowBar.
+    enabled: true,
+    metadataTimeoutMs: 10000,
+    signTimeoutMs: 8000,
+    // Pause before signing again after the signer failed or was unreachable.
+    signRetryMs: 60000,
+    // From setting the source to the first played frame.
+    loadTimeoutMs: 20000,
+    // How long an album whose video failed twice keeps the static cover.
+    missTtlMs: 1800000,
+    // Wait before checking whether an album has a video (only asked when it decides Canvas vs.
+    // cover), so skipping tracks costs no requests; a Canvas waiting on it shows that much later.
+    checkDelayMs: 400,
+    checkTimeoutMs: 8000,
+    // How long the Canvas Stage waits for the check before going ahead without it.
+    stageHoldMs: 2500,
+    // On a track change the cover keeps its video this long before dropping it for another album:
+    // a relinked track first reports the album it was played from, then its own.
+    albumSettleMs: 500,
+  },
   updates: {
     checkIntervalMs: 120000,
     checkJitterRatio: 0.2,
@@ -200,7 +221,9 @@ export function sanitizeRemoteConfig(data: unknown, issues?: string[]): RemoteCo
       const raw = incoming[key];
       const value = Array.isArray(fallback)
         ? sanitizeList(raw, NON_EMPTY_LISTS.has(`${group}.${key}`))
-        : sanitizeNumber(raw);
+        : typeof fallback === "boolean"
+          ? (typeof raw === "boolean" ? raw : undefined)
+          : sanitizeNumber(raw);
       out[key] = value ?? (Array.isArray(fallback) ? [...fallback] : fallback);
 
       if (!isPlainObject(source[group])) continue;

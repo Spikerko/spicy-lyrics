@@ -1,0 +1,384 @@
+/* Grouped view controls (experiment groupedViewControls, Exp_GroupedViewControls).
+   One frosted capsule holds the buttons; each button is a bare circle inside it. A toggle
+   (.ViewToggle, aria-pressed) keeps its glyph and shows "on" as a white disc with the glyph cut out
+   (KnockoutDisc in Icons.ts), so the capsule's frost shows through the strokes. Every surface keeps
+   its own placement and --ViewControlSize; this file only reshapes the row around them. A toggle
+   seated in the Lyrics / Queue switch (QueueView.ts) wears the same buttons. */
+
+#SpicyLyricsPage.Exp_GroupedViewControls .ViewControls {
+  /* The row is no longer a size container, so a surface that doesn't size it gets a fixed one. */
+  --ViewControlSize: 44px;
+  --VCPad: calc(var(--ViewControlSize) * 0.11);
+  --KnockoutOpacity: 0.82;
+  container-type: normal;
+  height: auto !important;
+  padding: var(--VCPad);
+  gap: calc(var(--ViewControlSize) * 0.2);
+  border-radius: 100rem;
+  /* Lower contrast lifts a dark backdrop and dims a bright one, so the capsule reads as a lighter
+     surface on dark covers and white glyphs stay legible over a near-white one. */
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  box-shadow:
+    0 12px 28px -12px rgba(8, 10, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  -webkit-app-region: no-drag;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl {
+  position: relative;
+  padding: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  transition:
+    scale 0.14s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl:active {
+  scale: 0.95;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  #SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle[aria-pressed="true"]:hover {
+    background: transparent;
+    --KnockoutOpacity: 0.94;
+  }
+}
+
+/* Half the circle, the same share the cut-out glyph takes in its disc. Other surfaces size the
+   glyph off the old 0.4 ratio, so this has to win over them. */
+/* Filling in and clearing share one ease-out at 0.24s, with no overshoot: a tap carries no momentum.
+   The click flips aria-pressed on the spot (PressToggle in PageView.ts), so these transitions start
+   on the press itself. */
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl > svg:not(.SL_KnockoutDisc) {
+  height: 50% !important;
+  width: auto !important;
+  transition: opacity 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl > svg.SL_KnockoutDisc {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0;
+  scale: 0.8;
+  transition:
+    opacity 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    scale 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle[aria-pressed="true"] > svg.SL_KnockoutDisc {
+  opacity: var(--KnockoutOpacity);
+  scale: 1;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle[aria-pressed="true"] > svg:not(.SL_KnockoutDisc) {
+  opacity: 0;
+}
+
+/* The controls are rebuilt after a toggle flips, which replaces the button mid-transition. The new
+   button picks the same motion up from where the old one had got to (ApplyIconSwap in PageView.ts
+   sets the negative delay), with the same curve and length as the transitions above. */
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle.SL_ToggleSwap[aria-pressed="true"] > svg.SL_KnockoutDisc {
+  animation: SL_KnockoutIn 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) var(--ToggleSwapDelay, 0ms) both;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle.SL_ToggleSwap[aria-pressed="true"] > svg:not(.SL_KnockoutDisc) {
+  animation: SL_GlyphOut 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) var(--ToggleSwapDelay, 0ms) both;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle.SL_ToggleSwap[aria-pressed="false"] > svg.SL_KnockoutDisc {
+  animation: SL_KnockoutOut 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) var(--ToggleSwapDelay, 0ms) both;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle.SL_ToggleSwap[aria-pressed="false"] > svg:not(.SL_KnockoutDisc) {
+  animation: SL_GlyphIn 0.24s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) var(--ToggleSwapDelay, 0ms) both;
+}
+
+@keyframes SL_KnockoutIn {
+  from { opacity: 0; scale: 0.8; }
+  to { opacity: var(--KnockoutOpacity); scale: 1; }
+}
+
+@keyframes SL_KnockoutFadeIn {
+  from { opacity: 0; }
+  to { opacity: var(--KnockoutOpacity); }
+}
+
+@keyframes SL_KnockoutOut {
+  from { opacity: var(--KnockoutOpacity); scale: 1; }
+  to { opacity: 0; scale: 0.8; }
+}
+
+@keyframes SL_GlyphOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes SL_GlyphIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Reduced motion keeps the cross-fade and drops the growth. */
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl > svg.SL_KnockoutDisc {
+    scale: 1;
+  }
+
+  #SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle.SL_ToggleSwap[aria-pressed="true"] > svg.SL_KnockoutDisc {
+    animation-name: SL_KnockoutFadeIn;
+  }
+
+  #SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewToggle.SL_ToggleSwap[aria-pressed="false"] > svg.SL_KnockoutDisc {
+    animation-name: SL_GlyphOut;
+  }
+
+  #SpicyLyricsPage.Exp_GroupedViewControls :is(.ViewControls, .ViewSwitch) .ViewControl:active {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #SpicyLyricsPage.Exp_GroupedViewControls .ViewControls {
+    background: rgba(30, 30, 34, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  #SpicyLyricsPage.Exp_GroupedViewControls .ViewControls {
+    background: rgba(20, 20, 24, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    --KnockoutOpacity: 1;
+  }
+}
+
+/* ── Page view: a capsule centred over the lyrics instead of a page-wide strip. The strip was
+   the size container its buttons measured, so the size comes from the page now. */
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.Fullscreen) .ViewControls {
+  --ViewControlSize: 5cqh;
+  width: fit-content;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  pointer-events: auto;
+}
+
+/* ── Cinema View with the controls over the cover: the same, sized off the MediaBox. */
+#SpicyLyricsPage.Exp_GroupedViewControls.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  --ViewControlSize: 8.5cqh;
+  width: fit-content;
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+}
+
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_GroupedViewControls.Fullscreen:not(.Exp_PopupDock) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  --ViewControlSize: 11.5cqh;
+  height: auto !important;
+}
+
+/* ── Player below the cover: a vertical capsule off the cover's edge. The capsule fades as one,
+   since the frost is its own now. The gap to the cover is bridged so the pointer never leaves the
+   MediaBox on the way over. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  left: calc(100% + 2.4cqw);
+  padding: var(--VCPad);
+  gap: calc(var(--ViewControlSize) * 0.2);
+  /* Same short fade and slide as the separate buttons (PlayerBelowCover.css), on the capsule. */
+  opacity: 0 !important;
+  transition:
+    opacity 0.65s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    translate 0.65s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) !important;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox[data-controls="Dim"] .MediaContent .ViewControls {
+  opacity: 0.65 !important;
+  transition-duration: 0.55s !important;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox[data-controls="Full"] .MediaContent .ViewControls {
+  opacity: 1 !important;
+  transition-duration: 0.55s !important;
+}
+
+#SpicyLyricsPage.NowBarSide__Right.Fullscreen.Exp_PlayerBelowCover.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  left: auto;
+  right: calc(100% + 2.4cqw);
+  padding: var(--VCPad);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 2.4cqw;
+}
+
+#SpicyLyricsPage.NowBarSide__Right.Fullscreen.Exp_PlayerBelowCover.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls::before {
+  right: auto;
+  left: 100%;
+}
+
+/* ── Corner rows (Canvas Stage, popup dock): the circles stay where they were and the capsule
+   grows out around them. */
+#SpicyLyricsPage.Fullscreen.CanvasImmersive.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls,
+.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock.Exp_GroupedViewControls.Fullscreen .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  margin: calc(-1 * var(--VCPad));
+}
+
+/* The no-lyrics stage centres the row between both edges, so the capsule has to size to its buttons. */
+#SpicyLyricsPage.Fullscreen.CanvasImmersive.Exp_GroupedViewControls:not(.CompactMode, .ForcedCompactMode) .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  width: fit-content;
+  margin: calc(-1 * var(--VCPad)) auto 0;
+}
+
+/* ── Scroll to Active, floating (ScrollToActive.css): where there is no Lyrics / Queue switch to
+   seat it in, it is a one-button capsule in the bottom corner the switch takes in Cinema View,
+   at the switch's size and inset, on the lyrics' side. The popup keeps its own placement
+   (PopupDock.css). Its placement beats the edge rules of the old button, which sit at higher
+   specificity, hence the !important. */
+#SpicyLyricsPage.Exp_GroupedViewControls .ContentBox {
+  anchor-name: --SL-ContentBox;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive {
+  --STA_Size: var(--ViewSwitchSize);
+  --STA_Pad: calc(var(--STA_Size) * 0.11);
+  width: calc(var(--STA_Size) + 2 * var(--STA_Pad));
+  height: calc(var(--STA_Size) + 2 * var(--STA_Pad));
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  backdrop-filter: blur(24px) contrast(0.6) brightness(0.8) saturate(1.8);
+  box-shadow:
+    0 12px 28px -12px rgba(8, 10, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  scale: 0.8;
+  -webkit-app-region: no-drag;
+  transition:
+    opacity 120ms var(--ease-out),
+    scale 150ms var(--ease-out);
+}
+
+/* In page view, the size of the strip's buttons (5cqh, above), so the two read as one set. */
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.Fullscreen, .CardMode, .spicy-pip-wrapper *) .ScrollToActive {
+  --STA_Size: 5cqh;
+}
+
+@supports (anchor-name: --a) {
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive {
+    position-anchor: --SL-ContentBox;
+    top: auto !important;
+    right: calc(anchor(right) + var(--ViewSwitchInset)) !important;
+    bottom: calc(anchor(bottom) + var(--ViewSwitchInset)) !important;
+    left: auto !important;
+  }
+
+  /* In Cinema View the NowBar on the right puts the lyrics on the left, and the button with them. */
+  #SpicyLyricsPage.Exp_GroupedViewControls.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode, .spicy-pip-wrapper *) .ScrollToActive {
+    right: auto !important;
+    left: calc(anchor(left) + var(--ViewSwitchInset)) !important;
+  }
+
+  /* Above the pinned credit rows. */
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .LyricsContainer.HasPinnedCredits > .ScrollToActive {
+    bottom: calc(
+      anchor(bottom) + var(--SL-PinnedCreditsHeight, 0px) + 24px + var(--ViewSwitchInset)
+    ) !important;
+  }
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible {
+  scale: 1;
+  transition:
+    opacity 180ms var(--ease-out),
+    scale 260ms var(--ease-out);
+}
+
+/* Lit like a button in the capsule: a disc inside the frost, not the whole circle. */
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive::before {
+  content: "";
+  position: absolute;
+  inset: var(--STA_Pad);
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 12px 28px -12px rgba(8, 10, 18, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible:hover::before {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible:active {
+  scale: 0.95;
+  transition: scale 0.14s var(--ease-out);
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Half the inner circle, as in the capsule. Turns to follow the line while it's up; hidden, it
+   takes its new side at once. */
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive svg {
+  position: relative;
+  width: calc(var(--STA_Size) * 0.5);
+  height: calc(var(--STA_Size) * 0.5);
+  transition: rotate 250ms var(--ease-in-out);
+}
+
+#SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive:not(.Visible) svg {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive,
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible:active {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive,
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible:hover {
+    background: rgba(30, 30, 34, 0.92);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive,
+  #SpicyLyricsPage.Exp_GroupedViewControls:not(.spicy-pip-wrapper *) .ScrollToActive.Visible:hover {
+    background: rgba(20, 20, 24, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  }
+}

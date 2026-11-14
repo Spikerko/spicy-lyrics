@@ -3,6 +3,9 @@ import {
   $disableNpvLyrics,
   $hideNpvLyricsWhenUnavailable,
   $lockedMediaBox,
+  $motionArtwork,
+  $motionArtworkOnStage,
+  $motionArtworkPriority,
   $popupLyricsAllowed,
   $releaseYearPosition,
   $removeSpotifyLyricsButton,
@@ -10,12 +13,23 @@ import {
   $showVolumeSlider,
   $timelineOutsideMediaContent,
   $viewControlsPosition,
+  type MotionArtworkPriority,
   type ReleaseYearPosition,
 } from "../../../utils/stores.ts";
+import { $experiment, getExperiment } from "../../../utils/experiments.ts";
 import { $isGlobalNav } from "../../../utils/uiState.ts";
-import { Select, Toggle } from "./components.tsx";
+import { Segmented, Select, Toggle } from "./components.tsx";
 import { InterfaceIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
+
+// The two stage rows only mean something with motion artwork on and the Canvas Stage running.
+function useStageRowDisabled(): string | false {
+  const motion = useStore($motionArtwork);
+  const stage = useStore($experiment("canvasImmersive"));
+  if (!motion) return "Turn on Motion Artwork to change this.";
+  if (!stage) return `Only applies with ${getExperiment("canvasImmersive").label} on, in Experiments.`;
+  return false;
+}
 
 // Built once: the Control components must keep their identity across renders.
 const groups: GroupDef[] = [
@@ -105,6 +119,56 @@ const groups: GroupDef[] = [
             label={label}
             checked={useStore($showVolumeSlider)}
             onChange={(v) => $showVolumeSlider.set(v)}
+          />
+        ),
+      },
+    ],
+  },
+  {
+    title: "Album Artwork",
+    settings: [
+      {
+        id: "motionArtwork",
+        label: "Motion Artwork",
+        description: "Play the album's animated cover over the still one in the NowBar, for albums that have one.",
+        keywords: "animated cover art album video moving artwork",
+        Control: ({ label }) => (
+          <Toggle label={label} checked={useStore($motionArtwork)} onChange={(v) => $motionArtwork.set(v)} />
+        ),
+      },
+      {
+        id: "motionArtworkPriority",
+        label: "Motion Artwork or Canvas",
+        description:
+          "Which one plays when a song has both. Motion Artwork plays on the cover, or on the stage if it's allowed there below.",
+        keywords: "animated cover spotify canvas stage video priority prefer both",
+        useDisabled: useStageRowDisabled,
+        Control: ({ disabled, label }) => (
+          <Segmented<MotionArtworkPriority>
+            label={label}
+            value={useStore($motionArtworkPriority)}
+            options={[
+              { value: "motion", label: "Motion" },
+              { value: "canvas", label: "Canvas" },
+            ]}
+            onChange={(v) => $motionArtworkPriority.set(v)}
+            disabled={disabled}
+          />
+        ),
+      },
+      {
+        id: "motionArtworkOnStage",
+        label: "Motion Artwork on Canvas Stage",
+        description:
+          "Let motion artwork fill the Canvas Stage, cropped to fit since it's square. Off keeps it on the cover in the NowBar.",
+        keywords: "animated cover spotify canvas stage video fullscreen side",
+        useDisabled: useStageRowDisabled,
+        Control: ({ disabled, label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($motionArtworkOnStage)}
+            onChange={(v) => $motionArtworkOnStage.set(v)}
+            disabled={disabled}
           />
         ),
       },

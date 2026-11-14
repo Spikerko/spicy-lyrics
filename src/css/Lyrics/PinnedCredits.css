@@ -48,8 +48,8 @@
     transparent 0,
     transparent 16px,
     var(--spice-sidebar) calc(64px + var(--SL-LyricsContent_MaskTopPadding)),
-    var(--spice-sidebar) calc(100% - var(--PinnedCreditsLift) - 56px),
-    transparent calc(100% - var(--PinnedCreditsLift) - 8px),
+    var(--spice-sidebar) calc(100% - var(--PinnedCreditsLift) - 56px - var(--SL-LyricsContent_MaskBottomPadding)),
+    transparent calc(100% - var(--PinnedCreditsLift) - 8px - var(--SL-LyricsContent_MaskBottomPadding)),
     transparent
   );
 }
@@ -105,5 +105,42 @@
     bottom: calc(
       anchor(bottom) + var(--SL-PinnedCreditsHeight, 0px) + 24px + var(--ScrollToActiveInset)
     );
+  }
+}
+
+/* With the NowBar on the right, the rows sit on the Lyrics / Queue switch's row in the bottom-left
+   corner. While the switch shows they slide aside to just past the capsule's end, like Up Next
+   (ViewSwitchClearance.ts, NextUp.css): quickly as it appears, back once it has mostly faded. Rows
+   that end on the right (Credits Follow the Last Singer) are clear of it already. */
+#SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .LyricsContainer
+  > .LyricsPinnedCredits:not(.EndsOnOppositeLine) {
+  transition: translate 420ms var(--ease-in-out) 300ms;
+}
+
+#SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+  .ContentBox.ViewSwitchAwake
+  .LyricsContainer
+  > .LyricsPinnedCredits:not(.EndsOnOppositeLine) {
+  translate: max(
+      0px,
+      calc(var(--SL-ViewSwitchEnd, 0px) + var(--ViewSwitchInset) * 0.5 - var(--LyricsRightSidePadding) * 1.45)
+    )
+    0;
+  transition: translate 300ms var(--ease-out);
+}
+
+/* Reduced motion: it steps aside without travelling. Both states, at their own specificity. */
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .LyricsContainer
+    > .LyricsPinnedCredits:not(.EndsOnOppositeLine),
+  #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+    .ContentBox.ViewSwitchAwake
+    .LyricsContainer
+    > .LyricsPinnedCredits:not(.EndsOnOppositeLine) {
+    transition: none;
   }
 }

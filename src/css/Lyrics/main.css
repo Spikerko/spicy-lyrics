@@ -19,6 +19,13 @@
   initial-value: 0px;
 }
 
+/* How much higher the bottom fade ends while Up Next shows under the lyrics (NextUp.ts). */
+@property --SL-LyricsContent_MaskBottomPadding {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
 #SpicyLyricsPage .LyricsContainer .LyricsContent {
   --TextGlowDef: rgba(255, 255, 255, 0.15) 0px 0px 6px;
   --ActiveTextGlowDef: rgba(255, 255, 255, 0.4) 0px 0px 14px;
@@ -46,8 +53,8 @@
     transparent 0,
     transparent 16px,
     var(--spice-sidebar) calc(64px + var(--SL-LyricsContent_MaskTopPadding)),
-    var(--spice-sidebar) calc(100% - 64px),
-    transparent calc(100% - 16px),
+    var(--spice-sidebar) calc(100% - 64px - var(--SL-LyricsContent_MaskBottomPadding)),
+    transparent calc(100% - 16px - var(--SL-LyricsContent_MaskBottomPadding)),
     transparent
   );
 
@@ -55,7 +62,14 @@
   mask-image: var(--ImageMask);
   container-type: size;
   opacity: 1;
-  transition: opacity 0.25s, --SL-LyricsContent_MaskTopPadding 0.5s;
+  transition:
+    opacity 0.25s,
+    --SL-LyricsContent_MaskTopPadding 0.5s,
+    --SL-LyricsContent_MaskBottomPadding 0.45s var(--ease-out);
+}
+
+#SpicyLyricsPage .LyricsContainer.NextUpRoom .LyricsContent {
+  --SL-LyricsContent_MaskBottomPadding: var(--SL-NextUpRoom, 0px);
 }
 
 #SpicyLyricsPage:not(.Fullscreen):has(.ViewControls .ViewControl:hover) .LyricsContainer .LyricsContent {
@@ -120,6 +134,20 @@
   );
 }
 
+/* Larger Cinema View Lyrics (experiment): in Cinema View and fullscreen, Bloom lyrics keep
+   growing with the screen past the usual 3.5rem cap, so on a big display they fill the
+   column the way the view is meant to be watched from a distance. The max() keeps the
+   usual size as a floor, so a small window never gets smaller text than before. The popup
+   (which opens through Cinema View) and compact mode keep their own sizes. vw because this
+   var is declared on .LyricsContent itself; .line resolves it once (Mixed.css). */
+#SpicyLyricsPage.Exp_LargerCinemaLyrics.Fullscreen.BloomRenderer:not(.CompactMode, .ForcedCompactMode, .spicy-pip-wrapper *)
+  .LyricsContainer
+  .LyricsContent {
+  --DefaultLyricsSize: calc(
+    max(clamp(1.85rem, calc(1cqw * 7), 3.5rem), min(3.1vw, 4.75rem)) * var(--SL-LyricsScale, 1)
+  );
+}
+
 /* #SpicyLyricsPage.Fullscreen.MinimalLyricsMode .LyricsContainer .LyricsContent {
   --vertical-gap: 14cqh;
 } */
@@ -142,7 +170,7 @@
      offset, and the credits block below the lines already contributes height).
      Anything larger is dead space that can be scrolled into past the credits. */
   margin-bottom: 6cqh;
-  margin-top: 25cqh;
+  margin-top: 33cqh;
 }
 
 body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {

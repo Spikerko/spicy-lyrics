@@ -69,6 +69,14 @@
   will-change: transform, scale, opacity;
 }
 
+/* Bloom: the last split word's letters are still rising and falling when their
+   line ends. They keep their layers until they come to rest (.Settling, set by
+   the animator); repainted into the line instead, they'd shimmer as they scale. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.Settling .letterGroup,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.Settling .letter {
+  will-change: transform, scale, opacity;
+}
+
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .word,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letter {
@@ -86,19 +94,19 @@
   initial-value: -50%;
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .word,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .letter {
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .word,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .letter {
   --gradient-alpha: 1;
   --gradient-alpha-end: 0.3;
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line
   .word:not(.dot),
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .letter {
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .letter {
   --SLM_GradientPosition: -50%;
   --gradient-position: var(--SLM_GradientPosition, -50%) !important;
   --gradient-offset: 30% !important;
@@ -116,7 +124,7 @@
   );
 }
 
-/* Refreshed Simple Lyrics (experiment). The sung edge is a fade of fixed width
+/* Bloom renderer. The sung edge is a fade of fixed width
    (--SLR_FadeWidth, in em) instead of half the word, so short and long words
    light up alike. The gradient is drawn on an image of 2 × the word + the fade
    (bright half, fade, dim half) and slid across by background-position, which
@@ -125,17 +133,17 @@
    from it, so words and letters share one fade width (RefreshedSweep.FadeEm in
    LyricsAnimator.ts) and the fade runs on across them. The part still to come
    stays a little brighter than before. */
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line.Active
   .word:not(.dot),
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
-  .line.Active
+  .line:is(.Active, .Settling)
   .letter {
-  --SLR_FadeWidth: 0.55em;
+  --SLR_FadeWidth: 0.882em;
   background-image: linear-gradient(
     to right,
     rgba(255, 255, 255, var(--gradient-alpha)) calc(50% - var(--SLR_FadeWidth) / 2),
@@ -146,11 +154,16 @@
   background-position: calc((100% - var(--SLM_GradientPosition)) / 1.5) 0;
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line.Active:not(.bg-line)
-  :is(.word:not(.dot), .letter) {
+  :is(.word:not(.dot), .letter),
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line.Settling:not(.bg-line)
+  .letter {
   --gradient-alpha-end: 0.4;
 }
 
@@ -158,7 +171,7 @@
    animated. Here they wait as plain text like the words around them, so a
    split word doesn't grow into place as its line starts. Sung lines are left
    alone: the last word's letters settle there after the line ends. */
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line:not(.Active, .Sung)
@@ -168,18 +181,29 @@
   translate: none !important;
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
-  .line.Sung
+  .line.Sung:not(.Settling)
   .letter {
   text-shadow:
     0 0 var(--BlurAmount, 0)
       rgba(var(--gradient-color), var(--gradient-color), var(--gradient-color), var(--gradient-alpha)),
-    0 0 var(--text-shadow-blur-radius) rgba(255, 255, 255, var(--text-shadow-opacity));
+    0 0 var(--text-shadow-blur-radius)
+      rgba(255, 255, 255, calc(var(--text-shadow-opacity) * var(--SLR_SungAlpha, 1)));
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode.Exp_RefreshedSimpleLyrics
+/* Split letters grow from their baseline, not the middle of their box. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line
+  .letterGroup
+  .letter {
+  transform-origin: 50% 80%;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line.rtl.Active
@@ -254,7 +278,7 @@
   direction: ltr;
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line {
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line {
   --Vocal-NotSung-opacity: 0.45;
   --Vocal-Sung-opacity: 0.35;
 }
@@ -536,7 +560,7 @@
   /* animation: MusicalLineScaleLoop 5s cubic-bezier(.35,.29,.51,1.11) infinite; */
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line.musical-line
@@ -555,7 +579,7 @@
   line-height: 0.65;
 }
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .line.musical-line
@@ -811,7 +835,21 @@
   scale: 0;
 }
 
-#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.musical-line.Active {
+/* Bloom: the interlude swells, shrinks and fades itself out
+   (LyricsAnimator.ts), so the collapse's scale stays out of it until the line
+   ends. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line.musical-line.Active.pre-hidden
+  .dotGroup {
+  scale: 1;
+}
+
+/* Bloom opens an interlude as its scroll brings it in, ahead of its time
+   (BloomFocus, ScrollToActiveLine.ts); the dots fade in when it starts. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.musical-line.Active,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.musical-line.BloomFocus {
   opacity: 1;
   /* Restore natural height when active so the virtualizer can remeasure it
      via the MutationObserver in LyricsVirtualizer.ts.
@@ -821,12 +859,12 @@
   line-height: var(--lyrics-line-height) !important;
 }
 
-/* #SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .word,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .letterGroup,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .letterGroup .letter,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .dotGroup,
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode .LyricsContainer .LyricsContent .line .dotGroup .dot {
+/* #SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .word,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .letterGroup,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .letterGroup .letter,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .dotGroup,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line .dotGroup .dot {
   --BlurAmount: 0px !important;
 } */
 
@@ -918,7 +956,7 @@
   margin: 0;
 } */
 
-#SpicyLyricsPage.SpicyRenderer.SimpleLyricsMode
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
@@ -957,9 +995,9 @@
    same duration and curve, so the line and the rows read as one move). Collapsed
    it keeps overflow visible, so on the way out the text fades over the rows
    gliding up instead of being cut off. The reveal is on `transform`, which
-   nothing else sets on a line; Minimal Lyrics Mode drives `scale` and
+   nothing else sets on a line; Fade Away Previous Lines drives `scale` and
    `opacity`. The selectors carry .SpicyLyricsScrollContainer and the :not()s
-   so their transition outranks Minimal Lyrics Mode's `!important` one. */
+   so their transition outranks Fade Away Previous Lines's `!important` one. */
 #SpicyLyricsPage.SpicyRenderer.Exp_BackgroundLinePop {
   /* Behind the lead, so the line slides out from under it and back under it. */
   & .VirtualLyricsContainer {
@@ -975,7 +1013,8 @@
     transition:
       transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
       opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-      scale 0.4s ease-in-out !important;
+      scale 0.4s ease-in-out,
+      --SLR_SungAlpha 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s !important;
   }
 
   /* Opening (a line opens NotSung, with its lead): the fade waits only until
@@ -986,7 +1025,8 @@
     transition:
       transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
       opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.05s,
-      scale 0.4s ease-in-out !important;
+      scale 0.4s ease-in-out,
+      --SLR_SungAlpha 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s !important;
   }
 
   & .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer .line.bg-line:is(.OppositeAligned, .rtl):not(.musical-line):not(.static) {
@@ -1346,6 +1386,7 @@
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:is(.OppositeAligned, .rtl) .RomanizedRow {
   text-align: right;
+  transform-origin: right top;
 }
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:is(.Active, .Sung, .static) .RomanizedRow {
@@ -1539,4 +1580,204 @@
 
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.spicy-translated[data-translation]::after {
   content: none;
+}
+
+/* The rows are built with romanization off too, and the toggle only flips
+   RomanizedRowsShown on the page. Turned on, each row slides out from under its
+   line while the lines below glide down to make room (the virtualizer's layout
+   glide), as a background vocal opens. Turned off, it takes no space at once
+   and fades over the lines gliding up, keeping overflow visible so the text
+   isn't cut off on the way out. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .RomanizedRow {
+  transform-origin: left top;
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s,
+    opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1) 0.1s;
+}
+
+#SpicyLyricsPage.SpicyRenderer:not(.RomanizedRowsShown) .LyricsContainer .LyricsContent .line .RomanizedRow {
+  height: 0 !important;
+  margin: 0 !important;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0 !important;
+  transform: translateY(-0.6em) scale(0.8);
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.12s ease-out;
+}
+
+/* Bloom colours. Every line rests at one dim tone, the part being sung lights
+   up to nearly white, and a finished line dims back to rest a moment after
+   it ends. Background vocals light up less. Line opacity stays at 1 so the
+   tones are the text's own and don't compound with it. */
+@property --SLR_SungAlpha {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.18;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line {
+  --SLR_Lit: 0.94;
+  --SLR_Unlit: 0.18;
+  --Vocal-NotSung-opacity: 1;
+  --Vocal-Sung-opacity: 1;
+  --SLR_SungAlpha: var(--SLR_Unlit);
+  transition: --SLR_SungAlpha 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.bg-line {
+  --SLR_Lit: 0.35;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.Active {
+  --SLR_SungAlpha: var(--SLR_Lit);
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line:not(.musical-line),
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line:not(.musical-line) .word,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line:not(.musical-line) .letter {
+  --gradient-alpha: var(--SLR_Lit);
+  --gradient-alpha-end: var(--SLR_Unlit) !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.Sung:not(.musical-line),
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.Sung:not(.musical-line) .word,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line.Sung:not(.musical-line) .letter {
+  --gradient-alpha: var(--SLR_SungAlpha);
+}
+
+/* With Fade Away Previous Lines the lines still to come keep their shrink but
+   not their extra dimming, which would halve the rest tone; a sung line kept
+   on screen beside the one being sung shows at the rest tone too. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent:not(.HideLineBlur)
+  .line.NotSung:not(.musical-line),
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Fullscreen.MinimalLyricsMode.Exp_KeepOverlappingLines:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent:not(.HideLineBlur)
+  .line.Sung.SungAfterActive:not(.musical-line) {
+  opacity: 1;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent:not(.HideLineBlur)
+  .line.Active
+  + .line.Sung:not(.musical-line) {
+  opacity: 1 !important;
+}
+
+/* Bloom line scale: lines rest a little smaller and the line being sung grows
+   to full size from its bottom leading corner, after a short wait; it shrinks
+   back quicker when it ends. Not while Fade Away Previous Lines drives the
+   scale in Fullscreen and Cinema View. Background vocals pop out on their own. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer:is(:not(.Fullscreen.MinimalLyricsMode), .CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line:not(.musical-line, .bg-line, .static) {
+  scale: 0.98;
+  transform-origin: left bottom !important;
+  transition:
+    scale 0.35s cubic-bezier(0.4, 0.1, 0, 1) 0.05s,
+    --SLR_SungAlpha 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer:is(:not(.Fullscreen.MinimalLyricsMode), .CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  .line:is(.Active, .BloomFocus):not(.musical-line, .bg-line, .static) {
+  scale: 1;
+  transition:
+    scale 0.5s cubic-bezier(0.4, 0.1, 0, 1) 0.15s,
+    --SLR_SungAlpha 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer:is(:not(.Fullscreen.MinimalLyricsMode), .CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer
+  :is(.line.OppositeAligned:not(.rtl), .line.rtl:not(.OppositeAligned)):not(.musical-line, .bg-line, .static) {
+  transform-origin: right bottom !important;
+}
+
+/* Bloom: a split letter's glow dims with the letter, so a letter not yet lit
+   doesn't sit in a bright haze. --SLR_LetterLit is the letter's own tone
+   (LyricsAnimator.ts). */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer .LyricsContainer .LyricsContent .line:is(.Active, .Settling) .letter {
+  text-shadow: 0 0 var(--text-shadow-blur-radius)
+    rgba(255, 255, 255, calc(var(--text-shadow-opacity) * var(--SLR_LetterLit, 1)));
+}
+
+/* Fade Away Previous Lines' transition list is `!important`; under Bloom it
+   also carries the dimming of a finished line. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .line:not(.musical-line, .bg-line) {
+  transition:
+    scale 0.4s ease-in-out,
+    opacity 0.4s linear,
+    --SLR_SungAlpha 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s !important;
+}
+
+/* Bloom, line-synced lyrics: a line has no words to fill, so it lights up as a
+   whole. Every state draws the text the same way, in --SLR_SungAlpha, so the
+   tone can fade instead of switching from the rest look to the lit gradient in
+   one frame: up in 0.3 s as the line starts and down in 0.4 s as it ends. The
+   line-synced `.line` rule's `!important` transition list (scale and opacity
+   only) would drop the fade, so these lists are `!important` too. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer
+  .LyricsContainer
+  .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
+  .line:not(.musical-line) {
+  background-image: none !important;
+  text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--SLR_SungAlpha)) !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer:is(:not(.Fullscreen.MinimalLyricsMode), .CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
+  .line:not(.musical-line, .static) {
+  transition:
+    scale 0.35s cubic-bezier(0.4, 0.1, 0, 1) 0.05s,
+    opacity 0.2s cubic-bezier(0.37, 0, 0.63, 1),
+    --SLR_SungAlpha 0.4s cubic-bezier(0.33, 0, 0.2, 1) !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer:is(:not(.Fullscreen.MinimalLyricsMode), .CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
+  .line:is(.Active, .BloomFocus):not(.musical-line, .static) {
+  transition:
+    scale 0.5s cubic-bezier(0.4, 0.1, 0, 1) 0.15s,
+    opacity 0.2s cubic-bezier(0.37, 0, 0.63, 1),
+    --SLR_SungAlpha 0.3s cubic-bezier(0.33, 0, 0.2, 1) !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
+  .line:not(.musical-line) {
+  transition:
+    scale 0.4s ease-in-out,
+    opacity 0.4s linear,
+    --SLR_SungAlpha 0.4s cubic-bezier(0.33, 0, 0.2, 1) !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Fullscreen.MinimalLyricsMode:not(.CompactMode)
+  .LyricsContainer
+  .LyricsContent
+  .SpicyLyricsScrollContainer[data-lyrics-type="Line"]
+  .line.Active:not(.musical-line) {
+  transition:
+    scale 0.4s ease-in-out,
+    opacity 0.4s linear,
+    --SLR_SungAlpha 0.3s cubic-bezier(0.33, 0, 0.2, 1) !important;
 }

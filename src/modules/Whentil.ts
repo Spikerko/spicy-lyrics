@@ -1,3 +1,7 @@
+import Logger from "../utils/Logger.ts";
+
+const whentilLogger = new Logger("Whentil");
+
 export type CancelableTask = {
     Cancel: () => void;
     Reset: () => void;
@@ -83,7 +87,7 @@ function When<T>(
         try {
             callback(conditionMet);
         } catch (error) {
-            console.error("[Whentil] callback threw", error);
+            whentilLogger.error("Callback threw", error);
         }
         if (executionsRemaining > 0) setTimeout(runner, 0);
     };

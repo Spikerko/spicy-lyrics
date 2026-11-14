@@ -5,6 +5,10 @@
  * classes in default.css and NPVLyrics.css, which is why those buttons are never rebuilt
  * just to change state.
  *
+ * They render at roughly 10-21px, mostly under the grid, so every glyph keeps to a few strokes: parallel
+ * strokes sit at least 4.5 units apart and arrowheads have 3-unit arms or longer. Anything
+ * finer closes up into a blob at that size.
+ *
  * Left as they are: the brand mark (LyricsPage), PiPMode (it sits in Spotify's playbar
  * and matches Spotify's own glyphs), and the filled transport/heart/volume set, whose
  * IDs, classes and aspect ratios the NowBar CSS depends on.
@@ -23,6 +27,17 @@ const TrackSkip = `
 	</div>
 `;
 
+/**
+ * A grouped view toggle's "on" face (default.css, Exp_GroupedViewControls): a white disc with the
+ * glyph cut out of it, so the capsule's frost shows through the strokes. The glyph's parts keep
+ * their classes inside the mask, so the state and hover rules move them here as well. The glyph
+ * spans half the disc, as the plain glyph does in that layout.
+ */
+export function KnockoutDisc(icon: string, maskId: string) {
+  const body = icon.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1] ?? "";
+  return `<svg class="SL_KnockoutDisc" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true"><mask id="${maskId}" maskUnits="userSpaceOnUse" x="0" y="0" width="48" height="48"><rect width="48" height="48" fill="#fff"/><g transform="translate(12 12)" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</g></mask><circle cx="24" cy="24" r="24" fill="#fff" mask="url(#${maskId})"/></svg>`;
+}
+
 export const Icons = {
   LyricsPage: `
         <svg class="Svg-sc-ytk21e-0 Svg-img-16-icon" id="SpicyLyricsPageSvg" version="1.0" xmlns="http://www.w3.org/2000/svg" width="22px" height="22px" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
@@ -34,9 +49,9 @@ export const Icons = {
         </svg>
     `,
   Close: Line(`<path d="m5.5 5.5 13 13"/><path d="m18.5 5.5-13 13"/>`),
-  // The page in miniature: cover and title on the NowBar's side, lyric lines on the other.
+  // The page in miniature: cover on the NowBar's side, lyric lines on the other.
   NowBar: Line(
-    `<g class="SL_IconPart SL_IconCover"><rect x="3" y="5" width="9" height="9" rx="2"/><path d="M4.5 18.5h6"/></g><g class="SL_IconPart SL_IconLyrics"><path d="M15.5 7.5h5"/><path d="M15.5 11.5h5"/><path d="M15.5 15.5h3"/></g>`
+    `<rect class="SL_IconPart SL_IconCover" x="3" y="7.5" width="9" height="9" rx="2"/><g class="SL_IconPart SL_IconLyrics"><path d="M15.5 6.5H21"/><path d="M15.5 12H21"/><path d="M15.5 17.5H19"/></g>`
   ),
   // Screen edges, no window: the whole display.
   Fullscreen: Line(
@@ -49,11 +64,11 @@ export const Icons = {
   ),
   // The Spotify window, with the lyrics growing to its edges.
   CinemaView: Line(
-    `${Frame}<path class="SL_IconPart SL_NudgeTL" d="M10.5 10.5 7 7m0 3V7h3"/><path class="SL_IconPart SL_NudgeBR" d="M13.5 13.5 17 17m0-3v3h-3"/>`
+    `${Frame}<path class="SL_IconPart SL_NudgeTL" d="M7.5 11.5v-3h3"/><path class="SL_IconPart SL_NudgeBR" d="M16.5 12.5v3h-3"/>`
   ),
   // Spotify's layout: lyrics leave the right sidebar for the main view.
   OpenPage: Line(
-    `${Frame}<path d="M15 4v16"/><path class="SL_NudgeL" d="M11.5 12H6.5m2.5-2.5L6.5 12 9 14.5"/>`
+    `${Frame}<path d="M15.5 4v16"/><path class="SL_NudgeL" d="m10.5 8.5-3.5 3.5 3.5 3.5"/>`
   ),
 
   PrevTrack: TrackSkip.replace("REPLACEME", "PrevTrack"),
@@ -94,19 +109,28 @@ export const Icons = {
 			<path id="SpicyLyrics_VolumeMute" d="M15.3 8.8a1 1 0 0 1 1.4 0l1.8 1.8 1.8-1.8a1 1 0 1 1 1.4 1.4L19.9 12l1.8 1.8a1 1 0 0 1-1.4 1.4l-1.8-1.8-1.8 1.8a1 1 0 0 1-1.4-1.4l1.8-1.8-1.8-1.8a1 1 0 0 1 0-1.4z"/>
 		</svg>
 	`,
+  // A fixed full-volume glyph marking the loud end of a horizontal volume bar. No ids, so the
+  // .Low / .Muted rules that switch the parts of `Volume` never touch it.
+  VolumeFull: `
+		<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="VolumeFull">
+			<path d="M11 4.5 6.5 8.5H3.5c-.83 0-1.5.67-1.5 1.5v4c0 .83.67 1.5 1.5 1.5h3l4.5 4c.65.58 1.5.1 1.5-.68V5.18c0-.78-.85-1.26-1.5-.68z"/>
+			<path d="M15.2 9.6a1 1 0 0 1 1.4 0 3.4 3.4 0 0 1 0 4.8 1 1 0 1 1-1.4-1.4 1.4 1.4 0 0 0 0-2 1 1 0 0 1 0-1.4z"/>
+			<path d="M17.9 6.9a1 1 0 0 1 1.4 0 7.2 7.2 0 0 1 0 10.2 1 1 0 1 1-1.4-1.4 5.2 5.2 0 0 0 0-7.4 1 1 0 0 1 0-1.4z"/>
+		</svg>
+	`,
   // One chevron for both card states; NPVLyrics.css turns the whole svg over when the card
   // collapses. The card's morph keeps the main thread busy, so only composited motion shows.
   CardToggle: Line(`<path d="m6 15 6-6 6 6"/>`),
-  // The card stretching to the sidebar's top and bottom, then the arrows turned inward once
-  // it has. Both are stacked so NPVLyrics.css can cross-fade them on the compositor.
+  // The card pushing out to the sidebar's top and bottom, then the chevrons turned inward
+  // once it has. Both are stacked so NPVLyrics.css can cross-fade them on the compositor.
   CardExpand: `<span class="SL_IconStack">${Line(
-    `<path d="M6 3.5h12"/><path d="M6 20.5h12"/><path d="M12 10.5v-4m-2.5 2.5L12 6.5l2.5 2.5"/><path d="M12 13.5v4m-2.5-2.5 2.5 2.5 2.5-2.5"/>`
+    `<path class="SL_NudgeU" d="m8 9.5 4-4 4 4"/><path class="SL_NudgeD" d="m8 14.5 4 4 4-4"/>`
   )}${Line(
-    `<path d="M6 3.5h12"/><path d="M6 20.5h12"/><path d="M12 6.5v4m-2.5-2.5 2.5 2.5 2.5-2.5"/><path d="M12 17.5v-4m-2.5 2.5 2.5-2.5 2.5 2.5"/>`
+    `<path d="m8 5.5 4 4 4-4"/><path d="m8 18.5 4-4 4 4"/>`
   )}</span>`,
   // Cover on the NowBar's current side, pointing at the side it will move to.
   NowBarSideSwap: Line(
-    `${Frame}<rect class="SL_IconPart SL_IconCover" x="6" y="9.5" width="5" height="5" rx="1.25"/><path class="SL_IconPart SL_IconSwapArrow" d="M14 12h4m-1.75-1.75L18 12l-1.75 1.75"/>`
+    `<rect class="SL_IconPart SL_IconCover" x="3" y="8" width="8" height="8" rx="2"/><path class="SL_IconPart SL_IconSwapArrow" d="M14.5 12H21m-3-3 3 3-3 3"/>`
   ),
   Heart: `
         <svg viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -137,17 +161,26 @@ export const Icons = {
             </defs>
         </svg>
     `,
+  // A speech bubble holding two lines of words: the lyrics.
+  Lyrics: Line(
+    `<path d="M6 4h12a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-7l-4.5 3.5V17H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M7.5 9h9"/><path d="M7.5 12.5h5.5"/>`
+  ),
+  // A list with a play mark at its head: what plays next.
+  Queue: Line(
+    `<path d="M3.5 6h8.5"/><path d="M3.5 12h8.5"/><path d="M3.5 18h17"/><path d="M16 4.5v7l5-3.5z"/>`
+  ),
   // A stack of lyric sheets: the local TTML files this panel manages.
   LyricsManager: Line(
-    `<path d="M8 3h8.5A2.5 2.5 0 0 1 19 5.5V16"/><rect x="5" y="6" width="11" height="15" rx="2.5"/><path d="M8 10.5h5"/><path d="M8 14h5"/><path d="M8 17.5h3"/>`
+    `<path d="M8.5 3H17a2.5 2.5 0 0 1 2.5 2.5v11"/><rect x="4" y="7.5" width="11" height="13.5" rx="2.5"/><path d="M7.5 12.5h4"/><path d="M7.5 16.5h4"/>`
   ),
-  // A and ア are both "a", which is the whole idea of romanization. The script the
-  // button switches to is drawn at full strength, the one it leaves dimmed.
+  // Each button is one glyph, the script it switches to: a kana takes the lyrics back to their
+  // own script, and a Latin letter under a macron, the mark romanized text is full of, romanizes
+  // them.
   DisableRomanization: Line(
-    `<g opacity=".4"><path d="M2.5 18 6.75 6 11 18"/><path d="M4 14h5.5"/></g><path d="M13.5 6.5h8L19 9.75"/><path d="M17.25 9.75v1.75c0 2.75-1.25 5-3.75 6.5"/>`
+    `<path d="M6.5 8h10"/><path d="M11.5 4.5c-.6 4.5-.3 10.5 1 15"/><path d="M16 11c-1.5 4.25-4.75 7.5-7.5 7.5-1.5 0-2.5-1-2.5-2.5 0-2.5 3-4.5 7-4.5 3.5 0 5.75 1.75 5.75 4.25 0 2-1.5 3.5-4.25 4"/>`
   ),
   EnableRomanization: Line(
-    `<path d="M2.5 18 6.75 6 11 18"/><path d="M4 14h5.5"/><g opacity=".4"><path d="M13.5 6.5h8L19 9.75"/><path d="M17.25 9.75v1.75c0 2.75-1.25 5-3.75 6.5"/></g>`
+    `<path d="M6 20.5 12 7.5l6 13"/><path d="M8.5 16h7"/><path d="M8 3.5h8"/>`
   ),
   // A lyric line with its translation hooked underneath, dimmed while hidden.
   EnableTranslation: Line(
@@ -156,13 +189,13 @@ export const Icons = {
   DisableTranslation: Line(
     `<path d="M3.5 6h17"/><path d="M3.5 10.5h11"/><path d="M5.5 14v2.5a2 2 0 0 0 2 2h13"/>`
   ),
-  // Compact layout: small cover and title on one row, lyrics underneath.
+  // Compact layout: small cover and its title on one row, lyrics underneath.
   EnableCompactModeIcon: Line(
-    `<rect x="3.5" y="4.5" width="6" height="6" rx="1.5"/><path d="M13 5.75h7.5"/><path d="M13 9.25h4.5"/><path d="M3.5 15h17"/><path d="M3.5 19.5h11"/>`
+    `<rect x="3.5" y="4" width="6.5" height="6.5" rx="1.75"/><path d="M14 7.25h6.5"/><path d="M3.5 15.5h17"/><path d="M3.5 20h11"/>`
   ),
-  // Regular layout: large cover with its title, lyrics beside it.
+  // Regular layout: large cover, lyrics beside it.
   DisableCompactModeIcon: Line(
-    `<rect x="3" y="5" width="9" height="9" rx="2"/><path d="M4.5 18.5h6"/><path d="M15.5 7.5h5"/><path d="M15.5 11.5h5"/><path d="M15.5 15.5h3"/>`
+    `<rect x="3" y="7.5" width="9" height="9" rx="2"/><path d="M15.5 6.5H21"/><path d="M15.5 12H21"/><path d="M15.5 17.5H19"/>`
   ),
   PiPMode: `<svg data-encore-id="icon" role="img" aria-hidden="true" class="e-91000-icon e-91000-baseline" viewBox="0 0 16 16" style="--encore-icon-height: var(--encore-graphic-size-decorative-smaller); --encore-icon-width: var(--encore-graphic-size-decorative-smaller);"><path d="M16 2.45c0-.8-.65-1.45-1.45-1.45H1.45C.65 1 0 1.65 0 2.45v11.1C0 14.35.65 15 1.45 15h5.557v-1.5H1.5v-11h13V7H16z"></path><path d="M15.25 9.007a.75.75 0 0 1 .75.75v4.493a.75.75 0 0 1-.75.75H9.325a.75.75 0 0 1-.75-.75V9.757a.75.75 0 0 1 .75-.75z"></path></svg>`,
   // Eight teeth, so the 45° hover turn in default.css lands on an identical gear.

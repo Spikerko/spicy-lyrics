@@ -1,0 +1,476 @@
+/* Player Below the Cover experiment (Exp_PlayerBelowCover). In Cinema View without a Canvas, the
+   player sits under the cover and stays on screen: title and artist with the like button at the end
+   of their row, the progress bar with its times beneath, the transport, then the volume bar.
+
+   The rows below the cover are placed off fixed offsets from the cover's top edge, so they land in
+   the same place whether the timeline lives in the Header or in the MediaContent overlay. Everything
+   is sized in cqw: the NowBar and the square MediaBox are equally wide, so rows in the Header flow
+   and rows in the overlay measure the same. Only the geometry changes here; both SliderBar skins keep
+   their own paint. Compact mode (and with it the popup) and the Canvas Stage keep their layouts. */
+
+/* The loud end of the flat volume bar. Only this layout shows it. */
+#SpicyLyricsPage .VolumeControl .VolumeMaxIcon {
+  display: none;
+}
+
+/* The NowBar moves out to the screen edge instead of centring in its half; the lyrics stay where
+   they were, so the gap opens up between the two. The lyrics' end padding is derived from the
+   NowBar's spacing, so it keeps the base value. The no-lyrics layout's !important centring wins. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.NowBarStatus__Open:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) {
+  --PB_BaseLeftSpacing: calc(50cqw - var(--NowBarWidth) - var(--NowBarRightSpacing));
+  --NowBarLeftSpacing: min(max(24px, 4.2cqw), var(--PB_BaseLeftSpacing));
+  --LyricsRightSidePadding: calc(var(--PB_BaseLeftSpacing) * 0.35);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar {
+  --PB_MetaGap: 8cqw;
+  --PB_TitleSize: max(13px, 3.9cqw);
+  --PB_ArtistSize: max(12px, 3.7cqw);
+  --PB_MetaH: calc(var(--PB_TitleSize) * 1.3 + var(--PB_ArtistSize) * 1.3);
+  --PB_HeartW: max(18px, 5.2cqw);
+  --PB_TimelineGap: 3cqw;
+  --PB_BarRow: 3cqw;
+  --PB_TimeSize: max(10px, 2.1cqw);
+  --PB_TimelineH: calc(var(--PB_BarRow) + 0.8cqw + var(--PB_TimeSize) * 1.3);
+  --PB_ControlsGap: 2.5cqw;
+  --PB_ControlsH: 9cqw;
+  --PB_VolumeGap: 4cqw;
+  --PB_VolumeRow: 4cqw;
+  --PB_VolumeIcon: max(14px, 3.4cqw);
+  --PB_VolumeIconGap: 2.2cqw;
+  --PB_MetaTop: calc(100cqw + var(--PB_MetaGap));
+  --PB_TimelineTop: calc(var(--PB_MetaTop) + var(--PB_MetaH) + var(--PB_TimelineGap));
+  --PB_ControlsTop: calc(var(--PB_TimelineTop) + var(--PB_TimelineH) + var(--PB_ControlsGap));
+  --PB_VolumeTop: calc(var(--PB_ControlsTop) + var(--PB_ControlsH) + var(--PB_VolumeGap));
+  /* Centres the whole stack, about 1.47 cover widths tall, instead of the cover and title. */
+  padding-top: calc(50cqh - var(--NowBarWidth) * 0.735);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.ShowVolumeSlider):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar {
+  padding-top: calc(50cqh - var(--NowBarWidth) * 0.695);
+}
+
+/* Outside document fullscreen, Spotify's own menu and window buttons sit in a band along the top
+   (Fullscreen.ts measures its centreline). The taller stack would reach into it in short windows,
+   so the cover never starts above it. */
+:root:not(:fullscreen) #SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar {
+  padding-top: max(calc(50cqh - var(--NowBarWidth) * 0.735), calc(var(--NativeChromeMid, 0px) * 2 + 12px));
+}
+
+:root:not(:fullscreen) #SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.ShowVolumeSlider):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar {
+  padding-top: max(calc(50cqh - var(--NowBarWidth) * 0.695), calc(var(--NativeChromeMid, 0px) * 2 + 12px));
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView > .Header {
+  display: flex;
+  flex-direction: column;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .MediaBox {
+  flex-shrink: 0;
+}
+
+/* The overlay's controls stay on screen; only the view controls keep the hover fade. Without the
+   opacity layer the overlay is no backdrop root, so the glass bars frost the page behind them the
+   same way the timeline in the Header does. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent {
+  opacity: 1;
+  will-change: auto;
+  pointer-events: none;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent > * {
+  pointer-events: auto;
+}
+
+/* View controls: a column in the gap between the cover and the lyrics, hanging off the cover's
+   inner edge with Close level with its top. The art stays clear and the column never overlaps the
+   player rows. It still lives in the MediaBox, so hovering it keeps it up; the offset from the cover
+   is padding, not a gap, so the pointer never leaves the MediaBox on the way over. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  --ViewControlSize: max(36px, 6.4cqw);
+  container-type: normal;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  right: auto;
+  width: auto;
+  height: auto !important;
+  flex-direction: column-reverse;
+  gap: max(6px, 1.2cqw);
+  padding: 0 0 0 2.4cqw;
+  /* The buttons fade, not the column: an opacity layer here would be a backdrop root, and their
+     frost would draw nothing. */
+  opacity: 1 !important;
+  /* Slides out from behind the cover's edge as it fades in. It follows the hover state on a short
+     transition of its own (data-controls, set in Fullscreen.ts) rather than the cover's slow
+     spring, which suits the cover dimming but left the buttons lagging the pointer. Hiding after idle
+     is a touch slower than showing, so it fades rather than vanishes. */
+  translate: -1.2cqw 0;
+  transition: translate 0.65s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) !important;
+}
+
+#SpicyLyricsPage.NowBarSide__Right.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+  left: auto;
+  right: 100%;
+  padding: 0 2.4cqw 0 0;
+  translate: 1.2cqw 0;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox:is([data-controls="Dim"], [data-controls="Full"]) .MediaContent .ViewControls {
+  translate: 0 0;
+  transition-duration: 0.55s !important;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:where(:not(.Exp_GroupedViewControls)):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls .ViewControl {
+  opacity: 0;
+  transition:
+    opacity 0.65s var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    scale 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:where(:not(.Exp_GroupedViewControls)):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox[data-controls="Dim"] .MediaContent .ViewControls .ViewControl {
+  opacity: 0.65;
+  transition-duration: 0.55s, 0.28s, 0.3s, 0.3s, 0.3s;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:where(:not(.Exp_GroupedViewControls)):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox[data-controls="Full"] .MediaContent .ViewControls .ViewControl {
+  opacity: 1;
+  transition-duration: 0.55s, 0.28s, 0.3s, 0.3s, 0.3s;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:where(:not(.Exp_GroupedViewControls)):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox[data-controls="Full"] .MediaContent .ViewControls:has(.ViewControl:hover) > .ViewControl:not(:hover) {
+  opacity: 0.78;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+    translate: 0 0 !important;
+  }
+}
+
+/* Every pointer over the player rows counts as hovering the MediaBox, so the cover's hover dim
+   would darken it whenever the transport is used. Nothing sits over the cover any more. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header .MediaBox .MediaImageContainer {
+  filter: none;
+}
+
+/* Title row: left-aligned on the cover's edge, with the like button at its end. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata {
+  position: relative;
+  flex-shrink: 0;
+  height: var(--PB_MetaH);
+  width: 100%;
+  margin: var(--PB_MetaGap) 0 0;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+}
+
+/* The start-edge fade's depth. 0 while the text rests, so its first letters stay whole on the
+   cover's edge; it grows in only while the text is away (TextSliding, TextScroller.ts). */
+@property --PB_StartFade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* The boxes start on the cover's edge and clip there, so scrolling text never runs out past the
+   column. The base layout's 2.5cqw start padding (and the fade inside it) is dropped, and the end
+   stays where it was. Leaving, the fade eases in alongside the slide's own 0.6 s ramp; returning
+   (TextSettling), it eases out as the text settles back on the edge. Anything else, like a new
+   title replacing one mid-scroll, drops it at once. Capped at the travel, so a title that barely
+   overflows gets a fade no deeper than it moves. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata :is(.SongName, .Artists) {
+  max-width: calc(100% - var(--PB_HeartW) - 4.5cqw);
+  text-align: left;
+  --PB_StartFade: 0px;
+  /* Not none: with no transition at all, a fade still easing in carries on to its full depth. */
+  transition: --PB_StartFade 1ms linear;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--PB_StartFade),
+    #000 calc(100% - 3.75cqw),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--PB_StartFade),
+    #000 calc(100% - 3.75cqw),
+    transparent 100%
+  );
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata :is(.SongName, .Artists).TextSliding {
+  --PB_StartFade: min(2.5cqw, var(--TextScrollTravel, 2.5cqw));
+  transition: --PB_StartFade 0.6s ease-in;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata :is(.SongName, .Artists).TextSettling {
+  transition: --PB_StartFade 0.6s ease-out;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata :is(.SongName, .Artists) > span {
+  text-align: left;
+  padding-left: 0;
+}
+
+/* The base sizes are !important, so these have to be too. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata .SongName {
+  font-size: var(--PB_TitleSize) !important;
+  line-height: 1.3 !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  opacity: 0.96;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Metadata .Artists {
+  font-size: var(--PB_ArtistSize) !important;
+  line-height: 1.3 !important;
+  font-weight: 400;
+  opacity: 0.62;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .Heart {
+  top: calc(var(--PB_MetaTop) + (var(--PB_MetaH) - var(--PB_HeartW)) / 2);
+  left: auto;
+  right: 0;
+  width: var(--PB_HeartW);
+  margin: 0;
+}
+
+/* Timeline: the bar runs the cover's full width with the times under its ends. Its row is fixed,
+   so the bar can thicken on hover without nudging the times. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: var(--PB_BarRow) auto;
+  column-gap: 0;
+  row-gap: 0.8cqw;
+  align-content: start;
+  height: var(--PB_TimelineH);
+  padding: 0;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Header > .Timeline {
+  order: 1;
+  flex-shrink: 0;
+  width: 100%;
+  margin-top: var(--PB_TimelineGap);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .Timeline {
+  top: var(--PB_TimelineTop);
+  bottom: auto;
+  left: 0;
+  right: 0;
+  width: auto;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .SliderBar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  align-self: center;
+  margin: 0;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.Exp_NewProgressBar:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .SliderBar {
+  height: 1.5cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover.Exp_NewProgressBar:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .SliderBar:is(:hover, .Dragging) {
+  height: 2.6cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.Exp_NewProgressBar):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .SliderBar {
+  height: 0.9cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .Time {
+  grid-row: 2;
+  min-width: 0;
+  font-size: var(--PB_TimeSize) !important;
+  line-height: 1.3;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .Time.Position {
+  grid-column: 1;
+  text-align: left;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .Timeline .Time.Duration {
+  grid-column: 3;
+  text-align: right;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .ScrubPreview {
+  font-size: var(--PB_TimeSize) !important;
+}
+
+/* Transport: five equal columns across the cover's width. Shuffle and repeat put their glyphs on
+   the cover's edges; the rest sit centred in their columns. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  top: var(--PB_ControlsTop);
+  bottom: auto;
+  left: 0;
+  width: 100cqw;
+  height: var(--PB_ControlsH);
+  padding: 0;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl {
+  justify-self: center;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.ShuffleToggle {
+  justify-self: start;
+  width: 4cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.LoopToggle {
+  justify-self: end;
+  width: 4cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.TrackSkip {
+  width: 8cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .PlaybackControls .PlaybackControl.PlayStateToggle {
+  width: 5.6cqw;
+}
+
+/* Volume: the capsule laid flat between a mute button at the quiet end and a fixed glyph at the
+   loud one. NowBar.ts reads the drag axis from the capsule's shape. */
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl {
+  --CapsuleWidth: 1.5cqw;
+  /* The bare speaker fills only the left of its box, so the quiet end needs less room. */
+  --PB_VolumeStart: calc(var(--PB_VolumeIcon) * 0.6 + var(--PB_VolumeIconGap));
+  --CapsuleHeight: calc(100cqw - var(--PB_VolumeStart) - var(--PB_VolumeIcon) - var(--PB_VolumeIconGap));
+  top: calc(var(--PB_VolumeTop) + var(--PB_VolumeRow) / 2);
+  left: var(--PB_VolumeStart);
+  right: auto;
+  width: var(--CapsuleHeight);
+  height: var(--CapsuleWidth);
+  /* The glyphs hang outside the capsule, so the fill clips itself instead. */
+  overflow: visible;
+  /* Quieter than the timeline at rest; full strength while it's being used. The glyphs inside
+     ride the same opacity. */
+  opacity: 0.6;
+  transition:
+    height 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl:is(:hover, .Dragging) {
+  opacity: 1;
+}
+
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_PlayerBelowCover.Exp_NewProgressBar:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl:is(:hover, .Dragging) {
+  --CapsuleWidth: 2.6cqw;
+}
+
+#SpicyLyricsPage.Fullscreen.ShowVolumeSlider.Exp_PlayerBelowCover:not(.Exp_NewProgressBar):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .VolumeControl {
+  --CapsuleWidth: 0.9cqw;
+  background: linear-gradient(
+    90deg,
+    var(--TraveledColor) 0,
+    var(--TraveledColor) calc(100% * var(--VolumeLevel)),
+    var(--RemainingColor) calc(100% * var(--VolumeLevel)),
+    var(--RemainingColor)
+  );
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl .VolumeFill {
+  border-radius: inherit;
+  transform: none;
+  clip-path: inset(0 calc((1 - var(--VolumeLevel)) * 100%) 0 0);
+  transition: clip-path 0.18s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl.Dragging .VolumeFill {
+  transition: none;
+}
+
+/* A thin bar is a hard thing to grab: a taller hit area, in both skins, without touching the paint. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl::after {
+  content: "";
+  position: absolute;
+  inset: -1.5cqw 0;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.Exp_NewProgressBar):not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl .Handle {
+  left: 0;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%) translateX(calc(var(--CapsuleHeight) * var(--VolumeLevel)));
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl :is(.VolumeIcon, .VolumeMaxIcon) {
+  top: 50%;
+  bottom: auto;
+  width: var(--PB_VolumeIcon);
+  height: var(--PB_VolumeIcon);
+  transform: translateY(-50%);
+  fill: #fff;
+  opacity: 0.9;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl .VolumeIcon {
+  /* On the cover's edge, wherever the capsule starts. */
+  left: calc(-1 * var(--PB_VolumeStart));
+  right: auto;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl .VolumeMaxIcon {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  justify-content: center;
+  left: calc(100% + var(--PB_VolumeIconGap));
+  pointer-events: none;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl :is(.VolumeIcon, .VolumeMaxIcon) svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* The quiet end is the bare speaker at every level; the loud glyph opposite carries the waves.
+   The mute cross still shows while muted. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl .VolumeIcon :is(#SpicyLyrics_VolumeWaveLow, #SpicyLyrics_VolumeWaveHigh) {
+  opacity: 0;
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .NowBar .VolumeControl .VolumeIcon:hover {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls,
+  #SpicyLyricsPage.NowBarSide__Right.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .CenteredView .Header .MediaBox .MediaContent .ViewControls {
+    translate: none;
+  }
+}
+
+/* The heart's outline is drawn for the large overlay heart; at title size its 22-unit stroke is a
+   hairline. A heavier stroke here, with the glyph pulled in from the viewBox edges so the stroke
+   isn't cut flat where the outline meets them. The group, not the svg, is scaled: the svg carries
+   the hover and press scale, and the clipped group would take its clip along. */
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .MediaContent .Heart :is(#SpicyLyrics_HeartOutline, #SpicyLyrics_HeartFill) {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  transform: scale(0.93);
+}
+
+#SpicyLyricsPage.Fullscreen.Exp_PlayerBelowCover:not(.CompactMode, .ForcedCompactMode, .CanvasImmersive) .ContentBox .NowBar .MediaContent .Heart #SpicyLyrics_HeartOutline path {
+  stroke-width: 58;
+}

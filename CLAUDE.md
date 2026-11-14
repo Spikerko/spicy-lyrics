@@ -66,6 +66,7 @@ User-facing feature flags, shown in Settings → Experiments. Use one whenever a
 ```ts
 {
   id: "myExperiment",            // stable; persisted as "experiment:myExperiment"
+  category: "lyrics",            // required: "lyrics" | "background" | "player", its heading in the tab
   label: "My Experiment",
   description: "What it changes, and what turning it off restores.",
   default: true,

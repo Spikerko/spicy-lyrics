@@ -303,8 +303,8 @@
 /* Pinned Credits: one line in the times row, between the elapsed and total times
    (PinnedCredits.ts moves the source and community rows in). It's a cell of the timeline's
    grid, so it stays centred under the bar as the dock rises, falls and resizes. A credit
-   that doesn't fit drops its avatars and scrolls like the song name (data-marquee, with
-   --TC_Shift the distance, both set by PinnedCredits.ts). */
+   that doesn't fit drops its avatars (data-marquee, set by PinnedCredits.ts) and scrolls
+   like the song name (TextScroller.ts). */
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .Timeline .TimelineCredits {
   grid-column: 2;
   grid-row: 2;
@@ -366,27 +366,12 @@
   display: none;
 }
 
-/* The song name's marquee: hold, slide across, hold, and back. The edges fade across the
+/* While it scrolls: hold, slide across, hold, and back. The edges fade across the
    padding, so the text's ends are clear at either hold. */
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] {
   --TC_Pad: max(clamp(6px, calc(var(--PD_U) * 2), 12px), 1em);
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--TC_Pad), #000 calc(100% - var(--TC_Pad)), transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0, #000 var(--TC_Pad), #000 calc(100% - var(--TC_Pad)), transparent 100%);
-}
-
-.spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] > .SongCredits {
-  animation: TimelineCreditsMarquee 25s linear infinite alternate;
-}
-
-@keyframes TimelineCreditsMarquee {
-  0%,
-  10% {
-    translate: 0;
-  }
-  90%,
-  100% {
-    translate: var(--TC_Shift, 0px);
-  }
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits .SongInfoLead::after,
@@ -657,11 +642,6 @@
 
   .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .Timeline .TimelineCredits:not(.Leaving) {
     animation-name: TimelineCreditsFade;
-  }
-
-  /* Held at the start; the end fades out instead of scrolling into view. */
-  .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .NowBar .TimelineCredits[data-marquee] > .SongCredits {
-    animation: none;
   }
 
   .spicy-pip-wrapper #SpicyLyricsPage.Exp_PopupDock .ContentBox.LyricsHidden .NowBar .CenteredView .Header .MediaBox .MediaImageContainer {

@@ -126,6 +126,8 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   /* Entrances and state swaps: moves at once, settles long. */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Something already on screen moving from one place to another. */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --dur-fast: 0.15s;
   --dur-base: 0.25s;
   --dur-slow: 0.4s;

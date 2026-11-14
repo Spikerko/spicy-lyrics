@@ -6,13 +6,16 @@ import {
   $lyricsSize,
   $minimalLyricsMode,
   $pinnedCredits,
+  $rendererVisualStyle,
   $romanizationDisplay,
   $romanizationHighlight,
-  $simpleLyricsMode,
   $syllableMerge,
   $syllablePace,
   $translationDisplay,
+  RENDERER_VISUAL_STYLES,
+  RENDERER_VISUAL_STYLE_LABELS,
   type PinnedCredits,
+  type RendererVisualStyle,
   type RomanizationDisplay,
   type RomanizationHighlight,
   type SyllableMerge,
@@ -54,22 +57,26 @@ const groups: GroupDef[] = [
     title: "Style",
     settings: [
       {
-        id: "simpleLyricsMode",
-        label: "Simple Lyrics Mode",
-        description: "Drop the extra visual effects from the lyrics.",
-        keywords: "effects plain",
+        id: "rendererVisualStyle",
+        label: "Renderer Visual Style",
+        description:
+          "Visual design of rendered lyrics. \"Spring\" is the default Spicy Lyrics renderer you know.",
+        keywords: "simple lyrics mode refreshed renderer animation effects plain spring bloom",
         Control: ({ label }) => (
-          <Toggle
+          <Select
             label={label}
-            checked={useStore($simpleLyricsMode)}
-            onChange={(v) => $simpleLyricsMode.set(v)}
+            value={useStore($rendererVisualStyle)}
+            options={[...RENDERER_VISUAL_STYLES]}
+            labels={RENDERER_VISUAL_STYLES.map((style) => RENDERER_VISUAL_STYLE_LABELS[style])}
+            onChange={(v) => $rendererVisualStyle.set(v as RendererVisualStyle)}
           />
         ),
       },
       {
         id: "minimalLyricsMode",
-        label: "Minimal Lyrics Mode",
+        label: "Fade Away Previous Lines",
         description: "Hide lines that have already been sung in Fullscreen and Cinema View.",
+        keywords: "minimal lyrics mode hide sung",
         Control: ({ label }) => (
           <Toggle
             label={label}

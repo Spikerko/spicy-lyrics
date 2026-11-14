@@ -1,49 +1,26 @@
-import { $simpleLyricsMode } from "../../../../utils/stores.ts";
-import { isExperimentEnabled } from "../../../experiments.ts";
+import { isBloomRenderer } from "../../../../utils/stores.ts";
 
-// The shortest word that can be split, per mode.
+// The shortest word that can be split.
 const MinDuration = 1000;
-const SimpleLyricsModeMinDuration = 1050;
 
-const Simple = (letterLength: number, totalDuration: number) => {
+const Spring = (letterLength: number, totalDuration: number) => {
   return totalDuration >= MinDuration;
 };
 
-// Refreshed Simple Lyrics: only words held a second or more with
-// two to seven letters are split. A longer held word ("starfucker,") fills like
-// any other word.
+// Bloom: only words held a second or more with two to seven letters are split.
+// A word sung in syllables is judged as a whole: its letters and the time from
+// its first syllable's start to its last one's end. A longer held word
+// ("starfucker,") fills like any other word, and background vocals are never split.
 export const RefreshedMaxLetters = 7;
 const RefreshedMinLetters = 2;
 
-const SimpleLyricsModeCapable = (letterLength: number, totalDuration: number) => {
-  if (isExperimentEnabled("refreshedSimpleLyrics")) {
-    return (
-      letterLength >= RefreshedMinLetters &&
-      letterLength <= RefreshedMaxLetters &&
-      totalDuration >= MinDuration
-    );
-  }
-  if (letterLength > 12) {
-    return false;
-  }
-
-  //const maxDuration = 8550;
-
-  return totalDuration >= SimpleLyricsModeMinDuration; // && totalDuration <= maxDuration;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _Complex = (letterLength: number, totalDuration: number) => {
-  // Enforce a maximum letter length of 12
-  if (letterLength > 12) {
-    return false;
-  }
-
-  // Calculate the minimum duration based on the letter length
-  const minDuration = 1000 + ((letterLength - 1) / 1) * 25; // Increases duration as letter length increases
-
-  // Return whether the letter length and duration meet the criteria
-  return totalDuration >= minDuration;
+const Bloom = (letterLength: number, totalDuration: number, isBackground: boolean) => {
+  if (isBackground) return false;
+  return (
+    letterLength >= RefreshedMinLetters &&
+    letterLength <= RefreshedMaxLetters &&
+    totalDuration >= MinDuration
+  );
 };
 
 /**
@@ -51,12 +28,11 @@ const _Complex = (letterLength: number, totalDuration: number) => {
  * skip splitting the word just to count its letters.
  */
 export function MinLetterCapableDuration(): number {
-  if (!$simpleLyricsMode.get()) return MinDuration;
-  return isExperimentEnabled("refreshedSimpleLyrics") ? MinDuration : SimpleLyricsModeMinDuration;
+  return MinDuration;
 }
 
-export function IsLetterCapable(letterLength: number, totalDuration: number) {
-  return $simpleLyricsMode.get()
-    ? SimpleLyricsModeCapable(letterLength, totalDuration)
-    : Simple(letterLength, totalDuration);
+export function IsLetterCapable(letterLength: number, totalDuration: number, isBackground = false) {
+  return isBloomRenderer()
+    ? Bloom(letterLength, totalDuration, isBackground)
+    : Spring(letterLength, totalDuration);
 }

@@ -9,6 +9,7 @@ interface JoinableSyllable {
   EndTime: number;
   IsPartOfWord?: boolean;
   Parts?: JoinableSyllable[];
+  TransliteratedIsPartOfWord?: boolean;
 }
 
 // Silence between two parts of a word beyond which one fill would run through it.
@@ -69,6 +70,9 @@ function join<T extends JoinableSyllable>(run: T[]): T {
     EndTime: Math.max(...run.map((part) => part.EndTime)),
     IsPartOfWord: last.IsPartOfWord,
     Parts: run,
+    // Set from the last part even when it's undefined, so the first part's
+    // value, which says the word goes on, doesn't survive the spread.
+    TransliteratedIsPartOfWord: last.TransliteratedIsPartOfWord,
   };
 }
 

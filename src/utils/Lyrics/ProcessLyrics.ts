@@ -369,6 +369,11 @@ const romanizeUnit = async (
         if (ItemCyrillicTest.test(t)) texts[i] = romanizeCyrillicText(t, ukrainian);
       });
     } else if (script === "Greek") {
+      if (!texts.some((t) => ItemGreekTest.test(t))) continue;
+      if (!packages.greekRomanization) {
+        complete = false;
+        continue;
+      }
       texts.forEach((t, i) => {
         if (ItemGreekTest.test(t)) texts[i] = romanizeGreekText(t, packages.greekRomanization);
       });

@@ -1,0 +1,244 @@
+/* Up Next in fullscreen and Cinema View (NextUp.ts). It sits at the bottom of the lyrics column,
+   starting where the lines start. With the Lyrics / Queue switch in the far corner it is on the
+   switch's centerline, its cover exactly as tall as the capsule, so the two read as one row along
+   the bottom edge. It is plain type and a cover with no plate, sized off the switch, like the
+   queue's first row peeking in under the lyrics. Display only, but it holds its own box while it
+   shows: the lines faded out under it would otherwise take a click meant for it. */
+
+#SpicyLyricsPage .ContentBox > .NextUp {
+  --NextUpArt: calc(var(--ViewSwitchSize) * 1.22);
+  position: absolute;
+  /* Over the lyrics (9) and the pinned credit rows (10), level with the switch. */
+  z-index: 11;
+  left: var(--LyricsLeftSidePadding);
+  /* Above the pinned credit rows when the setting holds them at the bottom (the top of the rows,
+     from NextUp.ts), half an inset clear of them. */
+  bottom: max(var(--ViewSwitchInset), calc(var(--NextUpCredits, 0px) + var(--ViewSwitchInset) * 0.5));
+  display: grid;
+  /* A long title shrinks the text column instead of widening the row past its cap. */
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 19em;
+  font-size: calc(var(--ViewSwitchSize) * 0.42);
+  font-weight: var(--w-regular);
+  color: var(--color-text-primary);
+  /* Small type over a bright cover or Canvas needs a little lift off the background. */
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  visibility: hidden;
+  /* How it slides between its two places beside the switch (NowBar on the right, below). */
+  --NextUpSlide: translate 0s;
+  transition:
+    var(--NextUpSlide),
+    opacity 160ms var(--ease-out),
+    visibility 0s linear 220ms;
+}
+
+#SpicyLyricsPage .ContentBox > .NextUp.Shown {
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    var(--NextUpSlide),
+    opacity 280ms var(--ease-out) 80ms,
+    visibility 0s;
+}
+
+/* The NowBar on the right puts the lyrics, and the switch, on the left: at rest Up Next starts where
+   the lines start, on the switch's row. While the switch is awake it would sit under the capsule,
+   so it slides aside to just past the capsule's end (ViewSwitchAwake and --SL-ViewSwitchEnd, from
+   ViewSwitchClearance.ts) and the corner reads as one row; the pinned credit rows do the same. It
+   clears quickly as the switch appears, and comes back only once the switch has mostly faded, so
+   the two never overlap. Its place itself never animates, so a resize or a side swap doesn't make
+   it glide. Above pinned credit rows it moves with them, so the two stay one column. */
+#SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode) .ContentBox > .NextUp {
+  left: calc(var(--LyricsRightSidePadding) * 1.45);
+  /* Back to the lines' start: on-screen movement, after the switch has mostly faded. */
+  --NextUpSlide: translate 420ms var(--ease-in-out) 300ms;
+}
+
+#SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+  .ContentBox.ViewSwitchAwake:not(.LyricsHidden)
+  > .NextUp {
+  translate: max(
+      0px,
+      calc(
+        var(--SL-ViewSwitchEnd, 0px) + var(--ViewSwitchInset) * 0.5 - var(--LyricsRightSidePadding) * 1.45
+      )
+    )
+    0;
+  /* Out of the switch's way: a response to the pointer, so fast and ease-out. */
+  --NextUpSlide: translate 300ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode) .ContentBox > .NextUp,
+  #SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+    .ContentBox.ViewSwitchAwake:not(.LyricsHidden)
+    > .NextUp {
+    --NextUpSlide: translate 0s;
+  }
+}
+
+/* A song with no lyrics centres the Now Bar, so there is no column: Up Next takes the bottom corner
+   the switch leaves free, on the switch's centerline. */
+#SpicyLyricsPage .ContentBox.LyricsHidden > .NextUp {
+  left: var(--ViewSwitchInset);
+  bottom: var(--ViewSwitchInset);
+}
+
+#SpicyLyricsPage.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode) .ContentBox.LyricsHidden > .NextUp {
+  left: auto;
+  right: var(--ViewSwitchInset);
+  bottom: var(--ViewSwitchInset);
+}
+
+/* The open queue already starts with this track, so it steps aside with the lyrics. */
+#SpicyLyricsPage.QueueOpen .ContentBox > .NextUp {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    var(--NextUpSlide),
+    opacity 160ms var(--ease-out),
+    visibility 0s linear 220ms;
+}
+
+#SpicyLyricsPage:not(.Exp_NextUpCard) .ContentBox > .NextUp {
+  display: none;
+}
+
+/* One body per track. A next track that changes while it shows crossfades over the old one, with
+   a touch of blur so the two read as one line changing rather than two overlapping. */
+#SpicyLyricsPage .NextUp .NextUpBody {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  min-width: 0;
+  transition:
+    opacity 180ms var(--ease-out),
+    filter 180ms var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+#SpicyLyricsPage .NextUp .NextUpBody.Leaving {
+  opacity: 0;
+  filter: blur(2px);
+}
+
+/* The reveal: cover and text rise into place, the text a beat behind. They leave the way they
+   came, faster. */
+#SpicyLyricsPage .NextUp :is(.NextUpArt, .NextUpText) {
+  opacity: 0;
+  translate: 0 8px;
+  transition:
+    opacity 180ms var(--ease-out),
+    translate 220ms var(--ease-out);
+}
+
+#SpicyLyricsPage .NextUp.Shown :is(.NextUpArt, .NextUpText) {
+  opacity: 1;
+  translate: none;
+  transition:
+    opacity 400ms var(--ease-out),
+    translate 450ms var(--ease-out);
+}
+
+#SpicyLyricsPage .NextUp.Shown .NextUpText {
+  transition-delay: 50ms;
+}
+
+#SpicyLyricsPage .NextUp .NextUpArt {
+  position: relative;
+  flex: none;
+  width: var(--NextUpArt);
+  height: var(--NextUpArt);
+  overflow: hidden;
+  border-radius: calc(var(--NextUpArt) * 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0.15em 0.6em rgba(0, 0, 0, 0.22);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+}
+
+#SpicyLyricsPage .NextUp .NextUpArt.Loaded img {
+  opacity: 1;
+}
+
+#SpicyLyricsPage .NextUp .NextUpText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+#SpicyLyricsPage .NextUp .NextUpLabel {
+  font-size: 0.7em;
+  font-weight: var(--w-semibold);
+  line-height: 1.25;
+  color: var(--color-text-secondary);
+}
+
+#SpicyLyricsPage .NextUp .NextUpTitle {
+  font-size: 1em;
+  font-weight: var(--w-semibold);
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+#SpicyLyricsPage .NextUp .NextUpArtist {
+  font-size: 0.84em;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.64);
+}
+
+/* A title or artists line wider than the column scrolls inside it (TextScroller in NextUp.ts):
+   the line clips its track, which moves on translate. */
+#SpicyLyricsPage .NextUp :is(.NextUpTitle, .NextUpArtist) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#SpicyLyricsPage .NextUp .NextUpTrack {
+  display: block;
+  width: max-content;
+}
+
+/* Only a line that overflows fades at its edges. The left fade sits in padding the negative margin
+   takes back from the gap, so the text rests where a line that fits starts. */
+#SpicyLyricsPage .NextUp :is(.NextUpTitle, .NextUpArtist).Overflowing {
+  --NextUpFadeStart: 0.35em;
+  --NextUpFadeEnd: 0.6em;
+  margin-left: calc(var(--NextUpFadeStart) * -1);
+  padding-left: var(--NextUpFadeStart);
+  padding-right: var(--NextUpFadeEnd);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--NextUpFadeStart), #000 calc(100% - var(--NextUpFadeEnd)), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--NextUpFadeStart), #000 calc(100% - var(--NextUpFadeEnd)), transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage .NextUp :is(.NextUpArt, .NextUpText) {
+    translate: none;
+  }
+
+  #SpicyLyricsPage .NextUp .NextUpBody {
+    @starting-style {
+      filter: none;
+    }
+  }
+
+  #SpicyLyricsPage .NextUp .NextUpBody.Leaving {
+    filter: none;
+  }
+}

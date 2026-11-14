@@ -6,7 +6,7 @@ import {
   $scrollLeadMs,
   $seekFadeCompensation,
   $showScrollToActive,
-  $simpleLyricsMode,
+  $rendererVisualStyle,
   $smoothScrolling,
   $staticAutoScroll,
   type StaticAutoScroll,
@@ -18,6 +18,7 @@ import {
   setSongOffset,
   OFFSET_LIMIT_MS,
 } from "../../../utils/songOffsets.ts";
+import { $ttmlReviewer } from "../../../utils/ttmlReviewer.ts";
 import { useCurrentUri } from "../LyricsManager/hooks/useCurrentUri.ts";
 import { Segmented, Select, Slider, Toggle } from "./components.tsx";
 import { PlaybackIcon } from "./icons.tsx";
@@ -39,6 +40,7 @@ const groups: GroupDef[] = [
           const scope = useStore($offsetScope);
           const uri = useCurrentUri();
           const songOffset = useStore($songOffsets)[uri ?? ""] ?? 0;
+          const reviewing = useStore($ttmlReviewer);
           const title = uri && Spicetify.Player.data?.item?.name;
           if (!title) return false;
           if (scope === "song") {
@@ -46,17 +48,23 @@ const groups: GroupDef[] = [
             return artist ? `For “${title}” by ${artist}.` : `For “${title}”.`;
           }
           if (!songOffset) return false;
+          if (reviewing) return `“${title}” has ${songOffset > 0 ? "+" : ""}${songOffset} ms of its own, ignored while TTML Reviewer is on.`;
           return `“${title}” also has ${songOffset > 0 ? "+" : ""}${songOffset} ms of its own.`;
         },
-        Aside: () => {
+        Aside: ({ disabled }) => {
           const uri = useCurrentUri();
           const scope = useStore($offsetScope);
           // The row always opens on All songs.
           useEffect(() => () => $offsetScope.set("all"), []);
+          // A locked row (TTML Reviewer) stays on All songs: the song's own offset is ignored then.
+          useEffect(() => {
+            if (disabled) $offsetScope.set("all");
+          }, [disabled]);
           return (
             <Segmented
               label="Offset applies to"
-              value={scope === "song" && uri ? "song" : "all"}
+              disabled={disabled}
+              value={scope === "song" && uri && !disabled ? "song" : "all"}
               options={[
                 { value: "all", label: "All songs" },
                 { value: "song", label: "This song", disabled: !uri },
@@ -110,16 +118,9 @@ const groups: GroupDef[] = [
         id: "smoothScrolling",
         label: "Smooth Scrolling",
         description: "Glide from line to line instead of jumping.",
-        // The refreshed Simple Lyrics look brings its own scroll, whatever this is set to.
-        useDisabled: () => {
-          const simple = useStore($simpleLyricsMode);
-          const refreshed = useStore($experiment("refreshedSimpleLyrics"));
-          return (
-            simple &&
-            refreshed &&
-            `${getExperiment("refreshedSimpleLyrics").label} scrolls the lyrics its own way while Simple Lyrics Mode is on.`
-          );
-        },
+        // Bloom brings its own scroll, whatever this is set to.
+        useDisabled: () =>
+          useStore($rendererVisualStyle) === "bloom" && "Bloom scrolls the lyrics its own way.",
         Control: ({ disabled, label }) => (
           <Toggle
             label={label}
@@ -134,6 +135,11 @@ const groups: GroupDef[] = [
         label: "Early Scroll",
         description: "Start scrolling to the next line just before it's sung.",
         keywords: "lead ahead",
+        // Bloom starts each scroll early by its own length in Popup Lyrics and
+        // the Now Playing card (ScrollToActiveLine.ts).
+        useNote: () =>
+          useStore($rendererVisualStyle) === "bloom" &&
+          "With Bloom, Popup Lyrics and the Now Playing card always start the scroll early, by as long as the scroll takes.",
         Control: ({ label }) => (
           <Toggle
             label={label}
@@ -181,8 +187,9 @@ const groups: GroupDef[] = [
       },
       {
         id: "showScrollToActive",
-        label: "Scroll to Active Button",
-        description: "Show an arrow when the line being sung is scrolled out of view.",
+        label: "Scroll to active button",
+        description:
+          "Show an arrow when the line being sung is scrolled out of view. In Cinema View and fullscreen it joins the Lyrics / Queue switch.",
         keywords: "jump back current line arrow",
         Control: ({ label }) => (
           <Toggle

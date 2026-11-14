@@ -70,6 +70,20 @@ export const AdvancedIcon = (
   </Icon>
 );
 
+export const ReviewerIcon = (
+  <Icon>
+    <rect x="3.5" y="2.5" width="9" height="11" rx="2" />
+    <path d="M6 8.25l1.5 1.5 2.75-3" />
+  </Icon>
+);
+
+export const BugIcon = (
+  <Icon>
+    <rect x="4.75" y="5.5" width="6.5" height="8.25" rx="3.25" />
+    <path d="M6 5.75a2 2 0 0 1 4 0M8 8.5v5.25M2.5 9.25h2.25M11.25 9.25h2.25M3 5.75l1.9.9M13 5.75l-1.9.9M3 13l1.9-.9M13 13l-1.9-.9" />
+  </Icon>
+);
+
 export const AboutIcon = (
   <Icon>
     <circle cx="8" cy="8" r="5.75" />

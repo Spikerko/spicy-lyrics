@@ -170,8 +170,8 @@ interface TransliterationSpan {
   beginSeconds: number | undefined;
   endSeconds: number | undefined;
   text: string;
-  /** Followed by a space before the next span: a word ends here in the romanization. */
-  gapAfter?: boolean;
+  /** Whether a romanized word ends here; undefined when the raw scan didn't find the span. */
+  endsWord?: boolean;
 }
 
 /**
@@ -203,9 +203,6 @@ const toArray = <T>(value: T | T[] | undefined | null): T[] =>
 
 const isSupportedLyricsType = (value: unknown): value is TTMLLyricsType =>
   value === 'Static' || value === 'Line' || value === 'Syllable';
-
-const escapeRegExp = (value: string): string =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const decodeXmlEntities = (str: string): string => {
   if (str.indexOf("&") === -1) return str;
@@ -292,166 +289,211 @@ interface AdjacencyScanner {
   isImmediatelyFollowedByTag(begin: TtmlTime | undefined, end: TtmlTime | undefined): boolean;
 }
 
+interface IndexedSpanTag {
+  /** Where the start tag begins in the document. */
+  index: number;
+  /** Just past the start tag's `>`. */
+  tagEnd: number;
+  adjacent: boolean;
+}
+
 const createAdjacencyScanner = (xml: string): AdjacencyScanner => {
   const bodyIndex = xml.indexOf('<body');
   const searchStart = bodyIndex === -1 ? 0 : bodyIndex;
   let cursor = searchStart;
-  const patterns = new Map<string, RegExp | null>();
 
-  const getPattern = (begin: string, end: string): RegExp | null => {
-    const key = `${begin} ${end}`;
-    if (patterns.has(key)) return patterns.get(key) ?? null;
-    // Bounded so a pathological document can't grow the cache without limit.
-    if (patterns.size > 4096) patterns.clear();
+  // Every span start tag in the body, indexed once by its timing (attribute
+  // order and quote style both vary between TTML producers) with its adjacency
+  // already worked out, in document order. Compiling a pattern and scanning
+  // forward for every syllable made parsing much slower.
+  const tags = new Map<string, IndexedSpanTag[]>();
+  const tagPattern = /<span\b[^>]*>/g;
+  const beginPattern = /\sbegin\s*=\s*(["'])(.*?)\1/;
+  const endPattern = /\send\s*=\s*(["'])(.*?)\1/;
+  tagPattern.lastIndex = searchStart;
+  for (let match = tagPattern.exec(xml); match !== null; match = tagPattern.exec(xml)) {
+    const tag = match[0];
+    const begin = tag.match(beginPattern)?.[2];
+    const end = tag.match(endPattern)?.[2];
+    if (begin === undefined || end === undefined) continue;
 
-    let pattern: RegExp | null = null;
-    try {
-      const b = escapeRegExp(begin);
-      const e = escapeRegExp(end);
-      // Attribute order and quote style both vary between TTML producers.
-      pattern = new RegExp(
-        `<span\\b[^>]*\\bbegin\\s*=\\s*(["'])${b}\\1[^>]*\\bend\\s*=\\s*(["'])${e}\\2[^>]*>` +
-          `|<span\\b[^>]*\\bend\\s*=\\s*(["'])${e}\\3[^>]*\\bbegin\\s*=\\s*(["'])${b}\\4[^>]*>`,
-        'g',
-      );
-    } catch (error) {
-      ttmlLogger.debug('Failed to build span lookup pattern', (error as Error)?.message);
-      pattern = null;
+    const tagEnd = match.index + tag.length;
+    let adjacent: boolean;
+    // charAt() past the end returns '', so no explicit bounds check needed.
+    if (tag.endsWith('/>')) {
+      adjacent = xml.charAt(tagEnd) === '<';
+    } else {
+      const closingIndex = xml.indexOf('</span>', tagEnd);
+      adjacent = closingIndex !== -1 && xml.charAt(closingIndex + '</span>'.length) === '<';
     }
 
-    patterns.set(key, pattern);
-    return pattern;
-  };
+    const key = `${begin}\u0000${end}`;
+    const entry = { index: match.index, tagEnd, adjacent };
+    const list = tags.get(key);
+    if (list) list.push(entry);
+    else tags.set(key, [entry]);
+  }
 
-  const execFrom = (pattern: RegExp, from: number): RegExpExecArray | null => {
-    pattern.lastIndex = from < 0 ? 0 : from;
-    return pattern.exec(xml);
+  // The first tag in the list starting at or after `from`.
+  const firstFrom = (list: IndexedSpanTag[], from: number): IndexedSpanTag | undefined => {
+    let low = 0;
+    let high = list.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (list[mid].index < from) low = mid + 1;
+      else high = mid;
+    }
+    return list[low];
   };
 
   return {
     isImmediatelyFollowedByTag(begin, end) {
       if (begin == null || end == null || begin === '' || end === '') return false;
 
-      const pattern = getPattern(String(begin), String(end));
-      if (!pattern) return false;
+      const list = tags.get(`${begin}\u0000${end}`);
+      if (!list) return false;
 
-      // Forward from the cursor first; fall back to a full body scan for
-      // documents whose parsed order doesn't match document order.
-      const match = execFrom(pattern, cursor) ?? execFrom(pattern, searchStart);
-      if (!match) return false;
-
-      const tagEnd = match.index + match[0].length;
-      cursor = tagEnd;
-
-      // charAt() past the end returns '', so no explicit bounds check needed.
-      if (match[0].endsWith('/>')) return xml.charAt(tagEnd) === '<';
-
-      const closingIndex = xml.indexOf('</span>', tagEnd);
-      if (closingIndex === -1) return false;
-
-      return xml.charAt(closingIndex + '</span>'.length) === '<';
+      // Forward from the cursor first; fall back to the first one in the body
+      // for documents whose parsed order doesn't match document order.
+      const tag = firstFrom(list, cursor) ?? list[0];
+      cursor = tag.tagEnd;
+      return tag.adjacent;
     },
   };
 };
 
+/** Key of one transliteration span in RawTransliterations.wordEnds. */
+const transliterationSpanKey = (
+  lineKey: string,
+  background: boolean,
+  begin: TtmlTime,
+  end: TtmlTime,
+): string => `${lineKey}\u0000${background ? 'bg' : 'lead'}\u0000${begin}\u0000${end}`;
+
+interface RawTransliterations {
+  /** The lead text of each `<text for="...">` entry, keyed by `for`. */
+  lineTexts: Map<string, string>;
+  /** Whether each timed span ends a romanized word, keyed by transliterationSpanKey. */
+  wordEnds: Map<string, boolean>;
+}
+
 /**
- * The lead text of each `<text for="...">` transliteration entry, keyed by
- * `for`, read from the raw XML.
+ * Reads the `<text for="...">` entries of the `<transliterations>` blocks from
+ * the raw XML. `<translations>` uses the same `<text for>` shape, so the scan
+ * stays inside `<transliterations>` or a translation would be read as the
+ * romanization.
  *
  * The parsed tree can't give this: fast-xml-parser merges an element's text
  * nodes into one `#text`, so the spaces *between* per-word spans are lost
  * (joining the spans gave "konnichiwasekai"), and an entry holding plain text
- * with no spans at all is dropped. Text inside an `x-bg` wrapper is the
- * background vocal's and is left out.
+ * with no spans at all is dropped. Those spaces are also the only record of
+ * where romanized words end, which the main text can't tell for a script
+ * written without spaces.
+ *
+ * Lead spans and spans under an `x-bg` wrapper are tracked separately. Text
+ * inside an `x-bg` wrapper is the background vocal's and is left out of the
+ * line text. A span ends a romanized word when its own text ends in
+ * whitespace, when whitespace sits between it and the next span of the same
+ * vocal, or when that next span's text starts with whitespace.
  */
-function extractTransliterationLineTexts(xml: string): Map<string, string> {
-  const texts = new Map<string, string>();
+function scanTransliterations(xml: string): RawTransliterations {
+  const lineTexts = new Map<string, string>();
+  const wordEnds = new Map<string, boolean>();
   const bodyIndex = xml.indexOf('<body');
   const head = bodyIndex === -1 ? xml : xml.slice(0, bodyIndex);
 
+  const blockPattern = /<transliterations\b[^>]*>([\s\S]*?)<\/transliterations>/g;
   const entryPattern = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
   const forPattern = /\bfor\s*=\s*(["'])(.*?)\1/;
   const bgPattern = /\bttm:role\s*=\s*(["'])x-bg\1/;
+  const rolePattern = /\bttm:role\s*=/;
+  const beginPattern = /(?:^|\s)begin\s*=\s*(["'])(.*?)\1/;
+  const endPattern = /(?:^|\s)end\s*=\s*(["'])(.*?)\1/;
   const tokenPattern = /<(\/?)span\b([^>]*?)(\/?)>|<[^>]*>|[^<]+/g;
 
-  for (const entry of head.matchAll(entryPattern)) {
-    const key = entry[1].match(forPattern)?.[2];
-    if (!key) continue;
-
-    let text = '';
-    // One flag per open span: whether it (or an ancestor) is an x-bg wrapper.
-    const bgStack: boolean[] = [];
-    for (const token of entry[2].matchAll(tokenPattern)) {
-      const raw = token[0];
-      const inBg = bgStack.length > 0 && bgStack[bgStack.length - 1];
-      if (!raw.startsWith('<')) {
-        if (!inBg) text += raw;
-      } else if (token[1] === '/') {
-        bgStack.pop();
-      } else if (raw.startsWith('<span') && token[3] !== '/') {
-        bgStack.push(inBg || bgPattern.test(token[2] ?? ''));
-      }
-    }
-
-    const normalized = decodeXmlEntities(text).replace(/\s+/g, ' ').trim();
-    if (normalized === '') continue;
-    const existing = texts.get(key);
-    texts.set(key, existing ? `${existing} ${normalized}` : normalized);
+  interface Frame {
+    bg: boolean;
+    /** Set on a timed span: its key and the text read inside it so far. */
+    timed: { key: string; text: string } | null;
+  }
+  interface Vocal {
+    /** Key of the last timed span closed in this vocal. */
+    last: string | null;
+    /** Whether whitespace came between that span and the next one. */
+    gap: boolean;
   }
 
-  return texts;
-}
+  for (const block of head.matchAll(blockPattern)) {
+    for (const entry of block[1].matchAll(entryPattern)) {
+      const key = entry[1].match(forPattern)?.[2];
+      if (!key) continue;
 
-/**
- * Which transliteration spans are followed by a space, keyed by `for` and then
- * by `begin|end`. Per-syllable romanization of a script written without spaces
- * marks word ends only with the text between spans, which the parsed tree
- * drops. Whitespace holding a line break is indentation, not a gap.
- */
-function extractTransliterationGaps(xml: string): Map<string, Set<string>> {
-  const gaps = new Map<string, Set<string>>();
-  const bodyIndex = xml.indexOf('<body');
-  const head = bodyIndex === -1 ? xml : xml.slice(0, bodyIndex);
+      let text = '';
+      const ends = new Map<string, boolean>();
+      const vocals: Record<'lead' | 'bg', Vocal> = {
+        lead: { last: null, gap: false },
+        bg: { last: null, gap: false },
+      };
+      const stack: Frame[] = [];
 
-  const entryPattern = /<text\b([^>]*)>([\s\S]*?)<\/text>/g;
-  const forPattern = /\bfor\s*=\s*(["'])(.*?)\1/;
-  const beginPattern = /\bbegin\s*=\s*(["'])(.*?)\1/;
-  const endPattern = /\bend\s*=\s*(["'])(.*?)\1/;
-  const tokenPattern = /<(\/?)span\b([^>]*?)(\/?)>|<[^>]*>|[^<]+/g;
-
-  for (const entry of head.matchAll(entryPattern)) {
-    const key = entry[1].match(forPattern)?.[2];
-    if (!key) continue;
-
-    const open: { timing: string | undefined; hasChildren: boolean }[] = [];
-    // The leaf span that just closed, until the next token says what follows it.
-    let closed: string | undefined;
-    for (const token of entry[2].matchAll(tokenPattern)) {
-      const raw = token[0];
-      const previous = closed;
-      closed = undefined;
-      if (!raw.startsWith('<')) {
-        if (previous !== undefined && raw.trim() === '' && !/[\r\n]/.test(raw)) {
-          if (!gaps.has(key)) gaps.set(key, new Set());
-          gaps.get(key)?.add(previous);
-        }
-      } else if (token[1] === '/') {
-        const span = open.pop();
-        if (span && !span.hasChildren) closed = span.timing;
-      } else if (raw.startsWith('<span') && token[3] !== '/') {
-        if (open.length > 0) open[open.length - 1].hasChildren = true;
-        const attrs = token[2] ?? '';
+      const openSpan = (attrs: string): Frame => {
+        const top = stack[stack.length - 1];
+        const bg = (top?.bg ?? false) || bgPattern.test(attrs);
         const begin = attrs.match(beginPattern)?.[2];
         const end = attrs.match(endPattern)?.[2];
-        open.push({
-          timing: begin !== undefined && end !== undefined ? `${begin}|${end}` : undefined,
-          hasChildren: false,
-        });
+        const timed =
+          begin !== undefined && end !== undefined && !rolePattern.test(attrs)
+            ? { key: transliterationSpanKey(key, bg, begin, end), text: '' }
+            : null;
+        return { bg, timed };
+      };
+
+      const closeSpan = (frame: Frame) => {
+        if (!frame.timed) return;
+        const spanText = decodeXmlEntities(frame.timed.text);
+        const vocal = vocals[frame.bg ? 'bg' : 'lead'];
+        if (vocal.last !== null && (vocal.gap || /^\s/.test(spanText))) {
+          ends.set(vocal.last, true);
+        }
+        ends.set(frame.timed.key, /\s$/.test(spanText));
+        vocal.last = frame.timed.key;
+        vocal.gap = false;
+      };
+
+      for (const token of entry[2].matchAll(tokenPattern)) {
+        const raw = token[0];
+        const top = stack[stack.length - 1];
+        if (!raw.startsWith('<')) {
+          if (!top?.bg) text += raw;
+          if (top?.timed) {
+            top.timed.text += raw;
+          } else if (/\s/.test(decodeXmlEntities(raw))) {
+            vocals[top?.bg ? 'bg' : 'lead'].gap = true;
+          }
+        } else if (token[1] === '/') {
+          const frame = stack.pop();
+          if (frame) closeSpan(frame);
+        } else if (raw.startsWith('<span')) {
+          const frame = openSpan(token[2] ?? '');
+          if (token[3] === '/') closeSpan(frame);
+          else stack.push(frame);
+        }
       }
+
+      // The first entry for a span wins, the same one findTransliteratedText
+      // picks when several transliteration blocks cover a line.
+      for (const [spanKey, endsWord] of ends) {
+        if (!wordEnds.has(spanKey)) wordEnds.set(spanKey, endsWord);
+      }
+
+      const normalized = decodeXmlEntities(text).replace(/\s+/g, ' ').trim();
+      if (normalized === '') continue;
+      const existing = lineTexts.get(key);
+      lineTexts.set(key, existing ? `${existing} ${normalized}` : normalized);
     }
   }
 
-  return gaps;
+  return { lineTexts, wordEnds };
 }
 
 /** Divs, tolerating documents that hang <p> straight off <body>. */
@@ -515,12 +557,20 @@ function buildSyllables({
     syllables.push({
       Text: text,
       ...(translitText !== '' ? { TransliteratedText: translitText } : {}),
+      // Left out when the span's word end is unknown, so the renderer falls
+      // back to IsPartOfWord.
+      ...(translitText !== '' && translit?.endsWord !== undefined
+        ? { TransliteratedIsPartOfWord: !translit.endsWord }
+        : {}),
       IsPartOfWord: isPartOfWord,
-      ...(isPartOfWord && translitText !== '' && translit?.gapAfter ? { TransliteratedIsPartOfWord: false } : {}),
       StartTime: startTime,
       EndTime: endAfter(startTime, convertTimeToSeconds(node.end)),
     });
   });
+
+  // The vocal's last syllable always ends its romanized word.
+  const last = syllables[syllables.length - 1];
+  if (last?.TransliteratedText !== undefined) last.TransliteratedIsPartOfWord = false;
 
   return syllables;
 }
@@ -630,7 +680,8 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
   ttmlLogger.debug(`Determined lyrics type: ${lyricsType}`);
 
   const SongWriters = GetSongWriters(ttml);
-  const Transliterations = GetTransliterations(ttml);
+  const RawTransliterations = scanTransliterations(ttmlInput);
+  const Transliterations = GetTransliterations(ttml, RawTransliterations.wordEnds);
 
   const base: ParsedLyricsBase = SongWriters ? { SongWriters } : {};
 
@@ -698,7 +749,7 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
 
     case 'Line': {
       ttmlLogger.debug('Processing line-synced lyrics');
-      const transliterationLineTexts = extractTransliterationLineTexts(ttmlInput);
+      const transliterationLineTexts = RawTransliterations.lineTexts;
 
       const buildLine = (p: TtmlPNode): ParsedLineVocal => {
         const pSpans = p != null && typeof p === 'object' && p.span ? toArray(p.span) : [];
@@ -772,16 +823,6 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
     case 'Syllable': {
       ttmlLogger.debug('Processing syllable-synced lyrics');
       const scanner = createAdjacencyScanner(ttmlInput);
-      if (Transliterations) {
-        const gaps = extractTransliterationGaps(ttmlInput);
-        Transliterations.forEach((entry, key) => {
-          const spanGaps = gaps.get(key);
-          if (!spanGaps) return;
-          for (const span of [...entry.spans, ...entry.background]) {
-            if (spanGaps.has(`${span.begin}|${span.end}`)) span.gapAfter = true;
-          }
-        });
-      }
       const firstDiv = divs[0];
       let skippedEmptyLines = 0;
 
@@ -838,7 +879,7 @@ function convertTTML(ttmlInput: string): ParsedTTMLLyrics | null {
             if (fallbackText !== '' || leadRoman !== '') {
               vocal.Lead.Syllables.push({
                 Text: fallbackText,
-                ...(leadRoman !== '' ? { TransliteratedText: leadRoman } : {}),
+                ...(leadRoman !== '' ? { TransliteratedText: leadRoman, TransliteratedIsPartOfWord: false } : {}),
                 IsPartOfWord: false,
                 StartTime: pStart,
                 EndTime: pEnd,
@@ -1160,7 +1201,10 @@ function GetSongWriters(ttml: TtmlDocument): string[] | null {
   return SongWritersOutput;
 }
 
-function GetTransliterations(ttml: TtmlDocument): TransliterationMap | null {
+function GetTransliterations(
+  ttml: TtmlDocument,
+  wordEnds: Map<string, boolean>,
+): TransliterationMap | null {
   ttmlLogger.debug('Getting transliterations from TTML');
   const itm = ttml?.tt?.head?.metadata?.iTunesMetadata;
   if (!itm) return null;
@@ -1180,7 +1224,11 @@ function GetTransliterations(ttml: TtmlDocument): TransliterationMap | null {
         if (!lineKey) return;
 
         const line: TransliterationLine = { spans: [], background: [] };
-        collectTransliterationSpans(toArray(entry.span), line.spans, line.background);
+        collectTransliterationSpans(toArray(entry.span), line.spans, line.background, {
+          lineKey,
+          background: false,
+          wordEnds,
+        });
 
         if (line.spans.length === 0 && line.background.length === 0) return;
 
@@ -1216,21 +1264,28 @@ function GetTransliterations(ttml: TtmlDocument): TransliterationMap | null {
  * (it carries no timings of its own) is what left background lines
  * untransliterated. Its children are routed to the background list so they can
  * never be mistaken for lead syllables.
+ *
+ * Each span takes its romanized word end from the raw scan here, keyed by the
+ * entry and vocal it was read from, since a background vocal can later be
+ * handed either list.
  */
 function collectTransliterationSpans(
   nodes: TtmlSpanNode[],
   out: TransliterationSpan[],
   background: TransliterationSpan[],
+  source: { lineKey: string; background: boolean; wordEnds: Map<string, boolean> },
 ): void {
   nodes.forEach((node) => {
     if (!isSpanObject(node)) return;
 
     const children = toArray(node.span);
     if (children.length > 0) {
+      const isBg = node['ttm:role'] === 'x-bg';
       collectTransliterationSpans(
         children,
-        node['ttm:role'] === 'x-bg' ? background : out,
+        isBg ? background : out,
         background,
+        isBg ? { ...source, background: true } : source,
       );
       return;
     }
@@ -1243,6 +1298,9 @@ function collectTransliterationSpans(
       beginSeconds: convertTimeToSeconds(node.begin),
       endSeconds: convertTimeToSeconds(node.end),
       text: readText(node['#text']),
+      endsWord: source.wordEnds.get(
+        transliterationSpanKey(source.lineKey, source.background, node.begin, node.end),
+      ),
     });
   });
 }

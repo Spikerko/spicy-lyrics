@@ -1,6 +1,6 @@
 import { CreditsRow } from "./CreditsRow.ts";
 
-const ProviderMap = {
+export const ProviderMap = {
     "spt": "Spotify",
     "aml": "Apple Music",
     "spl": "Spicy Lyrics",

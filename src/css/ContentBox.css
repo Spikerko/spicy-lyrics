@@ -280,7 +280,6 @@
   overflow: hidden; /* Hides overflowing text */
   display: inline-block; /* Ensures width is respected */
   text-align: center; /* Align text within the span */
-  animation: Marquee_SongName 25s linear infinite alternate;
   padding: 0 3cqw 0 2.5cqw;
 }
 
@@ -317,7 +316,6 @@
   overflow: hidden; /* Hides overflowing text */
   display: inline-block; /* Ensures width is respected */
   text-align: center; /* Align text within the span */
-  animation: Marquee_Artists 25s linear infinite alternate;
   padding: 0 3cqw 0 2.5cqw;
 }
 
@@ -752,7 +750,7 @@
   height: 9cqh;
 }
 
-#SpicyLyricsPage.Fullscreen
+#SpicyLyricsPage.Fullscreen:where(:not(.Exp_GroupedViewControls))
   .ContentBox
   .NowBar
   .CenteredView
@@ -775,7 +773,7 @@
 
 /* Fullscreen :hover — re-apply the luminous halo (needs !important to
    beat the base rule above that locks box-shadow with !important). */
-#SpicyLyricsPage.Fullscreen
+#SpicyLyricsPage.Fullscreen:where(:not(.Exp_GroupedViewControls))
   .ContentBox
   .NowBar
   .CenteredView
@@ -1706,23 +1704,6 @@
   max-width: 100cqw;
 }
 
-#SpicyLyricsPage.CompactMode
-  .ContentBox
-  .NowBar
-  .Header
-  .Metadata
-  .SongName
-  span,
-#SpicyLyricsPage.ForcedCompactMode
-  .ContentBox
-  .NowBar
-  .Header
-  .Metadata
-  .SongName
-  span {
-  animation: Marquee_SongName_Compact 25s linear infinite alternate;
-}
-
 #SpicyLyricsPage.CompactMode .ContentBox .NowBar .Header .Metadata .Artists,
 #SpicyLyricsPage.ForcedCompactMode
   .ContentBox
@@ -1752,23 +1733,6 @@
   font-size: clamp(0.7rem, calc(1cqw * 2.8), 0.95rem) !important;
   line-height: 1.4 !important;
   max-width: 100cqw;
-}
-
-#SpicyLyricsPage.CompactMode
-  .ContentBox
-  .NowBar
-  .Header
-  .Metadata
-  .Artists
-  > span,
-#SpicyLyricsPage.ForcedCompactMode
-  .ContentBox
-  .NowBar
-  .Header
-  .Metadata
-  .Artists
-  > span {
-  animation: Marquee_Artists_Compact 25s linear infinite alternate;
 }
 
 #SpicyLyricsPage.CompactMode .ContentBox .LyricsContainer,

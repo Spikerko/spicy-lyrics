@@ -1,5 +1,7 @@
 import { $experiment, isExperimentEnabled } from "../../../experiments.ts";
 import { $pinnedCredits } from "../../../stores.ts";
+import { CreateTextScroller, type TextScroller } from "../../../TextScroller.ts";
+import { ClaimSwitchClearance } from "../../../ViewSwitchClearance.ts";
 
 /**
  * Pinned Credits (setting): the credit rows move out of the scrolling lyrics into a layer
@@ -26,6 +28,8 @@ let observer: ResizeObserver | null = null;
 // The popup's timeline is built with the player and rebuilt whenever the player is, so the
 // line watches the player and moves into whichever timeline is current.
 let timelineObserver: MutationObserver | null = null;
+// Scrolls the timeline line when it doesn't fit.
+let scroller: TextScroller | null = null;
 
 function rowRank(row: Element): number {
   return ROW_ORDER.findIndex((selector) => row.matches(selector));
@@ -38,6 +42,14 @@ function unpin(): void {
     layer?.classList.contains("TimelineCredits") && layer.isConnected
       ? (layer.cloneNode(true) as HTMLElement)
       : null;
+  // A clone has no animations; it fades from wherever the scroll had got to.
+  const track = layer?.firstElementChild as HTMLElement | null | undefined;
+  const ghostTrack = ghost?.firstElementChild as HTMLElement | null | undefined;
+  if (track && ghostTrack) {
+    ghostTrack.style.translate = (track.ownerDocument.defaultView ?? window).getComputedStyle(track).translate;
+  }
+  scroller?.destroy();
+  scroller = null;
   if (layer && home) {
     const rows = [
       ...home.children,
@@ -79,15 +91,18 @@ function leaveTimeline(line: HTMLElement, ghost: HTMLElement | null): void {
 
 /**
  * The timeline line sits centred with the avatars when it fits. When it doesn't, the avatars
- * go and the text scrolls back and forth like the song name's marquee, as far as it overflows.
- * Nothing in the line shrinks, so scrollWidth is its natural width.
+ * go and the text scrolls back and forth like the song name (the scroller set up in place()).
+ * Nothing in the line shrinks, so the credits' offsetWidth is their natural width; unlike
+ * scrollWidth, it doesn't change as the scroll moves them.
  */
 function fitTimelineLine(): void {
-  if (!layer) return;
+  const credits = layer?.firstElementChild as HTMLElement | null | undefined;
+  if (!layer || !credits) return;
   delete layer.dataset.marquee;
-  if (layer.scrollWidth <= layer.clientWidth) return;
+  const style = (layer.ownerDocument.defaultView ?? window).getComputedStyle(layer);
+  const room = layer.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  if (credits.offsetWidth <= room) return;
   layer.dataset.marquee = "";
-  layer.style.setProperty("--TC_Shift", `${layer.clientWidth - layer.scrollWidth}px`);
 }
 
 /** Puts the timeline line into the popup's current timeline, if it isn't there already. */
@@ -157,6 +172,8 @@ function place(): void {
     observer = new view.ResizeObserver(fitTimelineLine);
     observer.observe(layer);
     observer.observe(credits);
+    // Under reduced motion the line holds at its start and its end fades out.
+    scroller = CreateTextScroller([layer], { holdOnReducedMotion: true });
     timelineObserver = new view.MutationObserver(() => attachToTimeline(nowBar));
     timelineObserver.observe(nowBar, { childList: true, subtree: true });
     return;
@@ -181,6 +198,8 @@ function place(): void {
   layer.append(column);
   content.after(layer);
   container.classList.add("HasPinnedCredits");
+  // On the Lyrics / Queue switch's row, it steps aside while the switch shows (PinnedCredits.css).
+  ClaimSwitchClearance(layer);
 
   observer = new view.ResizeObserver(syncLayout);
   observer.observe(layer);
