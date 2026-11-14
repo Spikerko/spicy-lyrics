@@ -289,6 +289,8 @@ function getRefreshedWaveStrength(duration: number): RefreshedWaveStrength {
 const emphasisEase = cubicBezier(0.25, 0.1, 0.25, 1);
 
 type SplitLetter = NonNullable<SyllableLead["Letters"]>[number];
+// What the wave needs of a letter: a line's split letters, or a romanized row's.
+type FlameLetter = { HTMLElement: HTMLElement; StartTime: number };
 
 // 0 to 1: how far a lift `elapsed` ms old has come.
 function getRefreshedLift(elapsed: number): number {
@@ -304,7 +306,7 @@ function getRefreshedLift(elapsed: number): number {
 // Split letters' widths in em, measured once.
 const _letterWidthsEm = new WeakMap<HTMLElement, number>();
 
-function getLetterWidthsEm(letters: SplitLetter[]): number[] {
+function getLetterWidthsEm(letters: readonly FlameLetter[]): number[] {
   const first = letters[0]?.HTMLElement;
   if (first && !_letterWidthsEm.has(first)) {
     const fontPx = parseFloat(getComputedStyle(first).fontSize) || 0;
@@ -344,7 +346,7 @@ const FlameBefore = restingFlame(0);
 const FlameAfter = restingFlame(1);
 
 function getRefreshedFlame(
-  letters: SplitLetter[],
+  letters: readonly FlameLetter[],
   position: number,
   strength: RefreshedWaveStrength
 ): RefreshedFlameState {
@@ -706,7 +708,7 @@ function getSweepLetterPosition(sweep: LineSweep, wordIndex: number, letterIndex
 // 100 lit), as --SLR_LetterLit; its glow is dimmed by it (Mixed.css). The
 // tones are Mixed.css --SLR_Unlit and --SLR_Lit.
 const LetterTone = { Unlit: 0.18, Lit: 0.94 };
-function setLetterLit(letter: SplitLetter, gradient: number): void {
+function setLetterLit(letter: FlameLetter, gradient: number): void {
   const lit = Clamp((gradient + 50) / 150, 0, 1);
   const tone = LetterTone.Unlit + (LetterTone.Lit - LetterTone.Unlit) * lit;
   setStyleIfChanged(letter.HTMLElement, "--SLR_LetterLit", tone.toFixed(3), 0.005);
@@ -715,7 +717,7 @@ function setLetterLit(letter: SplitLetter, gradient: number): void {
 // Writes everything about one split letter but its gradient. Returns whether
 // the letter is still moving.
 function stepRefreshedLetter(
-  letter: SplitLetter,
+  letter: FlameLetter,
   index: number,
   flame: RefreshedFlameState,
   liftScale = 1
@@ -1225,6 +1227,13 @@ function animateUnderRows(
 // word's resting style (set when the row is built) and, once the line has
 // been sung, settle to rest the way its words do. Returns whether every spring
 // has come to rest.
+//
+// Under Bloom they move as Bloom's words do instead (stepBloomRomanizedRow):
+// the fill is one soft edge along the whole row, a piece lifts the moment it
+// is sung and stays up, a held piece's letters swell and glow in turn, and
+// once the line has been sung they come back down with its words (`liftLeft`
+// is how much of the lift is still left, 1 while the line is being sung).
+// Fade, lift, push and glow blur are in em, so they follow the row's size.
 
 const romanizedRowsSettling = new WeakSet<HTMLElement>();
 
@@ -1232,11 +1241,12 @@ function stepRomanizedWords(
   lineElem: HTMLElement,
   position: number,
   deltaTime: number,
-  sung: boolean
+  sung: boolean,
+  liftLeft = 1
 ): boolean {
   const pieces = GetRomanizedPieces(lineElem);
   if (!pieces) return true;
-  const simple = isBloomRenderer();
+  if (isBloomRenderer()) return stepBloomRomanizedRow(pieces, position, sung, liftLeft);
   let settled = true;
   for (const piece of pieces) {
     const el = piece.HTMLElement;
@@ -1252,7 +1262,6 @@ function stepRomanizedWords(
       const gradient = state === "Active" ? -20 + 120 * percentage : state === "Sung" ? 100 : -20;
       setStyleIfChanged(el, "--gradient-position", `${gradient}%`);
     }
-    if (simple) continue;
 
     let springs = pieceSprings.get(el);
     if (!springs) {
@@ -1292,7 +1301,6 @@ function stepRomanizedLetters(
   deltaTime: number,
   sung: boolean
 ): boolean {
-  const simple = isBloomRenderer();
   let activeIndex = -1;
   let activePercentage = 0;
   if (wordState === "Active") {
@@ -1318,7 +1326,6 @@ function stepRomanizedLetters(
             ? -20 + 120 * easeSinOut(activePercentage)
             : -20;
     setStyleIfChanged(letter.HTMLElement, "--gradient-position", `${gradient}%`);
-    if (simple) continue;
 
     let springs = letterSprings.get(letter.HTMLElement);
     if (!springs) {
@@ -1375,10 +1382,66 @@ function stepRomanizedLetters(
   return settled;
 }
 
+type RomanizedPieces = NonNullable<ReturnType<typeof GetRomanizedPieces>>;
+
+// The row's own sweep, measured like the line's: its pieces stand in for words
+// (a held piece for a split word), on the row element.
+function getRowSweep(pieces: RomanizedPieces): LineSweep | null {
+  const row = pieces[0]?.HTMLElement.closest<HTMLElement>(".RomanizedRow");
+  return row ? getLineSweep(row, pieces as unknown as SyllableLead[]) : null;
+}
+
+function stepBloomRomanizedRow(
+  pieces: RomanizedPieces,
+  position: number,
+  sung: boolean,
+  liftLeft: number
+): boolean {
+  // A sung row is one flat tone (Mixed.css), so only a row being sung sweeps.
+  const sweep = sung ? null : getRowSweep(pieces);
+  if (sweep) updateLineSweep(sweep, pieces as unknown as SyllableLead[], position);
+  let settled = !(sung && liftLeft > 0);
+  // No piece stands higher than the one before it, as with the line's words.
+  let floatCap = 1;
+  for (let i = 0; i < pieces.length; i++) {
+    const piece = pieces[i];
+    const el = piece.HTMLElement;
+    const span = sweep?.Spans[i];
+    // Not measured yet: each piece fills over its own time.
+    const own = sung ? 100 : -50 + 150 * getProgressPercentage(position, piece.StartTime, piece.EndTime);
+    setStyleIfChanged(el, "scale", "1");
+    if (piece.Letters) {
+      // Its letters lift one by one instead.
+      setStyleIfChanged(el, "transform", "none");
+      const flame = getRefreshedFlame(
+        piece.Letters,
+        position,
+        getRefreshedWaveStrength(piece.EndTime - piece.StartTime)
+      );
+      for (let k = 0; k < piece.Letters.length; k++) {
+        const letter = piece.Letters[k];
+        const gradient = (sweep && getSweepLetterPosition(sweep, i, k)) ?? own;
+        setStyleIfChanged(letter.HTMLElement, "--SLM_GradientPosition", `${gradient}%`);
+        setLetterLit(letter, gradient);
+        if (stepRefreshedLetter(letter, k, flame, liftLeft)) settled = false;
+      }
+      continue;
+    }
+    const gradient = span ? getSweepGradientPosition(sweep!.Edges[i], span.X, span.W, sweep!.Fade) : own;
+    setStyleIfChanged(el, "--SLM_GradientPosition", `${gradient}%`);
+    floatCap = Math.min(floatCap, getRefreshedLift(position - piece.StartTime));
+    const y = (refreshedLiftOffset(floatCap) * liftLeft).toFixed(4);
+    setStyleIfChanged(el, "transform", Number(y) === 0 ? "none" : `translate3d(0, ${y}em, 0)`);
+    setStyleIfChanged(el, "--text-shadow-opacity", "0%");
+  }
+  return settled;
+}
+
 // Steps a sung line's syllable row to rest; called until it gets there.
-function settleRomanizedWords(lineElem: HTMLElement, deltaTime: number): void {
+function settleRomanizedWords(lineElem: HTMLElement, position: number, sungAt: number, deltaTime: number): void {
   if (!romanizedRowsSettling.has(lineElem)) return;
-  if (stepRomanizedWords(lineElem, 0, deltaTime, true)) romanizedRowsSettling.delete(lineElem);
+  const liftLeft = isBloomRenderer() ? 1 - getRefreshedLift(position - sungAt) : 1;
+  if (stepRomanizedWords(lineElem, position, deltaTime, true, liftLeft)) romanizedRowsSettling.delete(lineElem);
 }
 
 export let Blurring_LastLine: number | null = null;
@@ -1625,6 +1688,8 @@ export function Animate(position: number): void {
         if (!line.HTMLElement.isConnected || !line.Syllables?.Lead) continue;
         if (getElementState(ProcessedPosition, line.StartTime, line.EndTime) === "Active") {
           getLineSweep(line.HTMLElement, line.Syllables.Lead);
+          const rowPieces = animatedRows ? GetRomanizedPieces(line.HTMLElement) : undefined;
+          if (rowPieces) getRowSweep(rowPieces);
         }
       }
     }
@@ -2661,7 +2726,14 @@ export function Animate(position: number): void {
           return settled;
         };
 
-        if (animatedRows) settleRomanizedWords(line.HTMLElement, deltaTime);
+        if (animatedRows) {
+          settleRomanizedWords(
+            line.HTMLElement,
+            ProcessedPosition,
+            Math.min(line.SungAt ?? line.EndTime, line.EndTime),
+            deltaTime
+          );
+        }
 
         {
           const NextLine = arr[index + 1];

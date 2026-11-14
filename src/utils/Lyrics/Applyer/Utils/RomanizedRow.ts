@@ -38,7 +38,9 @@ interface RomanizedPiece {
   State: string;
   Glow: number;
   // Animated rows experiment: a held piece's letters, and the window they span.
+  // LetterGroup marks it as split, the way a split word of the line is.
   Letters?: { HTMLElement: HTMLElement; StartTime: number; EndTime: number }[];
+  LetterGroup?: boolean;
   LettersStart?: number;
   LettersEnd?: number;
 }
@@ -183,6 +185,7 @@ function prepareAnimatedPiece(piece: RomanizedPiece): void {
     el.appendChild(letterEl);
     return { HTMLElement: letterEl, StartTime: start + span * k, EndTime: start + span * (k + 1) };
   });
+  piece.LetterGroup = true;
   piece.LettersStart = start;
   piece.LettersEnd = end;
 }

@@ -1518,16 +1518,62 @@
   --gradient-alpha-end: 0.3;
 }
 
-/* With Bloom, a syllable row lights up in Bloom's tones, like the words above
-   it. A background line's --SLR_Lit is its own dimmer one. */
+/* With Bloom, a syllable row lights up as the words above it do: in Bloom's
+   tones (a background line's --SLR_Lit is its own dimmer one), behind one fade
+   of fixed width that the animator runs along the whole row
+   (--SLM_GradientPosition, -50% dim to 100% lit, drawn like a word's). */
 #SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed :is(.RomanizedPiece:not(.HasLetters), .RomanizedLetter) {
   --gradient-alpha: var(--SLR_Lit);
   --gradient-alpha-end: var(--SLR_Unlit);
+  --SLR_FadeWidth: 0.882em;
+  background-image: linear-gradient(
+    to right,
+    rgba(255, 255, 255, var(--gradient-alpha)) calc(50% - var(--SLR_FadeWidth) / 2),
+    rgba(255, 255, 255, var(--gradient-alpha-end)) calc(50% + var(--SLR_FadeWidth) / 2)
+  );
+  background-size: calc(200% + var(--SLR_FadeWidth)) 100%;
+  background-repeat: no-repeat;
+  background-position: calc((100% - var(--SLM_GradientPosition)) / 1.5) 0;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active:not(.bg-line) .RomanizedRow.Timed :is(.RomanizedPiece:not(.HasLetters), .RomanizedLetter) {
+  --gradient-alpha-end: 0.4;
 }
 
 #SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedPiece.HasLetters {
   background-image: none;
   text-shadow: none;
+}
+
+/* With Bloom the pieces move as Bloom's words do (LyricsAnimator.ts): each
+   lifts as it is sung, and a held one's letters swell from their baseline and
+   glow in turn, the glow dimmed by the letter's own tone (--SLR_LetterLit) and
+   made up for the row's 0.65 opacity so it reads as strongly as the line's.
+   They wait as plain text until their line starts, and keep their layers and
+   glow while they come back down after it (.Settling). */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line:not(.Active, .Sung) .RomanizedRow.Timed :is(.RomanizedPiece, .RomanizedLetter) {
+  scale: 1 !important;
+  transform: none !important;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow.Timed .RomanizedLetter {
+  transform-origin: 50% 80%;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow.Timed .RomanizedLetter {
+  text-shadow: 0 0 var(--text-shadow-blur-radius, 0)
+    rgba(255, 255, 255, calc(var(--text-shadow-opacity, 0%) * var(--SLR_LetterLit, 1) / 0.65));
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Settling .RomanizedRow.Timed :is(.RomanizedPiece, .RomanizedLetter) {
+  will-change: transform, scale;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Settling .RomanizedRow.Timed .RomanizedLetter {
+  text-shadow:
+    0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--RomanizedAlpha)),
+    0 0 var(--text-shadow-blur-radius, 0)
+      rgba(255, 255, 255, calc(var(--text-shadow-opacity, 0%) * var(--SLR_LetterLit, 1) / 0.65));
 }
 
 /* Syllables of one word scale about their joints, like the parts of a word
