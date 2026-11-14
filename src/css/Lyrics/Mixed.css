@@ -1540,9 +1540,10 @@
 
 /* With Bloom, a row timed by the line lights up whole with it, as Bloom's
    line-synced lyrics do: no sweep, no glow. --SLR_SungAlpha is inherited, so
-   the row follows the line's own fade up and back down. */
-#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line[data-translation]::after,
-#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow:not(.Timed) {
+   the row follows the line's own fade up and back down. Static lines never
+   go Active, so they keep the base rule's lit tone. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line:not(.static)[data-translation]::after,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line:not(.static) .RomanizedRow:not(.Timed) {
   -webkit-text-fill-color: transparent;
   background-image: none;
   text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--SLR_SungAlpha));
