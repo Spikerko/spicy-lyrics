@@ -1555,13 +1555,36 @@
 
 /* With Bloom, a row timed by the line lights up whole with it, as Bloom's
    line-synced lyrics do: no sweep, no glow. --SLR_SungAlpha is inherited, so
-   the row follows the line's own fade up and back down. Static lines never
+   the row follows the line's own fade up and back down (a translation gets
+   its own timing, below). Static lines never
    go Active, so they keep the base rule's lit tone. */
 #SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line:not(.static)[data-translation]::after,
 #SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line:not(.static) .RomanizedRow:not(.Timed) {
   -webkit-text-fill-color: transparent;
   background-image: none;
   text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--SLR_SungAlpha));
+}
+
+/* A word-synced line's --SLR_SungAlpha waits and fades slowly: that timing is
+   for dimming once sung, since its words light up by their own fill. The
+   translation has no words to fill, so it fades on its own tone: up in 0.3 s
+   as the line starts, as a line-synced line does, and back down with the
+   line's words. */
+@property --SL_TranslationTone {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.18;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line:not(.static)[data-translation]::after {
+  --SL_TranslationTone: var(--SLR_Unlit);
+  text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--SL_TranslationTone));
+  transition: --SL_TranslationTone 0.35s cubic-bezier(0.39, 0.575, 0.565, 1) 0.25s;
+}
+
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active:not(.static)[data-translation]::after {
+  --SL_TranslationTone: var(--SLR_Lit);
+  transition: --SL_TranslationTone 0.3s cubic-bezier(0.33, 0, 0.2, 1);
 }
 
 /* A translation from the lyrics file (TranslationRow.ts), drawn as the line's
