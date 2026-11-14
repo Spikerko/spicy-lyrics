@@ -173,7 +173,9 @@
   margin-top: 33cqh;
 }
 
-body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {
+/* Spotify's old navigation (uiState.ts sets the class). Doubled to keep the
+   specificity of the body:has(.Root:not(.global-nav)) it replaced. */
+body.SpicyLyrics_LegacyNav.SpicyLyrics_LegacyNav #SpicyLyricsPage .LyricsContainer .LyricsContent .SpicyLyricsScrollContainer {
   margin-top: 0cqh;
   padding-top: 25cqh;
 }
@@ -207,7 +209,7 @@ body:has(.Root:not(.global-nav)) #SpicyLyricsPage .LyricsContainer .LyricsConten
   padding-top: 40cqh;
 }
 
-body:has(.Root:not(.global-nav)) #SpicyLyricsPage.Fullscreen.MinimalLyricsMode
+body.SpicyLyrics_LegacyNav.SpicyLyrics_LegacyNav #SpicyLyricsPage.Fullscreen.MinimalLyricsMode
   .LyricsContainer
   .LyricsContent
   .SpicyLyricsScrollContainer {

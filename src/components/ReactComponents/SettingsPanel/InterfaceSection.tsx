@@ -10,6 +10,7 @@ import {
   $releaseYearPosition,
   $removeSpotifyLyricsButton,
   $showNoLyricsNotice,
+  $showQueueWhenNoLyrics,
   $showVolumeSlider,
   $timelineOutsideMediaContent,
   $viewControlsPosition,
@@ -106,6 +107,20 @@ const groups: GroupDef[] = [
             label={label}
             checked={useStore($showNoLyricsNotice)}
             onChange={(v) => $showNoLyricsNotice.set(v)}
+          />
+        ),
+      },
+      {
+        id: "showQueueWhenNoLyrics",
+        label: "Show Queue When a Song Has No Lyrics",
+        description:
+          "In Fullscreen and Cinema View, open the queue in place of the lyrics. It closes again on the next song with lyrics.",
+        keywords: "queue up next unavailable missing auto open automatically",
+        Control: ({ label }) => (
+          <Toggle
+            label={label}
+            checked={useStore($showQueueWhenNoLyrics)}
+            onChange={(v) => $showQueueWhenNoLyrics.set(v)}
           />
         ),
       },
