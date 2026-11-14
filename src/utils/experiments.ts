@@ -218,7 +218,7 @@ export const EXPERIMENTS = [
     category: "lyrics",
     label: "Animated Romanization and Translation",
     description:
-      "The rows under each line move like the lyrics: a romanization row timed by syllable rises, swells and glows syllable by syllable like the words above it, and a translation row (or a line-synced romanization row) sweeps across with the line's glow. Overrides Romanization Highlight. Disable to bring back the plain rows.",
+      "The rows under each line move like the lyrics: a romanization row timed by syllable rises, swells and glows syllable by syllable like the words above it, and a translation row (or a line-synced romanization row) sweeps across with the line's glow (with Bloom, it lights up with the line). Overrides Romanization Highlight. Disable to bring back the plain rows.",
     default: false,
     pageClass: "Exp_AnimatedUnderRows",
   },

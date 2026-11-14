@@ -1525,8 +1525,8 @@
   transform-origin: left center;
 }
 
-#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active[data-translation]::after,
-#SpicyLyricsPage.SpicyRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow:not(.Timed) {
+#SpicyLyricsPage.SpicyRenderer:not(.BloomRenderer).Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active[data-translation]::after,
+#SpicyLyricsPage.SpicyRenderer:not(.BloomRenderer).Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line.Active .RomanizedRow:not(.Timed) {
   -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
   background-clip: text;
@@ -1536,6 +1536,16 @@
     rgba(255, 255, 255, var(--gradient-alpha-end)) calc(var(--UnderLinePosition, -20%) + 20% + var(--gradient-offset, 0%))
   );
   text-shadow: 0 0 var(--UnderLineGlowBlur, 4px) rgba(255, 255, 255, var(--UnderLineGlowOpacity, 0));
+}
+
+/* With Bloom, a row timed by the line lights up whole with it, as Bloom's
+   line-synced lyrics do: no sweep, no glow. --SLR_SungAlpha is inherited, so
+   the row follows the line's own fade up and back down. */
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line[data-translation]::after,
+#SpicyLyricsPage.SpicyRenderer.BloomRenderer.Exp_AnimatedUnderRows .LyricsContainer .LyricsContent .line .RomanizedRow:not(.Timed) {
+  -webkit-text-fill-color: transparent;
+  background-image: none;
+  text-shadow: 0 0 var(--BlurAmount, 0) rgba(255, 255, 255, var(--SLR_SungAlpha));
 }
 
 /* A translation from the lyrics file (TranslationRow.ts), drawn as the line's
