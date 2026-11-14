@@ -56,38 +56,73 @@ function toCanvasInfo(fileId: unknown, type: unknown): CanvasInfo | null {
   return { fileId, type: canvasType };
 }
 
-/** The playing track's canvas, straight from the player state. No request. */
-export function GetPlayingCanvasInfo(): CanvasInfo | null {
+/**
+ * The canvas in the player state's metadata. Spotify can send `canvas.fileId` empty on a track that
+ * does have a canvas, so undefined (no id there) doesn't mean there is none.
+ */
+function metadataCanvasInfo(): CanvasInfo | null | undefined {
   const item = Spicetify?.Player?.data?.item as { type?: string; metadata?: Record<string, string> } | undefined;
   if (!item || (item.type && item.type !== "track")) return null;
   const meta = item.metadata;
-  return toCanvasInfo(meta?.["canvas.fileId"], meta?.["canvas.type"]);
+  if (!meta?.["canvas.fileId"]) return undefined;
+  return toCanvasInfo(meta["canvas.fileId"], meta["canvas.type"]);
+}
+
+/** The playing item's URI, if it's the kind of track that can have a canvas. */
+export function GetPlayingTrackUri(): string | null {
+  const uri = Spicetify?.Player?.data?.item?.uri;
+  return uri?.startsWith("spotify:track:") ? uri : null;
 }
 
 const canvasInfoCache = new Map<string, Promise<CanvasInfo | null>>();
+// Finished lookups, readable without waiting.
+const settledCanvasInfo = new Map<string, CanvasInfo | null>();
 
-/** Any track's canvas, via the same GraphQL query Spotify's NPV uses. */
+/**
+ * The playing track's canvas without a request: from the player state, or from a finished
+ * `GetCanvasInfo` lookup. Undefined while it isn't known yet (no id in the metadata and no lookup
+ * has answered).
+ */
+export function GetPlayingCanvasInfo(): CanvasInfo | null | undefined {
+  const fromMetadata = metadataCanvasInfo();
+  if (fromMetadata !== undefined) return fromMetadata;
+  const uri = GetPlayingTrackUri();
+  if (!uri) return null;
+  return settledCanvasInfo.get(uri);
+}
+
+/**
+ * Any track's canvas, via the same GraphQL query Spotify's NPV uses. Resolves null when the
+ * track has none and rejects when the lookup failed, so a caller can tell them apart and retry.
+ * While a lookup is in flight, every caller gets the same promise.
+ */
 export function GetCanvasInfo(trackUri: string): Promise<CanvasInfo | null> {
   if (Spicetify?.Player?.data?.item?.uri === trackUri) {
-    const playing = GetPlayingCanvasInfo();
+    const playing = metadataCanvasInfo();
     if (playing) return Promise.resolve(playing);
   }
 
   const cached = canvasInfoCache.get(trackUri);
   if (cached) return cached;
 
-  const request = (async () => {
+  const request: Promise<CanvasInfo | null> = (async () => {
+    // Only "this track has no canvas" may resolve: a resolved null stays cached. That rules out
+    // a missing definition (not registered yet) and a request that never settles.
     const definition = Spicetify?.GraphQL?.Definitions?.canvas;
-    if (!definition) return null;
-    const res = await Spicetify.GraphQL.Request(definition, { trackUri });
-    // An error response has no trackUnion; throwing keeps it out of the cache.
+    if (!definition) throw new Error("No canvas query definition");
+    const signal = AbortSignal.timeout(getRemoteConfig().canvas.loadTimeoutMs);
+    const res = await untilAborted(Spicetify.GraphQL.Request(definition, { trackUri }), signal);
+    // An error response has no trackUnion.
     if (!res?.data?.trackUnion) throw new Error(res?.errors?.[0]?.message ?? "No trackUnion");
     const canvas = res.data.trackUnion.canvas;
-    return toCanvasInfo(canvas?.fileId, canvas?.type);
+    const info = toCanvasInfo(canvas?.fileId, canvas?.type);
+    settledCanvasInfo.set(trackUri, info);
+    trimCache(settledCanvasInfo, 50);
+    return info;
   })().catch((err) => {
     canvasLogger.warn("Canvas lookup failed", trackUri, err);
-    canvasInfoCache.delete(trackUri);
-    return null;
+    if (canvasInfoCache.get(trackUri) === request) canvasInfoCache.delete(trackUri);
+    throw err;
   });
 
   canvasInfoCache.set(trackUri, request);

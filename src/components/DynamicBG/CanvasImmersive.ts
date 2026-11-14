@@ -11,7 +11,14 @@ import { IsPIP } from "../Utils/PopupLyrics.ts";
 import { IsCompactMode } from "../Utils/CompactMode.ts";
 import { SetSideSwapTransition } from "../Utils/NowBar.ts";
 import { getBackgroundStyle, PAGE_BACKGROUND_KEY, SetKawarpSuspended } from "./dynamicBackground.ts";
-import { AttachCanvasMedia, GetPlayingCanvasInfo, LoadCanvasMedia, type CanvasInfo } from "./CanvasVideo.ts";
+import {
+  AttachCanvasMedia,
+  GetCanvasInfo,
+  GetPlayingCanvasInfo,
+  GetPlayingTrackUri,
+  LoadCanvasMedia,
+  type CanvasInfo,
+} from "./CanvasVideo.ts";
 import { DecideArtworkPlacement, NeedsMotionVerdict, type MotionVerdict, type Placement } from "./ArtworkPlacement.ts";
 import {
   ForgetArtworkUrl,
@@ -81,12 +88,18 @@ let active = false;
 // Bumped by every refresh; async work from an older one drops its result.
 let generation = 0;
 let suspendTimer: ReturnType<typeof setTimeout> | null = null;
-// A failed download isn't cached, so a retry fetches again. Counted per canvas.
+// A failed lookup or download isn't cached, so a retry fetches again. Counted per track or canvas.
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
-let retryFileId: string | null = null;
+let retryKey: string | null = null;
 let retryAttempt = 0;
-// The canvas that ran out of retries or failed to play. The cover is left to others for it.
+// What ran out of retries or failed to play: a canvas fileId, or "lookup:<track uri>" for a canvas
+// lookup. The cover is left to others for it.
 let failedFileId: string | null = null;
+// The track whose canvas lookup failed and waits for its retry. It counts as having no canvas
+// meanwhile, so the cover isn't held up.
+let lookupBackoff: string | null = null;
+// The lookup whose answer is already wired to a refresh.
+let watchedLookup: Promise<CanvasInfo | null> | null = null;
 
 // Motion artwork that failed to play on the stage, left to the cover from then on (until
 // another one fails).
@@ -99,11 +112,49 @@ let holdExpiredFor: string | null = null;
 
 const playingTrackUri = (): string | null => Spicetify?.Player?.data?.item?.uri ?? null;
 
+const lookupKey = (uri: string) => `lookup:${uri}`;
+
+/** The playing track's canvas as far as it's known. Pending while its lookup hasn't answered. */
+function playingCanvas(): { info: CanvasInfo | null; pending: boolean } {
+  const info = GetPlayingCanvasInfo();
+  if (info !== undefined) return { info, pending: false };
+  const uri = GetPlayingTrackUri();
+  const waiting = !uri || lookupBackoff === uri || failedFileId === lookupKey(uri);
+  return { info: null, pending: !waiting };
+}
+
+// Spotify can leave the canvas id out of the player state on a track that has one; the stage then
+// looks it up. Only `Refresh` starts one, so reading the placement never sends a request. The
+// answer refreshes the stage, which tells the cover.
+function lookUpPlayingCanvas() {
+  if (GetPlayingCanvasInfo() !== undefined) return;
+  const uri = GetPlayingTrackUri();
+  if (!uri || failedFileId === lookupKey(uri)) return;
+  const request = GetCanvasInfo(uri);
+  if (request === watchedLookup) return;
+  watchedLookup = request;
+  request.then(
+    () => {
+      if (playingTrackUri() === uri) void Refresh();
+    },
+    () => {
+      if (playingTrackUri() !== uri || !mount) return;
+      lookupBackoff = uri;
+      deactivate();
+      scheduleRetry(lookupKey(uri));
+      notifyCoverClaim();
+    },
+  );
+}
+
 /** Where the song's Canvas or motion artwork goes; `canvas-stage:change` fires when it may change.
  * While the stage still shows, nothing draws over its cover, which dissolves into it. */
 export function GetArtworkPlacement(): Placement {
   const stageEligible = !!mount && isEligible();
-  const info = stageEligible ? GetPlayingCanvasInfo() : null;
+  const canvasState = stageEligible ? playingCanvas() : { info: null, pending: false };
+  // Waiting on the lookup: whatever shows now stays until it answers.
+  if (canvasState.pending) return { stage: null, cover: false, pending: true };
+  const info = canvasState.info;
   const input = {
     stageEligible,
     canvas: !!info && info.fileId !== failedFileId,
@@ -146,7 +197,7 @@ type StageSource =
 
 function stageSource(placement: Placement): StageSource | null {
   if (placement.stage === "canvas") {
-    const info = GetPlayingCanvasInfo();
+    const info = playingCanvas().info;
     return info ? { kind: "canvas", key: `canvas:${info.fileId}`, info } : null;
   }
   if (placement.stage === "motion") {
@@ -357,14 +408,14 @@ function clearRetryTimer() {
   retryTimer = null;
 }
 
-function scheduleRetry(fileId: string) {
-  if (retryFileId !== fileId) {
-    retryFileId = fileId;
+function scheduleRetry(key: string) {
+  if (retryKey !== key) {
+    retryKey = key;
     retryAttempt = 0;
   }
   const delay = getRemoteConfig().canvas.retryDelaysMs[retryAttempt];
   if (delay === undefined) {
-    failedFileId = fileId;
+    failedFileId = key;
     notifyCoverClaim();
     return;
   }
@@ -658,10 +709,16 @@ async function Refresh(isRetry = false) {
   if (!mount) return;
 
   if (holdExpiredFor !== playingTrackUri()) holdExpiredFor = null;
+  // Any refresh, a scheduled retry included, may look the canvas up again.
+  lookupBackoff = null;
+  if (isEligible()) lookUpPlayingCanvas();
   const placement = GetArtworkPlacement();
   // Eligibility or the track changed; whoever draws over the cover re-checks the claim.
   notifyCoverClaim();
   if (placement.pending) {
+    // The lookup's answer refreshes. The hold is for the motion check only: run out by a slow
+    // lookup, it would cost motion artwork its priority for the rest of the track.
+    if (playingCanvas().pending) return;
     armHold();
     // The Canvas loads meanwhile, so either answer shows without a further wait.
     const info = GetPlayingCanvasInfo();
@@ -694,7 +751,7 @@ async function Refresh(isRetry = false) {
       scheduleRetry(source.info.fileId);
       return;
     }
-    retryFileId = null;
+    retryKey = null;
     if (failedFileId === media.fileId) failedFileId = null;
     releaseLayer(next);
     try {
