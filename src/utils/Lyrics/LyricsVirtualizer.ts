@@ -1767,7 +1767,8 @@ class LyricsVirtualizer {
 
   private _drawCascadeRow(index: number, row: CascadeRow): void {
     const offset = this._cascadeScroll - row.p;
-    if (Math.abs(offset - row.drawn) < 0.01) return;
+    // Home always clears it, however close the last frame came, so no row rests on a residue.
+    if (Math.abs(offset - row.drawn) < 0.01 && (offset !== 0 || row.drawn === 0)) return;
     row.drawn = offset;
     const wrapper = this._wrappers[index];
     if (wrapper) wrapper.style.translate = offset === 0 ? "" : `0 ${offset.toFixed(2)}px`;

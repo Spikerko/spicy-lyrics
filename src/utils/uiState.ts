@@ -61,11 +61,17 @@ export const $npvLyricsExpanded = persistAtom<boolean>("npvLyricsExpanded", fals
 export const $isGlobalNav = atom<boolean>(true);
 
 (function watchGlobalNav() {
+  // SpicyLyrics_LegacyNav marks Spotify's old navigation for main.css, in place of a
+  // body:has(.Root:not(.global-nav)) that walked the whole document on every check.
+  function sync(root: Element) {
+    const globalNav = root.classList.contains("global-nav");
+    $isGlobalNav.set(globalNav);
+    document.body.classList.toggle("SpicyLyrics_LegacyNav", !globalNav);
+  }
+
   function observe(root: Element) {
-    $isGlobalNav.set(root.classList.contains("global-nav"));
-    new MutationObserver(() => {
-      $isGlobalNav.set(root.classList.contains("global-nav"));
-    }).observe(root, { attributes: true, attributeFilter: ["class"] });
+    sync(root);
+    new MutationObserver(() => sync(root)).observe(root, { attributes: true, attributeFilter: ["class"] });
   }
 
   const existing = document.querySelector(".Root");

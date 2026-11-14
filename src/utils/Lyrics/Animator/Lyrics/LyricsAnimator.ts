@@ -726,11 +726,13 @@ function stepRefreshedLetter(
   const y = (flame.Y[index] ?? -RefreshedLift.Em * (flame.Rest ?? 0)) * liftScale;
   const glow = flame.Glow[index] ?? 0;
   const moving = flame.Moving[index] ?? false;
-  setStyleIfChanged(
-    letter.HTMLElement,
-    "transform",
-    x === 0 && y === 0 ? "none" : `translate3d(${x.toFixed(4)}em, ${y.toFixed(4)}em, 0)`
-  );
+  // Rounded first: a letter resting a hair off zero would otherwise keep a
+  // translate3d(0em, 0em, 0), and its compositor layer, for good. Only at rest, so
+  // a moving letter passing zero doesn't drop its layer and take it back.
+  const tx = x.toFixed(4);
+  const ty = y.toFixed(4);
+  const still = (x === 0 && y === 0) || (!moving && Number(tx) === 0 && Number(ty) === 0);
+  setStyleIfChanged(letter.HTMLElement, "transform", still ? "none" : `translate3d(${tx}em, ${ty}em, 0)`);
   setStyleIfChanged(letter.HTMLElement, "scale", `${scale}`, moving ? 0.0005 : 0);
   setStyleIfChanged(
     letter.HTMLElement,
@@ -754,6 +756,21 @@ function promoteToGPU(el: HTMLElement): void {
 }
 
 const _gpuPromotedLines = new WeakSet<HTMLElement>();
+
+// The largest rest offset (in --DefaultLyricsSize) a settled word's transform is cleared at.
+const PARK_OFFSET = 0.0005;
+
+// A settled line's words rest a few thousandths of a pixel off zero, and a
+// translate3d() keeps each of them on its own compositor layer until the line
+// unmounts. Clearing a transform that close to zero drops the layer and moves
+// nothing. The cache keeps the resting value, so only real movement writes it again.
+function parkSettledLine(lineEl: HTMLElement): void {
+  for (const el of lineEl.querySelectorAll<HTMLElement>(".word, .letterGroup")) {
+    const offset = _styleCache.get(el)?.get("transform");
+    if (typeof offset !== "number" || Math.abs(offset) > PARK_OFFSET || !el.style.transform) continue;
+    queueStyle(el, "transform", "");
+  }
+}
 
 // Lines blur through text-shadow, never `filter`: hinting filter only bought
 // each line an extra offscreen render pass.
@@ -2661,6 +2678,7 @@ export function Animate(position: number): void {
             nextLineStatus === "Active"
           ) {
             if (checkNextLine()) {
+              if (line.Settling) parkSettledLine(line.HTMLElement);
               line.Settling = false;
               dropLineSweep(line.HTMLElement);
             }

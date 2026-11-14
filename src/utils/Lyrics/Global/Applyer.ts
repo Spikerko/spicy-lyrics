@@ -15,7 +15,14 @@ import fetchLyrics, {
   ShowQueueLoader,
   type FetchLyricsResult,
 } from "../fetchLyrics.ts";
-import { BuildLyricsNotice, HasNotice, SetShownNotice, SyncNoLyricsLayout } from "../LyricsNotice.ts";
+import {
+  BuildLyricsNotice,
+  HasNotice,
+  IsNoLyricsNotice,
+  SetShownNotice,
+  SyncNoLyricsLayout,
+} from "../LyricsNotice.ts";
+import { SetNoLyricsSong } from "../../../components/Utils/QueueView.ts";
 import { ClearLyricsContentArrays, isRomanized } from "../lyrics.ts";
 import { PageContainer } from "../../../components/Pages/PageView.ts";
 import { CleanUpIsByCommunity } from "../Applyer/Credits/ApplyIsByCommunity.tsx";
@@ -140,6 +147,9 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
     );
 
     SetShownNotice(descriptor);
+    // Before the layout sync: with the queue open the lyrics column stays, so the NowBar
+    // doesn't start moving to the middle only to turn back.
+    SetNoLyricsSong(IsNoLyricsNotice(descriptor) ? (noticeUri ?? null) : null);
     SyncNoLyricsLayout();
 
     EmitApply("None", null)
@@ -153,6 +163,7 @@ export default async function ApplyLyrics(lyricsContent: FetchLyricsResult): Pro
   // Lyrics replace any notice, whichever path applied them (a TTML upload re-applies
   // without going through fetchLyrics), so a later layout sync can't hide them.
   SetShownNotice(null);
+  SetNoLyricsSong(null);
   SyncNoLyricsLayout();
 
   const romanize = isRomanized;

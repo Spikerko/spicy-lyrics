@@ -159,7 +159,7 @@ export const $minimalLyricsMode = persistAtom<boolean>("minimalLyricsMode", fals
 // Which words sung in syllables are shown as one word: none, all, those whose
 // parts line up evenly, or those long enough to be drawn letter by letter.
 export type SyllableMerge = "off" | "full" | "steady" | "held";
-export const $syllableMerge = persistAtom<SyllableMerge>("syllableMerge", "steady");
+export const $syllableMerge = persistAtom<SyllableMerge>("syllableMerge", "off");
 // A joined word drawn letter by letter times its letters by the syllables it
 // was joined from, instead of spreading them evenly over the whole word.
 export const $syllablePace = persistAtom<boolean>("syllablePace", false);
@@ -204,6 +204,9 @@ export const $hideNpvLyricsWhenUnavailable = persistAtom<boolean>(
 // only the song info instead of the notice. Errors still show theirs. The NPV card
 // has its own switch above.
 export const $showNoLyricsNotice = persistAtom<boolean>("showNoLyricsNotice", true);
+// In Fullscreen and Cinema View, a song with no lyrics opens the queue in the lyrics column,
+// and the next song with lyrics closes it again.
+export const $showQueueWhenNoLyrics = persistAtom<boolean>("showQueueWhenNoLyrics", false);
 // Hide Spotify's own lyrics button in the playback bar (ours is left alone).
 export const $removeSpotifyLyricsButton = persistAtom<boolean>("removeSpotifyLyricsButton", false);
 export const $lockedMediaBox =persistAtom<boolean>("lockedMediaBox", false);
