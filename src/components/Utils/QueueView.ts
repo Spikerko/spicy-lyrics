@@ -3,12 +3,14 @@ import Global from "../Global/Global.ts";
 import { PageContainer } from "../Pages/PageView.ts";
 import { Icons } from "../Styling/Icons.ts";
 import Fullscreen from "./Fullscreen.ts";
+import { SpotifyPlayer } from "../Global/SpotifyPlayer.ts";
 import { IsPIP } from "./PopupLyrics.ts";
 import { SyncNoLyricsLayout } from "../../utils/Lyrics/LyricsNotice.ts";
 import Logger from "../../utils/Logger.ts";
 import { createTooltip } from "../../utils/tooltip.ts";
 import { CreateTextScroller, type TextScroller } from "../../utils/TextScroller.ts";
 import { RefreshSwitchClearance, WatchViewSwitch } from "../../utils/ViewSwitchClearance.ts";
+import { $showQueueWhenNoLyrics } from "../../utils/stores.ts";
 
 /*
  * The queue in Cinema View and fullscreen. It takes the lyrics column while it's open: the
@@ -19,6 +21,7 @@ import { RefreshSwitchClearance, WatchViewSwitch } from "../../utils/ViewSwitchC
  * list being redrawn.
  *
  * A two-way switch in the bottom corner on the lyrics side picks between the lyrics and the queue.
+ * With Show Queue When a Song Has No Lyrics on, a song without lyrics opens it on its own.
  */
 
 const queueLogger = new Logger("Queue View");
@@ -75,6 +78,12 @@ let lastState: QueueState | null = null;
 let lastEditAt = -Infinity;
 let clearArmed: ReturnType<typeof setTimeout> | null = null;
 let viewSwitch: HTMLElement | null = null;
+/** The song whose latest apply came back with no lyrics, or null while the lyrics have some. */
+let noLyricsUri: string | null = null;
+/** The open queue was opened for a song with no lyrics, not by the user, so lyrics close it. */
+let autoOpened = false;
+/** The song the user switched back to the lyrics on; it isn't opened for again. */
+let dismissedUri: string | null = null;
 let switchTooltips: { destroy?: () => void }[] = [];
 /** Rows and section labels currently in the list, by key. */
 const nodes = new Map<string, HTMLElement>();
@@ -167,6 +176,7 @@ export function OpenQueue() {
 export function CloseQueue(immediate = false) {
   if (!open && !immediate) return;
   open = false;
+  autoOpened = false;
   EndDrag("cancel", false);
   FinishSettle();
   Unsubscribe();
@@ -218,6 +228,34 @@ export function CloseQueue(immediate = false) {
     if (panel === leaving) ClearList();
   }, LEAVE_MS);
 }
+
+/**
+ * Called by every apply: the song's uri when it came back with no lyrics, null when it has lyrics
+ * or an error. A loader in between changes nothing, so two songs without lyrics in a row keep the
+ * queue up.
+ */
+export function SetNoLyricsSong(uri: string | null) {
+  if (uri !== noLyricsUri) dismissedUri = null;
+  noLyricsUri = uri;
+  SyncAutoQueue();
+}
+
+/** Opens the queue for a song with no lyrics, and closes it again once it isn't wanted. */
+function SyncAutoQueue() {
+  if (!noLyricsUri || !$showQueueWhenNoLyrics.get()) {
+    // A queue the user opened stays open.
+    if (autoOpened) CloseQueue();
+    return;
+  }
+  if (open || dismissedUri === noLyricsUri) return;
+  // Only applies update it, so after a song change it can still name the last song until the
+  // new one's lyrics land.
+  if (noLyricsUri !== SpotifyPlayer.GetUri()) return;
+  OpenQueue();
+  autoOpened = open;
+}
+
+$showQueueWhenNoLyrics.listen(() => queueMicrotask(SyncAutoQueue));
 
 function DestroyPanel() {
   if (leaveTimer) clearTimeout(leaveTimer);
@@ -1593,6 +1631,9 @@ function BuildSwitch(doc: Document): HTMLElement {
 
   const options = [...root.querySelectorAll<HTMLButtonElement>(".ViewSwitchOption")];
   const pick = (view: string | undefined) => {
+    // The user's choice from here on: kept through the next song, and not reopened for this one.
+    if (view !== "queue" && open && noLyricsUri) dismissedUri = noLyricsUri;
+    autoOpened = false;
     if (view === "queue") OpenQueue();
     else CloseQueue();
   };
@@ -1635,7 +1676,10 @@ export function SyncViewSwitch() {
     RemoveSwitch();
     return;
   }
-  if (viewSwitch?.isConnected && viewSwitch.parentElement === box) return;
+  if (viewSwitch?.isConnected && viewSwitch.parentElement === box) {
+    SyncAutoQueue();
+    return;
+  }
   RemoveSwitch(false);
   viewSwitch = BuildSwitch(box.ownerDocument);
   // Start in the state the other controls are in, so it doesn't fade on its own when it mounts.
@@ -1646,6 +1690,8 @@ export function SyncViewSwitch() {
   // What shares its corner steps aside while it shows (ViewSwitchClearance.ts).
   WatchViewSwitch(viewSwitch);
   Global.Event.evoke("view-switch:changed", null);
+  // Entering Fullscreen or Cinema View on a song that has no lyrics.
+  SyncAutoQueue();
 }
 
 /**

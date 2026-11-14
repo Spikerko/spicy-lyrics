@@ -102,6 +102,8 @@ const NO_LYRICS_NOTICES = new Set([
   "mixed-track",
 ]);
 
+export const IsNoLyricsNotice = (descriptor: string): boolean => NO_LYRICS_NOTICES.has(descriptor);
+
 // The notice the lyrics area holds, or null while it holds lyrics (or a loader).
 let shownNotice: string | null = null;
 
