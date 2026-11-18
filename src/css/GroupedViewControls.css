@@ -292,8 +292,9 @@
     left: auto !important;
   }
 
-  /* In Cinema View the NowBar on the right puts the lyrics on the left, and the button with them. */
-  #SpicyLyricsPage.Exp_GroupedViewControls.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode, .spicy-pip-wrapper *) .ScrollToActive {
+  /* The NowBar on the right puts the lyrics on the left, and the button with them, in page view
+     and Cinema View alike (the Lyrics / Queue switch mirrors the same way). */
+  #SpicyLyricsPage.Exp_GroupedViewControls.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode, .spicy-pip-wrapper *) .ScrollToActive {
     right: auto !important;
     left: calc(anchor(left) + var(--ViewSwitchInset)) !important;
   }
