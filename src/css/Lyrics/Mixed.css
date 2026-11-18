@@ -373,6 +373,17 @@
   display: inline-block;
 }
 
+/* A word wider than the row, or a one-span line of several words split into
+   letters, stays inside the row: it wraps at its spaces and, with none, between
+   letters. Inside a .word-group, white-space: nowrap would otherwise keep it in
+   one piece. */
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line:not(.musical-line) .word,
+#SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letterGroup {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
 /* A letter that is just whitespace collapses to a 0px inline-block, which glues
    multi-word syllables together. Keep the space rendered and give it a floor. */
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letter.SpaceLetter {
