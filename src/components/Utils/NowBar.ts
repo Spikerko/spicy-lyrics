@@ -311,6 +311,11 @@ function OpenNowBar(skipSaving: boolean = false) {
       }
 
       const SetupPlaybackControls = () => {
+        const setShuffleVisual = (el: Element | null, type: string) => {
+          el?.classList.toggle("Enabled", type !== "none");
+          el?.classList.toggle("Smart", type === "smart");
+        };
+
         const ControlsElement = document.createElement("div");
         ControlsElement.classList.add("PlaybackControls");
         ControlsElement.innerHTML = `
@@ -336,12 +341,7 @@ function OpenNowBar(skipSaving: boolean = false) {
           }
         }
 
-        if (SpotifyPlayer.ShuffleType !== "none") {
-          const shuffleToggle = ControlsElement.querySelector(".ShuffleToggle");
-          if (shuffleToggle) {
-            shuffleToggle.classList.add("Enabled");
-          }
-        }
+        setShuffleVisual(ControlsElement.querySelector(".ShuffleToggle"), SpotifyPlayer.ShuffleType);
 
         const controlsMaid = new Maid();
 
@@ -387,16 +387,27 @@ function OpenNowBar(skipSaving: boolean = false) {
           SpotifyPlayer.Skip.Next();
         };
 
+        // Smart shuffle has no player API, only Spotify's own button, which steps off -> shuffle ->
+        // smart -> off. Clicking that button makes this one follow the same cycle; the player-state
+        // poll then updates the icon.
         const shuffleHandler = () => {
           if (!ShuffleControl) return;
 
+          const native = Array.from(
+            document.querySelectorAll<HTMLButtonElement>("button[aria-label*='huffle' i]")
+          ).find((b) => !b.closest("#SpicyLyricsPage"));
+          if (native) {
+            native.click();
+            return;
+          }
+
           if (SpotifyPlayer.ShuffleType === "none") {
             SpotifyPlayer.ShuffleType = "normal";
-            ShuffleControl.classList.add("Enabled");
+            setShuffleVisual(ShuffleControl, "normal");
             Spicetify.Player.setShuffle(true);
-          } else if (SpotifyPlayer.ShuffleType === "normal") {
+          } else {
             SpotifyPlayer.ShuffleType = "none";
-            ShuffleControl.classList.remove("Enabled");
+            setShuffleVisual(ShuffleControl, "none");
             Spicetify.Player.setShuffle(false);
           }
         };
@@ -1863,11 +1874,8 @@ Global.Event.listen("playback:shuffle", (e: string) => {
       const ShuffleButton = PlaybackControls.querySelector(".ShuffleToggle");
       if (!ShuffleButton) return;
 
-      if (e !== "none") {
-        ShuffleButton.classList.add("Enabled");
-      } else {
-        ShuffleButton.classList.remove("Enabled");
-      }
+      ShuffleButton.classList.toggle("Enabled", e !== "none");
+      ShuffleButton.classList.toggle("Smart", e === "smart");
     }
   }
 });

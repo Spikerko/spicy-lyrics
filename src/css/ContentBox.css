@@ -887,6 +887,20 @@
   filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.28));
 }
 
+/* Smart shuffle: the sparkle takes the top arrowhead's place, so the mask cuts the arrowhead out
+   under it. Both only apply while .Smart is set; plain shuffle keeps the unmodified glyph. */
+.PlaybackControl.ShuffleToggle .ShuffleSparkle {
+  display: none;
+}
+
+.PlaybackControl.ShuffleToggle.Smart .ShuffleSparkle {
+  display: block;
+}
+
+.PlaybackControl.ShuffleToggle.Smart .ShuffleArrows {
+  mask: url(#SpicyLyrics_ShuffleSmartMask);
+}
+
 @keyframes pressAnimation {
   0% {
     transform: scale(calc(1 - var(--ShrinkDelta) * 1));
