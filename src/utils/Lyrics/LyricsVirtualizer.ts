@@ -1,3 +1,4 @@
+import { FlowWideWordGroups } from "./Applyer/Utils/FlowWideWordGroups.ts";
 import {
   Virtualizer,
   elementScroll,
@@ -1485,6 +1486,8 @@ class LyricsVirtualizer {
 
       if (!this._mountedIndices.has(item.index)) {
         this._virtualContainer.appendChild(wrapper);
+        // Before the line is measured, so its height already counts the wrapped word.
+        FlowWideWordGroups(wrapper);
         this._mountedIndices.add(item.index);
         this._resizeObserver?.observe(wrapper);
         toMeasure.push(wrapper);

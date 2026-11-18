@@ -499,6 +499,15 @@
   justify-content: flex-start;
 }
 
+#SpicyLyricsPage.SpicyRenderer .word-group.WrapFlow {
+  display: contents;
+}
+
+/* The line's own column-gap (right-aligned lines) must not open up inside a word. */
+#SpicyLyricsPage.SpicyRenderer .OppositeAligned .word-group.WrapFlow > :not(:first-child) {
+  margin-inline-start: -0.32ch;
+}
+
 #SpicyLyricsPage.SpicyRenderer .OppositeAligned .word-group {
   justify-content: flex-end;
 }

@@ -1,6 +1,7 @@
 import { QueueForceScroll } from "../../Scrolling/ScrollToActiveLine.ts";
 import { ScrollSimplebar } from "../../Scrolling/Simplebar/ScrollSimplebar.ts";
 import { destroyLyricsVirtualizer } from "../LyricsVirtualizer.ts";
+import { FlowWideWordGroups } from "./Utils/FlowWideWordGroups.ts";
 
 type LyricsContainerReturnObject = {
   Container: HTMLElement;
@@ -31,6 +32,7 @@ const CreateLyricsContainer = (): LyricsContainerReturnObject => {
     if (resizeRAF !== null) return;
     resizeRAF = requestAnimationFrame(() => {
       resizeRAF = null;
+      FlowWideWordGroups(Container);
       QueueForceScroll();
       ScrollSimplebar?.recalculate();
     });
