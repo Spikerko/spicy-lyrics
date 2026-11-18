@@ -503,6 +503,30 @@
   display: contents;
 }
 
+/* The space after a word's last syllable is not part of the word. Inside the group it
+   counted toward the group's width, so a word that fills the row exactly wrapped its
+   last syllable onto a new row. It sits outside the group instead, and the group is
+   never narrowed to make room for it. */
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line:not(.OppositeAligned)
+  .word-group:not(.WrapFlow)
+  > :is(.word, .letterGroup):last-child:not(.PartOfWord, .dot, .LastWordInLine)::after {
+  margin-right: 0;
+}
+
+#SpicyLyricsPage.SpicyRenderer
+  .LyricsContainer
+  .LyricsContent
+  .line:not(.OppositeAligned)
+  .word-group:not(.WrapFlow):has(> :is(.word, .letterGroup):last-child:not(.PartOfWord, .dot, .LastWordInLine)) {
+  margin-right: 0.32ch;
+  width: max-content;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
 /* The line's own column-gap (right-aligned lines) must not open up inside a word. */
 #SpicyLyricsPage.SpicyRenderer .OppositeAligned .word-group.WrapFlow > :not(:first-child) {
   margin-inline-start: -0.32ch;

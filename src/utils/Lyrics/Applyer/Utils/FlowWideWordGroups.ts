@@ -19,6 +19,9 @@ export const FlowWideWordGroups = (Container: HTMLElement) => {
     }
     let width = 0;
     for (const syllable of group.children) width += (syllable as HTMLElement).offsetWidth;
+    // The space after the word's last syllable sits inside that syllable's box in flow mode.
+    const last = group.lastElementChild;
+    if (last) width -= parseFloat(getComputedStyle(last, "::after").marginRight) || 0;
     (width > room ? wide : narrow).push(group);
   }
   for (const group of wide) group.classList.add("WrapFlow");
