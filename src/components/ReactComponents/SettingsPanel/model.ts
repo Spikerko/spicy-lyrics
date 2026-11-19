@@ -27,11 +27,24 @@ export interface SettingDef {
   Aside?: React.FC<{ disabled: boolean }>;
   /** Renders the whole row instead of `Control` (experiments bring their own badge). */
   render?: (label: React.ReactNode, searching: boolean) => React.ReactNode;
+  /**
+   * Settings that only matter through this one. They sit nested under it and fold
+   * away while `useShowChildren` returns false. Search lists them as ordinary rows,
+   * so each still keeps its own `useDisabled` reason.
+   */
+  children?: SettingDef[];
+  /** Whether the children are shown. May use hooks, like `useDisabled`. */
+  useShowChildren?: () => boolean;
 }
 
 export interface GroupDef {
   title?: string;
   settings: SettingDef[];
+}
+
+/** Every setting in the list, children right after their parent. */
+export function flattenSettings(settings: SettingDef[]): SettingDef[] {
+  return settings.flatMap((setting) => [setting, ...flattenSettings(setting.children ?? [])]);
 }
 
 export type SectionId =

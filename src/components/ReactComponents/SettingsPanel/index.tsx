@@ -14,6 +14,7 @@ import { AboutIcon, ChevronIcon, CloseIcon, PeekIcon } from "./icons.tsx";
 import { interfaceSection } from "./InterfaceSection.tsx";
 import { lyricsSection } from "./LyricsSection.tsx";
 import {
+  flattenSettings,
   matchesLabel,
   matchesSetting,
   type SectionDef,
@@ -58,7 +59,7 @@ const lyricsBehindPanel = () => !!document.querySelector("#SpicyLyricsPage");
 /** A row's label wherever it lives, so nothing else has to repeat it. */
 const settingLabel = (id: string) =>
   SECTIONS.flatMap((section) => section.groups?.() ?? [])
-    .flatMap((group) => group.settings)
+    .flatMap((group) => flattenSettings(group.settings))
     .find((setting) => setting.id === id)?.label;
 
 function SettingRow({ def, query }: { def: SettingDef; query: string }) {
@@ -93,6 +94,35 @@ function SettingRow({ def, query }: { def: SettingDef; query: string }) {
   );
 }
 
+const childrenShown = () => true;
+
+/** A row, plus the rows that depend on it folded in underneath. */
+function SettingBlock({ def }: { def: SettingDef }) {
+  const useShown = def.useShowChildren ?? childrenShown;
+  const open = useShown();
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  // Folded rows stay mounted for the height animation, so they're made inert to
+  // keep Tab and screen readers out. Set directly: older React drops a boolean `inert`.
+  useLayoutEffect(() => {
+    innerRef.current?.toggleAttribute("inert", !open);
+  }, [open]);
+
+  if (!def.children?.length) return <SettingRow def={def} query="" />;
+  return (
+    <>
+      <SettingRow def={def} query="" />
+      <div className="sl-sp-sub" data-open={open || undefined}>
+        <div className="sl-sp-sub-inner" ref={innerRef}>
+          {def.children.map((child) => (
+            <SettingBlock key={child.id} def={child} />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 interface SearchHit {
   section: SectionDef;
   settings: SettingDef[];
@@ -101,7 +131,7 @@ interface SearchHit {
 function search(query: string): SearchHit[] {
   return SECTIONS.flatMap((section) => {
     const matched = (section.groups?.() ?? []).flatMap((group) =>
-      group.settings.filter((setting) => matchesSetting(query, setting))
+      flattenSettings(group.settings).filter((setting) => matchesSetting(query, setting))
     );
     // Label hits first, then description-only ones, each in the tab's own order.
     const settings = [
@@ -411,7 +441,7 @@ export default function SettingsPanel() {
                       {group.title && <h3 className="sl-sp-group-title">{group.title}</h3>}
                       <div className="sl-sp-card">
                         {group.settings.map((def) => (
-                          <SettingRow key={def.id} def={def} query="" />
+                          <SettingBlock key={def.id} def={def} />
                         ))}
                       </div>
                     </div>

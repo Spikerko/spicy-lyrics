@@ -448,6 +448,67 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
     }
   }
 
+  /* ── Sub-settings ─────────────────────────────────────────────────────
+     Rows that only matter through the row above them. They sit indented in
+     the same card behind a rail under the parent's label, and fold away while
+     the parent is off. The fold animates grid rows, so no height is measured. */
+  .sl-sp-sub {
+    --sl-sp-sub-inset: calc(var(--space-4) + 20px);
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 0.22s var(--ease-out, ease),
+      opacity 0.16s var(--ease-out, ease);
+
+    &[data-open] {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
+  }
+
+  .sl-sp-sub-inner {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      bottom: 14px;
+      left: var(--space-4);
+      width: 2px;
+      border-radius: 1px;
+      background: var(--hairline-strong);
+      transition: opacity 0.18s var(--ease-out, ease);
+    }
+
+    > .sl-sp-row {
+      padding-left: var(--sl-sp-sub-inset);
+
+      &::before {
+        left: var(--sl-sp-sub-inset);
+      }
+
+      /* Children read as part of their parent, so no line between the two. */
+      &:first-child {
+        padding-top: 4px;
+      }
+    }
+  }
+
+  /* The row after a sub-block still needs its divider, open or folded. */
+  .sl-sp-sub + .sl-sp-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: var(--space-4);
+    right: 0;
+    height: 1px;
+    background: var(--hairline);
+  }
+
   .sl-sp-mark {
     padding: 0 1px;
     border-radius: 3px;
@@ -1697,6 +1758,21 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
       box-shadow: none;
     }
 
+    /* A kept child row (a sub-setting slider) shows its shadow past the fold's
+       clip, and the rail leaves with the rest. */
+    .sl-sp-sub[data-open] > .sl-sp-sub-inner {
+      overflow: visible;
+    }
+
+    .sl-sp-sub-inner::before {
+      opacity: 0;
+    }
+
+    /* Floating alone, a child row drops its indent and sits like any other. */
+    .sl-sp-sub-inner > .sl-sp-row[data-peek-keep] {
+      padding: 13px var(--space-4);
+    }
+
     /* Solid rather than blurred: the pane is transformed, so a backdrop blur here
        would have nothing to sample. */
     .sl-sp-row[data-peek-keep] {
@@ -1734,6 +1810,10 @@ sl-generic-modal.SpicyLyricsModal .sl-modal-overlay {
 
   sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-sp-select:active {
     transform: none;
+  }
+  /* Sub-settings appear and leave at once; a fading fold is still motion. */
+  sl-generic-modal.SpicyLyricsModal .sl-modal-overlay .sl-sp-sub {
+    transition: none;
   }
 }
 

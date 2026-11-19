@@ -44,28 +44,31 @@ const groups: GroupDef[] = [
             onChange={(v) => $animationFpsCapEnabled.set(v)}
           />
         ),
-      },
-      {
-        id: "animationFpsCap",
-        label: "Frame Rate",
-        description: "Frames per second while the limit is on.",
-        keywords: "fps cap animation",
-        stacked: true,
-        useDisabled: () =>
-          !useStore($animationFpsCapEnabled) && "Turn on Limit Frame Rate to change this.",
-        Control: ({ disabled, label }) => (
-          <Slider
-            label={label}
-            value={useStore($animationFpsCap)}
-            min={15}
-            max={240}
-            step={5}
-            defaultValue={60}
-            unit="FPS"
-            onChange={(v) => $animationFpsCap.set(v)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => useStore($animationFpsCapEnabled),
+        children: [
+          {
+            id: "animationFpsCap",
+            label: "Frame Rate",
+            description: "Frames per second while the limit is on.",
+            keywords: "fps cap animation",
+            stacked: true,
+            useDisabled: () =>
+              !useStore($animationFpsCapEnabled) && "Turn on Limit Frame Rate to change this.",
+            Control: ({ disabled, label }) => (
+              <Slider
+                label={label}
+                value={useStore($animationFpsCap)}
+                min={15}
+                max={240}
+                step={5}
+                defaultValue={60}
+                unit="FPS"
+                onChange={(v) => $animationFpsCap.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
     ],
   },

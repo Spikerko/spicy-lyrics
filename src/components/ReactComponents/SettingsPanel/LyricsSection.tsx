@@ -100,22 +100,25 @@ const groups: GroupDef[] = [
             onChange={(v) => $syllableMerge.set(v as SyllableMerge)}
           />
         ),
-      },
-      {
-        id: "syllablePace",
-        label: "Keep Syllable Pace",
-        description:
-          "A joined word that lights up letter by letter follows each syllable's timing, slow on a long syllable and quick on a short one.",
-        keywords: "syllables merge held letters timing",
-        useDisabled: () => useStore($syllableMerge) === "off" && "Pick a Join Split Words mode to change this.",
-        Control: ({ disabled, label }) => (
-          <Toggle
-            label={label}
-            checked={useStore($syllablePace)}
-            onChange={(v) => $syllablePace.set(v)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => useStore($syllableMerge) !== "off",
+        children: [
+          {
+            id: "syllablePace",
+            label: "Keep Syllable Pace",
+            description:
+              "A joined word that lights up letter by letter follows each syllable's timing, slow on a long syllable and quick on a short one.",
+            keywords: "syllables merge held letters timing",
+            useDisabled: () => useStore($syllableMerge) === "off" && "Pick a Join Split Words mode to change this.",
+            Control: ({ disabled, label }) => (
+              <Toggle
+                label={label}
+                checked={useStore($syllablePace)}
+                onChange={(v) => $syllablePace.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
     ],
   },
@@ -137,29 +140,32 @@ const groups: GroupDef[] = [
             onChange={(v) => $romanizationDisplay.set(v as RomanizationDisplay)}
           />
         ),
-      },
-      {
-        id: "romanizationHighlight",
-        label: "Romanization Highlight",
-        description:
-          "How the romanization row under a word-synced line lights up: a gradient sweeping along each syllable, or each syllable lighting up whole while it's sung.",
-        keywords: "romaji romanized row sweep glow highlight word syllable",
-        useDisabled: () => {
-          const underLine = useStore($romanizationDisplay) === "underLine";
-          const animated = useStore($experiment("animatedUnderRows"));
-          if (!underLine) return "Show romanization under each line to change this.";
-          return animated && "The Animated Romanization and Translation experiment lights the row instead.";
-        },
-        Control: ({ disabled, label }) => (
-          <Select
-            label={label}
-            value={useStore($romanizationHighlight)}
-            options={["sweep", "word"]}
-            labels={["Sweep", "Word by word"]}
-            onChange={(v) => $romanizationHighlight.set(v as RomanizationHighlight)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => useStore($romanizationDisplay) === "underLine",
+        children: [
+          {
+            id: "romanizationHighlight",
+            label: "Romanization Highlight",
+            description:
+              "How the romanization row under a word-synced line lights up: a gradient sweeping along each syllable, or each syllable lighting up whole while it's sung.",
+            keywords: "romaji romanized row sweep glow highlight word syllable",
+            useDisabled: () => {
+              const underLine = useStore($romanizationDisplay) === "underLine";
+              const animated = useStore($experiment("animatedUnderRows"));
+              if (!underLine) return "Show romanization under each line to change this.";
+              return animated && "The Animated Romanization and Translation experiment lights the row instead.";
+            },
+            Control: ({ disabled, label }) => (
+              <Select
+                label={label}
+                value={useStore($romanizationHighlight)}
+                options={["sweep", "word"]}
+                labels={["Sweep", "Word by word"]}
+                onChange={(v) => $romanizationHighlight.set(v as RomanizationHighlight)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
       {
         id: "translationDisplay",

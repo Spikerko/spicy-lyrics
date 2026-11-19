@@ -150,42 +150,45 @@ const groups: GroupDef[] = [
         Control: ({ label }) => (
           <Toggle label={label} checked={useStore($motionArtwork)} onChange={(v) => $motionArtwork.set(v)} />
         ),
-      },
-      {
-        id: "motionArtworkPriority",
-        label: "Motion Artwork or Canvas",
-        description:
-          "Which one plays when a song has both. Motion Artwork plays on the cover, or on the stage if it's allowed there below.",
-        keywords: "animated cover spotify canvas stage video priority prefer both",
-        useDisabled: useStageRowDisabled,
-        Control: ({ disabled, label }) => (
-          <Segmented<MotionArtworkPriority>
-            label={label}
-            value={useStore($motionArtworkPriority)}
-            options={[
-              { value: "motion", label: "Motion" },
-              { value: "canvas", label: "Canvas" },
-            ]}
-            onChange={(v) => $motionArtworkPriority.set(v)}
-            disabled={disabled}
-          />
-        ),
-      },
-      {
-        id: "motionArtworkOnStage",
-        label: "Motion Artwork on Canvas Stage",
-        description:
-          "Let motion artwork fill the Canvas Stage, cropped to fit since it's square. Off keeps it on the cover in the NowBar.",
-        keywords: "animated cover spotify canvas stage video fullscreen side",
-        useDisabled: useStageRowDisabled,
-        Control: ({ disabled, label }) => (
-          <Toggle
-            label={label}
-            checked={useStore($motionArtworkOnStage)}
-            onChange={(v) => $motionArtworkOnStage.set(v)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => useStore($motionArtwork),
+        children: [
+          {
+            id: "motionArtworkPriority",
+            label: "Motion Artwork or Canvas",
+            description:
+              "Which one plays when a song has both. Motion Artwork plays on the cover, or on the stage if it's allowed there below.",
+            keywords: "animated cover spotify canvas stage video priority prefer both",
+            useDisabled: useStageRowDisabled,
+            Control: ({ disabled, label }) => (
+              <Segmented<MotionArtworkPriority>
+                label={label}
+                value={useStore($motionArtworkPriority)}
+                options={[
+                  { value: "motion", label: "Motion" },
+                  { value: "canvas", label: "Canvas" },
+                ]}
+                onChange={(v) => $motionArtworkPriority.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+          {
+            id: "motionArtworkOnStage",
+            label: "Motion Artwork on Canvas Stage",
+            description:
+              "Let motion artwork fill the Canvas Stage, cropped to fit since it's square. Off keeps it on the cover in the NowBar.",
+            keywords: "animated cover spotify canvas stage video fullscreen side",
+            useDisabled: useStageRowDisabled,
+            Control: ({ disabled, label }) => (
+              <Toggle
+                label={label}
+                checked={useStore($motionArtworkOnStage)}
+                onChange={(v) => $motionArtworkOnStage.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
     ],
   },
@@ -204,22 +207,25 @@ const groups: GroupDef[] = [
             onChange={(v) => $disableNpvLyrics.set(!v)}
           />
         ),
-      },
-      {
-        id: "hideNpvLyricsWhenUnavailable",
-        label: "Hide When a Song Has No Lyrics",
-        description:
-          "Remove the card instead of showing a notice. It comes back on the next song with lyrics.",
-        keywords: "npv lyrics unavailable",
-        useDisabled: () => useStore($disableNpvLyrics) && "Turn on Lyrics Card to change this.",
-        Control: ({ disabled, label }) => (
-          <Toggle
-            label={label}
-            checked={useStore($hideNpvLyricsWhenUnavailable)}
-            onChange={(v) => $hideNpvLyricsWhenUnavailable.set(v)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => !useStore($disableNpvLyrics),
+        children: [
+          {
+            id: "hideNpvLyricsWhenUnavailable",
+            label: "Hide When a Song Has No Lyrics",
+            description:
+              "Remove the card instead of showing a notice. It comes back on the next song with lyrics.",
+            keywords: "npv lyrics unavailable",
+            useDisabled: () => useStore($disableNpvLyrics) && "Turn on Lyrics Card to change this.",
+            Control: ({ disabled, label }) => (
+              <Toggle
+                label={label}
+                checked={useStore($hideNpvLyricsWhenUnavailable)}
+                onChange={(v) => $hideNpvLyricsWhenUnavailable.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
     ],
   },

@@ -48,30 +48,33 @@ const groups: GroupDef[] = [
             onChange={(v) => $backgroundStyle.set(v as BackgroundStyle)}
           />
         ),
-      },
-      {
-        id: "backgroundBlur",
-        label: "Image Blur",
-        description: "Softens the Artist Image and Cover Art backgrounds.",
-        keywords: "static background blur",
-        stacked: true,
-        useDisabled: () => {
-          const style = useStore($backgroundStyle);
-          return style !== "artist" && style !== "cover" && "Only applies to Artist Image and Cover Art.";
-        },
-        Control: ({ disabled, label }) => (
-          <Slider
-            label={label}
-            value={useStore($backgroundBlur)}
-            min={0}
-            max={48}
-            step={1}
-            defaultValue={0}
-            unit="px"
-            onChange={(v) => $backgroundBlur.set(v)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => ["artist", "cover"].includes(useStore($backgroundStyle)),
+        children: [
+          {
+            id: "backgroundBlur",
+            label: "Image Blur",
+            description: "Softens the Artist Image and Cover Art backgrounds.",
+            keywords: "static background blur",
+            stacked: true,
+            useDisabled: () => {
+              const style = useStore($backgroundStyle);
+              return style !== "artist" && style !== "cover" && "Only applies to Artist Image and Cover Art.";
+            },
+            Control: ({ disabled, label }) => (
+              <Slider
+                label={label}
+                value={useStore($backgroundBlur)}
+                min={0}
+                max={48}
+                step={1}
+                defaultValue={0}
+                unit="px"
+                onChange={(v) => $backgroundBlur.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
     ],
   },

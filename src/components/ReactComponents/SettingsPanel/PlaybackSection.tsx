@@ -147,27 +147,30 @@ const groups: GroupDef[] = [
             onChange={(v) => $scrollLeadEnabled.set(v)}
           />
         ),
-      },
-      {
-        id: "scrollLeadMs",
-        label: "Early Scroll Time",
-        description: "How far ahead of the line the scroll starts.",
-        keywords: "lead ahead",
-        stacked: true,
-        useDisabled: () => !useStore($scrollLeadEnabled) && "Turn on Early Scroll to change this.",
-        Control: ({ disabled, label }) => (
-          <Slider
-            label={label}
-            value={useStore($scrollLeadMs)}
-            min={0}
-            max={800}
-            step={10}
-            defaultValue={250}
-            unit="ms"
-            onChange={(v) => $scrollLeadMs.set(v)}
-            disabled={disabled}
-          />
-        ),
+        useShowChildren: () => useStore($scrollLeadEnabled),
+        children: [
+          {
+            id: "scrollLeadMs",
+            label: "Early Scroll Time",
+            description: "How far ahead of the line the scroll starts.",
+            keywords: "lead ahead",
+            stacked: true,
+            useDisabled: () => !useStore($scrollLeadEnabled) && "Turn on Early Scroll to change this.",
+            Control: ({ disabled, label }) => (
+              <Slider
+                label={label}
+                value={useStore($scrollLeadMs)}
+                min={0}
+                max={800}
+                step={10}
+                defaultValue={250}
+                unit="ms"
+                onChange={(v) => $scrollLeadMs.set(v)}
+                disabled={disabled}
+              />
+            ),
+          },
+        ],
       },
       {
         id: "staticAutoScroll",
