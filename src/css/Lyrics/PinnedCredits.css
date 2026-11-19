@@ -115,14 +115,14 @@
 #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
   .ContentBox
   .LyricsContainer
-  > .LyricsPinnedCredits:not(.EndsOnOppositeLine) {
+  > .LyricsPinnedCredits:not(.EndsOnOppositeLine, .Raised) {
   transition: translate 420ms var(--ease-in-out) 300ms;
 }
 
 #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
   .ContentBox.ViewSwitchAwake
   .LyricsContainer
-  > .LyricsPinnedCredits:not(.EndsOnOppositeLine) {
+  > .LyricsPinnedCredits:not(.EndsOnOppositeLine, .Raised) {
   translate: max(
       0px,
       calc(var(--SL-ViewSwitchEnd, 0px) + var(--ViewSwitchInset) * 0.5 - var(--LyricsRightSidePadding) * 1.45)
@@ -136,11 +136,74 @@
   #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
     .ContentBox
     .LyricsContainer
-    > .LyricsPinnedCredits:not(.EndsOnOppositeLine),
+    > .LyricsPinnedCredits:not(.EndsOnOppositeLine, .Raised),
   #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
     .ContentBox.ViewSwitchAwake
     .LyricsContainer
-    > .LyricsPinnedCredits:not(.EndsOnOppositeLine) {
+    > .LyricsPinnedCredits:not(.EndsOnOppositeLine, .Raised) {
     transition: none;
   }
+}
+
+/* Pinned Credits Rise with the Scroll: the spacer PinnedCredits.ts leaves at the end of the scrolling
+   credits names a view timeline, and the layer plays a lift against it, so the compositor moves the
+   rows in step with the scroll. The animation starts once the spacer has risen above the rows' resting
+   place (--SL-RiseStart, in px along the timeline) and then follows it one for one (--SL-RiseSpan is
+   how far that goes). */
+#SpicyLyricsPage .LyricsContainer.HasRisingCredits {
+  timeline-scope: --SL-CreditsSpacer;
+}
+
+#SpicyLyricsPage .LyricsContent .PinnedCreditsSpacer {
+  flex: none;
+  pointer-events: none;
+  view-timeline: --SL-CreditsSpacer block;
+}
+
+@keyframes PinnedCreditsRise {
+  to {
+    transform: translateY(calc(var(--SL-RiseSpan, 0px) * -1));
+  }
+}
+
+#SpicyLyricsPage .LyricsContainer > .LyricsPinnedCredits.Rising {
+  animation: PinnedCreditsRise linear both;
+  animation-timeline: --SL-CreditsSpacer;
+  animation-range: cover var(--SL-RiseStart, 0px) cover 100%;
+  will-change: transform;
+}
+
+/* Once risen the rows are back in the flow, so the lyrics fade at the bottom edge again, as they do
+   unpinned. Left above the rows, the fade would dim the "Written by" row still in the scroll (it sits
+   just above them) while the rows, outside the mask, stay bright. The padding cancels the lift in
+   the pinned mask above and is a registered length, so the change eases (main.css). */
+#SpicyLyricsPage .ContentBox.CreditsRisen .LyricsContainer.HasRisingCredits .LyricsContent {
+  --SL-LyricsContent_MaskBottomPadding: calc(-1 * (var(--SL-PinnedCreditsHeight, 0px) + 16px));
+}
+
+/* Lifted past the Lyrics / Queue switch's row, the rows drop the sideways step that clears it (the
+   rules above), easing back under the lyrics' edge rather than jumping there. */
+#SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+  .ContentBox
+  .LyricsContainer
+  > .LyricsPinnedCredits.Raised:not(.EndsOnOppositeLine) {
+  transition: translate 240ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #SpicyLyricsPage.Fullscreen.NowBarSide__Right:not(.CompactMode, .ForcedCompactMode)
+    .ContentBox
+    .LyricsContainer
+    > .LyricsPinnedCredits.Raised:not(.EndsOnOppositeLine) {
+    transition: none;
+  }
+}
+
+/* Dim like the credits still in the scroll until the last line has been sung (Mixed.css). */
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer > .LyricsPinnedCredits.Rising.UntilSung .SongCredits {
+  opacity: 0.55;
+}
+
+#SpicyLyricsPage.SpicyRenderer.Exp_RefinedCredits .LyricsContainer > .LyricsPinnedCredits.Rising .SongCredits {
+  transition: opacity var(--dur-slow) var(--ease-out);
 }

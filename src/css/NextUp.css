@@ -242,3 +242,19 @@
     filter: none;
   }
 }
+
+/* Pinned Credits Rise with the Scroll (PinnedCredits.ts): the rows rest under Up Next, so rising rows
+   would pass through it. While they do it fades out, and keeps its place until it has gone. Once the
+   rows are clear of it, it comes back in the bottom corner, where nothing else is. */
+#SpicyLyricsPage .ContentBox.CreditsRisen:not(.CreditsCleared) > .NextUp {
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    var(--NextUpSlide),
+    opacity 160ms var(--ease-out),
+    bottom 0s linear 220ms;
+}
+
+#SpicyLyricsPage .ContentBox.CreditsCleared > .NextUp {
+  bottom: var(--ViewSwitchInset);
+}

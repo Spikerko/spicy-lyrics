@@ -178,6 +178,15 @@ export const EXPERIMENTS = [
     pageClass: "Exp_RefinedCredits",
   },
   {
+    id: "pinnedCreditsRise",
+    category: "lyrics",
+    label: "Pinned Credits Rise with the Scroll",
+    description:
+      "With Pinned Credits on, once the lyrics scroll past the last line the credits leave the bottom and scroll up with them, ending where they would sit unpinned, instead of leaving a gap between them and the lyrics. Up Next fades out while the credits pass it and comes back in the bottom corner. Disable to keep the credits fixed at the bottom.",
+    default: true,
+    pageClass: "Exp_PinnedCreditsRise",
+  },
+  {
     id: "scrubPreview",
     category: "player",
     label: "Scrub Preview",
