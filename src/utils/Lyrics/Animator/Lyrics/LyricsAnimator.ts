@@ -2979,6 +2979,13 @@ export function Animate(position: number): void {
   // Stands in for `.LyricsContent:not(:has(.line.Active)):not(:has(.line.NotSung))`
   // in Mixed.css: with line classes inside a :has(), every line change made
   // Blink re-check the page's ancestors, up to <html>.
+  // The list only mounts lines near the viewport, so scrolled well up, the lines still to come are
+  // unmounted and skipped above, and only sung ones are left. The line that ends last settles it.
+  if (!anyLineUnsung && (CurrentLyricsType === "Syllable" || CurrentLyricsType === "Line")) {
+    let lastEnd = -Infinity;
+    for (const line of LyricsObject.Types[CurrentLyricsType].Lines) lastEnd = Math.max(lastEnd, line.EndTime);
+    if (ProcessedPosition < lastEnd) anyLineUnsung = true;
+  }
   const lyricsContent = mountedLine?.closest<HTMLElement>(".LyricsContent");
   if (lyricsContent) setClass(lyricsContent, "LinesAllSung", !anyLineUnsung);
 
