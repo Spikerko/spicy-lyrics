@@ -31,6 +31,7 @@ import {
   $lineHoverBackground,
   $lyricsContainerExists,
   $lyricsSize,
+  $lyricsWeight,
   $minimalLyricsMode,
   $lyricsTranslation,
   $romanizationDisplay,
@@ -39,6 +40,8 @@ import {
   $translationDisplay,
   $rendererVisualStyle,
   $skipSpicyFont,
+  $customFont,
+  $customFontFamily,
   $syllableMerge,
   $syllablePace,
   $ttmlMakerMode,
@@ -301,10 +304,9 @@ async function OpenPage(
   PageContainer = elem;
 
   elem.style.setProperty("--SL-LyricsScale", String($lyricsSize.get() / 100));
+  elem.style.setProperty("--SL-LyricsWeight", String($lyricsWeight.get()));
 
-  if (!$skipSpicyFont.get()) {
-    elem.classList.add("UseSpicyFont");
-  }
+  applyFontClasses(elem);
 
   if ($rendererVisualStyle.get() === "bloom") {
     elem.classList.add("BloomRenderer");
@@ -1092,6 +1094,14 @@ $lyricsSize.listen((v, previous) => {
   ResetLastLine();
 });
 
+// A heavier weight widens the text, so the rows are measured again like after a size change.
+$lyricsWeight.listen((v) => {
+  if (!PageContainer) return;
+  PageContainer.style.setProperty("--SL-LyricsWeight", String(v));
+  lyricsSizeChanged(1);
+  ResetLastLine();
+});
+
 // Purely a CSS toggle — no need to re-render the lyrics like the modes above do.
 $lineHoverBackground.listen((v) => {
   if (!PageContainer) return;
@@ -1108,9 +1118,24 @@ $creditsFollowLastLine.listen((v) => {
   PageContainer.classList.toggle("CreditsFollowLastLine", v);
 });
 
-$skipSpicyFont.listen((v) => {
-  if (!PageContainer) return;
-  PageContainer.classList.toggle("UseSpicyFont", !v);
+// A custom font replaces the Spicy Lyrics font, so the two never apply together.
+function applyFontClasses(elem: HTMLElement) {
+  const family = $customFontFamily.get().replace(/["\\]/g, "").trim();
+  const custom = $customFont.get() !== "" || family !== "";
+  // A picked file is registered as SpicyLyricsCustom (utils/CustomFont.ts).
+  elem.style.setProperty("--SL-CustomFont", family ? `"${family}"` : "SpicyLyricsCustom");
+  elem.classList.toggle("HasCustomFont", custom);
+  elem.classList.toggle("UseSpicyFont", !custom && !$skipSpicyFont.get());
+}
+
+$skipSpicyFont.listen(() => {
+  if (PageContainer) applyFontClasses(PageContainer);
+});
+$customFontFamily.listen(() => {
+  if (PageContainer) applyFontClasses(PageContainer);
+});
+$customFont.listen(() => {
+  if (PageContainer) applyFontClasses(PageContainer);
 });
 
 // Purely a CSS gate — NowBar.ts handles rebuilding the band itself.

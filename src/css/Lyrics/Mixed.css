@@ -53,7 +53,7 @@
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line .letter,
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line {
   cursor: pointer;
-  font-weight: 700 !important;
+  font-weight: var(--SL-LyricsWeight, 700) !important;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   position: relative;
@@ -577,6 +577,15 @@
   font-family: SpicyLyrics, sans-serif;
 }
 
+/* The user's own font: a picked file or an installed family (utils/CustomFont.ts), named
+   by --SL-CustomFont. It replaces the Spicy Lyrics font, so UseSpicyFont is off while this
+   is on; the others cover glyphs it lacks. */
+#SpicyLyricsPage.HasCustomFont,
+#SpicyLyricsPage.HasCustomFont * {
+  font-family:
+    var(--SL-CustomFont, SpicyLyricsCustom), "Noto Sans Georgian", "VazirmatnRegular", sans-serif !important;
+}
+
 /* @keyframes MusicalLineScaleLoop {
   0% {
     scale: 0.98;
@@ -780,7 +789,7 @@
   .LyricsContainer
   .SpicyLyricsScrollContainer[data-lyrics-type="Static"]
   .line {
-  font-weight: 500 !important;
+  font-weight: max(100, calc(var(--SL-LyricsWeight, 700) - 200)) !important;
 }
 
 /* #SpicyLyricsPage.SpicyRenderer.Podcast .LyricsContainer .LyricsContent .line.Sung .word {
@@ -1029,7 +1038,7 @@
 #SpicyLyricsPage.SpicyRenderer .LyricsContainer .LyricsContent .line.bg-line .letterGroup .letter {
   --font-size: calc(var(--DefaultLyricsSize) * 0.75);
   font-size: var(--font-size) !important;
-  font-weight: 600 !important;
+  font-weight: max(100, calc(var(--SL-LyricsWeight, 700) - 100)) !important;
 }
 
 /* Background Vocal Pop-Out (experiment). A background line takes no space

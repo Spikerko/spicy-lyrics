@@ -3,7 +3,6 @@ import {
   $creditsFollowLastLine,
   $duetLinePadding,
   $lineHoverBackground,
-  $lyricsSize,
   $minimalLyricsMode,
   $pinnedCredits,
   $rendererVisualStyle,
@@ -22,37 +21,12 @@ import {
   type TranslationDisplay,
 } from "../../../utils/stores.ts";
 import { $experiment } from "../../../utils/experiments.ts";
-import { Select, Slider, Toggle } from "./components.tsx";
+import { Select, Toggle } from "./components.tsx";
 import { LyricsIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
 
 // Built once: the Control components must keep their identity across renders.
 const groups: GroupDef[] = [
-  {
-    title: "Text",
-    settings: [
-      {
-        id: "lyricsSize",
-        label: "Lyrics Size",
-        description:
-          "Makes the lyrics bigger or smaller in every view, including romanization and background vocals. 100% is each view's usual size.",
-        keywords: "font text scale bigger smaller zoom",
-        stacked: true,
-        Control: ({ label }) => (
-          <Slider
-            label={label}
-            value={useStore($lyricsSize)}
-            min={60}
-            max={200}
-            step={5}
-            defaultValue={100}
-            unit="%"
-            onChange={(v) => $lyricsSize.set(v)}
-          />
-        ),
-      },
-    ],
-  },
   {
     title: "Style",
     settings: [

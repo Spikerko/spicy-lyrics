@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+import { addCustomFontTo } from "../../utils/CustomFont.ts";
 import Session from "../Global/Session.ts";
 import PageView, { PageContainer } from "../Pages/PageView.ts";
 import Fullscreen from "./Fullscreen.ts";
@@ -244,6 +245,7 @@ const OpenPopupLyricsFlow = async () => {
     docPiP.removeEventListener("enter", startGuardOnEnter);
   }
   if (!pipGrowthGuard) StartPipGrowthGuard(currentPipWindow);
+  addCustomFontTo(currentPipWindow);
 
   // Copy style sheets over from the initial document
   // so that the player looks the same.

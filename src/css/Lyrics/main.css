@@ -114,7 +114,7 @@
    an ancestor :has() with a `*` subject made Blink restyle the whole document on
    any DOM change. The notice replaces the lyrics, so nothing else here holds text. */
 #SpicyLyricsPage .LyricsContainer .LyricsContent *:not(.LyricsNotice, .LyricsNotice *) {
-  font-weight: 700 !important;
+  font-weight: var(--SL-LyricsWeight, 700) !important;
 }
 
 .spicy-pip-wrapper #SpicyLyricsPage .LyricsContainer .LyricsContent {

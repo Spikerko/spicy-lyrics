@@ -2,8 +2,10 @@ import { useStore } from "@nanostores/react";
 import {
   $animationFpsCap,
   $animationFpsCapEnabled,
-  $skipSpicyFont,
+  $lyricsSize,
+  $lyricsWeight,
 } from "../../../utils/stores.ts";
+import { FontPicker } from "./FontPicker.tsx";
 import { Slider, Toggle } from "./components.tsx";
 import { AppearanceIcon } from "./icons.tsx";
 import type { GroupDef, SectionDef } from "./model.ts";
@@ -14,15 +16,49 @@ const groups: GroupDef[] = [
     title: "Text",
     settings: [
       {
-        id: "skipSpicyFont",
-        label: "Use System Font",
-        description: "Use your system font instead of the Spicy Lyrics font.",
-        keywords: "default font typeface",
+        id: "customFont",
+        label: "Lyrics Font",
+        description:
+          "The Spicy Lyrics font, your system's, an installed font, or a font file (.ttf, .otf, .woff, .woff2). Listing installed fonts asks Spotify for permission.",
+        keywords: "font typeface system default custom file upload ttf otf woff",
+        Control: FontPicker,
+      },
+      {
+        id: "lyricsSize",
+        label: "Lyrics Size",
+        description:
+          "Makes the lyrics bigger or smaller in every view, including romanization and background vocals. 100% is each view's usual size.",
+        keywords: "font text scale bigger smaller zoom",
+        stacked: true,
         Control: ({ label }) => (
-          <Toggle
+          <Slider
             label={label}
-            checked={useStore($skipSpicyFont)}
-            onChange={(v) => $skipSpicyFont.set(v)}
+            value={useStore($lyricsSize)}
+            min={60}
+            max={200}
+            step={5}
+            defaultValue={100}
+            unit="%"
+            onChange={(v) => $lyricsSize.set(v)}
+          />
+        ),
+      },
+      {
+        id: "lyricsWeight",
+        label: "Lyrics Weight",
+        description:
+          "How bold the lyrics are, from thin (100) to black (900). 700 is the usual look. A font without that weight uses its nearest one.",
+        keywords: "font bold boldness thickness thin heavy",
+        stacked: true,
+        Control: ({ label }) => (
+          <Slider
+            label={label}
+            value={useStore($lyricsWeight)}
+            min={100}
+            max={900}
+            step={100}
+            defaultValue={700}
+            onChange={(v) => $lyricsWeight.set(v)}
           />
         ),
       },

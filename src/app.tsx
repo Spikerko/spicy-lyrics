@@ -38,6 +38,7 @@ import Platform from "./components/Global/Platform.ts";
 import Session from "./components/Global/Session.ts";
 import { SpotifyPlayer } from "./components/Global/SpotifyPlayer.ts";
 import PageView, { GetPageRoot, PageContainer } from "./components/Pages/PageView.ts";
+import { loadCustomFont } from "./utils/CustomFont.ts";
 import LoadFonts, { ApplyFontPixel } from "./components/Styling/Fonts.ts";
 import { Icons } from "./components/Styling/Icons.ts";
 import Fullscreen, { EnterSpicyLyricsFullscreen, ExitFullscreenElement } from "./components/Utils/Fullscreen.ts";
@@ -136,6 +137,7 @@ async function main() {
   StartExperimentOverridesSync();
 
   LoadFonts();
+  void loadCustomFont();
   ApplyFontPixel();
 
   const skeletonStyle = document.createElement("style");

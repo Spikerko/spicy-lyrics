@@ -152,6 +152,9 @@ export const $backgroundStyle = persistAtom<BackgroundStyle>("backgroundStyle", 
 export const $backgroundBlur = persistAtom<number>("backgroundBlur", 0);
 // Lyrics text size as a percentage of what each view uses by default.
 export const $lyricsSize = persistAtom<number>("lyricsSize", 100);
+// CSS font-weight of the lyrics text; 700 is the look it has always had. Background vocals and
+// the unsynced lyrics sit a step or two lighter than this, as they do at 700.
+export const $lyricsWeight = persistAtom<number>("lyricsWeight", 700);
 export const $rendererVisualStyle = persistAtom<RendererVisualStyle>("rendererVisualStyle", "spring");
 export const isBloomRenderer = (): boolean => $rendererVisualStyle.get() === "bloom";
 // Shown as "Fade Away Previous Lines"; the key keeps its old name.
@@ -191,6 +194,12 @@ export const $creditsFollowLastLine = persistAtom<boolean>("creditsFollowLastLin
 export type PinnedCredits = "off" | "noWriters" | "full";
 export const $pinnedCredits = persistAtom<PinnedCredits>("pinnedCredits", "off");
 export const $skipSpicyFont = persistAtom<boolean>("skipSpicyFont", false);
+// File name of the font the user picked (the font itself is in IndexedDB, see
+// utils/CustomFont.ts). Empty means no custom font.
+export const $customFont = persistAtom<string>("customFont", "");
+// Family name of a font that is already installed, typed or picked from the list.
+// Only one of this and $customFont is set at a time.
+export const $customFontFamily = persistAtom<string>("customFontFamily", "");
 export const $showNpvDynamicBg = persistAtom<boolean>("showNpvDynamicBg", true);
 // Never inject the lyrics card into the Now Playing sidebar at all.
 export const $disableNpvLyrics = persistAtom<boolean>("disableNpvLyrics", false);
