@@ -38,7 +38,7 @@ export interface SyllablePart {
 // running until the next one starts, so a long "per" and a quick "fect" keep
 // their pace. The syllables' times are scaled into the word's window, which
 // may be shifted or trimmed from its sung times.
-function letterTimes(
+export function letterTimes(
   count: number,
   start: number,
   end: number,

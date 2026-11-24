@@ -1,6 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { $romanizationDisplay, $syllableMerge, isBloomRenderer } from "../../../stores.ts";
+import { $romanizationDisplay, $syllableMerge, $syllablePace, isBloomRenderer } from "../../../stores.ts";
+import { letterTimes, type SyllablePart } from "./Emphasize.ts";
 import { JoinSplitWords } from "./JoinSplitWords.ts";
 import { PickDisplayText } from "./PickDisplayText.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
@@ -43,6 +44,11 @@ interface RomanizedPiece {
   LetterGroup?: boolean;
   LettersStart?: number;
   LettersEnd?: number;
+  // Keep Syllable Pace, for a joined word: [time, share of the piece lit] at the
+  // start of each of its syllables and at its end, so the fill keeps each
+  // syllable's pace. Paced marks its letters as timed by those syllables.
+  Pace?: [number, number][];
+  Paced?: boolean;
 }
 
 const timedRows = new WeakMap<HTMLElement, RomanizedPiece[]>();
@@ -70,6 +76,53 @@ function drawnLetterByLetter(word: any): boolean {
   return letters.length > 0 && IsLetterCapable(letters.length, duration) && !isRtl(text);
 }
 
+// With Keep Syllable Pace, a joined word's syllables: when each starts and how
+// many of the piece's letters are its own. Undefined for a word that wasn't
+// joined, or whose syllables' romanization doesn't add up to the piece's text.
+function pacedParts(syllable: any, text: string): SyllablePart[] | undefined {
+  if (!syllable.Parts || !$syllablePace.get()) return undefined;
+  const parts: SyllablePart[] = syllable.Parts.map((part: any) => ({
+    StartTime: part.StartTime,
+    Letters: SplitLetters(StripZeroWidth(PickDisplayText(part, true))).length,
+  }));
+  const total = parts.reduce((sum, part) => sum + part.Letters, 0);
+  return total > 0 && total === SplitLetters(text).length ? parts : undefined;
+}
+
+// The pace breakpoints for a piece from its syllables (see RomanizedPiece.Pace).
+function paceOf(parts: SyllablePart[], end: number): [number, number][] {
+  const total = parts.reduce((sum, part) => sum + part.Letters, 0);
+  const pace: [number, number][] = [];
+  let lit = 0;
+  let time = -Infinity;
+  for (const part of parts) {
+    time = Math.min(end, Math.max(time, ConvertTime(part.StartTime)));
+    pace.push([time, lit / total]);
+    lit += part.Letters;
+  }
+  pace.push([end, 1]);
+  return pace;
+}
+
+// How much of a piece is lit at `position`, 0 to 1: even over its time, or
+// syllable by syllable when it has a Pace.
+export function PieceProgress(
+  piece: { StartTime: number; EndTime: number; Pace?: [number, number][] },
+  position: number
+): number {
+  const { StartTime: start, EndTime: end, Pace: pace } = piece;
+  if (position <= start) return 0;
+  if (position >= end || end <= start) return 1;
+  if (!pace) return (position - start) / (end - start);
+  for (let i = pace.length - 2; i >= 0; i--) {
+    const [time, share] = pace[i];
+    if (position < time) continue;
+    const [nextTime, nextShare] = pace[i + 1];
+    return nextTime > time ? share + ((nextShare - share) * (position - time)) / (nextTime - time) : nextShare;
+  }
+  return 0;
+}
+
 // Appends the row for one lead or background line of syllable lyrics. Built
 // from the syllables as sung, before any joining, with the word breaks of the
 // romanization: a syllable glued to the next stays glued unless either side of
@@ -86,6 +139,8 @@ export function AppendSyllableRomanization(
   const row = createRow(beforeBackground);
   row.classList.add("Timed");
   const pieces: RomanizedPiece[] = [];
+  // Each piece's joined syllable and its paced parts, for timing its letters.
+  const paced: ({ Syllable: any; Parts: SyllablePart[] } | undefined)[] = [];
   let shown = "";
   let gluedToPrevious = false;
   // Glued syllables share a word span, so a row whose pieces move on their own
@@ -122,18 +177,22 @@ export function AppendSyllableRomanization(
     piece.textContent = text;
     word.appendChild(piece);
     shown += text;
+    const parts = pacedParts(syllable, text);
+    const endTime = ConvertTime(syllable.EndTime);
     pieces.push({
       HTMLElement: piece,
       StartTime: ConvertTime(syllable.StartTime),
-      EndTime: ConvertTime(syllable.EndTime),
+      EndTime: endTime,
       Position: NaN,
       State: "",
       Glow: 0,
+      ...(parts ? { Pace: paceOf(parts, endTime) } : {}),
     });
+    paced.push(parts && { Syllable: syllable, Parts: parts });
   }
 
   if (pieces.length === 0 || bare(shown) === bare(original)) return;
-  if (isExperimentEnabled("animatedUnderRows")) for (const piece of pieces) prepareAnimatedPiece(piece);
+  if (isExperimentEnabled("animatedUnderRows")) pieces.forEach((piece, i) => prepareAnimatedPiece(piece, paced[i]));
   lineElem.appendChild(row);
   timedRows.set(lineElem, pieces);
 }
@@ -154,7 +213,7 @@ function rest(el: HTMLElement, scale: number, lift: number): void {
   el.style.transform = `translateY(calc(var(--DefaultLyricsSize) * ${lift * ROMANIZED_ROW_SIZE}))`;
 }
 
-function prepareAnimatedPiece(piece: RomanizedPiece): void {
+function prepareAnimatedPiece(piece: RomanizedPiece, paced?: { Syllable: any; Parts: SyllablePart[] }): void {
   const el = piece.HTMLElement;
   const text = el.textContent ?? "";
   const letters = SplitLetters(text);
@@ -174,7 +233,10 @@ function prepareAnimatedPiece(piece: RomanizedPiece): void {
   const simple = isBloomRenderer();
   const start = piece.StartTime + (simple ? 21 : 0);
   const end = Math.max(start + 1, piece.EndTime - (simple ? -40 : 250));
-  const span = (end - start) / letters.length;
+  // Spread evenly, or syllable by syllable with Keep Syllable Pace, as the
+  // line's own letters are.
+  const times = letterTimes(letters.length, start, end, paced?.Syllable, paced?.Parts);
+  if (paced) piece.Paced = true;
   el.textContent = "";
   el.classList.add("HasLetters");
   piece.Letters = letters.map((letter, k) => {
@@ -183,7 +245,7 @@ function prepareAnimatedPiece(piece: RomanizedPiece): void {
     letterEl.textContent = letter;
     rest(letterEl, IdleEmphasisLyricsScale, 0.02);
     el.appendChild(letterEl);
-    return { HTMLElement: letterEl, StartTime: start + span * k, EndTime: start + span * (k + 1) };
+    return { HTMLElement: letterEl, StartTime: times[k][0], EndTime: times[k][1] };
   });
   piece.LetterGroup = true;
   piece.LettersStart = start;
@@ -219,13 +281,7 @@ export function UpdateRomanizedRow(lineElem: HTMLElement, position: number): voi
   const pieces = timedRows.get(lineElem);
   if (!pieces) return;
   for (const piece of pieces) {
-    const duration = piece.EndTime - piece.StartTime;
-    const progress =
-      position <= piece.StartTime
-        ? 0
-        : position >= piece.EndTime || duration <= 0
-          ? 1
-          : (position - piece.StartTime) / duration;
+    const progress = PieceProgress(piece, position);
     const state = progress >= 1 ? "PieceSung" : position > piece.StartTime ? "PieceActive" : "";
     if (state !== piece.State) {
       if (piece.State !== "") piece.HTMLElement.classList.remove(piece.State);

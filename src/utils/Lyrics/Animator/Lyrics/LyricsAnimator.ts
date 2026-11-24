@@ -18,7 +18,7 @@ import {
 } from "../../LyricsVirtualizer.ts";
 import { Spring } from "../../../../modules/Spring.ts";
 import { isExperimentEnabled } from "../../../experiments.ts";
-import { GetRomanizedPieces, ROMANIZED_ROW_SIZE, UpdateRomanizedRow } from "../../Applyer/Utils/RomanizedRow.ts";
+import { GetRomanizedPieces, PieceProgress, ROMANIZED_ROW_SIZE, UpdateRomanizedRow } from "../../Applyer/Utils/RomanizedRow.ts";
 import { cubicBezier } from "../CubicBezier.ts";
 /* import { CurveInterpolator } from "curve-interpolator"; */
 
@@ -662,7 +662,7 @@ function updateLineSweep(sweep: LineSweep, words: SyllableLead[], position: numb
       }
     } else if (position > word.StartTime) {
       const paced = word.Paced ? getPacedShare(word, span, position) : null;
-      const share = paced ?? (position - word.StartTime) / (word.EndTime - word.StartTime);
+      const share = paced ?? (word.Pace ? PieceProgress(word, position) : (position - word.StartTime) / (word.EndTime - word.StartTime));
       at = from + (to - from) * share;
     }
     edges[i] = at;
@@ -1254,7 +1254,7 @@ function stepRomanizedWords(
     const start = piece.Letters ? piece.LettersStart! : piece.StartTime;
     const end = piece.Letters ? piece.LettersEnd! : piece.EndTime;
     const state = sung ? "Sung" : getElementState(position, start, end);
-    const percentage = getProgressPercentage(position, start, end);
+    const percentage = piece.Letters ? getProgressPercentage(position, start, end) : PieceProgress(piece, position);
     const at = state === "Active" ? percentage : state === "Sung" ? 1 : 0;
     if (piece.Letters) {
       if (!stepRomanizedLetters(piece.Letters, state, position, deltaTime, sung)) settled = false;
@@ -1408,7 +1408,7 @@ function stepBloomRomanizedRow(
     const el = piece.HTMLElement;
     const span = sweep?.Spans[i];
     // Not measured yet: each piece fills over its own time.
-    const own = sung ? 100 : -50 + 150 * getProgressPercentage(position, piece.StartTime, piece.EndTime);
+    const own = sung ? 100 : -50 + 150 * PieceProgress(piece, position);
     setStyleIfChanged(el, "scale", "1");
     if (piece.Letters) {
       // Its letters lift one by one instead.

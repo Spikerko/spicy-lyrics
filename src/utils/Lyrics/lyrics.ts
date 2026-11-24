@@ -66,6 +66,9 @@ export interface SyllableLead {
   Dot?: boolean;
   // Keep Syllable Pace: the letters are timed by the joined word's own syllables.
   Paced?: boolean;
+  // A romanized row's joined piece under Keep Syllable Pace: how much of it is
+  // lit at each of its syllables' starts (RomanizedRow.ts PieceProgress).
+  Pace?: [number, number][];
   AnimatorStore?: SyllableAnimatorStore;
   // Bloom: letters in the whole word this syllable belongs to.
   WordLetters?: number;
