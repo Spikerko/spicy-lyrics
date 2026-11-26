@@ -277,6 +277,34 @@ const byCharacter = (
 
 type UnitResult = { texts: string[]; gaps: boolean[]; complete: boolean };
 
+// Ends a sentence: ! and ? (either width), 。, or a single full stop ("..."
+// trails off, so the next word stays lowercase).
+const endsSentence = (chars: string[], at: number): boolean =>
+  "!?！？。".includes(chars[at]) || (chars[at] === "." && chars[at - 1] !== "." && chars[at + 1] !== ".");
+
+/**
+ * Capitalizes the first romanized word of the line and of every sentence in
+ * it (sou kanzentai? AI? nante → Sou kanzentai? AI? Nante). Words already in
+ * Latin letters stay as written, and so does a syllable left unchanged.
+ */
+const capitalizeSentences = (texts: string[], originals: string[]) => {
+  let starts = true;
+  texts.forEach((text, i) => {
+    const romanized = text !== originals[i] && !/^[^\p{L}]*\p{Script=Latin}/u.test(originals[i]);
+    const chars = [...text];
+    chars.forEach((c, at) => {
+      if (/\p{L}/u.test(c)) {
+        if (starts && romanized) chars[at] = c.toUpperCase();
+        starts = false;
+      } else if (endsSentence(chars, at)) {
+        starts = true;
+      }
+    });
+    texts[i] = chars.join("");
+  });
+};
+
+
 const romanizeUnit = async (
   unit: RomanizeUnit,
   scripts: RomanizationBranch[],
@@ -386,15 +414,7 @@ const romanizeUnit = async (
     }
   }
 
-  // The line starts with a capital when its first word is a romanized one
-  // (words already in Latin letters stay as written).
-  const first = syllables.findIndex((s) => /\p{L}/u.test(s.Text ?? ""));
-  if (capitalize && first >= 0) {
-    const firstLetter = (syllables[first].Text as string).match(/\p{L}/u)?.[0] ?? "";
-    if (!/\p{Script=Latin}/u.test(firstLetter) && texts[first] !== syllables[first].Text) {
-      texts[first] = texts[first].replace(/\p{L}/u, (c) => c.toUpperCase());
-    }
-  }
+  if (capitalize) capitalizeSentences(texts, syllables.map((s) => s.Text ?? ""));
 
   return { texts, gaps, complete };
 };

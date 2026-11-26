@@ -3,7 +3,7 @@
 		"One case is one line, split into syllables as a TTML file splits them.",
 		"syllables and expected hold one string per syllable; a trailing space marks a word gap after that syllable.",
 		"expected is the target: what every implementation should show in the romanized line.",
-		"The line starts with a capital when its first word is romanized; words already in Latin letters stay as written.",
+		"Each sentence (the line, and after ! ? 。 or a single .) starts with a capital when its first word is romanized; words already in Latin letters stay as written.",
 		"A syllable with nothing to romanize expects its own text. A っ sung as a stop before a vowel expects an empty string.",
 		"lang names the script for implementations that take the language rather than detecting it: ja, zh, ko, cyrillic, greek.",
 		"known.<implementation> holds that implementation's current output where it is known to miss the target. Its test expects the known output, and fails once the target is reached; then delete the entry."
@@ -99,7 +99,8 @@
 			"syllables": ["看", "着", "你"],
 			"expected": ["Kàn ", "zhe ", "nǐ"],
 			"known": {
-				"desktop": ["Kàn ", "zháo ", "nǐ"]
+				"desktop": ["Kàn ", "zháo ", "nǐ"],
+				"android": ["Kàn ", "zháo ", "nǐ"]
 			}
 		},
 		{
@@ -109,7 +110,8 @@
 			"expected": ["Pǎo ", "de ", "hěn ", "kuài"],
 			"known": {
 				"desktop": ["Pǎo ", "dé ", "hěn ", "kuài"],
-				"editor": ["Pǎo ", "dé ", "hěn ", "kuài"]
+				"editor": ["Pǎo ", "dé ", "hěn ", "kuài"],
+				"android": ["Pǎo ", "dé ", "hěn ", "kuài"]
 			}
 		},
 		{
@@ -254,7 +256,7 @@
 			"id": "ja-tte-quote",
 			"lang": "ja",
 			"syllables": ["Hey ", "Hey ", "ちょっ", "と ", "待っ", "て！", "って"],
-			"expected": ["Hey ", "Hey ", "chot", "to ", "mat", "te! ", "tte"]
+			"expected": ["Hey ", "Hey ", "chot", "to ", "mat", "te! ", "Tte"]
 		},
 		{
 			"id": "ja-latin-apostrophe",
@@ -320,7 +322,7 @@
 				"zen",
 				"tai? ",
 				"AI? ",
-				"na",
+				"Na",
 				"n",
 				"te ",
 				"tsu",
