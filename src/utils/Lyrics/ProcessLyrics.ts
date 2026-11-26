@@ -135,7 +135,13 @@ const loadPackagesForScripts = async (
 };
 
 const romanizeCyrillicText = (text: string, ukrainian: boolean): string => {
-  const result = cyrillicToLatin(text, ukrainian ? "ukr" : "rus");
+  // х is kh, the usual spelling, where the Russian table writes x. It's swapped
+  // before converting, so a Latin x already in the text stays as it is.
+  const spelled = text
+    .replace(/Х(?=\p{Ll})/gu, "Kh")
+    .replace(/Х/g, "KH")
+    .replace(/х/g, "kh");
+  const result = cyrillicToLatin(spelled, ukrainian ? "ukr" : "rus");
   if (result == null) return text;
   // щ is shch, and the hard and soft signs aren't said on their own.
   return result.replace(/([Ss])hh/g, "$1hch").replace(/[ʺʹ]/g, "");
