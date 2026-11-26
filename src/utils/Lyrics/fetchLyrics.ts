@@ -331,6 +331,8 @@ async function runFetchLyrics(uri: string): Promise<[object | string, number] | 
   const localLyric = await LocalLyricsManager.get(uri);
   if (localLyric) {
     const lyricsData = { ...localLyric, uri };
+    // Stored as raw TTML, so it is romanized on every load, like a "Just once" upload.
+    await ProcessLyrics(lyricsData);
     if (isStaleFetch(uri)) return [lyricsData, 200];
     lastAnswer = { uri, from: "Local DB" };
     $currentLyricsData.set(JSON.stringify(lyricsData));
