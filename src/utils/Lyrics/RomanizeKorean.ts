@@ -1,6 +1,6 @@
 /**
  * Korean romanization by sound, Revised Romanization as it is said rather
- * than letter by letter (사랑해 → saranghae, 좋아 → joha, 신라 → silla). Each
+ * than letter by letter (사랑해 → saranghae, 좋아 → joa, 신라 → silla). Each
  * block splits into jamo, and a final consonant reads by what follows it,
  * longest rule first: final + next initial + next vowel, then final + next
  * initial, then alone. When the final's rule already covers the next initial,
