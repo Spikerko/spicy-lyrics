@@ -2012,6 +2012,13 @@
   transition: opacity 0.95s;
 }
 
+/* The outline's stroke reaches within a quarter pixel of the icon's box. At a fractional position
+   the box's clip snaps to whole pixels and shaved the right lobe flat; the icon's own clip-path
+   still keeps the fill inside, so the svg itself doesn't need to clip. */
+#SpicyLyricsPage .ContentBox .NowBar .Header .MediaBox .Heart svg {
+  overflow: visible;
+}
+
 /* The scale lives on the icon, not on .Heart: .Heart is the hover target, and
    shrinking it pulled its edge out from under a pointer resting near the edge,
    which ended the hover, sprang it back under the pointer and looped. */
