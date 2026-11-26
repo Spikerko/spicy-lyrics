@@ -34,5 +34,7 @@
     "**/*.ts",
     "**/*.tsx",
     "**/*.d.ts"
-  ]
+  ],
+  // The tests run under Bun and type-check with tests/tsconfig.json.
+  "exclude": ["node_modules", "tests"]
 }

@@ -7,7 +7,8 @@
     "build": "spicetify-creator build",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "fmt": "oxfmt"
+    "fmt": "oxfmt",
+    "test": "bun test tests"
   },
   "dependencies": {
     "@kawarp/core": "1.3.1",
@@ -36,6 +37,7 @@
     "@types/bun": "latest",
     "@types/d3-ease": "^3.0.2",
     "@types/semver": "^7.7.1",
+    "kuromoji": "0.1.2",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.67.0"
   },

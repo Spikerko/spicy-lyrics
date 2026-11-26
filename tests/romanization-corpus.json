@@ -1,0 +1,700 @@
+{
+ "$format": [
+  "One case is one line, split into syllables as a TTML file splits them.",
+  "syllables and expected hold one string per syllable; a trailing space marks a word gap after that syllable.",
+  "expected is the target: what every implementation should show in the romanized line.",
+  "The line starts with a capital when its first word is romanized; words already in Latin letters stay as written.",
+  "A syllable with nothing to romanize expects its own text. A っ sung as a stop before a vowel expects an empty string.",
+  "lang names the script for implementations that take the language rather than detecting it: ja, zh, ko, cyrillic, greek.",
+  "known.<implementation> holds that implementation's current output where it is known to miss the target. Its test expects the known output, and fails once the target is reached; then delete the entry."
+ ],
+ "cases": [
+  {
+   "id": "ja-particles",
+   "lang": "ja",
+   "syllables": [
+    "私",
+    "は",
+    "学",
+    "校",
+    "へ",
+    "行",
+    "く"
+   ],
+   "expected": [
+    "Watashi ",
+    "wa ",
+    "gak",
+    "kou ",
+    "e ",
+    "i",
+    "ku"
+   ]
+  },
+  {
+   "id": "ja-wo",
+   "lang": "ja",
+   "syllables": [
+    "君",
+    "を",
+    "待",
+    "っ",
+    "て",
+    "る"
+   ],
+   "expected": [
+    "Kimi ",
+    "wo ",
+    "ma",
+    "t",
+    "te",
+    "ru"
+   ]
+  },
+  {
+   "id": "ja-long",
+   "lang": "ja",
+   "syllables": [
+    "東",
+    "京",
+    "の",
+    "空"
+   ],
+   "expected": [
+    "Tou",
+    "kyou ",
+    "no ",
+    "sora"
+   ]
+  },
+  {
+   "id": "ja-kyou",
+   "lang": "ja",
+   "syllables": [
+    "今",
+    "日",
+    "も ",
+    "コー",
+    "ヒー"
+   ],
+   "expected": [
+    "Kyo",
+    "u ",
+    "mo ",
+    "koo",
+    "hii"
+   ]
+  },
+  {
+   "id": "ja-sokuon",
+   "lang": "ja",
+   "syllables": [
+    "き",
+    "っ",
+    "と ",
+    "ま",
+    "っ",
+    "い",
+    "っ",
+    "か"
+   ],
+   "expected": [
+    "Ki",
+    "t",
+    "to ",
+    "ma ",
+    "",
+    "i",
+    "k",
+    "ka"
+   ]
+  },
+  {
+   "id": "ja-n-vowel",
+   "lang": "ja",
+   "syllables": [
+    "こ",
+    "ん",
+    "や",
+    "は ",
+    "原",
+    "因"
+   ],
+   "expected": [
+    "Ko",
+    "n",
+    "ya ",
+    "wa ",
+    "gen",
+    "in"
+   ]
+  },
+  {
+   "id": "ja-choon",
+   "lang": "ja",
+   "syllables": [
+    "セ",
+    "ー",
+    "ラー",
+    "服"
+   ],
+   "expected": [
+    "Se",
+    "e",
+    "raa",
+    "fuku"
+   ]
+  },
+  {
+   "id": "ja-hyphen",
+   "lang": "ja",
+   "syllables": [
+    "ラ",
+    "ブ",
+    "-",
+    "ソ",
+    "ン",
+    "グ"
+   ],
+   "expected": [
+    "Ra",
+    "bu",
+    "-",
+    "so",
+    "n",
+    "gu"
+   ]
+  },
+  {
+   "id": "ja-mixed-latin",
+   "lang": "ja",
+   "syllables": [
+    "Oh ",
+    "yeah, ",
+    "走",
+    "り",
+    "出",
+    "す"
+   ],
+   "expected": [
+    "Oh ",
+    "yeah, ",
+    "hashi",
+    "ri",
+    "da",
+    "su"
+   ]
+  },
+  {
+   "id": "ja-yonde",
+   "lang": "ja",
+   "syllables": [
+    "名",
+    "前",
+    "を ",
+    "呼",
+    "ん",
+    "で",
+    "い",
+    "た"
+   ],
+   "expected": [
+    "Na",
+    "mae ",
+    "wo ",
+    "yo",
+    "n",
+    "de ",
+    "i",
+    "ta"
+   ]
+  },
+  {
+   "id": "ja-odoriji",
+   "lang": "ja",
+   "syllables": [
+    "燦",
+    "々",
+    "と"
+   ],
+   "expected": [
+    "San",
+    "san ",
+    "to"
+   ]
+  },
+  {
+   "id": "ja-spaced",
+   "lang": "ja",
+   "syllables": [
+    "あ ",
+    "な ",
+    "た ",
+    "の ",
+    "こ ",
+    "と"
+   ],
+   "expected": [
+    "A ",
+    "na ",
+    "ta ",
+    "no ",
+    "ko ",
+    "to"
+   ]
+  },
+  {
+   "id": "zh-heteronyms",
+   "lang": "zh",
+   "syllables": [
+    "我",
+    "在",
+    "银",
+    "行",
+    "行",
+    "走"
+   ],
+   "expected": [
+    "Wǒ ",
+    "zài ",
+    "yín ",
+    "háng ",
+    "xíng ",
+    "zǒu"
+   ]
+  },
+  {
+   "id": "zh-zhang",
+   "lang": "zh",
+   "syllables": [
+    "长",
+    "大",
+    "了"
+   ],
+   "expected": [
+    "Zhǎng ",
+    "dà ",
+    "le"
+   ]
+  },
+  {
+   "id": "zh-kanzhe",
+   "lang": "zh",
+   "syllables": [
+    "看",
+    "着",
+    "你"
+   ],
+   "expected": [
+    "Kàn ",
+    "zhe ",
+    "nǐ"
+   ],
+   "known": {
+    "desktop": [
+     "Kàn ",
+     "zháo ",
+     "nǐ"
+    ]
+   }
+  },
+  {
+   "id": "zh-de",
+   "lang": "zh",
+   "syllables": [
+    "跑",
+    "得",
+    "很",
+    "快"
+   ],
+   "expected": [
+    "Pǎo ",
+    "de ",
+    "hěn ",
+    "kuài"
+   ],
+   "known": {
+    "desktop": [
+     "Pǎo ",
+     "dé ",
+     "hěn ",
+     "kuài"
+    ],
+    "editor": [
+     "Pǎo ",
+     "dé ",
+     "hěn ",
+     "kuài"
+    ]
+   }
+  },
+  {
+   "id": "zh-latin",
+   "lang": "zh",
+   "syllables": [
+    "我",
+    "爱 ",
+    "you ",
+    "baby"
+   ],
+   "expected": [
+    "Wǒ ",
+    "ài ",
+    "you ",
+    "baby"
+   ]
+  },
+  {
+   "id": "zh-sentence",
+   "lang": "zh",
+   "syllables": [
+    "月",
+    "亮",
+    "代",
+    "表",
+    "我",
+    "的",
+    "心"
+   ],
+   "expected": [
+    "Yuè ",
+    "liàng ",
+    "dài ",
+    "biǎo ",
+    "wǒ ",
+    "de ",
+    "xīn"
+   ]
+  },
+  {
+   "id": "ko-gachi",
+   "lang": "ko",
+   "syllables": [
+    "같",
+    "이 ",
+    "가",
+    "자"
+   ],
+   "expected": [
+    "Ga",
+    "chi ",
+    "ga",
+    "ja"
+   ]
+  },
+  {
+   "id": "ko-joha",
+   "lang": "ko",
+   "syllables": [
+    "좋",
+    "아 ",
+    "좋",
+    "다"
+   ],
+   "expected": [
+    "Jo",
+    "a ",
+    "jo",
+    "ta"
+   ]
+  },
+  {
+   "id": "ko-silla",
+   "lang": "ko",
+   "syllables": [
+    "신",
+    "라"
+   ],
+   "expected": [
+    "Sil",
+    "la"
+   ]
+  },
+  {
+   "id": "ko-meokneun",
+   "lang": "ko",
+   "syllables": [
+    "먹",
+    "는"
+   ],
+   "expected": [
+    "Meong",
+    "neun"
+   ]
+  },
+  {
+   "id": "ko-eopseo",
+   "lang": "ko",
+   "syllables": [
+    "없",
+    "어"
+   ],
+   "expected": [
+    "Eop",
+    "seo"
+   ]
+  },
+  {
+   "id": "ko-saranghae",
+   "lang": "ko",
+   "syllables": [
+    "사",
+    "랑",
+    "해 ",
+    "너",
+    "를"
+   ],
+   "expected": [
+    "Sa",
+    "rang",
+    "hae ",
+    "neo",
+    "reul"
+   ]
+  },
+  {
+   "id": "ko-gwaenchana",
+   "lang": "ko",
+   "syllables": [
+    "괜",
+    "찮",
+    "아"
+   ],
+   "expected": [
+    "Gwaen",
+    "cha",
+    "na"
+   ]
+  },
+  {
+   "id": "ko-annyeong",
+   "lang": "ko",
+   "syllables": [
+    "안",
+    "녕",
+    "하",
+    "세",
+    "요"
+   ],
+   "expected": [
+    "An",
+    "nyeong",
+    "ha",
+    "se",
+    "yo"
+   ]
+  },
+  {
+   "id": "ru-privet",
+   "lang": "cyrillic",
+   "syllables": [
+    "При",
+    "вет ",
+    "мир"
+   ],
+   "expected": [
+    "Pri",
+    "vet ",
+    "mir"
+   ]
+  },
+  {
+   "id": "ru-shch",
+   "lang": "cyrillic",
+   "syllables": [
+    "щ",
+    "ука ",
+    "объ",
+    "ём ",
+    "день"
+   ],
+   "expected": [
+    "Shch",
+    "uka ",
+    "ob",
+    "yom ",
+    "den"
+   ]
+  },
+  {
+   "id": "ru-yo",
+   "lang": "cyrillic",
+   "syllables": [
+    "Ёж ",
+    "жизнь ",
+    "хо",
+    "чу"
+   ],
+   "expected": [
+    "Yozh ",
+    "zhizn ",
+    "kho",
+    "chu"
+   ]
+  },
+  {
+   "id": "uk-letters",
+   "lang": "cyrillic",
+   "syllables": [
+    "Ї",
+    "жак ",
+    "і ",
+    "Ґа",
+    "ня ",
+    "Є",
+    "вро",
+    "па"
+   ],
+   "expected": [
+    "Yi",
+    "zhak ",
+    "i ",
+    "Ga",
+    "nia ",
+    "Ye",
+    "vro",
+    "pa"
+   ]
+  },
+  {
+   "id": "el-kalimera",
+   "lang": "greek",
+   "syllables": [
+    "Κα",
+    "λη",
+    "μέ",
+    "ρα ",
+    "κό",
+    "σμε"
+   ],
+   "expected": [
+    "Ka",
+    "lē",
+    "me",
+    "ra ",
+    "ko",
+    "sme"
+   ]
+  },
+  {
+   "id": "el-thess",
+   "lang": "greek",
+   "syllables": [
+    "Θεσ",
+    "σα",
+    "λο",
+    "νί",
+    "κη"
+   ],
+   "expected": [
+    "Thes",
+    "sa",
+    "lo",
+    "ni",
+    "kē"
+   ]
+  },
+  {
+   "id": "el-diphth",
+   "lang": "greek",
+   "syllables": [
+    "ευ",
+    "χα",
+    "ρι",
+    "στώ ",
+    "παι",
+    "δί ",
+    "ουρανός"
+   ],
+   "expected": [
+    "Eu",
+    "cha",
+    "ri",
+    "stō ",
+    "pai",
+    "di ",
+    "ouranos"
+   ]
+  },
+  {
+   "id": "el-psychi",
+   "lang": "greek",
+   "syllables": [
+    "ψυ",
+    "χή ",
+    "μπα",
+    "μπάς"
+   ],
+   "expected": [
+    "Psy",
+    "chē ",
+    "mpa",
+    "mpas"
+   ]
+  },
+  {
+   "id": "ja-whole-line",
+   "lang": "ja",
+   "syllables": [
+    "私は学校へ行く"
+   ],
+   "expected": [
+    "Watashi wa gakkou e iku"
+   ]
+  },
+  {
+   "id": "ko-whole-line",
+   "lang": "ko",
+   "syllables": [
+    "같이 가자"
+   ],
+   "expected": [
+    "Gachi gaja"
+   ]
+  },
+  {
+   "id": "zh-yinhang",
+   "lang": "zh",
+   "syllables": [
+    "银",
+    "行"
+   ],
+   "expected": [
+    "Yín ",
+    "háng"
+   ]
+  },
+  {
+   "id": "ru-latin-x",
+   "lang": "cyrillic",
+   "syllables": [
+    "xoxo ",
+    "Хо",
+    "ро",
+    "шо"
+   ],
+   "expected": [
+    "xoxo ",
+    "Kho",
+    "ro",
+    "sho"
+   ]
+  },
+  {
+   "id": "uk-kh",
+   "lang": "cyrillic",
+   "syllables": [
+    "Хо",
+    "чу ",
+    "і ",
+    "є"
+   ],
+   "expected": [
+    "Kho",
+    "chu ",
+    "i ",
+    "ye"
+   ]
+  }
+ ]
+}
