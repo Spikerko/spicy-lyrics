@@ -266,6 +266,15 @@ export const EXPERIMENTS = [
     default: true,
     pageClass: "Exp_GroupedViewControls",
   },
+  {
+    id: "hideIdleCursor",
+    category: "player",
+    label: "Hide Idle Cursor",
+    description:
+      "In Cinema View, the mouse pointer disappears after two seconds without moving, unless it rests on the cover or its controls, and comes back as soon as you move it. Disable to keep the pointer on screen.",
+    default: true,
+    pageClass: "Exp_HideIdleCursor",
+  },
 ] as const satisfies readonly Experiment[];
 
 /** A registry entry, narrowed to its literal `id`. */

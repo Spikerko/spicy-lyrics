@@ -67,9 +67,23 @@ let mediaBoxHover = false;
 
 let lastPageMouseMove: number | undefined;
 
+// The pointer is marked idle (CursorIdle on the page) once it has rested outside the controls for
+// this long; the hideIdleCursor experiment hides it in CSS. Any movement brings it straight back.
+const CURSOR_IDLE_DELAY = 2000;
+let cursorIdleTimer: ReturnType<typeof setTimeout> | undefined;
+
+const SetCursorIdle = (idle: boolean) => {
+  if (cursorIdleTimer !== undefined) {
+    clearTimeout(cursorIdleTimer);
+    cursorIdleTimer = undefined;
+  }
+  PageContainer?.classList.toggle("CursorIdle", idle);
+};
+
 const Page_MouseMove = () => {
   pageHover = true;
   lastPageMouseMove = performance.now();
+  SetCursorIdle(false);
   ToggleControls();
   if (!mediaBoxHover) {
     MouseMoveChecker();
@@ -82,6 +96,12 @@ const MouseMoveChecker = () => {
     animationLastTimestamp = now;
     ToggleControls(true);
     ControlsMaid.Clean("MouseMoveChecker");
+    // The controls fade now; the pointer follows once it has been still for CURSOR_IDLE_DELAY.
+    SetCursorIdle(false);
+    cursorIdleTimer = setTimeout(
+      () => SetCursorIdle(true),
+      Math.max(0, CURSOR_IDLE_DELAY - (now - lastPageMouseMove))
+    );
     return;
   }
   ControlsMaid.Give(Scheduler.OnPreRender(MouseMoveChecker), "MouseMoveChecker");
@@ -440,6 +460,8 @@ function Open(skipDocumentFullscreen: boolean = false, moveElement: boolean = tr
       // Create and store the AbortController
       EventAbortController = new AbortController();
       const signal = EventAbortController.signal;
+      // Leaving Cinema View must never strand a hidden pointer.
+      signal.addEventListener("abort", () => SetCursorIdle(false));
 
       MediaBox.addEventListener("mouseenter", MediaBox_MouseIn, { signal });
       MediaBox.addEventListener("mouseleave", MediaBox_MouseOut, { signal });

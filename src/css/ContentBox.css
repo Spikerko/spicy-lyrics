@@ -2293,3 +2293,10 @@
 #SpicyLyricsPage .MediaImageContainer .fi_FromImage.MB_anim_fimg::before {
   opacity: 1;
 }
+
+/* Idle pointer in Cinema View (experiment hideIdleCursor). Fullscreen.ts sets CursorIdle once the
+   pointer has rested outside the controls for a moment and clears it on the next move. */
+#SpicyLyricsPage.Exp_HideIdleCursor.Fullscreen.CursorIdle,
+#SpicyLyricsPage.Exp_HideIdleCursor.Fullscreen.CursorIdle * {
+  cursor: none !important;
+}
