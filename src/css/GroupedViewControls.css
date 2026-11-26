@@ -168,9 +168,12 @@
 }
 
 /* ── Page view: a capsule centred over the lyrics instead of a page-wide strip. The strip was
-   the size container its buttons measured, so the size comes from the page now. */
+   the size container its buttons measured, so the size comes from the page now. Height alone
+   blew the capsule up in tall windows (108px buttons at 1080x1873), so it tops out at the
+   capsule's default size, and 7cqw keeps a full row of ten buttons inside narrow pages. The
+   18px floor still fits that row in the smallest popup (260px wide). */
 #SpicyLyricsPage.Exp_GroupedViewControls:not(.Fullscreen) .ViewControls {
-  --ViewControlSize: 5cqh;
+  --ViewControlSize: clamp(18px, min(5cqh, 7cqw), 44px);
   width: fit-content;
   left: 0;
   right: 0;
