@@ -441,7 +441,9 @@ const applyUnit = (unit: RomanizeUnit, result: UnitResult): boolean => {
 // syllables, so lyrics cached as "written" read some kanji alone and are redone.
 // "written3": hyphenated words stay joined (doki-doki), so lyrics cached as
 // "written2" with a gap after the hyphen are redone.
-const japaneseRomajiSpelling = () => (isExperimentEnabled("romajiAsWritten") ? "written3" : "said");
+// "written4": clause linkers stand apart (itai kara), Latin words keep their
+// apostrophe (I'm), and a one-kanji noun stays on the noun after it.
+const japaneseRomajiSpelling = () => (isExperimentEnabled("romajiAsWritten") ? "written4" : "said");
 
 /**
  * Whether lyrics (from the cache, say) carry the Japanese spelling currently

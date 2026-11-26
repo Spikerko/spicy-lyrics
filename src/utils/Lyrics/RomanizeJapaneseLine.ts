@@ -116,14 +116,36 @@ const stretches = (token: Token, previous: Token | undefined) => {
 };
 
 /**
+ * Conjunctive particles that link two clauses are words of their own (itai
+ * kara, iku kedo, ame na node); the ones that make a verb form (te, de, ba,
+ * nagara) stay on the verb.
+ */
+/** A piece of a Latin word: letters, digits or an apostrophe. */
+const LATIN_WORD = /^[\p{Script=Latin}\p{N}'’]+$/u;
+
+const LINKS_CLAUSES = new Set(["から", "けど", "けれど", "けれども", "が", "のに", "ので", "し", "と", "ものの"]);
+
+/**
  * Endings that stay on the word before: verb and adjective endings (yonde,
  * ita, ikou), て/で, and suffixes (tomodachisan). A copula after a noun stays
  * its own word (suki da).
  */
 const attaches = (token: Token, previous: Token | undefined) =>
   (token.pos === "助動詞" && !!previous && INFLECTING.has(previous.pos)) ||
-  (token.pos === "助詞" && token.posDetail === "接続助詞") ||
+  (token.pos === "助詞" && token.posDetail === "接続助詞" && !LINKS_CLAUSES.has(token.surface)) ||
   token.posDetail === "接尾" ||
+  // Latin letters and marks written together are one word (I'm, don't); the
+  // dictionary splits them at the apostrophe.
+  (!!previous && LATIN_WORD.test(previous.surface) && LATIN_WORD.test(token.surface)) ||
+  // A one-kanji noun the dictionary split off the noun after it is part of it
+  // (完|全体 → kanzentai).
+  (!!previous &&
+    previous.pos === "名詞" &&
+    previous.posDetail === "一般" &&
+    previous.surface.length === 1 &&
+    isKanji(previous.surface) &&
+    token.pos === "名詞" &&
+    [...token.surface].every(isKanji)) ||
   // Casual ん (やってんの, 抜かしてんだ) is said as part of the word before.
   (!!previous && /^[んン]$/.test(token.surface)) ||
   // A ー on its own stretches the sound before it (せー → see).
