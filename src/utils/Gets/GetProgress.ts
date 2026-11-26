@@ -37,7 +37,7 @@ let lastLocalSample: {
 let lastRawLocalSample: number | null = null;
 let localSourceHealth: {
   LastChangeAt: number;
-  ConsecutiveChanges: number;
+  RunChanges: number;
   UsingState: boolean;
 } | null = null;
 // Previous poll's reading of the player state, used only to spot a
@@ -73,10 +73,17 @@ const LOCAL_ANCHOR_RESYNC_THRESHOLD = 1000;
 // client that refreshes it normally produces a new value every poll (~16ms), so
 // this only trips on a source that has genuinely stopped.
 const LOCAL_SOURCE_STALL_TIMEOUT = 500;
-// Consecutive polls with a *new* getPositionState value required to hand the
-// clock back to it. The two sources sit tens to hundreds of ms apart, so every
-// switch between them is a step the jitter filter then glides over — visible as
-// wobble. Hysteresis is what stops a source that moves once every few seconds
+// Fresh getPositionState values required, in one unbroken run, to hand the clock
+// back to it. A run is broken by any gap longer than LOCAL_SOURCE_STALL_TIMEOUT,
+// not by individual polls that see no change: some clients refresh the source
+// only every few hundred ms, so a 60 Hz poll mostly sees the same value even
+// while it is advancing perfectly well. Counting consecutive *polls* instead
+// meant such a source could never win the clock back after one stall (a seek, a
+// repeat or the decoder starting up), leaving the lyrics on the player state,
+// which on local files runs up to ~1 s ahead of the audio after those events.
+// The two sources sit tens to hundreds of ms apart, so every switch between
+// them is a step the jitter filter then glides over — visible as wobble.
+// Requiring a run is what stops a source that moves once every few seconds
 // from causing that step each time it twitches.
 const LOCAL_SOURCE_RECOVERY_STREAK = 3;
 
@@ -234,23 +241,27 @@ export const requestPositionSync = () => {
           // The switch is deliberately sticky. The two sources sit tens to
           // hundreds of ms apart, so each handover is a step discontinuity that
           // the jitter filter smooths into a visible glide. Requiring a run of
-          // genuinely fresh samples before handing the clock back keeps a source
-          // that twitches once every few seconds from stepping the clock each
-          // time. A client that refreshes normally satisfies the streak on its
-          // first polls and never leaves getPositionState.
+          // genuinely fresh samples, with no stall-length gap between them,
+          // before handing the clock back keeps a source that twitches once
+          // every few seconds from stepping the clock each time. A source that
+          // refreshes every poll, or every few hundred ms, completes the run
+          // within a second of moving again (see LOCAL_SOURCE_RECOVERY_STREAK).
           if (isPlaying) {
             const changed = rawChangedSinceLastPoll;
             if (!localSourceHealth) {
               localSourceHealth = {
                 LastChangeAt: sampledAt,
-                ConsecutiveChanges: changed ? 1 : 0,
+                RunChanges: changed ? 1 : 0,
                 UsingState: false,
               };
-            } else {
-              localSourceHealth.ConsecutiveChanges = changed
-                ? localSourceHealth.ConsecutiveChanges + 1
-                : 0;
-              if (changed) localSourceHealth.LastChangeAt = sampledAt;
+            } else if (changed) {
+              // A change after a stall-length gap starts a new run.
+              localSourceHealth.RunChanges =
+                sampledAt - localSourceHealth.LastChangeAt >
+                LOCAL_SOURCE_STALL_TIMEOUT
+                  ? 1
+                  : localSourceHealth.RunChanges + 1;
+              localSourceHealth.LastChangeAt = sampledAt;
             }
 
             const stalled =
@@ -259,7 +270,7 @@ export const requestPositionSync = () => {
 
             if (
               localSourceHealth.UsingState &&
-              localSourceHealth.ConsecutiveChanges >=
+              localSourceHealth.RunChanges >=
                 LOCAL_SOURCE_RECOVERY_STREAK
             ) {
               localSourceHealth.UsingState = false;
@@ -271,7 +282,7 @@ export const requestPositionSync = () => {
             // observation window so paused time does not count as a stall, while
             // preserving the active source choice across the pause.
             localSourceHealth.LastChangeAt = sampledAt;
-            localSourceHealth.ConsecutiveChanges = 0;
+            localSourceHealth.RunChanges = 0;
           }
           // A pause legitimately freezes getPositionState, so health is only
           // judged while playing — but the verdict carries across the pause.
